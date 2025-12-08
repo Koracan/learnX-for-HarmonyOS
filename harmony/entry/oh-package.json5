@@ -7,7 +7,10 @@
   "license": "",
   "dependencies": {
     "@rnoh/react-native-openharmony": "0.72.101",
-    "@react-native-oh-tpl/react-native-safe-area-context": "file:../../node_modules/@react-native-oh-tpl/react-native-safe-area-context/harmony/safe_area.har"
+    "@react-native-oh-tpl/react-native-safe-area-context": "file:../../node_modules/@react-native-oh-tpl/react-native-safe-area-context/harmony/safe_area.har",
+    "@react-native-ohos/async-storage": "file:../../node_modules/@react-native-ohos/async-storage/harmony/async_storage.har",
+    "@react-native-ohos/react-native-webview": "file:../../node_modules/@react-native-ohos/react-native-webview/harmony/rn_webview.har",
+    "@react-native-ohos/cookies": "file:../../node_modules/@react-native-ohos/cookies/harmony/rn_cookies.har"
   },
   "devDependencies": {},
   "dynamicDependencies": {}

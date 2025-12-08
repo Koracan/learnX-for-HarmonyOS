@@ -11,9 +11,17 @@ import {
   RNOHCoreContext
 } from '@rnoh/react-native-openharmony';
 import { createRNPackages } from '../RNPackagesFactory';
+import { WebView, WEB_VIEW } from "@react-native-ohos/react-native-webview";
 
 @Builder
-export function buildCustomRNComponent(ctx: ComponentBuilderContext) {}
+export function buildCustomRNComponent(ctx: ComponentBuilderContext) {
+  if (ctx.componentName === WEB_VIEW) {
+    WebView({
+      ctx: ctx.rnComponentContext,
+      tag: ctx.tag
+    })
+  }
+}
 
 const wrappedCustomRNComponentBuilder = wrapBuilder(buildCustomRNComponent)
 
@@ -52,7 +60,9 @@ struct Index {
             enableNDKTextMeasuring: true, // 该项必须为true，用于开启NDK文本测算
             enableBackgroundExecutor: false,
             enableCAPIArchitecture: true, // 该项必须为true，用于开启CAPI
-            arkTsComponentNames: [],
+            arkTsComponentNames: [
+              WEB_VIEW
+            ],
             fontResourceByFontFamily: {
               'anticon': $rawfile('fonts/AntDesign.ttf'),
               'Entypo': $rawfile('fonts/Entypo.ttf'),
