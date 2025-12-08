@@ -1,0 +1,56 @@
+{
+  "app": {
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "C:\\Users\\korac\\.ohos\\config\\default_harmony_S-ZZmkJI8BI2pJwUhC65zkKyKFcgr_cYDslHwdNtuRk=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001BB796B4AF4244FE87EF866F994520ADD3DC034CB03510ADFF70283F3F209F6006B5A82E51BAC8E4",
+          "profile": "C:\\Users\\korac\\.ohos\\config\\default_harmony_S-ZZmkJI8BI2pJwUhC65zkKyKFcgr_cYDslHwdNtuRk=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "C:\\Users\\korac\\.ohos\\config\\default_harmony_S-ZZmkJI8BI2pJwUhC65zkKyKFcgr_cYDslHwdNtuRk=.p12",
+          "storePassword": "0000001B209FD6A95D6F17812D700D45B6E1F8B31F66E6F00BFFF2346627AC67372DC49A0FD2399D197ADB"
+        }
+      }
+    ],
+    "products": [
+      {
+        "name": "default",
+        "signingConfig": "default",
+        "targetSdkVersion": "6.0.0(20)",
+        "compatibleSdkVersion": "5.0.3(15)",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
+      }
+    ],
+    "buildModeSet": [
+      {
+        "name": "debug",
+      },
+      {
+        "name": "release"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    }
+  ]
+}

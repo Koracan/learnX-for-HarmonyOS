@@ -1,0 +1,14 @@
+{
+  "name": "entry",
+  "version": "1.0.0",
+  "description": "Please describe the basic information.",
+  "main": "",
+  "author": "",
+  "license": "",
+  "dependencies": {
+    "@rnoh/react-native-openharmony": "0.72.101",
+    "@react-native-oh-tpl/react-native-safe-area-context": "file:../../node_modules/@react-native-oh-tpl/react-native-safe-area-context/harmony/safe_area.har"
+  },
+  "devDependencies": {},
+  "dynamicDependencies": {}
+}
