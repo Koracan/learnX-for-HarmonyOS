@@ -1,10 +1,52 @@
 {
   "extends": "@tsconfig/react-native/tsconfig.json",
-  "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["**/node_modules", "**/Pods", "harmony"],
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/Pods",
+    "harmony"
+  ],
   "compilerOptions": {
-    "lib": ["esnext", "dom"],
+    "lib": [
+      "esnext",
+      "dom"
+    ],
     "noUnusedLocals": true,
-    "baseUrl": "./src"
+    "baseUrl": "./src",
+    "paths": {
+      "react-native-fs": [
+        "../node_modules/@react-native-ohos/react-native-fs"
+      ],
+      "@react-native-async-storage/async-storage": [
+        "../node_modules/@react-native-ohos/async-storage"
+      ],
+      "@react-native-cookies/cookies": [
+        "../node_modules/@react-native-ohos/cookies"
+      ],
+      "react-native-blob-util": [
+        "../node_modules/@react-native-ohos/react-native-blob-util"
+      ],
+      "react-native-gesture-handler": [
+        "../node_modules/@react-native-ohos/react-native-gesture-handler"
+      ],
+      "react-native-webview": [
+        "../node_modules/@react-native-ohos/react-native-webview"
+      ],
+      "@react-navigation/elements": [
+        "../node_modules/@react-native-oh-tpl/elements"
+      ],
+      "@react-navigation/native-stack": [
+        "../node_modules/@react-native-oh-tpl/native-stack"
+      ],
+      "react-native-safe-area-context": [
+        "../node_modules/@react-native-oh-tpl/react-native-safe-area-context"
+      ],
+      "@react-navigation/stack": [
+        "../node_modules/@react-native-oh-tpl/stack"
+      ]
+    }
   }
 }

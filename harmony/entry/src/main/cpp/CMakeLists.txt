@@ -15,6 +15,9 @@ add_subdirectory("${OH_MODULE_DIR}/@react-native-oh-tpl/react-native-safe-area-c
 add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/async-storage/src/main/cpp" ./async-storage)
 add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-webview/src/main/cpp" ./webview)
 add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/cookies/src/main/cpp" ./rn_cookies)
+add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-gesture-handler/src/main/cpp" ./gesture-handler)
+add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-blob-util/src/main/cpp" ./blob-util)
+add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-fs/src/main/cpp" ./fs)
 
 
 file(GLOB GENERATED_CPP_FILES "./generated/*.cpp")
@@ -29,3 +32,6 @@ target_link_libraries(rnoh_app PUBLIC rnoh_safe_area)
 target_link_libraries(rnoh_app PUBLIC rnoh_async_storage)
 target_link_libraries(rnoh_app PUBLIC rnoh_webview)
 target_link_libraries(rnoh_app PUBLIC rnoh_cookies)
+target_link_libraries(rnoh_app PUBLIC rnoh_gesture_handler)
+target_link_libraries(rnoh_app PUBLIC rnoh_blobutil)
+target_link_libraries(rnoh_app PUBLIC rnoh_fs)
