@@ -12,6 +12,7 @@ import {
 } from '@rnoh/react-native-openharmony';
 import { createRNPackages } from '../RNPackagesFactory';
 import { WebView, WEB_VIEW } from "@react-native-ohos/react-native-webview";
+import { RTNPdfView, PDF_VIEW_TYPE } from '@react-native-ohos/react-native-pdf';
 
 @Builder
 export function buildCustomRNComponent(ctx: ComponentBuilderContext) {
@@ -19,6 +20,11 @@ export function buildCustomRNComponent(ctx: ComponentBuilderContext) {
     WebView({
       ctx: ctx.rnComponentContext,
       tag: ctx.tag
+    })
+  } else if (ctx.componentName === PDF_VIEW_TYPE) {
+    RTNPdfView({
+      ctx: ctx.rnComponentContext,
+      tag: ctx.tag,
     })
   }
 }
@@ -61,7 +67,8 @@ struct Index {
             enableBackgroundExecutor: false,
             enableCAPIArchitecture: true, // 该项必须为true，用于开启CAPI
             arkTsComponentNames: [
-              WEB_VIEW
+              WEB_VIEW,
+              PDF_VIEW_TYPE
             ],
             fontResourceByFontFamily: {
               'anticon': $rawfile('fonts/AntDesign.ttf'),

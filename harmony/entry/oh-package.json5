@@ -14,6 +14,11 @@
     "@react-native-ohos/react-native-gesture-handler": "file:../../node_modules/@react-native-ohos/react-native-gesture-handler/harmony/gesture_handler.har",
     "@react-native-ohos/react-native-blob-util": "file:../../node_modules/@react-native-ohos/react-native-blob-util/harmony/blobUtil.har",
     "@react-native-ohos/react-native-fs": "file:../../node_modules/@react-native-ohos/react-native-fs/harmony/fs.har",
+    "@react-native-ohos/react-native-localize": "file:../../node_modules/@react-native-ohos/react-native-localize/harmony/rn_localize.har",
+    "@react-native-ohos/react-native-pager-view": "file:../../node_modules/@react-native-ohos/react-native-pager-view/harmony/pager_view.har",
+    "@react-native-ohos/react-native-pdf": "file:../../node_modules/@react-native-ohos/react-native-pdf/harmony/pdfview.har",
+    "@react-native-ohos/react-native-reanimated": "file:../../node_modules/@react-native-ohos/react-native-reanimated/harmony/reanimated.har",
+    "@react-native-ohos/react-native-share": "file:../../node_modules/@react-native-ohos/react-native-share/harmony/react_native_share.har",
   },
   "devDependencies": {},
   "dynamicDependencies": {}

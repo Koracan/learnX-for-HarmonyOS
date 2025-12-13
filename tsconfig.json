@@ -46,6 +46,9 @@
       ],
       "@react-navigation/stack": [
         "../node_modules/@react-native-oh-tpl/stack"
+      ],
+      "react-native-localize": [
+        "../node_modules/@react-native-ohos/react-native-localize"
       ]
     }
   }
