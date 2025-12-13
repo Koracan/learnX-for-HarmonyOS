@@ -1,26 +1,135 @@
+import React from "react";
+import { View, Text, Dimensions, StyleSheet } from "react-native";
+import {
+  TabView,
+  TabBar,
+  SceneMap,
+  NavigationState,
+  SceneRendererProps,
+} from "react-native-tab-view";
 
-import React from 'react';
-import { Button } from 'react-native';
-import RNShare,{ShareSheet} from 'react-native-share';
+type State = NavigationState<{
+  key: string,
+  title: string,
+}>;
 
-function App() {
-  return (
-      <ShareSheet style={{padding:20}} visible onCancel={()=>{}}>
-          <Button title='分享' onPress={()=>{
-              RNShare.open({
-              title:'分享标题',
-              subject:'分享摘要',
-              url:'https://www.baidu.com/'
-              }).then((res) => {
-                  
-              }).catch((err) => {
-              })
-          }}></Button>
-      </ShareSheet>
+const FirstRoute = () => (
+  <View
+    style={{
+      alignItems: "center",
+      padding: 10,
+      margin: 10,
+      width: "80%",
+      height: "80%",
+      flex: 1,
+      backgroundColor: "#62BBD4",
+    }}
+  >
+    <Text
+      style={{
+        width: "100%",
+        height: "100%",
+        fontWeight: "bold",
+      }}
+    >
+      First tab
+    </Text>
+  </View>
+);
+
+const SecondRoute = () => (
+  <View
+    style={{
+      alignItems: "center",
+      padding: 10,
+      margin: 10,
+      width: "80%",
+      height: "80%",
+      flex: 1,
+      backgroundColor: "#A0D44E",
+    }}
+  >
+    <Text
+      style={{
+        width: "100%",
+        height: "100%",
+        fontWeight: "bold",
+      }}
+    >
+      Second tab
+    </Text>
+  </View>
+);
+
+const renderScene = SceneMap({
+  first: FirstRoute,
+  second: SecondRoute,
+});
+const App = () => {
+  const initialLayout = { width: Dimensions.get("window").width };
+  const [index, setIndex] = React.useState(0);
+  const renderTabBar = (
+    props: SceneRendererProps & { navigationState: State }
+  ) => (
+    <TabBar
+      {...props}
+      scrollEnabled={true}
+      indicatorStyle={styles.indicator}
+      style={styles.tabbar}
+      labelStyle={styles.label}
+      tabStyle={styles.tabStyle}
+    />
   );
-}
+
+  const [routes] = React.useState([
+    { key: "first", title: "First" },
+    { key: "second", title: "Second" },
+  ]);
+
+  return (
+    <TabView
+      style={{
+        flex: 1,
+        width: 350,
+        height: 200,
+        margin: 10,
+        backgroundColor: "#6D8585",
+      }}
+      navigationState={{ index, routes }}
+      renderScene={renderScene}
+      renderTabBar={renderTabBar}
+      onIndexChange={setIndex}
+      initialLayout={initialLayout}
+    />
+  );
+};
 
 export default App;
+
+const styles = StyleSheet.create({
+  tabbar: {
+    backgroundColor: "#3f51b5",
+    height: 70,
+    width: 350,
+  },
+  indicator: {
+    backgroundColor: "#ffeb3b",
+    width: 175,
+    height: 5,
+  },
+  label: {
+    fontWeight: "400",
+    fontSize: 20,
+    width: 100,
+    height: 50,
+    color: "black",
+  },
+  tabStyle: {
+    height: 65,
+    width: 175,
+    backgroundColor: "#BAFDAD",
+  },
+});
 
 
 // /**
