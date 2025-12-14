@@ -1,135 +1,104 @@
-import React from "react";
-import { View, Text, Dimensions, StyleSheet } from "react-native";
+import React from 'react';
+import { StatusBar, useColorScheme } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import {
-  TabView,
-  TabBar,
-  SceneMap,
-  NavigationState,
-  SceneRendererProps,
-} from "react-native-tab-view";
+  NavigationContainer,
+  DefaultTheme as NavigationDefaultTheme,
+  DarkTheme as NavigationDarkTheme,
+} from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import {
+  Provider as PaperProvider,
+  MD3DarkTheme,
+  MD3LightTheme,
+} from 'react-native-paper';
+import { Provider as StoreProvider } from 'react-redux';
+import { PersistGate } from 'redux-persist/integration/react';
+import Login from 'screens/Login';
+import SSO from 'screens/SSO';
+import Notices from 'screens/Notices';
+import NoticeDetail from 'screens/NoticeDetail';
+import Splash from 'components/Splash';
+import { ToastProvider } from 'components/Toast';
+import { persistor, store, useAppSelector } from 'data/store';
+import useToast from 'hooks/useToast';
+import type { NoticeStackParams, RootStackParams } from './screens/types';
 
-type State = NavigationState<{
-  key: string,
-  title: string,
-}>;
+const RootStack = createNativeStackNavigator<RootStackParams>();
+const NoticeStack = createNativeStackNavigator<NoticeStackParams>();
 
-const FirstRoute = () => (
-  <View
-    style={{
-      alignItems: "center",
-      padding: 10,
-      margin: 10,
-      width: "80%",
-      height: "80%",
-      flex: 1,
-      backgroundColor: "#62BBD4",
-    }}
-  >
-    <Text
-      style={{
-        width: "100%",
-        height: "100%",
-        fontWeight: "bold",
-      }}
-    >
-      First tab
-    </Text>
-  </View>
-);
-
-const SecondRoute = () => (
-  <View
-    style={{
-      alignItems: "center",
-      padding: 10,
-      margin: 10,
-      width: "80%",
-      height: "80%",
-      flex: 1,
-      backgroundColor: "#A0D44E",
-    }}
-  >
-    <Text
-      style={{
-        width: "100%",
-        height: "100%",
-        fontWeight: "bold",
-      }}
-    >
-      Second tab
-    </Text>
-  </View>
-);
-
-const renderScene = SceneMap({
-  first: FirstRoute,
-  second: SecondRoute,
-});
-const App = () => {
-  const initialLayout = { width: Dimensions.get("window").width };
-  const [index, setIndex] = React.useState(0);
-  const renderTabBar = (
-    props: SceneRendererProps & { navigationState: State }
-  ) => (
-    <TabBar
-      {...props}
-      scrollEnabled={true}
-      indicatorStyle={styles.indicator}
-      style={styles.tabbar}
-      labelStyle={styles.label}
-      tabStyle={styles.tabStyle}
+const NoticeStackScreens = () => (
+  <NoticeStack.Navigator>
+    <NoticeStack.Screen
+      name="Notices"
+      component={Notices}
+      options={{ headerShown: false }}
     />
-  );
+    <NoticeStack.Screen
+      name="NoticeDetail"
+      component={NoticeDetail as any}
+      options={{ headerShown: true, title: '' }}
+    />
+  </NoticeStack.Navigator>
+);
 
-  const [routes] = React.useState([
-    { key: "first", title: "First" },
-    { key: "second", title: "Second" },
-  ]);
+const RootStackScreens = () => {
+  const auth = useAppSelector(state => state.auth);
+  const showMain = !!auth.username && !!auth.password && !!auth.fingerPrint;
+  const toast = useToast();
+
+  React.useEffect(() => {
+    if (auth.error) {
+      toast('Login failed', 'error', 8000);
+    }
+  }, [auth.error, toast]);
 
   return (
-    <TabView
-      style={{
-        flex: 1,
-        width: 350,
-        height: 200,
-        margin: 10,
-        backgroundColor: "#6D8585",
-      }}
-      navigationState={{ index, routes }}
-      renderScene={renderScene}
-      renderTabBar={renderTabBar}
-      onIndexChange={setIndex}
-      initialLayout={initialLayout}
-    />
+    <RootStack.Navigator screenOptions={{ headerShown: false }}>
+      {showMain ? (
+        <RootStack.Screen name="NoticeStack" component={NoticeStackScreens} />
+      ) : (
+        <>
+          <RootStack.Screen name="Login" component={Login} />
+          <RootStack.Screen name="SSO" component={SSO} />
+        </>
+      )}
+    </RootStack.Navigator>
+  );
+};
+
+const App = () => {
+  const colorScheme = useColorScheme();
+  const paperTheme = colorScheme === 'dark' ? MD3DarkTheme : MD3LightTheme;
+  const navigationTheme =
+    colorScheme === 'dark' ? NavigationDarkTheme : NavigationDefaultTheme;
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <PaperProvider theme={paperTheme}>
+        <ToastProvider>
+          <StoreProvider store={store}>
+            <PersistGate loading={<Splash />} persistor={persistor}>
+              <SafeAreaProvider>
+                <NavigationContainer theme={navigationTheme}>
+                  <RootStackScreens />
+                </NavigationContainer>
+              </SafeAreaProvider>
+            </PersistGate>
+          </StoreProvider>
+        </ToastProvider>
+        <StatusBar
+          barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'}
+          backgroundColor={paperTheme.colors.surface}
+          animated
+        />
+      </PaperProvider>
+    </GestureHandlerRootView>
   );
 };
 
 export default App;
-
-const styles = StyleSheet.create({
-  tabbar: {
-    backgroundColor: "#3f51b5",
-    height: 70,
-    width: 350,
-  },
-  indicator: {
-    backgroundColor: "#ffeb3b",
-    width: 175,
-    height: 5,
-  },
-  label: {
-    fontWeight: "400",
-    fontSize: 20,
-    width: 100,
-    height: 50,
-    color: "black",
-  },
-  tabStyle: {
-    height: 65,
-    width: 175,
-    backgroundColor: "#BAFDAD",
-  },
-});
 
 
 // /**

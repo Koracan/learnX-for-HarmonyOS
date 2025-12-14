@@ -51,17 +51,10 @@
     "querySchemes": [
       "sinaweibo"  //三方APP的所支持的scheme，sinaweibo是测试hap的scheme
     ],
-//    "requestPermissions": [
-//      {
-//        "name": "ohos.permission.READ_PASTEBOARD",
-//        "reason": "$string:Access_clipboard",
-//        "usedScene": {
-//          "abilities": [
-//            "EntryAbility"
-//          ],
-//          "when": "always"
-//        }
-//      },
-//    ]
+    "requestPermissions": [
+      {
+        "name": "ohos.permission.INTERNET",
+      },
+    ]
   }
 }

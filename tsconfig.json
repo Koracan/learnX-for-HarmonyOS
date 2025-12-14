@@ -1,5 +1,5 @@
 {
-  "extends": "@tsconfig/react-native/tsconfig.json",
+  "extends": "@react-native/typescript-config",
   "include": [
     "**/*.ts",
     "**/*.tsx"
@@ -49,6 +49,21 @@
       ],
       "react-native-localize": [
         "../node_modules/@react-native-ohos/react-native-localize"
+      ],
+      "react-native-pager-view": [
+        "../node_modules/@react-native-oh-tpl/react-native-pager-view"
+      ],
+      "react-native-pdf": [
+        "../node_modules/@react-native-ohos/react-native-pdf"
+      ],
+      "react-native-reanimated": [
+        "../node_modules/@react-native-ohos/react-native-reanimated"
+      ],
+      "react-native-share": [
+        "../node_modules/@react-native-ohos/react-native-share"
+      ],
+      "react-native-tab-view": [
+        "../node_modules/@react-native-oh-tpl/react-native-tab-view"
       ]
     }
   }
