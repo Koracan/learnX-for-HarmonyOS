@@ -35,12 +35,9 @@ export function login({
 	reset?: boolean;
 }): ThunkResult {
 	return async (dispatch, getState) => {
-		console.log('[Auth] login called with:', { username, password: '***', fingerPrint });
-
 		if (!username || !password || !fingerPrint) {
 			const { auth } = getState();
 			if (auth.loggingIn) {
-				console.log('[Auth] Already logging in, skipping');
 				return;
 			}
 		}
@@ -50,14 +47,12 @@ export function login({
 				clearCredential: !!username && !!password && !fingerPrint,
 			}),
 		);
-		console.log('[Auth] Login request dispatched');
 
 		try {
 			if (reset) {
 				resetDataSource();
 			}
 
-			console.log('[Auth] Calling loginWithFingerPrint...');
 			await retry(async () => {
 				await loginWithFingerPrint(
 					username,
@@ -67,7 +62,6 @@ export function login({
 					fingerGenPrint3,
 				);
 			});
-			console.log('[Auth] loginWithFingerPrint succeeded');
 
             const payload =
 				username && password && fingerPrint
@@ -79,13 +73,10 @@ export function login({
 						fingerGenPrint3,
 					}
 					: undefined;
-			console.log('[Auth] Dispatching login success with payload:', payload ? 'present' : 'undefined');
 			dispatch(loginAction.success(payload));
 			// After login, fetch user info to drive UI state like src-reference
-			console.log('[Auth] Dispatching getUserInfo');
 			dispatch(getUserInfo());
 		} catch (err) {
-			console.error('[Auth] Login failed:', err);
 			dispatch(loginAction.failure(serializeError(err)));
 		}
 	};

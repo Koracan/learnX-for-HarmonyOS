@@ -8,6 +8,9 @@ import { useAppDispatch } from 'data/store';
 import { login, setSSOInProgress } from 'data/actions/auth';
 import useToast from 'hooks/useToast';
 import type { RootStackParams } from './types';
+import packageJson from '../../package.json';
+
+const ssoCustomScript = require('../helpers/preval/sso.preval.js');
 
 const SSO_LOGIN_URL =
   'https://id.tsinghua.edu.cn/do/off/ui/auth/login/form/bb5df85216504820be7bba2b0ae1535b/0';
@@ -38,137 +41,18 @@ const SSO: React.FC<Props> = ({ route, navigation }) => {
     fingerGenPrint3: string;
   } | null>(null);
 
-  const injectedJs = `
-    (function () {
-      'use strict';
-
-      const sendToReactNative = (type, data) => {
-        window?.ReactNativeWebView?.postMessage?.(JSON.stringify({ type, data }));
-      };
-
-      // Intercept XMLHttpRequest to inject fingerprint/deviceName when server saves finger
-      const origOpen = XMLHttpRequest.prototype.open;
-      const origSend = XMLHttpRequest.prototype.send;
-
-      XMLHttpRequest.prototype.open = function (method, url, ...rest) {
-        this._url = url;
-        this._method = method;
-        return origOpen.apply(this, [method, url, ...rest]);
-      };
-
-      XMLHttpRequest.prototype.send = function (body) {
-        if (
-          this._url === '/b/doubleAuth/personal/saveFinger' &&
-          typeof body === 'string'
-        ) {
-          const params = new URLSearchParams(body);
-          params.set('fingerprint', '${fingerPrint.current}');
-          params.set('deviceName', 'HarmonyOS,learnX/harmony');
-          params.set('radioVal', '是');
-          body = params.toString();
-        }
-
-        this._body = body;
-        this.addEventListener('load', () => {
-          // sendToReactNative('XHR_RESPONSE', { method: this._method, url: this._url, status: this.status, requestBody: this._body, response: this.responseText });
-        });
-
-        return origSend.apply(this, [body]);
-      };
-
-      const setupLoginPage = () => {
-        const usernameInput = document.querySelector('input#i_user');
-        const passwordInput = document.querySelector('input#i_pass');
-
-        if (!usernameInput || !passwordInput) {
-          return false;
-        }
-
-        usernameInput.value = '${username}';
-        usernameInput.readOnly = true;
-
-        passwordInput.value = ${JSON.stringify(password)};
-        passwordInput.readOnly = true;
-
-        return true;
-      };
-
-      const overrideJQuerySubmit = () => {
-        if (window.jQuery && !window.jQuery.fn.submit.isOverridden) {
-          const originalSubmit = window.jQuery.fn.submit;
-
-          window.jQuery.fn.submit = function () {
-            const formElement = this[0];
-
-            const fingerPrintField = formElement.querySelector('[name="fingerPrint"]');
-            if (fingerPrintField) {
-              fingerPrintField.value = '${fingerPrint.current}';
-            }
-
-            const singleLoginField = formElement.querySelector('[name="singleLogin"]');
-            if (singleLoginField && !singleLoginField.checked) {
-              singleLoginField.click();
-            }
-
-            const formData = new FormData(formElement);
-            const requestBody = Object.fromEntries(formData.entries());
-
-            sendToReactNative('JQUERY_SUBMIT', {
-              formId: formElement.id,
-              requestBody: requestBody,
-            });
-
-            return originalSubmit.apply(this, arguments);
-          };
-
-          window.jQuery.fn.submit.isOverridden = true;
-        }
-      };
-
-      const jqueryChecker = setInterval(() => {
-        if (window.jQuery) {
-          clearInterval(jqueryChecker);
-          overrideJQuerySubmit();
-        }
-      }, 100);
-
-      const runAllTasks = () => {
-        setupLoginPage();
-      };
-
-      const observer = new MutationObserver(() => {
-        observer.disconnect();
-        runAllTasks();
-        observer.observe(document.documentElement, {
-          childList: true,
-          subtree: true,
-        });
-      });
-      observer.observe(document.documentElement, {
-        childList: true,
-        subtree: true,
-      });
-
-      runAllTasks();
-
-      return true;
-    })();
-  `;
+  const injectedJs = ssoCustomScript
+    .replaceAll('${username}', username)
+    .replaceAll("'${password}'", JSON.stringify(password))
+    .replaceAll('${fingerPrint}', fingerPrint.current)
+    .replaceAll('${deviceName}', `HarmonyOS,learnX/${packageJson.version}`);
 
   const handleShouldStartLoadWithRequest: OnShouldStartLoadWithRequest = (e) => {
     if (!e.url.startsWith(LEARN_ROAMING_URL)) return true;
 
-     console.log('[SSO] Intercepted LEARN_ROAMING_URL, formData:', formData.current);
-
     if (!formData.current) {
-      // Something went wrong
-       console.log('[SSO] No form data, showing error toast');
       toast('SSO login failed', 'error');
     } else {
-       console.log('[SSO] Dispatching login action with:', {
-         username: formData.current.username,
-         fingerPrint: formData.current.fingerPrint,
-       });
       dispatch(login({ ...formData.current, reset: true }));
     }
 
@@ -181,7 +65,6 @@ const SSO: React.FC<Props> = ({ route, navigation }) => {
   const handleMessage = (event: WebViewMessageEvent) => {
     try {
       const { type, data } = JSON.parse(event.nativeEvent.data);
-       console.log('[SSO] Received message:', type, data);
       if (type === 'JQUERY_SUBMIT' && data.formId === 'theform') {
         formData.current = {
           username,
@@ -190,7 +73,6 @@ const SSO: React.FC<Props> = ({ route, navigation }) => {
           fingerGenPrint: data.requestBody.fingerGenPrint,
           fingerGenPrint3: data.requestBody.fingerGenPrint3,
         };
-         console.log('[SSO] Form data captured:', formData.current);
       }
     } catch (e) {
       console.error('Failed to parse WebView message:', e);

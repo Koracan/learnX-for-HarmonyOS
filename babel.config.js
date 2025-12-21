@@ -10,6 +10,7 @@ module.exports = {
         extensions: ['.ts', '.tsx'],
       },
     ],
+    'preval',
     'react-native-reanimated/plugin',
   ],
 };

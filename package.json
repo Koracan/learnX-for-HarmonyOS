@@ -6,7 +6,7 @@
     "lint": "eslint .",
     "start": "react-native start",
     "test": "jest",
-    "dev": "react-native bundle-harmony --dev",
+    "release": "pwsh scripts/build_release.ps1",
     "codegen": "react-native codegen-harmony --cpp-output-path ./harmony/entry/src/main/cpp/generated --rnoh-module-path ./harmony/entry/oh_modules/@rnoh/react-native-openharmony",
     "postinstall": "node scripts/sync-harmony-aliases.js"
   },
@@ -64,6 +64,7 @@
     "@types/react": "^18.0.24",
     "@types/react-test-renderer": "18.0.0",
     "babel-plugin-module-resolver": "5.0.2",
+    "babel-plugin-preval": "5.1.0",
     "babel-jest": "^29.2.1",
     "eslint": "^8.57.1",
     "jest": "29.2.1",

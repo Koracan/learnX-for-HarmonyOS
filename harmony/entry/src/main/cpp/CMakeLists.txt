@@ -9,6 +9,7 @@ set(RNOH_GENERATED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/generated")
 set(CMAKE_ASM_FLAGS "-Wno-error=unused-command-line-argument -Qunused-arguments")
 set(CMAKE_CXX_FLAGS "-fstack-protector-strong -Wl,-z,relro,-z,now,-z,noexecstack -s -fPIE -pie")
 add_compile_definitions(WITH_HITRACE_SYSTRACE)
+set(LOG_VERBOSITY_LEVEL 1)
 set(WITH_HITRACE_SYSTRACE 1) # for other CMakeLists.txt files to use
 
 add_subdirectory("${RNOH_CPP_DIR}" ./rn)
