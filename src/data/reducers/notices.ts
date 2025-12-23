@@ -4,8 +4,8 @@ import {
   setArchiveNotices,
   setFavNotice,
 } from 'data/actions/notices';
-import { NoticesAction } from 'data/types/actions';
-import { NoticeState } from 'data/types/state';
+import type { NoticesAction } from 'data/types/actions';
+import type { NoticeState } from 'data/types/state';
 
 const initialState: NoticeState = {
   fetching: false,

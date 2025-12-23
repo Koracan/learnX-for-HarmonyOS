@@ -16,6 +16,7 @@
     ],
     "noUnusedLocals": true,
     "baseUrl": "./src",
+    "verbatimModuleSyntax": true,
     "paths": {
       "react-native-fs": [
         "../node_modules/@react-native-ohos/react-native-fs"

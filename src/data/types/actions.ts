@@ -1,5 +1,5 @@
-import { ThunkAction } from 'redux-thunk';
-import { ActionType } from 'typesafe-actions';
+import type { ThunkAction } from 'redux-thunk';
+import type { ActionType } from 'typesafe-actions';
 import { loginAction, setSSOInProgress } from 'data/actions/auth';
 import { setSetting } from 'data/actions/settings';
 import { setCourses, getAllCoursesAction } from 'data/actions/courses';
@@ -8,7 +8,7 @@ import {
   setFavNotice,
   setArchiveNotices,
 } from 'data/actions/notices';
-import { PersistAppState } from 'data/types/state';
+import type { PersistAppState } from 'data/types/state';
 import { getUserInfoAction } from 'data/actions/user';
 
 type LoginAction = ActionType<typeof loginAction>;

@@ -1,5 +1,5 @@
 import { createAction } from 'typesafe-actions';
-import { SettingsState } from 'data/types/state';
+import { type SettingsState } from 'data/types/state';
 import { SET_SETTING } from 'data/types/constants';
 
 export const setSetting = createAction(

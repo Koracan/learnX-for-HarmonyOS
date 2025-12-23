@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Platform, StyleSheet } from 'react-native';
 import { ProgressBar } from 'react-native-paper';
-import WebView, { WebViewMessageEvent } from 'react-native-webview';
+import WebView, { type WebViewMessageEvent } from 'react-native-webview';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { OnShouldStartLoadWithRequest } from 'react-native-webview/lib/WebViewTypes';
 import { useAppDispatch } from 'data/store';
@@ -27,11 +27,11 @@ const SSO: React.FC<Props> = ({ route, navigation }) => {
 
   const [progress, setProgress] = useState(0);
   const fingerPrint = useRef(
-    'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0;
-      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+      const r = (Math.random() * 16) | 0;
+      const v = c === 'x' ? r : (r & 0x3) | 0x8;
       return v.toString(16);
-    })
+    }),
   );
   const formData = useRef<{
     username: string;
@@ -47,7 +47,7 @@ const SSO: React.FC<Props> = ({ route, navigation }) => {
     .replaceAll('${fingerPrint}', fingerPrint.current)
     .replaceAll('${deviceName}', `HarmonyOS,learnX/${packageJson.version}`);
 
-  const handleShouldStartLoadWithRequest: OnShouldStartLoadWithRequest = (e) => {
+  const handleShouldStartLoadWithRequest: OnShouldStartLoadWithRequest = e => {
     if (!e.url.startsWith(LEARN_ROAMING_URL)) return true;
 
     if (!formData.current) {
@@ -86,7 +86,9 @@ const SSO: React.FC<Props> = ({ route, navigation }) => {
         style={styles.webview}
         source={{ uri: SSO_LOGIN_URL, headers: { Cookie: '' } }}
         decelerationRate={Platform.OS === 'ios' ? 'normal' : undefined}
-        onLoadProgress={({ nativeEvent }) => setProgress(parseFloat(nativeEvent.progress.toFixed(2)))}
+        onLoadProgress={({ nativeEvent }) =>
+          setProgress(parseFloat(nativeEvent.progress.toFixed(2)))
+        }
         onShouldStartLoadWithRequest={handleShouldStartLoadWithRequest}
         injectedJavaScript={injectedJs}
         onMessage={handleMessage}
@@ -95,6 +97,8 @@ const SSO: React.FC<Props> = ({ route, navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({ webview: { backgroundColor: 'transparent' } });
+const styles = StyleSheet.create({
+  webview: { backgroundColor: 'transparent' },
+});
 
 export default SSO;

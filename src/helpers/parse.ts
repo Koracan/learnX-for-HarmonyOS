@@ -1,4 +1,4 @@
-import { ApiError, FailReason } from 'thu-learn-lib';
+import { type ApiError, FailReason } from 'thu-learn-lib';
 
 // Minimal error serializer used by auth flows
 export const serializeError = (err: any): ApiError => {

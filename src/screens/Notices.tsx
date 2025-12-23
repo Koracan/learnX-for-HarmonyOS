@@ -5,7 +5,7 @@ import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { Card, Text } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from 'data/store';
 import { getAllNoticesForCourses } from 'data/actions/notices';
-import { Notice } from 'data/types/state';
+import type { Notice } from 'data/types/state';
 
 const NoticeItem = ({ item }: { item: Notice }) => (
   <Card style={styles.card}>

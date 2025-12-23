@@ -9,7 +9,7 @@ import {
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
-  Provider as PaperProvider,
+  Provider as PaperProvider, 
   MD3DarkTheme,
   MD3LightTheme,
 } from 'react-native-paper';

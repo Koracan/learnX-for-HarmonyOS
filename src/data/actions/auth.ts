@@ -1,7 +1,7 @@
 import { createAction, createAsyncAction } from 'typesafe-actions';
-import { ApiError } from 'thu-learn-lib';
+import type { ApiError } from 'thu-learn-lib';
 import { loginWithFingerPrint, resetDataSource } from 'data/source';
-import { ThunkResult } from 'data/types/actions';
+import type { ThunkResult } from 'data/types/actions';
 import { getUserInfo } from './user';
 import {
 	LOGIN_FAILURE,
@@ -9,7 +9,7 @@ import {
 	LOGIN_SUCCESS,
 	SET_SSO_IN_PROGRESS,
 } from 'data/types/constants';
-import { Auth } from 'data/types/state';
+import type { Auth } from 'data/types/state';
 import { serializeError } from 'helpers/parse';
 import { retry } from 'helpers/retry';
 

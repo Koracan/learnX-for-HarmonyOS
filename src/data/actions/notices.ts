@@ -1,7 +1,7 @@
 import { createAction, createAsyncAction } from 'typesafe-actions';
-import { ApiError, ContentType, CourseType, Language } from 'thu-learn-lib';
+import { type ApiError, ContentType, CourseType, Language } from 'thu-learn-lib';
 import dayjs from 'dayjs';
-import { ThunkResult } from 'data/types/actions';
+import type { ThunkResult } from 'data/types/actions';
 import {
   GET_ALL_NOTICES_FOR_COURSES_FAILURE,
   GET_ALL_NOTICES_FOR_COURSES_REQUEST,
@@ -9,7 +9,7 @@ import {
   SET_ARCHIVE_NOTICES,
   SET_FAV_NOTICE,
 } from 'data/types/constants';
-import { Notice } from 'data/types/state';
+import type { Notice } from 'data/types/state';
 import { dataSource } from 'data/source';
 import { setCourses } from 'data/actions/courses';
 import { serializeError } from 'helpers/parse';

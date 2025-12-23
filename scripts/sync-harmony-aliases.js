@@ -45,7 +45,6 @@ function extractHarmonyAliases() {
           const targetPath = `./node_modules/${scope}/${pkg}`;
           
           aliases[alias] = [targetPath];
-          console.log(`✓ 找到别名: ${alias} -> ${scope}/${pkg}`);
         }
       } catch (error) {
         console.error(`✗ 读取 ${packageJsonPath} 失败:`, error.message);
@@ -106,10 +105,6 @@ function updateTsConfig(aliases) {
     );
 
     console.log(`\n✅ 成功更新 tsconfig.json，共配置 ${Object.keys(aliases).length} 个别名`);
-    console.log('\n📝 已配置的别名:');
-    Object.keys(aliases).forEach(alias => {
-      console.log(`   - ${alias}`);
-    });
   } catch (error) {
     console.error('✗ 更新 tsconfig.json 失败:', error.message);
     process.exit(1);

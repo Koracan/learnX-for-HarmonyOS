@@ -1,6 +1,6 @@
 import { createReducer } from 'typesafe-actions';
 import { loginAction, setSSOInProgress } from 'data/actions/auth';
-import { AuthState } from 'data/types/state';
+import type { AuthState } from 'data/types/state';
 
 const initialState: AuthState = {
   username: null,

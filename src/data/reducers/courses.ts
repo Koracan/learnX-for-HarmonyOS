@@ -1,7 +1,7 @@
 import { createReducer } from 'typesafe-actions';
 import { getAllCoursesAction, setCourses } from 'data/actions/courses';
-import { CoursesAction } from 'data/types/actions';
-import { CoursesState } from 'data/types/state';
+import type { CoursesAction } from 'data/types/actions';
+import type { CoursesState } from 'data/types/state';
 
 const initialState: CoursesState = {
   items: [],

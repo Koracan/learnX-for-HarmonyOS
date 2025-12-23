@@ -4,8 +4,8 @@ import { settings } from 'data/reducers/settings';
 import { courses } from 'data/reducers/courses';
 import { notices } from 'data/reducers/notices';
 import { user } from 'data/reducers/user';
-import { AppState } from 'data/types/state';
-import { AppActions } from 'data/types/actions';
+import type { AppState } from 'data/types/state';
+import type { AppActions } from 'data/types/actions';
 
 const appReducer = combineReducers({
 	auth,

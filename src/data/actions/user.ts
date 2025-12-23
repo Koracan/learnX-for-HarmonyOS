@@ -1,6 +1,6 @@
 import { createAsyncAction } from 'typesafe-actions';
-import { ThunkResult } from 'data/types/actions';
-import { ApiError, CourseType } from 'thu-learn-lib';
+import type { ThunkResult } from 'data/types/actions';
+import { type ApiError, CourseType } from 'thu-learn-lib';
 import { dataSource } from 'data/source';
 import { GET_USER_INFO_FAILURE, GET_USER_INFO_REQUEST, GET_USER_INFO_SUCCESS } from 'data/types/constants';
 

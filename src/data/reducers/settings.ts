@@ -1,7 +1,7 @@
 import { createReducer } from 'typesafe-actions';
 import { setSetting } from 'data/actions/settings';
-import { SettingsAction } from 'data/types/actions';
-import { SettingsState } from 'data/types/state';
+import type { SettingsAction } from 'data/types/actions';
+import type { SettingsState } from 'data/types/state';
 
 const initialState: SettingsState = {
   graduate: false,
