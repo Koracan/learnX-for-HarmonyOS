@@ -68,3 +68,5 @@ src-reference/
 # misc
 tmp/
 skills.md
+package-lock.json
+.bundle/
