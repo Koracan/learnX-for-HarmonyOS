@@ -14,6 +14,9 @@ const NODE_MODULES = path.join(ROOT_DIR, 'node_modules');
 // 需要扫描的目录
 const SCOPES_TO_SCAN = ['@react-native-ohos', '@react-native-oh-tpl'];
 
+// 要排除的完整包名（格式："scope/pkg"）
+const EXCLUDED_PACKAGES = ['@react-native-ohos/react-native-securerandom'];
+
 /**
  * 扫描指定作用域下的所有包，提取 harmony.alias 配置
  */
@@ -31,6 +34,11 @@ function extractHarmonyAliases() {
     const packages = fs.readdirSync(scopePath);
 
     for (const pkg of packages) {
+      const fullPackageName = `${scope}/${pkg}`;
+      if (EXCLUDED_PACKAGES.includes(fullPackageName)) {
+        console.log(`⤫ 跳过被排除的包 ${fullPackageName}`);
+        continue;
+      }
       const packageJsonPath = path.join(scopePath, pkg, 'package.json');
       
       if (!fs.existsSync(packageJsonPath)) {
