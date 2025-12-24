@@ -30,16 +30,22 @@ type Props = NativeStackScreenProps<NoticeStackParams, 'Notices'>;
 const Notices: React.FC<Partial<Props>> = () => {
   const dispatch = useAppDispatch();
   const auth = useAppSelector(state => state.auth);
+  const courseIds = useAppSelector(
+    state => state.courses.items.map(c => c.id),
+    (a, b) => JSON.stringify(a) === JSON.stringify(b), // 避免数组引用变化导致无限循环
+  );
   const { items, fetching } = useAppSelector(state => state.notices);
 
-  useEffect(() => {
-    if (auth.loggedIn) {
-      console.log('[Notices] loggedIn, fetching notices');
-      dispatch(getAllNoticesForCourses());
-    } else {
-      console.log('[Notices] skip fetch, not loggedIn');
+  const handleRefresh = React.useCallback(() => {
+    if (auth.loggedIn && courseIds.length > 0) {
+      console.log('[Notices] Refreshing notices for', courseIds.length, 'courses');
+      dispatch(getAllNoticesForCourses(courseIds));
     }
-  }, [dispatch, auth.loggedIn]);
+  }, [dispatch, auth.loggedIn, courseIds]);
+
+  useEffect(() => {
+    handleRefresh();
+  }, [handleRefresh]);
 
   return (
     <View style={styles.container}>
@@ -51,7 +57,7 @@ const Notices: React.FC<Partial<Props>> = () => {
         refreshControl={
           <RefreshControl
             refreshing={fetching}
-            onRefresh={() => dispatch(getAllNoticesForCourses())}
+            onRefresh={handleRefresh}
           />
         }
         ListEmptyComponent={

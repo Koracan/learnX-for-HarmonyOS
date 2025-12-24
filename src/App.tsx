@@ -23,6 +23,8 @@ import Splash from 'components/Splash';
 import { ToastProvider } from 'components/Toast';
 import { persistor, store, useAppSelector, useAppDispatch } from 'data/store';
 import { login } from 'data/actions/auth';
+import { getAllCourses } from 'data/actions/courses';
+import { getAllSemesters } from 'data/actions/semesters';
 import useToast from 'hooks/useToast';
 import type { NoticeStackParams, RootStackParams } from './screens/types';
 
@@ -52,6 +54,8 @@ const NoticeStackScreens = () => (
  */
 const RootStackScreens = () => {
   const auth = useAppSelector(state => state.auth);
+  const courses = useAppSelector(state => state.courses);
+  const semesters = useAppSelector(state => state.semesters);
   const dispatch = useAppDispatch();
   const hasCreds = !!auth.username && !!auth.password && !!auth.fingerPrint;
   const showMain = !auth.error && hasCreds && auth.loggedIn;
@@ -70,6 +74,17 @@ const RootStackScreens = () => {
       toast('Login failed', 'error', 8000);
     }
   }, [auth.error, toast]);
+
+  // 登录成功后初始化课程数据
+  React.useEffect(() => {
+    if (auth.loggedIn && courses.items.length === 0 && !courses.fetching) {
+      console.log('[RootStackScreens] Logged in, initializing courses and semesters');
+      if (semesters.items.length === 0 && !semesters.fetching) {
+        dispatch(getAllSemesters());
+      }
+      dispatch(getAllCourses());
+    }
+  }, [auth.loggedIn, courses.items.length, courses.fetching, semesters.items.length, semesters.fetching, dispatch]);
 
   // 自动重新登录逻辑：前后台切换或初始化时检查凭据
   const handleReLogin = React.useCallback(() => {
