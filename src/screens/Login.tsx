@@ -11,6 +11,7 @@ import { useAppDispatch, useAppSelector } from 'data/store';
 import { setSSOInProgress } from 'data/actions/auth';
 import { setSetting } from 'data/actions/settings';
 import { clearLoginCookies } from 'data/source';
+import { t } from 'helpers/i18n';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParams } from 'screens/types';
 
@@ -37,12 +38,12 @@ const Login: React.FC<Props> = ({ navigation }) => {
       return;
     }
     Alert.alert(
-      'Single Sign-On',
-      '将跳转到统一认证页完成登录',
+      t('sso'),
+      t('ssoNote'),
       [
-        { text: '取消', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         {
-          text: '确定',
+          text: t('ok'),
           onPress: async () => {
             dispatch(setSSOInProgress(true));
             await clearLoginCookies();
@@ -65,7 +66,7 @@ const Login: React.FC<Props> = ({ navigation }) => {
         </Text>
         <TextInput
           style={styles.textInput}
-          label="Username"
+          label={t('usernameOrId')}
           textContentType="username"
           autoComplete="username"
           returnKeyType="next"
@@ -78,7 +79,7 @@ const Login: React.FC<Props> = ({ navigation }) => {
         <TextInput
           ref={passwordTextInputRef}
           style={styles.textInput}
-          label="Password"
+          label={t('password')}
           textContentType="password"
           autoComplete="password"
           returnKeyType="done"
@@ -95,7 +96,7 @@ const Login: React.FC<Props> = ({ navigation }) => {
               dispatch(setSetting('graduate', checked));
             }}
           />
-          <Text style={styles.switchLabel}>Graduate</Text>
+          <Text style={styles.switchLabel}>{t('graduate')}</Text>
         </View>
         <Button
           style={styles.button}
@@ -104,7 +105,7 @@ const Login: React.FC<Props> = ({ navigation }) => {
           disabled={loggingIn}
           onPress={handleLogin}
         >
-          Login
+          {t('login')}
         </Button>
       </KeyboardAvoidingView>
     </ScrollView>

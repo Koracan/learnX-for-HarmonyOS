@@ -1,5 +1,5 @@
 import { createAction } from 'typesafe-actions';
-import { RESET_LOADING } from '../types/constants';
+import { RESET_LOADING } from 'data/types/constants';
 
 /**
  * 重置所有 fetching 状态。

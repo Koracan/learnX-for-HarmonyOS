@@ -13,9 +13,9 @@ import {
 import autoMergeLevel2 from 'redux-persist/lib/stateReconciler/autoMergeLevel2';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { configureStore } from '@reduxjs/toolkit';
-import { rootReducer } from './reducers/root';
-import type { AppState, PersistAppState } from './types/state';
-import type { AppActions } from './types/actions';
+import { rootReducer } from 'data/reducers/root';
+import type { AppState, PersistAppState } from 'data/types/state';
+import type { AppActions } from 'data/types/actions';
 
 /**
  * redux-persist 配置：指定持久化键与合并策略。

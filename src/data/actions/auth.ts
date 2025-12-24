@@ -2,7 +2,7 @@ import { createAction, createAsyncAction } from 'typesafe-actions';
 import type { ApiError } from 'thu-learn-lib';
 import { loginWithFingerPrint, resetDataSource } from 'data/source';
 import type { ThunkResult } from 'data/types/actions';
-import { getUserInfo } from './user';
+import { getUserInfo } from 'data/actions/user';
 import {
 	LOGIN_FAILURE,
 	LOGIN_REQUEST,

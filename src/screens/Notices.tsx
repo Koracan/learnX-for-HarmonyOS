@@ -5,6 +5,7 @@ import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { Card, Text } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from 'data/store';
 import { getAllNoticesForCourses } from 'data/actions/notices';
+import { t } from 'helpers/i18n';
 import type { Notice } from 'data/types/state';
 import { removeTags } from 'helpers/html';
 
@@ -86,7 +87,7 @@ const Notices: React.FC<Props> = ({ navigation }) => {
         }
         ListEmptyComponent={
           !fetching ? (
-            <Text style={styles.empty}>No notices yet.</Text>
+            <Text style={styles.empty}>{t('empty')}</Text>
           ) : null
         }
       />

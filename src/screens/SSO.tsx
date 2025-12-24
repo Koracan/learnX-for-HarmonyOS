@@ -6,11 +6,12 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { OnShouldStartLoadWithRequest } from 'react-native-webview/lib/WebViewTypes';
 import { useAppDispatch } from 'data/store';
 import { login, setSSOInProgress } from 'data/actions/auth';
+import { t } from 'helpers/i18n';
 import useToast from 'hooks/useToast';
-import type { RootStackParams } from './types';
+import type { RootStackParams } from 'screens/types';
 import packageJson from '../../package.json';
 
-const ssoCustomScript = require('../helpers/preval/sso.preval.js');
+const ssoCustomScript = require('helpers/preval/sso.preval.js');
 
 const SSO_LOGIN_URL =
   'https://id.tsinghua.edu.cn/do/off/ui/auth/login/form/bb5df85216504820be7bba2b0ae1535b/0';
@@ -54,7 +55,7 @@ const SSO: React.FC<Props> = ({ route, navigation }) => {
     if (!e.url.startsWith(LEARN_ROAMING_URL)) return true;
 
     if (!formData.current) {
-      toast('SSO login failed', 'error');
+      toast(t('ssoFailed'), 'error');
     } else {
       dispatch(login({ ...formData.current, reset: true }));
     }

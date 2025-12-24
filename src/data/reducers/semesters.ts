@@ -4,9 +4,9 @@ import {
   GET_ALL_SEMESTERS_FAILURE,
   SET_CURRENT_SEMESTER,
   RESET_LOADING,
-} from '../types/constants';
-import type { SemestersAction } from '../types/actions';
-import type { SemestersState } from '../types/state';
+} from 'data/types/constants';
+import type { SemestersAction } from 'data/types/actions';
+import type { SemestersState } from 'data/types/state';
 
 const initialState: SemestersState = {
   fetching: false,

@@ -23,10 +23,12 @@ import Splash from 'components/Splash';
 import { ToastProvider } from 'components/Toast';
 import { persistor, store, useAppSelector, useAppDispatch } from 'data/store';
 import { login } from 'data/actions/auth';
+import { resetLoading } from 'data/actions/root';
 import { getAllCourses } from 'data/actions/courses';
 import { getAllSemesters } from 'data/actions/semesters';
+import { t } from 'helpers/i18n';
 import useToast from 'hooks/useToast';
-import type { NoticeStackParams, RootStackParams } from './screens/types';
+import type { NoticeStackParams, RootStackParams } from 'screens/types';
 
 const RootStack = createNativeStackNavigator<RootStackParams>();
 const NoticeStack = createNativeStackNavigator<NoticeStackParams>();
@@ -71,7 +73,7 @@ const RootStackScreens = () => {
 
   React.useEffect(() => {
     if (auth.error) {
-      toast('Login failed', 'error', 8000);
+      toast(t('loginFailed'), 'error', 8000);
     }
   }, [auth.error, toast]);
 
@@ -86,39 +88,58 @@ const RootStackScreens = () => {
     }
   }, [auth.loggedIn, courses.items.length, courses.fetching, semesters.items.length, semesters.fetching, dispatch]);
 
-  // 自动重新登录逻辑：前后台切换或初始化时检查凭据
+  // 自动重新登录逻辑：检查凭据完整性、SSO 状态、登录超时
   const handleReLogin = React.useCallback(() => {
     const { username, password, fingerPrint, ssoInProgress, loggingIn, loggedIn } = auth;
     const idleTime = Date.now() - lastActiveTimeRef.current;
 
-    if (!hasCreds) {
+    // 凭据不完整，无法重新登录
+    if (!username || !password || !fingerPrint) {
+      console.log('[handleReLogin] Credentials incomplete, skipping auto-login');
       return;
     }
 
-    // 无论 loggedIn 与否，只要凭据存在且非登录中就尝试（初始或超时）
-    if (!ssoInProgress && !loggingIn) {
-      const shouldReLogin = idleTime > 10 * 60 * 1000 || !loggedIn; // 初次或超 10 分钟
-      if (shouldReLogin) {
-        console.log('[handleReLogin] Triggering auto-login, idle time:', idleTime, 'loggedIn:', loggedIn);
-        toast('Re-authenticating...', 'success', 2000);
-        dispatch(login({ reset: true }));
-      }
+    // SSO 或登录正在进行，避免冲突
+    if (ssoInProgress || loggingIn) {
+      console.log('[handleReLogin] SSO or login in progress, skipping auto-login', {
+        ssoInProgress,
+        loggingIn,
+      });
+      return;
     }
-  }, [auth, dispatch, toast, hasCreds]);
 
-  // AppState 监听：回到前台时触发重新登录
+    // 初次登录或超过 10 分钟未活跃
+    const shouldReLogin = idleTime > 10 * 60 * 1000 || !loggedIn;
+    if (shouldReLogin) {
+      console.log('[handleReLogin] Triggering auto-login', {
+        idleTime,
+        loggedIn,
+        reason: idleTime > 10 * 60 * 1000 ? 'idle-timeout' : 'not-logged-in',
+      });
+      toast(t('loggingIn'), 'success', 1000);
+      dispatch(login({ reset: true }));
+    }
+  }, [auth, dispatch, toast]);
+
+  // AppState 监听：区分后台/前台状态，前台时重新认证，后台时记录时间
   React.useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
       if (nextAppState === 'active') {
+        // 返回前台：清除加载态、尝试重新登录
+        console.log('[AppState] Returning to foreground, reset loading and attempt re-login');
+        dispatch(resetLoading());
         handleReLogin();
+      } else if (nextAppState === 'inactive' || nextAppState === 'background') {
+        // 进入后台/非活跃：记录当前时间
+        console.log('[AppState] Entering background/inactive, recording idle time start');
+        lastActiveTimeRef.current = Date.now();
       }
-      lastActiveTimeRef.current = Date.now();
     });
 
     return () => {
       subscription.remove();
     };
-  }, [handleReLogin]);
+  }, [handleReLogin, dispatch]);
 
   // 初始加载完成后尝试自动登录（仅一次）
   React.useEffect(() => {
