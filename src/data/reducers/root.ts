@@ -1,13 +1,16 @@
 import { combineReducers } from 'redux';
 import { persistReducer, type PersistConfig } from 'redux-persist';
 import SecureStorage from 'helpers/secureStorage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth } from 'data/reducers/auth';
 import { settings } from 'data/reducers/settings';
 import { courses } from 'data/reducers/courses';
 import { notices } from 'data/reducers/notices';
 import { user } from 'data/reducers/user';
-import type { AppState, AuthState } from 'data/types/state';
+import { semestersReducer as semesters } from 'data/reducers/semesters';
+import type { AppState, AuthState, SettingsState, SemestersState } from 'data/types/state';
 import type { AppActions } from 'data/types/actions';
+import { RESET_LOADING } from 'data/types/constants';
 
 /**
  * Auth 持久化配置：使用 secure storage 仅持久化敏感凭据。
@@ -24,20 +27,66 @@ const authPersistConfig: PersistConfig<AuthState> = {
   ],
 };
 
+/**
+ * Settings 持久化配置：使用 AsyncStorage 持久化用户设置。
+ */
+const settingsPersistConfig: PersistConfig<SettingsState> = {
+  key: 'settings',
+  storage: AsyncStorage,
+  whitelist: ['graduate'],
+};
+
+/**
+ * Semesters 持久化配置：使用 AsyncStorage 缓存学期数据。
+ */
+const semestersPersistConfig: PersistConfig<SemestersState> = {
+  key: 'semesters',
+  storage: AsyncStorage,
+  whitelist: ['items', 'current'],
+};
+
 const appReducer = combineReducers({
   auth: persistReducer(authPersistConfig, auth),
-  settings,
+  settings: persistReducer(settingsPersistConfig, settings),
   courses,
   notices,
   user,
+  semesters: persistReducer(semestersPersistConfig, semesters),
 }) as (state: AppState | undefined, action: AppActions) => AppState;
 
 /**
- * 根 reducer：聚合各领域 reducer。
+ * 根 reducer：聚合各领域 reducer，并处理全局操作（如 RESET_LOADING）。
  */
 export function rootReducer(
   state: AppState | undefined,
   action: AppActions,
 ): AppState {
+  // 处理全局重置加载态
+  if (action.type === RESET_LOADING) {
+    return {
+      ...state,
+      auth: {
+        ...state?.auth,
+        loggingIn: false,
+      },
+      courses: {
+        ...state?.courses,
+        fetching: false,
+      },
+      notices: {
+        ...state?.notices,
+        fetching: false,
+      },
+      user: {
+        ...state?.user,
+        fetching: false,
+      },
+      semesters: {
+        ...state?.semesters,
+        fetching: false,
+      },
+    } as any;
+  }
+
   return appReducer(state, action as any);
 }

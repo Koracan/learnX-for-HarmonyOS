@@ -19,13 +19,13 @@ import type { AppActions } from './types/actions';
 
 /**
  * redux-persist 配置：指定持久化键与合并策略。
- * 注意：auth 已在 root reducer 中单独配置 secure storage，此处 blacklist 避免重复。
+ * 注意：auth/settings/semesters 已在 root reducer 中单独配置持久化，此处 blacklist 避免重复。
  */
 const rootPersistConfig: PersistConfig<AppState> = {
   key: 'root',
   storage: AsyncStorage,
   stateReconciler: autoMergeLevel2,
-  blacklist: ['auth', 'settings'],
+  blacklist: ['auth', 'settings', 'semesters'],
 };
 
 /**

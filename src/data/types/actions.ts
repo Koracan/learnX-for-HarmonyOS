@@ -10,6 +10,8 @@ import {
 } from 'data/actions/notices';
 import type { PersistAppState } from 'data/types/state';
 import { getUserInfoAction } from 'data/actions/user';
+import { getAllSemestersAction, setCurrentSemester } from 'data/actions/semesters';
+import { resetLoading } from 'data/actions/root';
 
 type LoginAction = ActionType<typeof loginAction>;
 type SetSsoInProgressAction = ActionType<typeof setSSOInProgress>;
@@ -35,12 +37,21 @@ export type NoticesAction =
 type GetUserInfoAction = ActionType<typeof getUserInfoAction>;
 export type UserAction = GetUserInfoAction;
 
+type GetAllSemestersAction = ActionType<typeof getAllSemestersAction>;
+type SetCurrentSemesterAction = ActionType<typeof setCurrentSemester>;
+export type SemestersAction = GetAllSemestersAction | SetCurrentSemesterAction;
+
+export type ResetLoadingAction = ActionType<typeof resetLoading>;
+export type StoreAction = ResetLoadingAction;
+
 export type AppActions =
   | AuthAction
   | SettingsAction
   | CoursesAction
   | NoticesAction
-  | UserAction;
+  | UserAction
+  | SemestersAction
+  | StoreAction;
 
 export type ThunkResult = ThunkAction<
   void,

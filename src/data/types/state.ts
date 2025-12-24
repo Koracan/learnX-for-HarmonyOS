@@ -58,12 +58,20 @@ export interface UserState {
   error?: any | null;
 }
 
+export interface SemestersState {
+  fetching: boolean;
+  items: string[];
+  current: string | null;
+  error?: any | null;
+}
+
 export interface AppState {
   auth: AuthState;
   settings: SettingsState;
   courses: CoursesState;
   notices: NoticeState;
   user: UserState;
+  semesters: SemestersState;
 }
 
 export interface PersistAppState extends AppState {
