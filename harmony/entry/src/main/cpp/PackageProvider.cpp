@@ -13,6 +13,8 @@
 #include "PdfViewPackage.h"
 #include "ReanimatedPackage.h"
 #include "RNSharePackage.h"
+#include "RTNSecureKeyStorePackage.h"
+#include "SecureRandomPackage.h"
 
 using namespace rnoh;
 
@@ -32,5 +34,7 @@ std::vector<std::shared_ptr<Package>> PackageProvider::getPackages(Package::Cont
         std::make_shared<PdfViewPackage>(ctx),
         std::make_shared<ReanimatedPackage>(ctx),
         std::make_shared<RNSharePackage>(ctx),
+        std::make_shared<RTNSecureKeyStorePackage>(ctx),
+        std::make_shared<SecureRandomPackage>(ctx),
     };
 }

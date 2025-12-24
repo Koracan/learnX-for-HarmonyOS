@@ -67,6 +67,6 @@ yarn-error.log
 src-reference/
 # misc
 tmp/
-skills.md
+skill*.md
 package-lock.json
 .bundle/

@@ -16,6 +16,9 @@ import type { RootStackParams } from 'screens/types';
 
 type Props = NativeStackScreenProps<RootStackParams, 'Login'>;
 
+/**
+ * 登录页：收集用户名/密码，跳转 SSO 完成统一认证。
+ */
 const Login: React.FC<Props> = ({ navigation }) => {
   const dispatch = useAppDispatch();
   const loggingIn = useAppSelector(state => state.auth.loggingIn);

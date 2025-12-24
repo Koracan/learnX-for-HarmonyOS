@@ -19,6 +19,9 @@ const LEARN_ROAMING_URL =
 
 type Props = NativeStackScreenProps<RootStackParams, 'SSO'>;
 
+/**
+ * SSO 页面：加载统一认证 WebView，拦截指纹提交后回调登录。
+ */
 const SSO: React.FC<Props> = ({ route, navigation }) => {
   const dispatch = useAppDispatch();
   const toast = useToast();

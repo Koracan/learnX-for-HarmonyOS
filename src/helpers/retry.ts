@@ -1,3 +1,6 @@
+/**
+ * Promise 重试工具：指数退避 + 抖动。
+ */
 export async function retry(
 	fn: () => Promise<any>,
 	retries = 3,

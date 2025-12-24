@@ -13,10 +13,14 @@ import {
 import autoMergeLevel2 from 'redux-persist/lib/stateReconciler/autoMergeLevel2';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { configureStore } from '@reduxjs/toolkit';
-import { rootReducer } from './root';
+import { rootReducer } from './reducers/root';
 import type { AppState, PersistAppState } from './types/state';
 import type { AppActions } from './types/actions';
 
+/**
+ * redux-persist 配置：指定持久化键与合并策略。
+ * 注意：auth 已在 root reducer 中单独配置 secure storage，此处 blacklist 避免重复。
+ */
 const rootPersistConfig: PersistConfig<AppState> = {
   key: 'root',
   storage: AsyncStorage,
@@ -24,6 +28,9 @@ const rootPersistConfig: PersistConfig<AppState> = {
   blacklist: ['auth', 'settings'],
 };
 
+/**
+ * Redux store 实例，包含持久化与序列化检查配置。
+ */
 export const store = configureStore<PersistAppState, AppActions>({
   reducer: persistReducer(rootPersistConfig, rootReducer) as any,
   middleware: getDefaultMiddleware =>
@@ -37,7 +44,13 @@ export const store = configureStore<PersistAppState, AppActions>({
 export const persistor = persistStore(store);
 
 export type AppDispatch = typeof store.dispatch;
+/**
+ * 强类型 dispatch hook。
+ */
 export const useAppDispatch = () => useDispatch<AppDispatch>();
+/**
+ * 强类型 selector hook。
+ */
 export const useAppSelector: TypedUseSelectorHook<
   ReturnType<typeof store.getState>
 > = useSelector;

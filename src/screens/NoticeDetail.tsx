@@ -5,6 +5,9 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { NoticeStackParams } from 'screens/types';
 
 type Props = NativeStackScreenProps<NoticeStackParams, 'NoticeDetail'>;
+/**
+ * 公告详情页：展示公告标题、课程与正文内容。
+ */
 const NoticeDetail: React.FC<Props> = ({ route, navigation }) => {
   const notice = route.params;
 

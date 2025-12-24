@@ -65,6 +65,9 @@
       ],
       "react-native-tab-view": [
         "../node_modules/@react-native-oh-tpl/react-native-tab-view"
+      ],
+      "react-native-secure-key-store": [
+        "../node_modules/@react-native-ohos/react-native-secure-key-store"
       ]
     }
   }

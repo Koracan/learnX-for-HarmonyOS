@@ -1,5 +1,5 @@
 import React from 'react';
-import { StatusBar, useColorScheme } from 'react-native';
+import { StatusBar, useColorScheme, AppState, type AppStateStatus } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import {
   NavigationContainer,
@@ -21,13 +21,17 @@ import Notices from 'screens/Notices';
 import NoticeDetail from 'screens/NoticeDetail';
 import Splash from 'components/Splash';
 import { ToastProvider } from 'components/Toast';
-import { persistor, store, useAppSelector } from 'data/store';
+import { persistor, store, useAppSelector, useAppDispatch } from 'data/store';
+import { login } from 'data/actions/auth';
 import useToast from 'hooks/useToast';
 import type { NoticeStackParams, RootStackParams } from './screens/types';
 
 const RootStack = createNativeStackNavigator<RootStackParams>();
 const NoticeStack = createNativeStackNavigator<NoticeStackParams>();
 
+/**
+ * Notice 子栈：公告列表与公告详情导航容器。
+ */
 const NoticeStackScreens = () => (
   <NoticeStack.Navigator>
     <NoticeStack.Screen
@@ -43,16 +47,74 @@ const NoticeStackScreens = () => (
   </NoticeStack.Navigator>
 );
 
+/**
+ * 根栈：根据登录态切换登录流程或主功能栈，支持前后台切换自动重新登录。
+ */
 const RootStackScreens = () => {
   const auth = useAppSelector(state => state.auth);
-  const showMain = !!auth.username && !!auth.password && !!auth.fingerPrint;
+  const dispatch = useAppDispatch();
+  const hasCreds = !!auth.username && !!auth.password && !!auth.fingerPrint;
+  const showMain = !auth.error && hasCreds && auth.loggedIn;
   const toast = useToast();
+  const lastActiveTimeRef = React.useRef<number>(Date.now());
+  const hasTriedAutoLoginRef = React.useRef<boolean>(false);
+
+  console.log('[RootStackScreens] render', {
+    hasCreds,
+    loggedIn: auth.loggedIn,
+    error: auth.error,
+  });
 
   React.useEffect(() => {
     if (auth.error) {
       toast('Login failed', 'error', 8000);
     }
   }, [auth.error, toast]);
+
+  // 自动重新登录逻辑：前后台切换或初始化时检查凭据
+  const handleReLogin = React.useCallback(() => {
+    const { username, password, fingerPrint, ssoInProgress, loggingIn, loggedIn } = auth;
+    const idleTime = Date.now() - lastActiveTimeRef.current;
+
+    if (!hasCreds) {
+      return;
+    }
+
+    // 无论 loggedIn 与否，只要凭据存在且非登录中就尝试（初始或超时）
+    if (!ssoInProgress && !loggingIn) {
+      const shouldReLogin = idleTime > 10 * 60 * 1000 || !loggedIn; // 初次或超 10 分钟
+      if (shouldReLogin) {
+        console.log('[handleReLogin] Triggering auto-login, idle time:', idleTime, 'loggedIn:', loggedIn);
+        toast('Re-authenticating...', 'success', 2000);
+        dispatch(login({ reset: true }));
+      }
+    }
+  }, [auth, dispatch, toast, hasCreds]);
+
+  // AppState 监听：回到前台时触发重新登录
+  React.useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active') {
+        handleReLogin();
+      }
+      lastActiveTimeRef.current = Date.now();
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [handleReLogin]);
+
+  // 初始加载完成后尝试自动登录（仅一次）
+  React.useEffect(() => {
+    if (!hasTriedAutoLoginRef.current) {
+      const timer = setTimeout(() => {
+        hasTriedAutoLoginRef.current = true;
+        handleReLogin();
+      }, 800); // 延迟确保 rehydrate 完成
+      return () => clearTimeout(timer);
+    }
+  }, [handleReLogin]);
 
   return (
     <RootStack.Navigator screenOptions={{ headerShown: false }}>
@@ -68,6 +130,9 @@ const RootStackScreens = () => {
   );
 };
 
+/**
+ * 应用入口：主题、状态管理、导航与 Toast 提供者。
+ */
 const App = () => {
   const colorScheme = useColorScheme();
   const paperTheme = colorScheme === 'dark' ? MD3DarkTheme : MD3LightTheme;

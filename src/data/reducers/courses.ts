@@ -3,6 +3,9 @@ import { getAllCoursesAction, setCourses } from 'data/actions/courses';
 import type { CoursesAction } from 'data/types/actions';
 import type { CoursesState } from 'data/types/state';
 
+/**
+ * 课程初始状态。
+ */
 const initialState: CoursesState = {
   items: [],
   hidden: [],
@@ -10,6 +13,9 @@ const initialState: CoursesState = {
   error: null,
 };
 
+/**
+ * 课程 reducer：处理课程列表加载与存储。
+ */
 export const courses = createReducer<CoursesState, CoursesAction>(initialState)
   .handleAction(getAllCoursesAction.request, state => ({
     ...state,

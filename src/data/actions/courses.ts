@@ -11,16 +11,25 @@ import type { ThunkResult } from 'data/types/actions';
 import { dataSource } from 'data/source';
 import { serializeError } from 'helpers/parse';
 
+/**
+ * 设置课程列表。
+ */
 export const setCourses = createAction(SET_COURSES, (courses: Course[]) => ({
   courses,
 }))();
 
+/**
+ * 获取课程列表的异步 action。
+ */
 export const getAllCoursesAction = createAsyncAction(
   GET_ALL_COURSES_REQUEST,
   GET_ALL_COURSES_SUCCESS,
   GET_ALL_COURSES_FAILURE,
 )<undefined, Course[], ApiError>();
 
+/**
+ * 拉取课程列表并写入 store。
+ */
 export function getAllCourses(): ThunkResult {
   return async dispatch => {
     dispatch(getAllCoursesAction.request());

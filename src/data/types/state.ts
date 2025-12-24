@@ -52,11 +52,18 @@ export interface NoticeState {
   error?: any | null;
 }
 
+export interface UserState {
+  fetching: boolean;
+  info: any | null;
+  error?: any | null;
+}
+
 export interface AppState {
   auth: AuthState;
   settings: SettingsState;
   courses: CoursesState;
   notices: NoticeState;
+  user: UserState;
 }
 
 export interface PersistAppState extends AppState {

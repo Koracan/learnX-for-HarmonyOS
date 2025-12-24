@@ -2,8 +2,14 @@ import { createContext, useCallback, useState } from 'react';
 import { Platform, StyleSheet } from 'react-native';
 import { Snackbar } from 'react-native-paper';
 
+/**
+ * Toast 类型枚举。
+ */
 type ToastType = 'success' | 'warning' | 'error' | 'none';
 
+/**
+ * Toast 上下文：暴露文本、时长与触发函数。
+ */
 const ToastContext = createContext<{
   text: string;
   duration: number;
@@ -14,6 +20,9 @@ const ToastContext = createContext<{
   toggleToast: () => {},
 });
 
+/**
+ * Toast 提供者：管理 Toast 文本与显示时长。
+ */
 const ToastProvider: React.FC<React.PropsWithChildren<unknown>> = ({
   children,
 }) => {
@@ -27,7 +36,6 @@ const ToastProvider: React.FC<React.PropsWithChildren<unknown>> = ({
           (type === 'success' ? 3000 : type === 'warning' ? 4000 : 5000),
       );
       setToastText(text);
-      // Haptics feedback removed - not available in HarmonyOS
     },
     [],
   );

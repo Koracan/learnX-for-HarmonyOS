@@ -24,13 +24,22 @@ const NoticeItem = ({ item }: { item: Notice }) => (
 );
 
 type Props = NativeStackScreenProps<NoticeStackParams, 'Notices'>;
+/**
+ * 公告列表页：展示课程公告并支持下拉刷新。
+ */
 const Notices: React.FC<Partial<Props>> = () => {
   const dispatch = useAppDispatch();
+  const auth = useAppSelector(state => state.auth);
   const { items, fetching } = useAppSelector(state => state.notices);
 
   useEffect(() => {
-    dispatch(getAllNoticesForCourses());
-  }, [dispatch]);
+    if (auth.loggedIn) {
+      console.log('[Notices] loggedIn, fetching notices');
+      dispatch(getAllNoticesForCourses());
+    } else {
+      console.log('[Notices] skip fetch, not loggedIn');
+    }
+  }, [dispatch, auth.loggedIn]);
 
   return (
     <View style={styles.container}>

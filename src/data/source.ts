@@ -49,13 +49,19 @@ export const resetDataSource = () => {
 	dataSource = new Learn2018Helper({
 		provider: () => {
 			const state = store.getState();
-			return {
+			const creds = {
 				username: state.auth.username || undefined,
 				password: state.auth.password || undefined,
 				fingerPrint: state.auth.fingerPrint || '',
 				fingerGenPrint: state.auth.fingerGenPrint || '',
 				fingerGenPrint3: state.auth.fingerGenPrint3 || '',
 			};
+			console.log('[dataSource provider] Providing credentials:', {
+				hasUsername: !!creds.username,
+				hasPassword: !!creds.password,
+				hasFingerprint: !!creds.fingerPrint,
+			});
+			return creds;
 		},
 	});
 };

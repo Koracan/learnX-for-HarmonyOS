@@ -10,6 +10,8 @@ import { RNLocalizePackage } from '@react-native-ohos/react-native-localize/ts';
 import { ViewPagerPackage } from '@react-native-ohos/react-native-pager-view/ts';
 import { ReanimatedPackage } from '@react-native-ohos/react-native-reanimated/ts';
 import { RNSharePackage } from '@react-native-ohos/react-native-share/ts';
+import { RNSecureKeyStorePackage } from "@react-native-ohos/react-native-secure-key-store/ts";
+import { SecureRandomPackage } from '@react-native-ohos/react-native-securerandom/ts';
 
 export function createRNPackages(ctx: RNPackageContext): RNPackage[] {
   return [
@@ -24,5 +26,7 @@ export function createRNPackages(ctx: RNPackageContext): RNPackage[] {
     new ViewPagerPackage(ctx),
     new ReanimatedPackage(ctx),
     new RNSharePackage(ctx),
+    new RNSecureKeyStorePackage(ctx),
+    new SecureRandomPackage(ctx),
   ];
 }

@@ -19,6 +19,8 @@
     "@react-native-ohos/react-native-pdf": "file:../../node_modules/@react-native-ohos/react-native-pdf/harmony/pdfview.har",
     "@react-native-ohos/react-native-reanimated": "file:../../node_modules/@react-native-ohos/react-native-reanimated/harmony/reanimated.har",
     "@react-native-ohos/react-native-share": "file:../../node_modules/@react-native-ohos/react-native-share/harmony/react_native_share.har",
+    "@react-native-ohos/react-native-secure-key-store": "file:../../node_modules/@react-native-ohos/react-native-secure-key-store/harmony/secure_key_store.har",
+    "@react-native-ohos/react-native-securerandom": "file:../../node_modules/@react-native-ohos/react-native-securerandom/harmony/secure_random.har",
   },
   "devDependencies": {},
   "dynamicDependencies": {}

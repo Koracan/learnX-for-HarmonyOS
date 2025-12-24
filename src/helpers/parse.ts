@@ -1,6 +1,8 @@
 import { type ApiError, FailReason } from 'thu-learn-lib';
 
-// Minimal error serializer used by auth flows
+/**
+ * 将 thu-learn-lib 的错误序列化为可持久化对象。
+ */
 export const serializeError = (err: any): ApiError => {
 	if ((err as ApiError).reason) {
 		const returnedError = err as ApiError;

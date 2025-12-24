@@ -7,6 +7,9 @@ import {
 import type { NoticesAction } from 'data/types/actions';
 import type { NoticeState } from 'data/types/state';
 
+/**
+ * 公告初始状态。
+ */
 const initialState: NoticeState = {
   fetching: false,
   favorites: [],
@@ -15,6 +18,9 @@ const initialState: NoticeState = {
   error: null,
 };
 
+/**
+ * 公告 reducer：处理公告拉取、收藏、归档。
+ */
 export const notices = createReducer<NoticeState, NoticesAction>(initialState)
   .handleAction(getAllNoticesForCoursesAction.request, state => ({
     ...state,

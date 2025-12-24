@@ -25,6 +25,8 @@ add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-pager-view/sr
 add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-pdf/src/main/cpp" ./pdfview)
 add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-reanimated/src/main/cpp" ./reanimated)
 add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-share/src/main/cpp" ./share)
+add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-secure-key-store/src/main/cpp" ./secure_key_store)
+add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-securerandom/src/main/cpp" ./secure_random)
 
 
 file(GLOB GENERATED_CPP_FILES "./generated/*.cpp")
@@ -47,3 +49,5 @@ target_link_libraries(rnoh_app PUBLIC rnoh_pager_view)
 target_link_libraries(rnoh_app PUBLIC rnoh_pdf_view)
 target_link_libraries(rnoh_app PUBLIC rnoh_reanimated)
 target_link_libraries(rnoh_app PUBLIC rnoh_share)
+target_link_libraries(rnoh_app PUBLIC rnoh_secure_key_store)
+target_link_libraries(rnoh_app PUBLIC rnoh_secure_random)
