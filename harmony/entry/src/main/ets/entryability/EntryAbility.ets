@@ -34,11 +34,10 @@ export default class EntryAbility extends RNAbility {
         return;
       }
 
-      display.on('change', () => {
-        this.handleOrientationChange(windowClass);
+      windowClass.setWindowLayoutFullScreen(true).catch((err: BusinessError) => {
+        console.error(`Failed to set full screen. Cause code: ${err.code}, message: ${err.message}`);
       });
-      // 初始检测一次
-      this.handleOrientationChange(windowClass);
+
     });
 
     windowStage.loadContent('pages/Index', (err) => {
@@ -48,31 +47,6 @@ export default class EntryAbility extends RNAbility {
       }
       hilog.info(DOMAIN, 'testTag', 'Succeeded in loading the content.');
     });
-  }
-
-  handleOrientationChange(windowClass: window.Window) {
-    try {
-      let defaultDisplay = display.getDefaultDisplaySync();
-      let orientation = defaultDisplay.orientation;
-      let landscape = display.Orientation.LANDSCAPE;
-      let landscapeInverted = display.Orientation.LANDSCAPE_INVERTED;
-      let immersive = orientation == landscape || orientation == landscapeInverted;
-
-      if (immersive == this.immersive) {
-        return;
-      }
-      this.immersive = immersive;
-
-      windowClass.setWindowLayoutFullScreen(immersive).catch((err: BusinessError) => {
-        console.error(`Failed to set full screen. Cause code: ${err.code}, message: ${err.message}`);
-      });
-
-      windowClass.setSpecificSystemBarEnabled('status', !immersive).catch((err: BusinessError) => {
-        console.error(`Failed to set the system bar to be invisible. Cause code: ${err.code}, message: ${err.message}`);
-      });
-    } catch (err) {
-      console.error(`Failed to handle orientation change. Cause code: ${err.code}, message: ${err.message}`);
-    }
   }
 
   onWindowStageDestroy():

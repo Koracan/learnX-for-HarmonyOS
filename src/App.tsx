@@ -1,9 +1,10 @@
 import React from 'react';
 import {
-  StatusBar,
   useColorScheme,
   AppState,
   type AppStateStatus,
+  StatusBar,
+  Dimensions,
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import {
@@ -41,20 +42,79 @@ const NoticeStack = createNativeStackNavigator<NoticeStackParams>();
 /**
  * Notice 子栈：公告列表与公告详情导航容器。
  */
-const NoticeStackScreens = () => (
-  <NoticeStack.Navigator>
-    <NoticeStack.Screen
-      name="Notices"
-      component={Notices}
-      options={{ headerShown: false }}
+const NoticeStackScreens = () => {
+  return (
+    <NoticeStack.Navigator>
+      <NoticeStack.Screen
+        name="Notices"
+        component={Notices}
+        options={{ headerShown: true, title: t('notices') }}
+      />
+      <NoticeStack.Screen
+        name="NoticeDetail"
+        component={NoticeDetail as any}
+        options={{ headerShown: true, title: '' }}
+      />
+    </NoticeStack.Navigator>
+  );
+};
+
+/**
+ * 状态栏控制器：根据屏幕方向自动显示/隐藏状态栏。
+ * 横屏时隐藏状态栏（沉浸式），竖屏时显示状态栏。
+ * 使用 Dimensions API 监听屏幕尺寸变化，确保与 SafeArea insets 更新同步。
+ */
+const StatusBarController = () => {
+  const [dimensions, setDimensions] = React.useState(Dimensions.get('screen'));
+  const { width, height } = dimensions;
+  const isLandscape = width > height;
+
+  // 初始化并监听屏幕尺寸变化
+  React.useEffect(() => {
+    // 获取初始屏幕尺寸
+    const initialDimensions = Dimensions.get('screen');
+    setDimensions(initialDimensions);
+    console.log('[StatusBarController] Initial screen dimensions:', {
+      width: initialDimensions.width,
+      height: initialDimensions.height,
+    });
+
+    // 监听屏幕尺寸变化（方向旋转）
+    const subscription = Dimensions.addEventListener('change', ({ screen }) => {
+      console.log('[StatusBarController] Screen dimensions changed:', {
+        width: screen.width,
+        height: screen.height,
+      });
+      setDimensions(screen);
+    });
+
+    // 清理函数：移除监听器
+    return () => {
+      subscription?.remove();
+    };
+  }, []);
+
+  // 监听方向变化
+  React.useEffect(() => {
+    console.log(
+      '[StatusBarController] Orientation:',
+      isLandscape ? 'landscape' : 'portrait',
+    );
+    console.log(
+      '[StatusBarController] StatusBar will be',
+      isLandscape ? 'hidden' : 'visible',
+    );
+  }, [isLandscape]);
+
+  return (
+    <StatusBar
+      hidden={isLandscape}
+      animated={true}
+      translucent={true}
+      backgroundColor="transparent"
     />
-    <NoticeStack.Screen
-      name="NoticeDetail"
-      component={NoticeDetail as any}
-      options={{ headerShown: true, title: '' }}
-    />
-  </NoticeStack.Navigator>
-);
+  );
+};
 
 /**
  * 根栈：根据登录态切换登录流程或主功能栈，支持前后台切换自动重新登录。
@@ -222,6 +282,7 @@ const App = () => {
           <StoreProvider store={store}>
             <PersistGate loading={<Splash />} persistor={persistor}>
               <SafeAreaProvider>
+                <StatusBarController />
                 <NavigationContainer theme={navigationTheme}>
                   <RootStackScreens />
                 </NavigationContainer>
