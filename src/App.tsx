@@ -1,5 +1,10 @@
 import React from 'react';
-import { StatusBar, useColorScheme, AppState, type AppStateStatus } from 'react-native';
+import {
+  StatusBar,
+  useColorScheme,
+  AppState,
+  type AppStateStatus,
+} from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import {
   NavigationContainer,
@@ -9,7 +14,7 @@ import {
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
-  Provider as PaperProvider, 
+  Provider as PaperProvider,
   MD3DarkTheme,
   MD3LightTheme,
 } from 'react-native-paper';
@@ -103,21 +108,33 @@ const RootStackScreens = () => {
 
   // 自动重新登录逻辑：检查凭据完整性、SSO 状态、登录超时
   const handleReLogin = React.useCallback(() => {
-    const { username, password, fingerPrint, ssoInProgress, loggingIn, loggedIn } = auth;
+    const {
+      username,
+      password,
+      fingerPrint,
+      ssoInProgress,
+      loggingIn,
+      loggedIn,
+    } = auth;
     const idleTime = Date.now() - lastActiveTimeRef.current;
 
     // 凭据不完整，无法重新登录
     if (!username || !password || !fingerPrint) {
-      console.log('[handleReLogin] Credentials incomplete, skipping auto-login');
+      console.log(
+        '[handleReLogin] Credentials incomplete, skipping auto-login',
+      );
       return;
     }
 
     // SSO 或登录正在进行，避免冲突
     if (ssoInProgress || loggingIn) {
-      console.log('[handleReLogin] SSO or login in progress, skipping auto-login', {
-        ssoInProgress,
-        loggingIn,
-      });
+      console.log(
+        '[handleReLogin] SSO or login in progress, skipping auto-login',
+        {
+          ssoInProgress,
+          loggingIn,
+        },
+      );
       return;
     }
 
@@ -136,18 +153,28 @@ const RootStackScreens = () => {
 
   // AppState 监听：区分后台/前台状态，前台时重新认证，后台时记录时间
   React.useEffect(() => {
-    const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
-      if (nextAppState === 'active') {
-        // 返回前台：清除加载态、尝试重新登录
-        console.log('[AppState] Returning to foreground, reset loading and attempt re-login');
-        dispatch(resetLoading());
-        handleReLogin();
-      } else if (nextAppState === 'inactive' || nextAppState === 'background') {
-        // 进入后台/非活跃：记录当前时间
-        console.log('[AppState] Entering background/inactive, recording idle time start');
-        lastActiveTimeRef.current = Date.now();
-      }
-    });
+    const subscription = AppState.addEventListener(
+      'change',
+      (nextAppState: AppStateStatus) => {
+        if (nextAppState === 'active') {
+          // 返回前台：清除加载态、尝试重新登录
+          console.log(
+            '[AppState] Returning to foreground, reset loading and attempt re-login',
+          );
+          dispatch(resetLoading());
+          handleReLogin();
+        } else if (
+          nextAppState === 'inactive' ||
+          nextAppState === 'background'
+        ) {
+          // 进入后台/非活跃：记录当前时间
+          console.log(
+            '[AppState] Entering background/inactive, recording idle time start',
+          );
+          lastActiveTimeRef.current = Date.now();
+        }
+      },
+    );
 
     return () => {
       subscription.remove();
@@ -202,11 +229,6 @@ const App = () => {
             </PersistGate>
           </StoreProvider>
         </ToastProvider>
-        <StatusBar
-          barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'}
-          backgroundColor={paperTheme.colors.surface}
-          animated
-        />
       </PaperProvider>
     </GestureHandlerRootView>
   );

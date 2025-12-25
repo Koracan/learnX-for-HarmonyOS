@@ -2,7 +2,7 @@
   "app": {
     "bundleName": "com.koracan.learnX",
     "vendor": "koracan",
-    "versionCode": 1000002,
+    "versionCode": 1000006,
     "versionName": "0.0.1",
     "icon": "$media:layered_image",
     "label": "$string:app_name"

@@ -59,7 +59,7 @@ const Login: React.FC<Props> = ({ navigation }) => {
     <ScrollView contentContainerStyle={styles.root}>
       <KeyboardAvoidingView
         style={styles.inputs}
-        behavior={'height'}
+        behavior={'padding'}
       >
         <Text variant="headlineMedium" style={styles.title}>
           learnX mini
