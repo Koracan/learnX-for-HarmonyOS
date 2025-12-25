@@ -24,8 +24,8 @@ import { ToastProvider } from 'components/Toast';
 import { persistor, store, useAppSelector, useAppDispatch } from 'data/store';
 import { login } from 'data/actions/auth';
 import { resetLoading } from 'data/actions/root';
-import { getAllCourses } from 'data/actions/courses';
-import { getAllSemesters } from 'data/actions/semesters';
+import { getCoursesForSemester } from 'data/actions/courses';
+import { getAllSemesters, getCurrentSemester } from 'data/actions/semesters';
 import { t } from 'helpers/i18n';
 import useToast from 'hooks/useToast';
 import type { NoticeStackParams, RootStackParams } from 'screens/types';
@@ -56,7 +56,6 @@ const NoticeStackScreens = () => (
  */
 const RootStackScreens = () => {
   const auth = useAppSelector(state => state.auth);
-  const courses = useAppSelector(state => state.courses);
   const semesters = useAppSelector(state => state.semesters);
   const dispatch = useAppDispatch();
   const hasCreds = !!auth.username && !!auth.password && !!auth.fingerPrint;
@@ -77,16 +76,30 @@ const RootStackScreens = () => {
     }
   }, [auth.error, toast]);
 
-  // 登录成功后初始化课程数据
+  // 登录成功后初始化学期列表
   React.useEffect(() => {
-    if (auth.loggedIn && courses.items.length === 0 && !courses.fetching) {
-      console.log('[RootStackScreens] Logged in, initializing courses and semesters');
-      if (semesters.items.length === 0 && !semesters.fetching) {
-        dispatch(getAllSemesters());
-      }
-      dispatch(getAllCourses());
+    if (!auth.loggedIn) return;
+    if (semesters.items.length === 0 && !semesters.fetchingAll) {
+      console.log('[RootStackScreens] Logged in, fetching semesters');
+      dispatch(getAllSemesters());
     }
-  }, [auth.loggedIn, courses.items.length, courses.fetching, semesters.items.length, semesters.fetching, dispatch]);
+  }, [auth.loggedIn, semesters.items.length, semesters.fetchingAll, dispatch]);
+
+  // 登录后拉取当前学期（可与学期列表并行），避免重复请求依赖 fetchingCurrent
+  React.useEffect(() => {
+    if (!auth.loggedIn) return;
+    if (semesters.current) return;
+    if (semesters.fetchingCurrent) return;
+    console.log('[RootStackScreens] Fetching current semester');
+    dispatch(getCurrentSemester());
+  }, [auth.loggedIn, semesters.current, semesters.fetchingCurrent, dispatch]);
+
+  // 根据当前学期加载课程（无 ref、防止 fetching 抖动引起循环）
+  React.useEffect(() => {
+    if (!auth.loggedIn) return;
+    if (!semesters.current) return;
+    dispatch(getCoursesForSemester(semesters.current));
+  }, [auth.loggedIn, semesters.current, dispatch]);
 
   // 自动重新登录逻辑：检查凭据完整性、SSO 状态、登录超时
   const handleReLogin = React.useCallback(() => {

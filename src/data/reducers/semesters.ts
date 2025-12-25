@@ -2,6 +2,9 @@ import {
   GET_ALL_SEMESTERS_REQUEST,
   GET_ALL_SEMESTERS_SUCCESS,
   GET_ALL_SEMESTERS_FAILURE,
+  GET_CURRENT_SEMESTER_REQUEST,
+  GET_CURRENT_SEMESTER_SUCCESS,
+  GET_CURRENT_SEMESTER_FAILURE,
   SET_CURRENT_SEMESTER,
   RESET_LOADING,
 } from 'data/types/constants';
@@ -9,7 +12,8 @@ import type { SemestersAction } from 'data/types/actions';
 import type { SemestersState } from 'data/types/state';
 
 const initialState: SemestersState = {
-  fetching: false,
+  fetchingAll: false,
+  fetchingCurrent: false,
   items: [],
   current: null,
   error: null,
@@ -23,22 +27,40 @@ export const semestersReducer = (
     case GET_ALL_SEMESTERS_REQUEST:
       return {
         ...state,
-        fetching: true,
+        fetchingAll: true,
         error: null,
       };
     case GET_ALL_SEMESTERS_SUCCESS:
       return {
         ...state,
         items: action.payload || [],
-        current: (action.payload as string[])?.[0] || null,
-        fetching: false,
+        fetchingAll: false,
         error: null,
       };
     case GET_ALL_SEMESTERS_FAILURE:
       return {
         ...state,
-        fetching: false,
+        fetchingAll: false,
         error: action.payload || 'Failed to fetch semesters',
+      };
+    case GET_CURRENT_SEMESTER_REQUEST:
+      return {
+        ...state,
+        fetchingCurrent: true,
+        error: null,
+      };
+    case GET_CURRENT_SEMESTER_SUCCESS:
+      return {
+        ...state,
+        current: action.payload || null,
+        fetchingCurrent: false,
+        error: null,
+      };
+    case GET_CURRENT_SEMESTER_FAILURE:
+      return {
+        ...state,
+        fetchingCurrent: false,
+        error: action.payload || 'Failed to fetch current semester',
       };
     case SET_CURRENT_SEMESTER:
       return {
@@ -48,7 +70,8 @@ export const semestersReducer = (
     case RESET_LOADING:
       return {
         ...state,
-        fetching: false,
+        fetchingAll: false,
+        fetchingCurrent: false,
       };
     default:
       return state;

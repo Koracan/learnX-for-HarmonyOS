@@ -26,10 +26,12 @@ const SecureStorage = {
       const value = await RNSecureKeyStore.get(key);
       return value || null;
     } catch (error) {
-      // Key not found or storage unavailable
-      if ((error as any)?.message?.includes('not found')) {
+      // Key not found (404) - 静默处理，这是正常情况（首次安装或key不存在）
+      const errorMessage = (error as any)?.message || '';
+      if (errorMessage.includes('404') || errorMessage.includes('not found') || errorMessage.includes('does not present')) {
         return null;
       }
+      // 其他错误才打印日志
       console.error('[SecureStorage] getItem failed:', error);
       return null;
     }

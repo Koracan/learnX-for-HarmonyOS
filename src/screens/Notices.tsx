@@ -1,13 +1,14 @@
 import React, { useEffect, useCallback } from 'react';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { NoticeStackParams } from 'screens/types';
+import { useMemo } from 'react';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { Card, Text } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from 'data/store';
 import { getAllNoticesForCourses } from 'data/actions/notices';
 import { t } from 'helpers/i18n';
 import type { Notice } from 'data/types/state';
-import { removeTags } from 'helpers/html';
+// import removed: HTML 解析改在 actions 预计算
 
 const NoticeItem = React.memo(
   ({ item, onPressItem }: { item: Notice; onPressItem: (item: Notice) => void }) => {
@@ -16,10 +17,10 @@ const NoticeItem = React.memo(
     return (
       <Card style={styles.card} onPress={handlePress}>
         <Card.Title title={item.title} subtitle={item.courseName} />
-        {item.content ? (
+        {item.plainText ? (
           <Card.Content>
             <Text variant="bodyMedium" numberOfLines={3}>
-              {removeTags(item.content)}
+              {item.plainText}
             </Text>
           </Card.Content>
         ) : null}
@@ -39,18 +40,17 @@ type Props = NativeStackScreenProps<NoticeStackParams, 'Notices'>;
 const Notices: React.FC<Props> = ({ navigation }) => {
   const dispatch = useAppDispatch();
   const auth = useAppSelector(state => state.auth);
-  const courseIds = useAppSelector(
-    state => state.courses.items.map(c => c.id),
-    (a, b) => JSON.stringify(a) === JSON.stringify(b), // 避免数组引用变化导致无限循环
-  );
+  const currentSemester = useAppSelector(state => state.semesters.current);
+  const coursesItems = useAppSelector(state => state.courses.items);
+  const courseIds = useMemo(() => coursesItems.map(c => c.id), [coursesItems]);
   const { items, fetching } = useAppSelector(state => state.notices);
 
   const handleRefresh = useCallback(() => {
     if (auth.loggedIn && courseIds.length > 0) {
-      console.log('[Notices] Refreshing notices for', courseIds.length, 'courses');
+      console.log('[Notices] Refreshing notices for', courseIds.length, 'courses', 'semester=', currentSemester);
       dispatch(getAllNoticesForCourses(courseIds));
     }
-  }, [dispatch, auth.loggedIn, courseIds]);
+  }, [dispatch, auth.loggedIn, courseIds, currentSemester]);
 
   const handlePress = useCallback(
     (item: Notice) => {
@@ -79,6 +79,11 @@ const Notices: React.FC<Props> = ({ navigation }) => {
         keyExtractor={keyExtractor}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
+        initialNumToRender={10}
+        windowSize={5}
+        maxToRenderPerBatch={10}
+        updateCellsBatchingPeriod={50}
+        removeClippedSubviews
         refreshControl={
           <RefreshControl
             refreshing={fetching}

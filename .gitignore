@@ -54,6 +54,7 @@ yarn-error.log
 
 # Bundle artifact
 *.jsbundle
+hermes_bundle.hbc
 
 # Ruby / CocoaPods
 /ios/Pods/

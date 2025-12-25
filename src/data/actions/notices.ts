@@ -12,6 +12,7 @@ import {
 import type { Notice } from 'data/types/state';
 import { dataSource } from 'data/source';
 import { serializeError } from 'helpers/parse';
+import { removeTags } from 'helpers/html';
 
 /**
  * 获取全部课程公告的异步 action。
@@ -51,6 +52,7 @@ export function getAllNoticesForCourses(courseIds: string[]): ThunkResult {
             ...n,
             courseId,
             courseName,
+            plainText: n.content ? removeTags(n.content) : '',
           }));
         })
         .sort(

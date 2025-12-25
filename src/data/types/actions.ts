@@ -10,7 +10,7 @@ import {
 } from 'data/actions/notices';
 import type { PersistAppState } from 'data/types/state';
 import { getUserInfoAction } from 'data/actions/user';
-import { getAllSemestersAction, setCurrentSemester } from 'data/actions/semesters';
+import { getAllSemestersAction, getCurrentSemesterAction, setCurrentSemester } from 'data/actions/semesters';
 import { resetLoading } from 'data/actions/root';
 
 type LoginAction = ActionType<typeof loginAction>;
@@ -38,8 +38,12 @@ type GetUserInfoAction = ActionType<typeof getUserInfoAction>;
 export type UserAction = GetUserInfoAction;
 
 type GetAllSemestersAction = ActionType<typeof getAllSemestersAction>;
+type GetCurrentSemesterAction = ActionType<typeof getCurrentSemesterAction>;
 type SetCurrentSemesterAction = ActionType<typeof setCurrentSemester>;
-export type SemestersAction = GetAllSemestersAction | SetCurrentSemesterAction;
+export type SemestersAction =
+  | GetAllSemestersAction
+  | GetCurrentSemesterAction
+  | SetCurrentSemesterAction;
 
 export type ResetLoadingAction = ActionType<typeof resetLoading>;
 export type StoreAction = ResetLoadingAction;

@@ -42,6 +42,8 @@ export interface Notice extends CourseExtraInfo {
   title: string;
   publishTime: string;
   content?: string;
+  // 预计算的纯文本摘要，避免在渲染期解析 HTML
+  plainText?: string;
 }
 
 export interface NoticeState {
@@ -59,7 +61,8 @@ export interface UserState {
 }
 
 export interface SemestersState {
-  fetching: boolean;
+  fetchingAll: boolean;
+  fetchingCurrent: boolean;
   items: string[];
   current: string | null;
   error?: any | null;

@@ -10,6 +10,7 @@ import {
 import type { ThunkResult } from 'data/types/actions';
 import { dataSource } from 'data/source';
 import { serializeError } from 'helpers/parse';
+import { isLocaleChinese } from 'helpers/i18n';
 
 /**
  * 设置课程列表。
@@ -28,23 +29,22 @@ export const getAllCoursesAction = createAsyncAction(
 )<undefined, Course[], ApiError>();
 
 /**
- * 拉取课程列表并写入 store。
+ * 拉取指定学期课程列表并写入 store。
  */
-export function getAllCourses(): ThunkResult {
+export function getCoursesForSemester(semesterId: string): ThunkResult {
   return async dispatch => {
     dispatch(getAllCoursesAction.request());
     try {
-      const semesters = await dataSource.getSemesterIdList();
-      const semesterId = semesters?.sort().reverse()[0];
-      if (!semesterId) {
-        throw new Error('No semesters available');
-      }
+      const lang = isLocaleChinese() ? Language.ZH : Language.EN;
+      console.log('[getCoursesForSemester] semester=', semesterId, 'lang=', lang);
 
       const courses = await dataSource.getCourseList(
         semesterId,
         CourseType.STUDENT,
-        Language.EN,
+        lang,
       );
+      console.log('[getCoursesForSemester] fetched courses=', courses.length);
+
       const mapped = courses.map<Course>(c => ({
         id: c.id,
         name: c.name,
@@ -53,6 +53,7 @@ export function getAllCourses(): ThunkResult {
       dispatch(setCourses(mapped));
       dispatch(getAllCoursesAction.success(mapped));
     } catch (err) {
+      console.error('[getCoursesForSemester] Error:', err);
       dispatch(getAllCoursesAction.failure(serializeError(err)));
     }
   };

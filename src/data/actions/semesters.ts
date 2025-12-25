@@ -5,6 +5,9 @@ import {
   GET_ALL_SEMESTERS_FAILURE,
   GET_ALL_SEMESTERS_REQUEST,
   GET_ALL_SEMESTERS_SUCCESS,
+  GET_CURRENT_SEMESTER_REQUEST,
+  GET_CURRENT_SEMESTER_SUCCESS,
+  GET_CURRENT_SEMESTER_FAILURE,
   SET_CURRENT_SEMESTER,
 } from 'data/types/constants';
 
@@ -21,8 +24,14 @@ export function getAllSemesters(): ThunkResult {
     try {
       console.log('[getAllSemesters] Fetching semesters...');
       const semesters = await dataSource.getSemesterIdList();
-      console.log('[getAllSemesters] Success:', semesters);
-      dispatch(getAllSemestersAction.success(semesters));
+      const sorted = semesters?.sort().reverse();
+      console.log(
+        '[getAllSemesters] Success length=',
+        sorted?.length,
+        'first=',
+        sorted?.[0],
+      );
+      dispatch(getAllSemestersAction.success(sorted));
     } catch (err) {
       console.error('[getAllSemesters] Error:', err);
       dispatch(
@@ -30,6 +39,36 @@ export function getAllSemesters(): ThunkResult {
           err instanceof Error ? err : new Error('Unknown error'),
         ),
       );
+    }
+  };
+}
+
+export const getCurrentSemesterAction = createAsyncAction(
+  GET_CURRENT_SEMESTER_REQUEST,
+  GET_CURRENT_SEMESTER_SUCCESS,
+  GET_CURRENT_SEMESTER_FAILURE,
+)<undefined, string, Error>();
+
+export function getCurrentSemester(): ThunkResult {
+  return async dispatch => {
+    dispatch(getCurrentSemesterAction.request());
+    try {
+      const semester = await dataSource.getCurrentSemester();
+      console.log('[getCurrentSemester] Backend returned:', semester?.id);
+      dispatch(getCurrentSemesterAction.success(semester?.id));
+
+      if (semester?.id) {
+        dispatch(setCurrentSemester(semester.id));
+      }
+    } catch (err) {
+      console.warn('[getCurrentSemester] Failed:', err);
+      const e =
+        err instanceof Error
+          ? err
+          : new Error(
+              typeof err === 'string' ? err : JSON.stringify(err ?? {}),
+            );
+      dispatch(getCurrentSemesterAction.failure(e));
     }
   };
 }
