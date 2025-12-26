@@ -33,7 +33,7 @@ const authPersistConfig: PersistConfig<AuthState> = {
 const settingsPersistConfig: PersistConfig<SettingsState> = {
   key: 'settings',
   storage: AsyncStorage,
-  whitelist: ['graduate', 'statusBarHidden'],
+  whitelist: ['graduate', 'immersiveMode'],
 };
 
 /**

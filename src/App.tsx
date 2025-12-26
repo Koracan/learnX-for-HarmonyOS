@@ -3,8 +3,8 @@ import {
   useColorScheme,
   AppState,
   type AppStateStatus,
-  StatusBar,
 } from 'react-native';
+import { Immersive } from 'react-native-immersive';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import {
   NavigationContainer,
@@ -65,19 +65,16 @@ const NoticeStackScreens = () => {
 };
 
 /**
- * 状态栏控制器：根据用户设置显示/隐藏状态栏。
+ * 沉浸式模式控制器：调用 react-native-immersive 统一控制系统栏。
  */
-const StatusBarController = () => {
-  const statusBarHidden = useAppSelector(state => state.settings.statusBarHidden);
+const ImmersiveModeController = () => {
+  const immersiveMode = useAppSelector(state => state.settings.immersiveMode);
 
-  return (
-    <StatusBar
-      hidden={statusBarHidden}
-      animated={true}
-      translucent={true}
-      backgroundColor="transparent"
-    />
-  );
+  React.useEffect(() => {
+    Immersive.setImmersive(immersiveMode);
+  }, [immersiveMode]);
+
+  return null;
 };
 
 /**
@@ -306,7 +303,7 @@ const App = () => {
           <StoreProvider store={store}>
             <PersistGate loading={<Splash />} persistor={persistor}>
               <SafeAreaProvider>
-                <StatusBarController />
+                <ImmersiveModeController />
                 <NavigationContainer theme={navigationTheme}>
                   <RootStackScreens />
                 </NavigationContainer>

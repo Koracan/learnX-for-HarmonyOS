@@ -15,7 +15,10 @@ const NODE_MODULES = path.join(ROOT_DIR, 'node_modules');
 const SCOPES_TO_SCAN = ['@react-native-ohos', '@react-native-oh-tpl'];
 
 // 要排除的完整包名（格式："scope/pkg"）
-const EXCLUDED_PACKAGES = ['@react-native-ohos/react-native-securerandom'];
+const EXCLUDED_PACKAGES = [
+  '@react-native-ohos/react-native-securerandom',
+  '@react-native-ohos/react-native-immersive',
+];
 
 /**
  * 扫描指定作用域下的所有包，提取 harmony.alias 配置
@@ -25,7 +28,7 @@ function extractHarmonyAliases() {
 
   for (const scope of SCOPES_TO_SCAN) {
     const scopePath = path.join(NODE_MODULES, scope);
-    
+
     if (!fs.existsSync(scopePath)) {
       console.log(`⚠️  作用域 ${scope} 不存在，跳过`);
       continue;
@@ -40,18 +43,20 @@ function extractHarmonyAliases() {
         continue;
       }
       const packageJsonPath = path.join(scopePath, pkg, 'package.json');
-      
+
       if (!fs.existsSync(packageJsonPath)) {
         continue;
       }
 
       try {
-        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
-        
+        const packageJson = JSON.parse(
+          fs.readFileSync(packageJsonPath, 'utf-8'),
+        );
+
         if (packageJson.harmony && packageJson.harmony.alias) {
           const alias = packageJson.harmony.alias;
           const targetPath = `./node_modules/${scope}/${pkg}`;
-          
+
           aliases[alias] = [targetPath];
         }
       } catch (error) {
@@ -74,7 +79,7 @@ function updateTsConfig(aliases) {
 
   try {
     const tsconfig = JSON.parse(fs.readFileSync(TSCONFIG_PATH, 'utf-8'));
-    
+
     if (!tsconfig.compilerOptions) {
       tsconfig.compilerOptions = {};
     }
@@ -86,11 +91,13 @@ function updateTsConfig(aliases) {
     // 如果有 baseUrl，需要调整路径为相对于 baseUrl
     const baseUrl = tsconfig.compilerOptions.baseUrl || '.';
     const adjustedAliases = {};
-    
+
     for (const [alias, [targetPath]] of Object.entries(aliases)) {
       // 计算从 baseUrl 到 node_modules 的相对路径
       if (baseUrl === './src' || baseUrl === 'src') {
-        adjustedAliases[alias] = ['../node_modules/' + targetPath.replace('./node_modules/', '')];
+        adjustedAliases[alias] = [
+          '../node_modules/' + targetPath.replace('./node_modules/', ''),
+        ];
       } else {
         adjustedAliases[alias] = [targetPath];
       }
@@ -98,7 +105,7 @@ function updateTsConfig(aliases) {
 
     // 合并别名，保留已有的非 harmony 相关的路径配置
     const updatedPaths = { ...tsconfig.compilerOptions.paths };
-    
+
     for (const [alias, target] of Object.entries(adjustedAliases)) {
       updatedPaths[alias] = target;
     }
@@ -109,10 +116,14 @@ function updateTsConfig(aliases) {
     fs.writeFileSync(
       TSCONFIG_PATH,
       JSON.stringify(tsconfig, null, 2) + '\n',
-      'utf-8'
+      'utf-8',
     );
 
-    console.log(`\n✅ 成功更新 tsconfig.json，共配置 ${Object.keys(aliases).length} 个别名`);
+    console.log(
+      `\n✅ 成功更新 tsconfig.json，共配置 ${
+        Object.keys(aliases).length
+      } 个别名`,
+    );
   } catch (error) {
     console.error('✗ 更新 tsconfig.json 失败:', error.message);
     process.exit(1);

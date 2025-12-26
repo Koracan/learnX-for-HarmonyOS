@@ -1,11 +1,12 @@
 import React, { useCallback } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View, Alert } from 'react-native';
 import { Card, Text, Switch, Button } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { SettingsStackParams } from 'screens/types';
 import { useAppDispatch, useAppSelector } from 'data/store';
 import { setSetting } from 'data/actions/settings';
+import { t } from 'helpers/i18n';
 
 type Props = NativeStackScreenProps<SettingsStackParams, 'Settings'>;
 
@@ -18,9 +19,15 @@ const Settings: React.FC<Props> = ({ navigation }) => {
   const auth = useAppSelector(state => state.auth);
   const settings = useAppSelector(state => state.settings);
 
-  const handleStatusBarToggle = useCallback(
+  const handleImmersiveToggle = useCallback(
     (value: boolean) => {
-      dispatch(setSetting('statusBarHidden', value));
+      dispatch(setSetting('immersiveMode', value));
+      Alert.alert(
+        t('restartRequired'),
+        t('pleaseRestartAppToApplyImmersive'),
+        [{ text: t('ok') }],
+        { cancelable: true },
+      );
     },
     [dispatch],
   );
@@ -38,21 +45,21 @@ const Settings: React.FC<Props> = ({ navigation }) => {
           </Card.Content>
         </Card>
 
-        {/* 显示/隐藏状态栏 - 可用功能 */}
+        {/* 沉浸式模式开关 */}
         <Card style={styles.card}>
-          <Card.Title title="显示/隐藏状态栏" />
+          <Card.Title title="沉浸式模式" />
           <Card.Content>
             <View style={styles.settingRow}>
-              <Text variant="bodyMedium">隐藏状态栏</Text>
+              <Text variant="bodyMedium">隐藏状态栏和导航栏</Text>
               <Switch
-                value={settings.statusBarHidden}
-                onValueChange={handleStatusBarToggle}
+                value={settings.immersiveMode}
+                onValueChange={handleImmersiveToggle}
               />
             </View>
             <Text variant="bodySmall" style={styles.secondaryText}>
-              {settings.statusBarHidden
-                ? '状态栏已隐藏（沉浸式体验）'
-                : '状态栏显示中'}
+              {settings.immersiveMode
+                ? '已隐藏状态栏和导航栏（全屏体验）'
+                : '状态栏和导航栏显示中'}
             </Text>
           </Card.Content>
         </Card>

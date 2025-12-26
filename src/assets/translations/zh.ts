@@ -38,6 +38,8 @@ const zh: typeof en = {
   submitAssignmentConfirmation: '确定提交作业？',
   cancel: '取消',
   ok: '确定',
+  restartRequired: '需要重启',
+  pleaseRestartAppToApplyImmersive: '更改沉浸模式后请重启应用以生效。',
   assignmentSubmissionFilenamePlaceholder: '自定义附件名（可选）',
   assignmentSubmissionContentPlaceholder: '作业内容（可选）',
   undoRemoveAttachment: '撤销移除已上传附件',

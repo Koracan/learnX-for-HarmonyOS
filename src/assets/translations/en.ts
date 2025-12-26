@@ -36,6 +36,8 @@ export default {
   submitAssignmentConfirmation: 'Do you want to submit the assignment?',
   cancel: 'Cancel',
   ok: 'Ok',
+  restartRequired: 'Restart required',
+  pleaseRestartAppToApplyImmersive: 'Please restart the app to apply immersive mode changes.',
   assignmentSubmissionFilenamePlaceholder:
     '(Optional) Change attachment name...',
   assignmentSubmissionContentPlaceholder:
