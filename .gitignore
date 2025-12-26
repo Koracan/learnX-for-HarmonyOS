@@ -68,6 +68,6 @@ hermes_bundle.hbc
 src-reference/
 # misc
 tmp/
-skill*.md
+skills/
 package-lock.json
 .bundle/

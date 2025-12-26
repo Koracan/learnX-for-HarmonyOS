@@ -9,10 +9,25 @@ export type NoticeStackParams = {
 };
 
 /**
+ * 设置栈路由参数定义。
+ */
+export type SettingsStackParams = {
+  Settings: undefined;
+};
+
+/**
+ * 主选项卡导航参数定义。
+ */
+export type MainTabParams = {
+  NoticeStack: undefined;
+  SettingsStack: undefined;
+};
+
+/**
  * 根栈路由参数定义。
  */
 export type RootStackParams = {
   Login: undefined;
   SSO: { username: string; password: string };
-  NoticeStack: undefined;
+  MainTab: undefined;
 };

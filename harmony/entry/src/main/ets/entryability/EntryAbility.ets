@@ -1,6 +1,6 @@
 import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { window, display } from '@kit.ArkUI';
+import { window } from '@kit.ArkUI';
 import { RNAbility } from '@rnoh/react-native-openharmony';
 import { BusinessError } from '@kit.BasicServicesKit';
 
@@ -59,12 +59,6 @@ export default class EntryAbility extends RNAbility {
         'testTag',
         '%{public}s',
         'Ability onWindowStageDestroy'
-      )
-    ;
-    display
-      .off
-      (
-        'change'
       )
     ;
   }

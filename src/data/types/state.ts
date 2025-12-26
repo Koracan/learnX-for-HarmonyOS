@@ -17,6 +17,7 @@ export interface AuthState extends Auth {
 
 export interface SettingsState {
   graduate: boolean;
+  statusBarHidden: boolean;
 }
 
 export interface Course {

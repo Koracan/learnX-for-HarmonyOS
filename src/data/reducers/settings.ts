@@ -8,6 +8,7 @@ import type { SettingsState } from 'data/types/state';
  */
 const initialState: SettingsState = {
   graduate: false,
+  statusBarHidden: false,
 };
 
 /**

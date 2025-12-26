@@ -4,7 +4,6 @@ import {
   AppState,
   type AppStateStatus,
   StatusBar,
-  Dimensions,
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import {
@@ -13,18 +12,22 @@ import {
   DarkTheme as NavigationDarkTheme,
 } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
   Provider as PaperProvider,
   MD3DarkTheme,
   MD3LightTheme,
+  useTheme,
 } from 'react-native-paper';
 import { Provider as StoreProvider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Login from 'screens/Login';
 import SSO from 'screens/SSO';
 import Notices from 'screens/Notices';
 import NoticeDetail from 'screens/NoticeDetail';
+import Settings from 'screens/Settings';
 import Splash from 'components/Splash';
 import { ToastProvider } from 'components/Toast';
 import { persistor, store, useAppSelector, useAppDispatch } from 'data/store';
@@ -34,10 +37,12 @@ import { getCoursesForSemester } from 'data/actions/courses';
 import { getAllSemesters, getCurrentSemester } from 'data/actions/semesters';
 import { t } from 'helpers/i18n';
 import useToast from 'hooks/useToast';
-import type { NoticeStackParams, RootStackParams } from 'screens/types';
+import type { NoticeStackParams, SettingsStackParams, MainTabParams, RootStackParams } from 'screens/types';
 
 const RootStack = createNativeStackNavigator<RootStackParams>();
 const NoticeStack = createNativeStackNavigator<NoticeStackParams>();
+const SettingsStack = createNativeStackNavigator<SettingsStackParams>();
+const MainNavigator = createBottomTabNavigator<MainTabParams>();
 
 /**
  * Notice 子栈：公告列表与公告详情导航容器。
@@ -60,59 +65,78 @@ const NoticeStackScreens = () => {
 };
 
 /**
- * 状态栏控制器：根据屏幕方向自动显示/隐藏状态栏。
- * 横屏时隐藏状态栏（沉浸式），竖屏时显示状态栏。
- * 使用 Dimensions API 监听屏幕尺寸变化，确保与 SafeArea insets 更新同步。
+ * 状态栏控制器：根据用户设置显示/隐藏状态栏。
  */
 const StatusBarController = () => {
-  const [dimensions, setDimensions] = React.useState(Dimensions.get('screen'));
-  const { width, height } = dimensions;
-  const isLandscape = width > height;
-
-  // 初始化并监听屏幕尺寸变化
-  React.useEffect(() => {
-    // 获取初始屏幕尺寸
-    const initialDimensions = Dimensions.get('screen');
-    setDimensions(initialDimensions);
-    console.log('[StatusBarController] Initial screen dimensions:', {
-      width: initialDimensions.width,
-      height: initialDimensions.height,
-    });
-
-    // 监听屏幕尺寸变化（方向旋转）
-    const subscription = Dimensions.addEventListener('change', ({ screen }) => {
-      console.log('[StatusBarController] Screen dimensions changed:', {
-        width: screen.width,
-        height: screen.height,
-      });
-      setDimensions(screen);
-    });
-
-    // 清理函数：移除监听器
-    return () => {
-      subscription?.remove();
-    };
-  }, []);
-
-  // 监听方向变化
-  React.useEffect(() => {
-    console.log(
-      '[StatusBarController] Orientation:',
-      isLandscape ? 'landscape' : 'portrait',
-    );
-    console.log(
-      '[StatusBarController] StatusBar will be',
-      isLandscape ? 'hidden' : 'visible',
-    );
-  }, [isLandscape]);
+  const statusBarHidden = useAppSelector(state => state.settings.statusBarHidden);
 
   return (
     <StatusBar
-      hidden={isLandscape}
+      hidden={statusBarHidden}
       animated={true}
       translucent={true}
       backgroundColor="transparent"
     />
+  );
+};
+
+/**
+ * 设置子栈：设置页面导航容器。
+ */
+const SettingsStackScreens = () => {
+  return (
+    <SettingsStack.Navigator>
+      <SettingsStack.Screen
+        name="Settings"
+        component={Settings}
+        options={{ headerShown: false }}
+      />
+    </SettingsStack.Navigator>
+  );
+};
+
+/**
+ * 主选项卡导航：通知和设置的选项卡切换。
+ */
+const MainTabScreens = () => {
+  const theme = useTheme();
+
+  return (
+    <MainNavigator.Navigator
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ color, size }) => {
+          const iconMap: Record<keyof MainTabParams, string> = {
+            NoticeStack: 'bell',
+            SettingsStack: 'cog',
+          };
+          return (
+            <MaterialCommunityIcons
+              name={iconMap[route.name]}
+              size={size}
+              color={color}
+            />
+          );
+        },
+        activeTintColor: theme.colors.primary,
+        inactiveTintColor: 'gray',
+        headerShown: false,
+        tabBarLabel:
+          route.name === 'NoticeStack'
+            ? t('notices')
+            : route.name === 'SettingsStack'
+              ? '设置'
+              : '',
+      })}
+    >
+      <MainNavigator.Screen
+        name="NoticeStack"
+        component={NoticeStackScreens}
+      />
+      <MainNavigator.Screen
+        name="SettingsStack"
+        component={SettingsStackScreens}
+      />
+    </MainNavigator.Navigator>
   );
 };
 
@@ -255,7 +279,7 @@ const RootStackScreens = () => {
   return (
     <RootStack.Navigator screenOptions={{ headerShown: false }}>
       {showMain ? (
-        <RootStack.Screen name="NoticeStack" component={NoticeStackScreens} />
+        <RootStack.Screen name="MainTab" component={MainTabScreens} />
       ) : (
         <>
           <RootStack.Screen name="Login" component={Login} />
