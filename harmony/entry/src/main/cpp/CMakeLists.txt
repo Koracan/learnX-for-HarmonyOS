@@ -27,6 +27,7 @@ add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-reanimated/sr
 add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-share/src/main/cpp" ./share)
 add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-secure-key-store/src/main/cpp" ./secure_key_store)
 add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-securerandom/src/main/cpp" ./secure_random)
+add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-immersive/src/main/cpp" ./rnoh_immersive)
 
 
 file(GLOB GENERATED_CPP_FILES "./generated/*.cpp")
@@ -51,3 +52,4 @@ target_link_libraries(rnoh_app PUBLIC rnoh_reanimated)
 target_link_libraries(rnoh_app PUBLIC rnoh_share)
 target_link_libraries(rnoh_app PUBLIC rnoh_secure_key_store)
 target_link_libraries(rnoh_app PUBLIC rnoh_secure_random)
+target_link_libraries(rnoh_app PUBLIC rnoh_immersive)

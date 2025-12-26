@@ -12,6 +12,8 @@ import { ReanimatedPackage } from '@react-native-ohos/react-native-reanimated/ts
 import { RNSharePackage } from '@react-native-ohos/react-native-share/ts';
 import { RNSecureKeyStorePackage } from "@react-native-ohos/react-native-secure-key-store/ts";
 import { SecureRandomPackage } from '@react-native-ohos/react-native-securerandom/ts';
+import { RNImmersivePackage } from '@react-native-ohos/react-native-immersive/ts';
+
 
 export function createRNPackages(ctx: RNPackageContext): RNPackage[] {
   return [
@@ -28,5 +30,6 @@ export function createRNPackages(ctx: RNPackageContext): RNPackage[] {
     new RNSharePackage(ctx),
     new RNSecureKeyStorePackage(ctx),
     new SecureRandomPackage(ctx),
+    new RNImmersivePackage(ctx)
   ];
 }

@@ -23,6 +23,7 @@
     "@react-native-ohos/react-native-blob-util": "^0.19.8-rc.2",
     "@react-native-ohos/react-native-fs": "^2.20.2-rc.1",
     "@react-native-ohos/react-native-gesture-handler": "^2.14.18-rc.1",
+    "@react-native-ohos/react-native-immersive": "^2.1.0-rc.1",
     "@react-native-ohos/react-native-localize": "^3.1.1-rc.1",
     "@react-native-ohos/react-native-pager-view": "^6.2.5-rc.1",
     "@react-native-ohos/react-native-pdf": "^6.7.5-rc.1",
