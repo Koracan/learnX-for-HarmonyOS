@@ -19,7 +19,7 @@ const Splash: React.FC = () => {
         },
       ]}
     >
-      <Text style={styles.title}>learnX mini</Text>
+      <Text style={styles.title}>learnOH</Text>
     </View>
   );
 };

@@ -49,7 +49,7 @@ const SSO: React.FC<Props> = ({ route, navigation }) => {
     .replaceAll('${username}', username)
     .replaceAll("'${password}'", JSON.stringify(password))
     .replaceAll('${fingerPrint}', fingerPrint.current)
-    .replaceAll('${deviceName}', `HarmonyOS,learnX/${packageJson.version}`);
+    .replaceAll('${deviceName}', `HarmonyOS,learnOH/${packageJson.version}`);
 
   const handleShouldStartLoadWithRequest: OnShouldStartLoadWithRequest = e => {
     if (!e.url.startsWith(LEARN_ROAMING_URL)) return true;

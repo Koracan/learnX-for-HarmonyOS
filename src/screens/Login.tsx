@@ -62,7 +62,7 @@ const Login: React.FC<Props> = ({ navigation }) => {
         behavior={'padding'}
       >
         <Text variant="headlineMedium" style={styles.title}>
-          learnX mini
+          learnOH
         </Text>
         <TextInput
           style={styles.textInput}
