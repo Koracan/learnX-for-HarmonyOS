@@ -29,13 +29,26 @@
         "name": "default",
         "type": "HarmonyOS",
         "material": {
-          "certpath": "C:\\Users\\korac\\.ohos\\config\\default_harmony_S-ZZmkJI8BI2pJwUhC65zkKyKFcgr_cYDslHwdNtuRk=.cer",
+          "certpath": "C:/Users/korac/.ohos/config/default_harmony_S-ZZmkJI8BI2pJwUhC65zkKyKFcgr_cYDslHwdNtuRk=.cer",
           "keyAlias": "debugKey",
-          "keyPassword": "0000001BF3DB3BA216CA51A63B2845795E0E1AF65DAE407BABB42F73B866CF167A6514F57D925C9C7D3FFB",
-          "profile": "C:\\Users\\korac\\.ohos\\config\\default_harmony_S-ZZmkJI8BI2pJwUhC65zkKyKFcgr_cYDslHwdNtuRk=.p7b",
+          "keyPassword": "0000001B2EAB690CA05233FC907FD548F41C51105A21CBE0000936D85B105BDF3CEFB2C26E8648D88F0C95",
+          "profile": "C:/Users/korac/.ohos/config/default_harmony_S-ZZmkJI8BI2pJwUhC65zkKyKFcgr_cYDslHwdNtuRk=.p7b",
           "signAlg": "SHA256withECDSA",
-          "storeFile": "C:\\Users\\korac\\.ohos\\config\\default_harmony_S-ZZmkJI8BI2pJwUhC65zkKyKFcgr_cYDslHwdNtuRk=.p12",
-          "storePassword": "0000001BCC0D14034DA70EDE9C58BC9B89276EED4A3924B368C25CFC6DA22C80B87ACCB14BC062851A8713"
+          "storeFile": "C:/Users/korac/.ohos/config/default_harmony_S-ZZmkJI8BI2pJwUhC65zkKyKFcgr_cYDslHwdNtuRk=.p12",
+          "storePassword": "0000001B49926201E1E1CDBCD9FD55F1CDA06F02ABF310B0EC5768B764B89186B7E896A38E5067EC38C8B8"
+        }
+      },
+      {
+        "name": "release",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "D:/learnOH/harmony/keys/learnOH.cer",
+          "keyAlias": "learnOH",
+          "keyPassword": "0000001F8282979D2A8820E344AC3EF3B53EB9EFC84F0B5668E4F2BF2266B958832DAA754FD3E6FF6992C346B0F076",
+          "profile": "D:/learnOH/harmony/keys/learnOHRelease.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "D:/learnOH/harmony/keys/learnOH.p12",
+          "storePassword": "0000001FE582690CBBDD7C9139DA43B6AB9AC4D36BC3520595FA699608BDC5B8B6DBD7C3E0B39242D655B689992CF1"
         }
       }
     ]
