@@ -1,14 +1,12 @@
 import React, { useEffect, useCallback } from 'react';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { NoticeStackParams } from 'screens/types';
-import { useMemo } from 'react';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { Card, Text } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from 'data/store';
 import { getAllNoticesForCourses } from 'data/actions/notices';
 import { t } from 'helpers/i18n';
 import type { Notice } from 'data/types/state';
-// import removed: HTML 解析改在 actions 预计算
 
 const NoticeItem = React.memo(
   ({ item, onPressItem }: { item: Notice; onPressItem: (item: Notice) => void }) => {
@@ -39,18 +37,19 @@ type Props = NativeStackScreenProps<NoticeStackParams, 'Notices'>;
  */
 const Notices: React.FC<Props> = ({ navigation }) => {
   const dispatch = useAppDispatch();
-  const auth = useAppSelector(state => state.auth);
-  const currentSemester = useAppSelector(state => state.semesters.current);
-  const coursesItems = useAppSelector(state => state.courses.items);
-  const courseIds = useMemo(() => coursesItems.map(c => c.id), [coursesItems]);
+  const loggedIn = useAppSelector(state => state.auth.loggedIn);
+  const courseIds = useAppSelector(
+    state => state.courses.items.map(i => i.id),
+    (a, b) => JSON.stringify([...a].sort()) === JSON.stringify([...b].sort()),
+  );
   const { items, fetching } = useAppSelector(state => state.notices);
 
   const handleRefresh = useCallback(() => {
-    if (auth.loggedIn && courseIds.length > 0) {
-      console.log('[Notices] Refreshing notices for', courseIds.length, 'courses', 'semester=', currentSemester);
+    if (loggedIn && courseIds.length > 0) {
+      console.log('[Notices] Refreshing notices for', courseIds.length, 'courses');
       dispatch(getAllNoticesForCourses(courseIds));
     }
-  }, [dispatch, auth.loggedIn, courseIds, currentSemester]);
+  }, [dispatch, loggedIn, courseIds]);
 
   const handlePress = useCallback(
     (item: Notice) => {

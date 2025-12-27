@@ -53,12 +53,12 @@ const NoticeStackScreens = () => {
       <NoticeStack.Screen
         name="Notices"
         component={Notices}
-        options={{ headerShown: true, title: t('notices') }}
+        options={{ title: t('notices') }}
       />
       <NoticeStack.Screen
         name="NoticeDetail"
         component={NoticeDetail as any}
-        options={{ headerShown: true, title: '' }}
+        options={{ title: '' }}
       />
     </NoticeStack.Navigator>
   );
@@ -86,7 +86,7 @@ const SettingsStackScreens = () => {
       <SettingsStack.Screen
         name="Settings"
         component={Settings}
-        options={{ headerShown: false }}
+        options={{ title: t('settings') }}
       />
     </SettingsStack.Navigator>
   );
