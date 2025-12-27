@@ -29,6 +29,8 @@ import Notices from 'screens/Notices';
 import NoticeDetail from 'screens/NoticeDetail';
 import Assignments from 'screens/Assignments';
 import AssignmentDetail from 'screens/AssignmentDetail';
+import Files from 'screens/Files';
+import FileDetail from 'screens/FileDetail';
 import Settings from 'screens/Settings';
 import Splash from 'components/Splash';
 import { ToastProvider } from 'components/Toast';
@@ -42,6 +44,7 @@ import useToast from 'hooks/useToast';
 import type {
   NoticeStackParams,
   AssignmentStackParams,
+  FileStackParams,
   SettingsStackParams,
   MainTabParams,
   RootStackParams,
@@ -55,6 +58,7 @@ dayjs.locale(isLocaleChinese() ? 'zh-cn' : 'en');
 const RootStack = createNativeStackNavigator<RootStackParams>();
 const NoticeStack = createNativeStackNavigator<NoticeStackParams>();
 const AssignmentStack = createNativeStackNavigator<AssignmentStackParams>();
+const FileStack = createNativeStackNavigator<FileStackParams>();
 const SettingsStack = createNativeStackNavigator<SettingsStackParams>();
 const MainNavigator = createBottomTabNavigator<MainTabParams>();
 
@@ -99,6 +103,26 @@ const AssignmentStackScreens = () => {
 };
 
 /**
+ * File 子栈：文件列表与文件详情导航容器。
+ */
+const FileStackScreens = () => {
+  return (
+    <FileStack.Navigator>
+      <FileStack.Screen
+        name="Files"
+        component={Files}
+        options={{ title: t('files') }}
+      />
+      <FileStack.Screen
+        name="FileDetail"
+        component={FileDetail as any}
+        options={{ title: '' }}
+      />
+    </FileStack.Navigator>
+  );
+};
+
+/**
  * 沉浸式模式控制器：调用 react-native-immersive 统一控制系统栏。
  */
 const ImmersiveModeController = () => {
@@ -139,6 +163,7 @@ const MainTabScreens = () => {
           const iconMap: Record<keyof MainTabParams, string> = {
             NoticeStack: 'bell',
             AssignmentStack: 'clipboard-text',
+            FileStack: 'file-document',
             SettingsStack: 'cog',
           };
           return (
@@ -157,9 +182,11 @@ const MainTabScreens = () => {
             ? t('notices')
             : route.name === 'AssignmentStack'
               ? t('assignments')
-              : route.name === 'SettingsStack'
-                ? t('settings')
-                : '',
+              : route.name === 'FileStack'
+                ? t('files')
+                : route.name === 'SettingsStack'
+                  ? t('settings')
+                  : '',
       })}
     >
       <MainNavigator.Screen
@@ -169,6 +196,10 @@ const MainTabScreens = () => {
       <MainNavigator.Screen
         name="AssignmentStack"
         component={AssignmentStackScreens}
+      />
+      <MainNavigator.Screen
+        name="FileStack"
+        component={FileStackScreens}
       />
       <MainNavigator.Screen
         name="SettingsStack"

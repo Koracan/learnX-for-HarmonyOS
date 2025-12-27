@@ -16,6 +16,7 @@
 #include "RTNSecureKeyStorePackage.h"
 #include "SecureRandomPackage.h"
 #include "RNImmersivePackage.h"
+#include "FileViewerPackage.h"
 
 using namespace rnoh;
 
@@ -38,5 +39,6 @@ std::vector<std::shared_ptr<Package>> PackageProvider::getPackages(Package::Cont
         std::make_shared<RTNSecureKeyStorePackage>(ctx),
         std::make_shared<SecureRandomPackage>(ctx),
         std::make_shared<RNImmersivePackage>(ctx),
+        std::make_shared<FileViewerPackage>(ctx),
     };
 }

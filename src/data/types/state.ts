@@ -1,4 +1,4 @@
-import type { FailReason, Homework } from 'thu-learn-lib';
+import type { FailReason, Homework, File as IFile } from 'thu-learn-lib';
 
 // Minimal state and entity definitions for the mini prototype (login + notices)
 
@@ -20,6 +20,8 @@ export interface AuthState extends Auth {
 export interface SettingsState {
   graduate: boolean;
   immersiveMode: boolean;
+  fileUseDocumentDir: boolean;
+  fileOmitCourseName: boolean;
 }
 
 export interface Course {
@@ -106,6 +108,29 @@ export interface AssignmentsState {
   } | null;
 }
 
+export type File = Pick<
+  IFile,
+  | 'id'
+  | 'title'
+  | 'description'
+  | 'category'
+  | 'size'
+  | 'fileType'
+  | 'markedImportant'
+  | 'isNew'
+  | 'uploadTime'
+  | 'downloadUrl'
+> &
+  CourseExtraInfo;
+
+export interface FilesState {
+  fetching: boolean;
+  favorites: string[];
+  archived: string[];
+  items: File[];
+  error?: FailReason | null;
+}
+
 export interface UserState {
   fetching: boolean;
   info: any | null;
@@ -126,6 +151,7 @@ export interface AppState {
   courses: CoursesState;
   notices: NoticeState;
   assignments: AssignmentsState;
+  files: FilesState;
   user: UserState;
   semesters: SemestersState;
 }

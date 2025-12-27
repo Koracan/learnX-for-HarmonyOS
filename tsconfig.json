@@ -69,6 +69,9 @@
       ],
       "react-native-secure-key-store": [
         "../node_modules/@react-native-ohos/react-native-secure-key-store"
+      ],
+      "react-native-file-viewer": [
+        "../node_modules/@react-native-ohos/react-native-file-viewer"
       ]
     }
   }

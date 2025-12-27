@@ -7,6 +7,7 @@ import { settings } from 'data/reducers/settings';
 import { courses } from 'data/reducers/courses';
 import { notices } from 'data/reducers/notices';
 import assignments from 'data/reducers/assignments';
+import files from 'data/reducers/files';
 import { user } from 'data/reducers/user';
 import { semestersReducer as semesters } from 'data/reducers/semesters';
 import type {
@@ -15,6 +16,7 @@ import type {
   SettingsState,
   SemestersState,
   AssignmentsState,
+  FilesState,
 } from 'data/types/state';
 import type { AppActions } from 'data/types/actions';
 import { RESET_LOADING } from 'data/types/constants';
@@ -61,12 +63,22 @@ const assignmentsPersistConfig: PersistConfig<AssignmentsState> = {
   whitelist: ['favorites', 'archived'],
 };
 
+/**
+ * Files 持久化配置：持久化收藏与存档。
+ */
+const filesPersistConfig: PersistConfig<FilesState> = {
+  key: 'files',
+  storage: AsyncStorage,
+  whitelist: ['favorites', 'archived'],
+};
+
 const appReducer = combineReducers({
   auth: persistReducer(authPersistConfig, auth),
   settings: persistReducer(settingsPersistConfig, settings),
   courses,
   notices,
   assignments: persistReducer(assignmentsPersistConfig, assignments),
+  files: persistReducer(filesPersistConfig, files),
   user,
   semesters: persistReducer(semestersPersistConfig, semesters),
 }) as (state: AppState | undefined, action: AppActions) => AppState;
@@ -96,6 +108,10 @@ export function rootReducer(
       },
       assignments: {
         ...state?.assignments,
+        fetching: false,
+      },
+      files: {
+        ...state?.files,
         fetching: false,
       },
       user: {

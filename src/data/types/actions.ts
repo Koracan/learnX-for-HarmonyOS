@@ -16,6 +16,12 @@ import {
   setArchiveAssignments,
   setPendingAssignmentData,
 } from 'data/actions/assignments';
+import {
+  getAllFilesForCoursesAction,
+  getFilesForCourseAction,
+  setFavFile,
+  setArchiveFiles,
+} from 'data/actions/files';
 import type { PersistAppState } from 'data/types/state';
 import { getUserInfoAction } from 'data/actions/user';
 import { getAllSemestersAction, getCurrentSemesterAction, setCurrentSemester } from 'data/actions/semesters';
@@ -62,6 +68,18 @@ export type AssignmentsAction =
   | SetArchiveAssignmentsAction
   | SetPendingAssignmentDataAction;
 
+type GetFilesForCourseAction = ActionType<typeof getFilesForCourseAction>;
+type GetAllFilesForCoursesAction = ActionType<
+  typeof getAllFilesForCoursesAction
+>;
+type SetFavFileAction = ActionType<typeof setFavFile>;
+type SetArchiveFilesAction = ActionType<typeof setArchiveFiles>;
+export type FilesAction =
+  | GetFilesForCourseAction
+  | GetAllFilesForCoursesAction
+  | SetFavFileAction
+  | SetArchiveFilesAction;
+
 type GetUserInfoAction = ActionType<typeof getUserInfoAction>;
 export type UserAction = GetUserInfoAction;
 
@@ -82,6 +100,7 @@ export type AppActions =
   | CoursesAction
   | NoticesAction
   | AssignmentsAction
+  | FilesAction
   | UserAction
   | SemestersAction
   | StoreAction;

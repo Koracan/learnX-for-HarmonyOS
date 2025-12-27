@@ -22,6 +22,7 @@
     "@react-native-ohos/react-native-secure-key-store": "file:../../node_modules/@react-native-ohos/react-native-secure-key-store/harmony/secure_key_store.har",
     "@react-native-ohos/react-native-securerandom": "file:../../node_modules/@react-native-ohos/react-native-securerandom/harmony/secure_random.har",
     "@react-native-ohos/react-native-immersive": "file:../../node_modules/@react-native-ohos/react-native-immersive/harmony/immersive.har",
+    "@react-native-ohos/react-native-file-viewer": "file:../../node_modules/@react-native-ohos/react-native-file-viewer/harmony/file_viewer.har",
   },
   "devDependencies": {},
   "dynamicDependencies": {}

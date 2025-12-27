@@ -13,6 +13,7 @@ import { RNSharePackage } from '@react-native-ohos/react-native-share/ts';
 import { RNSecureKeyStorePackage } from "@react-native-ohos/react-native-secure-key-store/ts";
 import { SecureRandomPackage } from '@react-native-ohos/react-native-securerandom/ts';
 import { RNImmersivePackage } from '@react-native-ohos/react-native-immersive/ts';
+import { RNFileViewerPackage } from '@react-native-ohos/react-native-file-viewer/ts';
 
 
 export function createRNPackages(ctx: RNPackageContext): RNPackage[] {
@@ -30,6 +31,7 @@ export function createRNPackages(ctx: RNPackageContext): RNPackage[] {
     new RNSharePackage(ctx),
     new RNSecureKeyStorePackage(ctx),
     new SecureRandomPackage(ctx),
-    new RNImmersivePackage(ctx)
+    new RNImmersivePackage(ctx),
+    new RNFileViewerPackage(ctx)
   ];
 }
