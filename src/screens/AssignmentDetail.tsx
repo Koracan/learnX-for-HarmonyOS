@@ -7,15 +7,17 @@ import {
   useTheme,
   Text,
   List,
+  Chip,
 } from 'react-native-paper';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import dayjs from 'dayjs';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { HomeworkCompletionType, HomeworkSubmissionType } from 'thu-learn-lib';
 import AutoHeightWebView from 'components/AutoHeightWebView';
 import Styles from 'constants/Styles';
 import type { AssignmentStackParams } from 'screens/types';
-import { getWebViewTemplate } from 'helpers/html';
-import { t } from 'helpers/i18n';
+import { getWebViewTemplate, removeTags } from 'helpers/html';
+import { isLocaleChinese, t } from 'helpers/i18n';
 import Colors from 'constants/Colors';
 
 type Props = NativeStackScreenProps<AssignmentStackParams, 'AssignmentDetail'>;
@@ -27,8 +29,11 @@ const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
     title,
     deadline,
     description,
+    completionType,
+    submissionType,
     attachment,
     submitted,
+    isLateSubmission,
     submitTime,
     submittedAttachment,
     submittedContent,
@@ -36,7 +41,11 @@ const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
     graderName,
     gradeTime,
     grade,
+    gradeLevel,
     gradeContent,
+    gradeAttachment,
+    answerContent,
+    answerAttachment,
   } = route.params;
 
   const html = useMemo(
@@ -56,15 +65,35 @@ const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Caption>{courseName}</Caption>
-        <Title>{title}</Title>
         <View style={Styles.flexRow}>
-          <MaterialCommunityIcons
-            name="clock-outline"
-            size={14}
-            color={theme.colors.onSurfaceVariant}
-          />
+          <Chip compact mode="outlined" style={styles.chip}>
+            {completionType === HomeworkCompletionType.GROUP
+              ? t('assignmentGroupCompletion')
+              : t('assignmentIndividualCompletion')}
+          </Chip>
+          <Chip compact mode="outlined" style={styles.chip}>
+            {submissionType === HomeworkSubmissionType.OFFLINE
+              ? t('assignmentOfflineSubmission')
+              : t('assignmentOnlineSubmission')}
+          </Chip>
+        </View>
+        <Title>{title}</Title>
+        <View style={Styles.flexRowCenter}>
+          <Caption>
+            {isLocaleChinese()
+              ? dayjs().isAfter(dayjs(deadline))
+                ? dayjs().to(dayjs(deadline)) + '截止'
+                : '还剩 ' + dayjs().to(dayjs(deadline), true)
+              : dayjs().isAfter(dayjs(deadline))
+              ? 'closed ' + dayjs().to(dayjs(deadline))
+              : 'due in ' + dayjs().to(dayjs(deadline), true)}
+          </Caption>
           <Caption style={styles.caption}>
-            {t('deadline')}: {dayjs(deadline).format('YYYY-MM-DD HH:mm')}
+            {dayjs(deadline).format(
+              isLocaleChinese()
+                ? 'YYYY 年 M 月 D 日 dddd HH:mm'
+                : 'ddd, MMM D, YYYY HH:mm',
+            )}
           </Caption>
         </View>
       </View>
@@ -111,11 +140,31 @@ const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
             </View>
             {submitTime && (
               <Caption>
-                {t('submitTime')}: {dayjs(submitTime).format('YYYY-MM-DD HH:mm')}
+                {dayjs(submitTime).format(
+                  isLocaleChinese()
+                    ? isLateSubmission
+                      ? 'YYYY 年 M 月 D 日 dddd HH:mm 补交'
+                      : 'YYYY 年 M 月 D 日 dddd HH:mm 提交'
+                    : isLateSubmission
+                    ? '[submitted late at] HH:mm, MMM D, YYYY'
+                    : '[submitted at] HH:mm, MMM D, YYYY',
+                )}
               </Caption>
             )}
-            {submittedContent && (
-              <Text style={styles.submittedContent}>{submittedContent}</Text>
+            {removeTags(submittedContent) ? (
+              <Text style={styles.submittedContent}>
+                {removeTags(submittedContent)}
+              </Text>
+            ) : null}
+            {submittedAttachment && (
+              <List.Item
+                title={submittedAttachment.name}
+                description={t('attachment')}
+                left={props => <List.Icon {...props} icon="file-check" />}
+                onPress={() => {
+                  // TODO: Implement file download/open
+                }}
+              />
             )}
           </View>
         </>
@@ -129,20 +178,54 @@ const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
               {t('grade')}
             </Text>
             <Text variant="headlineSmall" style={styles.gradeText}>
-              {grade}
+              {gradeLevel || grade}
             </Text>
-            {graderName && (
-              <Caption>
-                {t('grader')}: {graderName}
-              </Caption>
-            )}
+            {removeTags(gradeContent) ? (
+              <Text style={styles.gradeContent}>{removeTags(gradeContent)}</Text>
+            ) : null}
             {gradeTime && (
               <Caption>
-                {t('gradeTime')}: {dayjs(gradeTime).format('YYYY-MM-DD HH:mm')}
+                {dayjs(gradeTime).format(
+                  isLocaleChinese()
+                    ? graderName
+                      ? `YYYY 年 M 月 D 日 dddd HH:mm 由${graderName}批改`
+                      : 'YYYY 年 M 月 D 日 dddd HH:mm 批改'
+                    : graderName
+                    ? `[graded by ${graderName} at] HH:mm, MMM D, YYYY`
+                    : '[graded at] HH:mm, MMM D, YYYY',
+                )}
               </Caption>
             )}
-            {gradeContent && (
-              <Text style={styles.gradeContent}>{gradeContent}</Text>
+            {gradeAttachment && (
+              <List.Item
+                title={gradeAttachment.name}
+                description={t('attachment')}
+                left={props => <List.Icon {...props} icon="file-certificate" />}
+                onPress={() => {
+                  // TODO: Implement file download/open
+                }}
+              />
+            )}
+          </View>
+        </>
+      )}
+
+      {(answerContent || answerAttachment) && (
+        <>
+          <Divider />
+          <View style={styles.section}>
+            {removeTags(answerContent) ? (
+              <Text style={styles.answerContent}>{removeTags(answerContent)}</Text>
+            ) : null}
+            {answerAttachment && (
+              <List.Item
+                title={answerAttachment.name}
+                description={t('attachment')}
+                left={props => <List.Icon {...props} icon="key" />}
+                onPress={() => {
+                  // TODO: Implement file download/open
+                }}
+              />
             )}
           </View>
         </>
@@ -173,6 +256,10 @@ const styles = StyleSheet.create({
   statusText: {
     marginLeft: 8,
   },
+  chip: {
+    marginBottom: 8,
+    marginRight: 8,
+  },
   submittedContent: {
     marginTop: 8,
     padding: 8,
@@ -186,6 +273,10 @@ const styles = StyleSheet.create({
   gradeContent: {
     marginTop: 8,
     fontStyle: 'italic',
+  },
+  answerContent: {
+    marginTop: 8,
+    color: Colors.blue500,
   },
 });
 

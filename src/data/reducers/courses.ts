@@ -8,6 +8,7 @@ import type { CoursesState } from 'data/types/state';
  */
 const initialState: CoursesState = {
   items: [],
+  names: {},
   hidden: [],
   fetching: false,
   error: null,
@@ -26,6 +27,16 @@ export const courses = createReducer<CoursesState, CoursesAction>(initialState)
     ...state,
     fetching: false,
     items: action.payload,
+    names: action.payload.reduce(
+      (prev, curr) => ({
+        ...prev,
+        [curr.id]: {
+          name: curr.name,
+          teacherName: curr.teacherName,
+        },
+      }),
+      {},
+    ),
   }))
   .handleAction(getAllCoursesAction.failure, (state, action) => ({
     ...state,

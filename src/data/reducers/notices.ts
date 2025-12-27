@@ -1,6 +1,7 @@
 import { createReducer } from 'typesafe-actions';
 import {
   getAllNoticesForCoursesAction,
+  getNoticesForCourseAction,
   setArchiveNotices,
   setFavNotice,
 } from 'data/actions/notices';
@@ -33,6 +34,24 @@ export const notices = createReducer<NoticeState, NoticesAction>(initialState)
     items: action.payload,
   }))
   .handleAction(getAllNoticesForCoursesAction.failure, (state, action) => ({
+    ...state,
+    fetching: false,
+    error: action.payload,
+  }))
+  .handleAction(getNoticesForCourseAction.request, state => ({
+    ...state,
+    fetching: true,
+    error: null,
+  }))
+  .handleAction(getNoticesForCourseAction.success, (state, action) => ({
+    ...state,
+    fetching: false,
+    items: [
+      ...state.items.filter(item => item.courseId !== action.payload.courseId),
+      ...action.payload.notices,
+    ],
+  }))
+  .handleAction(getNoticesForCourseAction.failure, (state, action) => ({
     ...state,
     fetching: false,
     error: action.payload,

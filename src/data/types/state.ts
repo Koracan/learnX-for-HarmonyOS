@@ -31,6 +31,12 @@ export interface Course {
 export interface CoursesState {
   fetching: boolean;
   items: Course[];
+  names: {
+    [id: string]: {
+      name: string;
+      teacherName: string;
+    };
+  };
   hidden: string[];
   error?: FailReason | null;
 }
@@ -94,6 +100,10 @@ export interface AssignmentsState {
   archived: string[];
   items: Assignment[];
   error?: FailReason | null;
+  pendingAssignmentData?: {
+    data: string;
+    mimeType: string;
+  } | null;
 }
 
 export interface UserState {

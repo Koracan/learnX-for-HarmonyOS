@@ -5,13 +5,16 @@ import { setSetting } from 'data/actions/settings';
 import { setCourses, getAllCoursesAction } from 'data/actions/courses';
 import {
   getAllNoticesForCoursesAction,
+  getNoticesForCourseAction,
   setFavNotice,
   setArchiveNotices,
 } from 'data/actions/notices';
 import {
   getAllAssignmentsForCoursesAction,
+  getAssignmentsForCourseAction,
   setFavAssignment,
   setArchiveAssignments,
+  setPendingAssignmentData,
 } from 'data/actions/assignments';
 import type { PersistAppState } from 'data/types/state';
 import { getUserInfoAction } from 'data/actions/user';
@@ -32,22 +35,32 @@ export type CoursesAction = SetCoursesAction | GetAllCoursesAction;
 type GetAllNoticesForCoursesAction = ActionType<
   typeof getAllNoticesForCoursesAction
 >;
+type GetNoticesForCourseAction = ActionType<typeof getNoticesForCourseAction>;
 type SetFavNoticeAction = ActionType<typeof setFavNotice>;
 type SetArchiveNoticesAction = ActionType<typeof setArchiveNotices>;
 export type NoticesAction =
   | GetAllNoticesForCoursesAction
+  | GetNoticesForCourseAction
   | SetFavNoticeAction
   | SetArchiveNoticesAction;
 
 type GetAllAssignmentsForCoursesAction = ActionType<
   typeof getAllAssignmentsForCoursesAction
 >;
+type GetAssignmentsForCourseAction = ActionType<
+  typeof getAssignmentsForCourseAction
+>;
 type SetFavAssignmentAction = ActionType<typeof setFavAssignment>;
 type SetArchiveAssignmentsAction = ActionType<typeof setArchiveAssignments>;
+type SetPendingAssignmentDataAction = ActionType<
+  typeof setPendingAssignmentData
+>;
 export type AssignmentsAction =
   | GetAllAssignmentsForCoursesAction
+  | GetAssignmentsForCourseAction
   | SetFavAssignmentAction
-  | SetArchiveAssignmentsAction;
+  | SetArchiveAssignmentsAction
+  | SetPendingAssignmentDataAction;
 
 type GetUserInfoAction = ActionType<typeof getUserInfoAction>;
 export type UserAction = GetUserInfoAction;

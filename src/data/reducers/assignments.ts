@@ -3,8 +3,12 @@ import {
   GET_ALL_ASSIGNMENTS_FOR_COURSES_FAILURE,
   GET_ALL_ASSIGNMENTS_FOR_COURSES_REQUEST,
   GET_ALL_ASSIGNMENTS_FOR_COURSES_SUCCESS,
+  GET_ASSIGNMENTS_FOR_COURSE_FAILURE,
+  GET_ASSIGNMENTS_FOR_COURSE_REQUEST,
+  GET_ASSIGNMENTS_FOR_COURSE_SUCCESS,
   SET_FAV_ASSIGNMENT,
   SET_ARCHIVE_ASSIGNMENTS,
+  SET_PENDING_ASSIGNMENT_DATA,
 } from 'data/types/constants';
 import type { AssignmentsState } from 'data/types/state';
 
@@ -14,6 +18,7 @@ export default function assignments(
     favorites: [],
     archived: [],
     items: [],
+    pendingAssignmentData: null,
   },
   action: AssignmentsAction,
 ): AssignmentsState {
@@ -37,30 +42,63 @@ export default function assignments(
         fetching: false,
         error: action.payload.reason,
       };
+    case GET_ASSIGNMENTS_FOR_COURSE_REQUEST:
+      return {
+        ...state,
+        fetching: true,
+        error: null,
+      };
+    case GET_ASSIGNMENTS_FOR_COURSE_SUCCESS:
+      return {
+        ...state,
+        fetching: false,
+        items: [
+          ...state.items.filter(
+            item => item.courseId !== action.payload.courseId,
+          ),
+          ...action.payload.assignments,
+        ],
+        error: null,
+      };
+    case GET_ASSIGNMENTS_FOR_COURSE_FAILURE:
+      return {
+        ...state,
+        fetching: false,
+        error: action.payload.reason,
+      };
     case SET_FAV_ASSIGNMENT:
-      if (action.payload.fav) {
+      if (action.payload.flag) {
         return {
           ...state,
-          favorites: [...state.favorites, action.payload.id],
+          favorites: [...state.favorites, action.payload.assignmentId],
         };
       } else {
         return {
           ...state,
-          favorites: state.favorites.filter(item => item !== action.payload.id),
+          favorites: state.favorites.filter(
+            item => item !== action.payload.assignmentId,
+          ),
         };
       }
     case SET_ARCHIVE_ASSIGNMENTS:
-      if (action.payload.archive) {
+      if (action.payload.flag) {
         return {
           ...state,
-          archived: [...state.archived, ...action.payload.ids],
+          archived: [...state.archived, ...action.payload.assignmentIds],
         };
       } else {
         return {
           ...state,
-          archived: state.archived.filter(i => !action.payload.ids.includes(i)),
+          archived: state.archived.filter(
+            i => !action.payload.assignmentIds.includes(i),
+          ),
         };
       }
+    case SET_PENDING_ASSIGNMENT_DATA:
+      return {
+        ...state,
+        pendingAssignmentData: action.payload,
+      };
     default:
       return state;
   }
