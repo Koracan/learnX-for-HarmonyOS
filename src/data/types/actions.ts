@@ -8,6 +8,11 @@ import {
   setFavNotice,
   setArchiveNotices,
 } from 'data/actions/notices';
+import {
+  getAllAssignmentsForCoursesAction,
+  setFavAssignment,
+  setArchiveAssignments,
+} from 'data/actions/assignments';
 import type { PersistAppState } from 'data/types/state';
 import { getUserInfoAction } from 'data/actions/user';
 import { getAllSemestersAction, getCurrentSemesterAction, setCurrentSemester } from 'data/actions/semesters';
@@ -34,6 +39,16 @@ export type NoticesAction =
   | SetFavNoticeAction
   | SetArchiveNoticesAction;
 
+type GetAllAssignmentsForCoursesAction = ActionType<
+  typeof getAllAssignmentsForCoursesAction
+>;
+type SetFavAssignmentAction = ActionType<typeof setFavAssignment>;
+type SetArchiveAssignmentsAction = ActionType<typeof setArchiveAssignments>;
+export type AssignmentsAction =
+  | GetAllAssignmentsForCoursesAction
+  | SetFavAssignmentAction
+  | SetArchiveAssignmentsAction;
+
 type GetUserInfoAction = ActionType<typeof getUserInfoAction>;
 export type UserAction = GetUserInfoAction;
 
@@ -53,6 +68,7 @@ export type AppActions =
   | SettingsAction
   | CoursesAction
   | NoticesAction
+  | AssignmentsAction
   | UserAction
   | SemestersAction
   | StoreAction;

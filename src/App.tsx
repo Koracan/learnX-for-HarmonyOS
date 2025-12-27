@@ -27,6 +27,8 @@ import Login from 'screens/Login';
 import SSO from 'screens/SSO';
 import Notices from 'screens/Notices';
 import NoticeDetail from 'screens/NoticeDetail';
+import Assignments from 'screens/Assignments';
+import AssignmentDetail from 'screens/AssignmentDetail';
 import Settings from 'screens/Settings';
 import Splash from 'components/Splash';
 import { ToastProvider } from 'components/Toast';
@@ -35,12 +37,24 @@ import { login } from 'data/actions/auth';
 import { resetLoading } from 'data/actions/root';
 import { getCoursesForSemester } from 'data/actions/courses';
 import { getAllSemesters, getCurrentSemester } from 'data/actions/semesters';
-import { t } from 'helpers/i18n';
+import { isLocaleChinese, t } from 'helpers/i18n';
 import useToast from 'hooks/useToast';
-import type { NoticeStackParams, SettingsStackParams, MainTabParams, RootStackParams } from 'screens/types';
+import type {
+  NoticeStackParams,
+  AssignmentStackParams,
+  SettingsStackParams,
+  MainTabParams,
+  RootStackParams,
+} from 'screens/types';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+
+dayjs.extend(relativeTime);
+dayjs.locale(isLocaleChinese() ? 'zh-cn' : 'en');
 
 const RootStack = createNativeStackNavigator<RootStackParams>();
 const NoticeStack = createNativeStackNavigator<NoticeStackParams>();
+const AssignmentStack = createNativeStackNavigator<AssignmentStackParams>();
 const SettingsStack = createNativeStackNavigator<SettingsStackParams>();
 const MainNavigator = createBottomTabNavigator<MainTabParams>();
 
@@ -61,6 +75,26 @@ const NoticeStackScreens = () => {
         options={{ title: '' }}
       />
     </NoticeStack.Navigator>
+  );
+};
+
+/**
+ * Assignment 子栈：作业列表与作业详情导航容器。
+ */
+const AssignmentStackScreens = () => {
+  return (
+    <AssignmentStack.Navigator>
+      <AssignmentStack.Screen
+        name="Assignments"
+        component={Assignments}
+        options={{ title: t('assignments') }}
+      />
+      <AssignmentStack.Screen
+        name="AssignmentDetail"
+        component={AssignmentDetail as any}
+        options={{ title: '' }}
+      />
+    </AssignmentStack.Navigator>
   );
 };
 
@@ -104,6 +138,7 @@ const MainTabScreens = () => {
         tabBarIcon: ({ color, size }) => {
           const iconMap: Record<keyof MainTabParams, string> = {
             NoticeStack: 'bell',
+            AssignmentStack: 'clipboard-text',
             SettingsStack: 'cog',
           };
           return (
@@ -120,14 +155,20 @@ const MainTabScreens = () => {
         tabBarLabel:
           route.name === 'NoticeStack'
             ? t('notices')
-            : route.name === 'SettingsStack'
-              ? '设置'
-              : '',
+            : route.name === 'AssignmentStack'
+              ? t('assignments')
+              : route.name === 'SettingsStack'
+                ? t('settings')
+                : '',
       })}
     >
       <MainNavigator.Screen
         name="NoticeStack"
         component={NoticeStackScreens}
+      />
+      <MainNavigator.Screen
+        name="AssignmentStack"
+        component={AssignmentStackScreens}
       />
       <MainNavigator.Screen
         name="SettingsStack"

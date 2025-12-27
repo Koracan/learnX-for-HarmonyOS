@@ -1,3 +1,5 @@
+import type { FailReason, Homework } from 'thu-learn-lib';
+
 // Minimal state and entity definitions for the mini prototype (login + notices)
 
 export interface Auth {
@@ -12,7 +14,7 @@ export interface AuthState extends Auth {
   loggingIn: boolean;
   ssoInProgress: boolean;
   loggedIn: boolean;
-  error?: any | null;
+  error?: FailReason | null;
 }
 
 export interface SettingsState {
@@ -30,12 +32,13 @@ export interface CoursesState {
   fetching: boolean;
   items: Course[];
   hidden: string[];
-  error?: any | null;
+  error?: FailReason | null;
 }
 
 export interface CourseExtraInfo {
   courseId: string;
   courseName: string;
+  courseTeacherName: string;
 }
 
 export interface Notice extends CourseExtraInfo {
@@ -52,13 +55,51 @@ export interface NoticeState {
   favorites: string[];
   archived: string[];
   items: Notice[];
-  error?: any | null;
+  error?: FailReason | null;
+}
+
+export type Assignment = Pick<
+  Homework,
+  | 'id'
+  | 'studentHomeworkId'
+  | 'title'
+  | 'description'
+  | 'deadline'
+  | 'lateSubmissionDeadline'
+  | 'completionType'
+  | 'submissionType'
+  | 'attachment'
+  | 'submitted'
+  | 'isLateSubmission'
+  | 'submitTime'
+  | 'submittedContent'
+  | 'submittedAttachment'
+  | 'graded'
+  | 'grade'
+  | 'gradeLevel'
+  | 'graderName'
+  | 'gradeTime'
+  | 'gradeContent'
+  | 'gradeAttachment'
+  | 'answerContent'
+  | 'answerAttachment'
+  | 'url'
+  | 'excellentHomeworkList'
+> &
+  CourseExtraInfo;
+
+export interface AssignmentsState {
+  fetching: boolean;
+  favorites: string[];
+  archived: string[];
+  items: Assignment[];
+  error?: FailReason | null;
 }
 
 export interface UserState {
   fetching: boolean;
   info: any | null;
-  error?: any | null;
+  error?: FailReason | null;
 }
 
 export interface SemestersState {
@@ -66,7 +107,7 @@ export interface SemestersState {
   fetchingCurrent: boolean;
   items: string[];
   current: string | null;
-  error?: any | null;
+  error?: FailReason | null;
 }
 
 export interface AppState {
@@ -74,6 +115,7 @@ export interface AppState {
   settings: SettingsState;
   courses: CoursesState;
   notices: NoticeState;
+  assignments: AssignmentsState;
   user: UserState;
   semesters: SemestersState;
 }

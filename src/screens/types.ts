@@ -1,4 +1,4 @@
-import type { Notice } from 'data/types/state';
+import type { Notice, Assignment } from 'data/types/state';
 
 /**
  * 公告栈路由参数定义。
@@ -6,6 +6,14 @@ import type { Notice } from 'data/types/state';
 export type NoticeStackParams = {
   Notices: undefined;
   NoticeDetail: Notice;
+};
+
+/**
+ * 作业栈路由参数定义。
+ */
+export type AssignmentStackParams = {
+  Assignments: undefined;
+  AssignmentDetail: Assignment;
 };
 
 /**
@@ -20,6 +28,7 @@ export type SettingsStackParams = {
  */
 export type MainTabParams = {
   NoticeStack: undefined;
+  AssignmentStack: undefined;
   SettingsStack: undefined;
 };
 

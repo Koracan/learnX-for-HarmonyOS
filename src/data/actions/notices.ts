@@ -53,6 +53,7 @@ export function getAllNoticesForCourses(courseIds: string[]): ThunkResult {
             courseId,
             courseName,
             plainText: n.content ? removeTags(n.content) : '',
+            courseTeacherName: '',
           }));
         })
         .sort(
