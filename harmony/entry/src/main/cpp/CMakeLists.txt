@@ -31,9 +31,8 @@ add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-immersive/src
 add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-file-viewer/src/main/cpp" ./file-viewer)
 
 
-file(GLOB GENERATED_CPP_FILES "./generated/*.cpp")
 add_library(rnoh_app SHARED
-    ${GENERATED_CPP_FILES}
+    "./generated/LearnOHDataProcessor.cpp"
     "./PackageProvider.cpp"
     "${RNOH_CPP_DIR}/RNOHAppNapiBridge.cpp"
 )

@@ -1,8 +1,12 @@
 import { type ApiError, ContentType } from 'thu-learn-lib';
 import { createAction, createAsyncAction } from 'typesafe-actions';
+import { InteractionManager } from 'react-native';
+import CookieManager from '@react-native-cookies/cookies';
 import dayjs from 'dayjs';
 import { dataSource } from 'data/source';
+import Urls from 'constants/Urls';
 import type { ThunkResult } from 'data/types/actions';
+import { LearnOHDataProcessor } from 'react-native-learn-oh-data-processor';
 import {
   GET_ALL_FILES_FOR_COURSES_FAILURE,
   GET_ALL_FILES_FOR_COURSES_REQUEST,
@@ -71,29 +75,34 @@ export function getAllFilesForCourses(courseIds: string[]): ThunkResult {
     dispatch(getAllFilesForCoursesAction.request());
 
     try {
-      const results = await dataSource.getAllContents(
-        courseIds,
-        ContentType.FILE,
-      );
+      let files: File[];
       const courseNames = getState().courses.names;
-      const files = Object.keys(results)
-        .map(courseId => {
-          const filesForCourse = results[courseId];
-          const courseName = courseNames[courseId];
-          return filesForCourse.map<File>(file => ({
-            ...file,
-            courseId,
-            courseName: courseName.name,
-            courseTeacherName: courseName.teacherName,
-          }));
-        })
-        .reduce((a, b) => a.concat(b), [])
-        .sort(
-          (a, b) =>
-            dayjs(b.uploadTime).unix() - dayjs(a.uploadTime).unix() ||
-            b.id.localeCompare(a.id),
-        );
-      dispatch(getAllFilesForCoursesAction.success(files));
+
+      if (!LearnOHDataProcessor) {
+        throw new Error('LearnOHDataProcessor not available');
+      }
+
+      const cookies = await CookieManager.get(Urls.learn);
+      const cookieString = Object.keys(cookies)
+        .map(key => `${key}=${cookies[key].value}`)
+        .join('; ');
+      const csrfToken = dataSource.getCSRFToken();
+
+      const rawResultsJson = await LearnOHDataProcessor.fetchFiles(
+        courseIds,
+        cookieString,
+        csrfToken,
+      );
+
+      const processedJson = await LearnOHDataProcessor.processFiles(
+        rawResultsJson,
+        JSON.stringify(courseNames)
+      );
+      files = JSON.parse(processedJson);
+
+      InteractionManager.runAfterInteractions(() => {
+        dispatch(getAllFilesForCoursesAction.success(files));
+      });
     } catch (err) {
       dispatch(getAllFilesForCoursesAction.failure(serializeError(err)));
     }

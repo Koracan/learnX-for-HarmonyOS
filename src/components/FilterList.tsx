@@ -1,23 +1,15 @@
 import React, {
   useCallback,
+  useDeferredValue,
   useLayoutEffect,
   useState,
 } from 'react';
 import { FlatList, RefreshControl, View, StyleSheet } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import type { Assignment, Course, File, Notice } from 'data/types/state';
-import { setArchiveNotices, setFavNotice } from 'data/actions/notices';
-import {
-  setArchiveAssignments,
-  setFavAssignment,
-} from 'data/actions/assignments';
-import { setArchiveFiles, setFavFile } from 'data/actions/files';
-import { setHideCourse } from 'data/actions/courses';
 import { setSetting } from 'data/actions/settings';
 import { useAppDispatch, useAppSelector } from 'data/store';
-import useToast from 'hooks/useToast';
 import type {
   AssignmentStackParams,
   CourseStackParams,
@@ -75,7 +67,6 @@ const FilterList = <T extends Notice | Assignment | File | Course>({
   onRefresh,
 }: FilterListProps<T>) => {
   const dispatch = useAppDispatch();
-  const toast = useToast();
 
   const tabFilterSelections = useAppSelector(
     state => state.settings.tabFilterSelections || {},
@@ -102,6 +93,8 @@ const FilterList = <T extends Notice | Assignment | File | Course>({
                 ? archived
                 : hidden
   )!;
+
+  const deferredData = useDeferredValue(data);
 
   const handleFilter = () => {
     setFilterVisible(v => !v);
@@ -163,7 +156,7 @@ const FilterList = <T extends Notice | Assignment | File | Course>({
         unfinishedCount={unfinished?.length}
       />
       <FlatList
-        data={data}
+        data={deferredData}
         renderItem={renderItem}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.list}
@@ -172,6 +165,9 @@ const FilterList = <T extends Notice | Assignment | File | Course>({
         }
         ListEmptyComponent={<Empty />}
         removeClippedSubviews={true}
+        initialNumToRender={8}
+        maxToRenderPerBatch={10}
+        windowSize={5}
       />
     </View>
   );

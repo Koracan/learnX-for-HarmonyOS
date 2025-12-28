@@ -56,7 +56,8 @@
     "redux-persist": "^6.0.0",
     "redux-thunk": "^3.1.0",
     "thu-learn-lib": "github:Koracan/thu-learn-lib",
-    "typesafe-actions": "^5.1.0"
+    "typesafe-actions": "^5.1.0",
+    "react-native-learn-oh-data-processor": "github:Koracan/learn-oh-data-processor"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

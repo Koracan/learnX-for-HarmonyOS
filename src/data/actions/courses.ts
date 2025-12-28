@@ -1,5 +1,6 @@
 import { createAction, createAsyncAction } from 'typesafe-actions';
 import { type ApiError, CourseType, Language } from 'thu-learn-lib';
+import { InteractionManager } from 'react-native';
 import type { Course } from 'data/types/state';
 import {
   SET_COURSES,
@@ -61,7 +62,9 @@ export function getCoursesForSemester(semesterId: string): ThunkResult {
         ...c,
         semesterId,
       }));
-      dispatch(getCoursesForSemesterAction.success(mapped));
+      InteractionManager.runAfterInteractions(() => {
+        dispatch(getCoursesForSemesterAction.success(mapped));
+      });
     } catch (err) {
       console.error('[getCoursesForSemester] Error:', err);
       dispatch(getCoursesForSemesterAction.failure(serializeError(err)));

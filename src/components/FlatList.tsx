@@ -1,5 +1,5 @@
 import React from 'react';
-import { FlatListProps, FlatList as RNFlatList } from 'react-native';
+import { type FlatListProps, FlatList as RNFlatList } from 'react-native';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 
 function FlatList<T>(props: FlatListProps<T>) {

@@ -11,12 +11,16 @@
 
 #include "RNOH/Package.h"
 #include "RNOH/ArkTSTurboModule.h"
+#include "generated/LearnOHDataProcessor.h"
 
 namespace rnoh {
 
 class RNOHGeneratedPackageTurboModuleFactoryDelegate : public TurboModuleFactoryDelegate {
   public:
     SharedTurboModule createTurboModule(Context ctx, const std::string &name) const override {
+        if (name == "LearnOHDataProcessor") {
+            return std::make_shared<LearnOHDataProcessor>(ctx, name);
+        }
         return nullptr;
     };
 };

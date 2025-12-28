@@ -1,6 +1,9 @@
 import { createAction, createAsyncAction } from 'typesafe-actions';
 import { type ApiError, ContentType } from 'thu-learn-lib';
+import { InteractionManager } from 'react-native';
+import CookieManager from '@react-native-cookies/cookies';
 import dayjs from 'dayjs';
+import Urls from 'constants/Urls';
 import type { ThunkResult } from 'data/types/actions';
 import {
   GET_ALL_NOTICES_FOR_COURSES_FAILURE,
@@ -15,6 +18,7 @@ import {
 import type { Notice } from 'data/types/state';
 import { dataSource } from 'data/source';
 import { serializeError } from 'helpers/parse';
+import { LearnOHDataProcessor } from 'react-native-learn-oh-data-processor';
 
 export const getNoticesForCourseAction = createAsyncAction(
   GET_NOTICES_FOR_COURSE_REQUEST,
@@ -59,29 +63,34 @@ export function getAllNoticesForCourses(courseIds: string[]): ThunkResult {
     dispatch(getAllNoticesForCoursesAction.request());
 
     try {
-      const results = await dataSource.getAllContents(
-        courseIds,
-        ContentType.NOTIFICATION,
-      );
+      let notices: Notice[];
       const courseNames = getState().courses.names;
-      const notices = Object.keys(results)
-        .map(courseId => {
-          const noticesForCourse = results[courseId];
-          const courseName = courseNames[courseId];
-          return noticesForCourse.map<Notice>(notice => ({
-            ...notice,
-            courseId,
-            courseName: courseName.name,
-            courseTeacherName: courseName.teacherName,
-          }));
-        })
-        .reduce((a, b) => a.concat(b), [])
-        .sort(
-          (a, b) =>
-            dayjs(b.publishTime).unix() - dayjs(a.publishTime).unix() ||
-            b.id.localeCompare(a.id),
-        );
-      dispatch(getAllNoticesForCoursesAction.success(notices));
+
+      if (!LearnOHDataProcessor) {
+        throw new Error('LearnOHDataProcessor not available');
+      }
+
+      const cookies = await CookieManager.get(Urls.learn);
+      const cookieString = Object.keys(cookies)
+        .map(key => `${key}=${cookies[key].value}`)
+        .join('; ');
+      const csrfToken = dataSource.getCSRFToken();
+
+      const rawResultsJson = await LearnOHDataProcessor.fetchNotices(
+        courseIds,
+        cookieString,
+        csrfToken,
+      );
+
+      const processedJson = await LearnOHDataProcessor.processNotices(
+        rawResultsJson,
+        JSON.stringify(courseNames)
+      );
+      notices = JSON.parse(processedJson);
+
+      InteractionManager.runAfterInteractions(() => {
+        dispatch(getAllNoticesForCoursesAction.success(notices));
+      });
     } catch (err) {
       dispatch(getAllNoticesForCoursesAction.failure(serializeError(err)));
     }

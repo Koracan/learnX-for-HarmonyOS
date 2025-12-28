@@ -13,6 +13,10 @@ export default class EntryAbility extends RNAbility {
     return 'pages/Index';
   }
 
+  override getRNOHWorkerScriptUrl() {
+    return "entry/ets/workers/RNOHWorker.ets"
+  }
+
   override onCreate(want: Want): void {
     super.onCreate(want);
     hilog.info(0x0000, 'testTag', '%{public}s', 'EntryAbility onCreate');

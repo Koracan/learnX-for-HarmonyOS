@@ -14,6 +14,7 @@ import { RNSecureKeyStorePackage } from "@react-native-ohos/react-native-secure-
 import { SecureRandomPackage } from '@react-native-ohos/react-native-securerandom/ts';
 import { RNImmersivePackage } from '@react-native-ohos/react-native-immersive/ts';
 import { RNFileViewerPackage } from '@react-native-ohos/react-native-file-viewer/ts';
+import { DataProcessorPackage } from 'learn-oh-data-processor';
 
 
 export function createRNPackages(ctx: RNPackageContext): RNPackage[] {
@@ -32,6 +33,7 @@ export function createRNPackages(ctx: RNPackageContext): RNPackage[] {
     new RNSecureKeyStorePackage(ctx),
     new SecureRandomPackage(ctx),
     new RNImmersivePackage(ctx),
-    new RNFileViewerPackage(ctx)
+    new RNFileViewerPackage(ctx),
+    new DataProcessorPackage(ctx)
   ];
 }

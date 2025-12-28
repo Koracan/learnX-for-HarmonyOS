@@ -4,7 +4,6 @@
 #include "AsyncStoragePackage.h"
 #include "WebViewPackage.h"
 #include "CookiesPackage.h"
-#include "generated/RNOHGeneratedPackage.h"
 #include "GestureHandlerPackage.h"
 #include "BlobUtilPackage.h"
 #include "FsPackage.h"
@@ -27,7 +26,6 @@ std::vector<std::shared_ptr<Package>> PackageProvider::getPackages(Package::Cont
         std::make_shared<AsyncStoragePackage>(ctx),
         std::make_shared<WebViewPackage>(ctx),
         std::make_shared<CookiesPackage>(ctx),
-        std::make_shared<RNOHGeneratedPackage>(ctx),
         std::make_shared<GestureHandlerPackage>(ctx),
         std::make_shared<BlobUtilPackage>(ctx),
         std::make_shared<FsPackage>(ctx),
