@@ -4,7 +4,9 @@ import type {
   Homework,
   Notification,
   File as IFile,
+  UserInfo,
 } from 'thu-learn-lib';
+import type { FilterSelection } from 'components/Filter';
 
 // Minimal state and entity definitions for the mini prototype (login + notices)
 
@@ -23,11 +25,45 @@ export interface AuthState extends Auth {
   error?: FailReason | null;
 }
 
+export type Tab = 'notice' | 'assignment' | 'file' | 'course';
+export interface AlarmSettings {
+  courseAlarm: boolean;
+  courseAlarmOffset?: number;
+  assignmentCalendarSecondAlarm: boolean;
+  assignmentCalendarSecondAlarmOffset?: number;
+  assignmentCalendarAlarm: boolean;
+  assignmentCalendarAlarmOffset?: number;
+  assignmentCalendarNoAlarmIfComplete: boolean;
+  assignmentReminderAlarm: boolean;
+  assignmentReminderAlarmOffset?: number;
+}
 export interface SettingsState {
+  assignmentCalendarSync: boolean;
+  calendarEventLength?: number;
+  assignmentReminderSync: boolean;
+  assignmentCalendarId?: string;
+  assignmentReminderId?: string;
+  syncedCalendarAssignments?: {
+    [assignmentId: string]: string;
+  };
+  syncedReminderAssignments?: {
+    [assignmentId: string]: string;
+  };
+  courseCalendarId?: string;
+  tabFilterSelections: {
+    [tab in Tab]?: FilterSelection;
+  };
+  alarms: AlarmSettings;
   graduate: boolean;
   immersiveMode: boolean;
   fileUseDocumentDir: boolean;
   fileOmitCourseName: boolean;
+  newUpdate: boolean;
+  courseInformationSharing: boolean;
+  courseInformationSharingBadgeShown: boolean;
+  lastShowChangelogVersion: string | null;
+  openFileAfterDownload: boolean;
+  courseEventOmitLocation: boolean;
 }
 
 export interface SemestersState {
@@ -160,19 +196,10 @@ export interface FilesState {
   error?: FailReason | null;
 }
 
-export interface UserState {
-  name: string | null;
-  department: string | null;
-  email: string | null;
-  phone: string | null;
-}
-
-export interface SemestersState {
-  fetching: boolean;
-  items: string[];
-  current: string | null;
-  error?: FailReason | null;
-}
+export type User = {
+  [key in keyof UserInfo]: UserInfo[key] | null;
+};
+export interface UserState extends User {}
 
 export interface AppState {
   auth: AuthState;

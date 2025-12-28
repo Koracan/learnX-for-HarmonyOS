@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo } from 'react';
-import { FlatList, RefreshControl, StyleSheet } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import dayjs from 'dayjs';
 import CourseCard from 'components/CourseCard';
@@ -8,6 +7,8 @@ import { getCoursesForSemester } from 'data/actions/courses';
 import { getAllSemesters, getCurrentSemester } from 'data/actions/semesters';
 import type { Course } from 'data/types/state';
 import type { CourseStackParams } from './types';
+import FilterList from 'components/FilterList';
+import { getSemesterTextFromId } from 'helpers/parse';
 
 type Props = NativeStackScreenProps<CourseStackParams, 'Courses'>;
 
@@ -15,12 +16,25 @@ const Courses: React.FC<Props> = ({ navigation }) => {
   const dispatch = useAppDispatch();
   const loggedIn = useAppSelector(state => state.auth.loggedIn);
   const currentSemesterId = useAppSelector(state => state.semesters.current);
-  const courses = useAppSelector(state => state.courses.items);
+  const courses = useAppSelector(
+    state => state.courses.items,
+    (a, b) => JSON.stringify(a) === JSON.stringify(b),
+  );
+  const hiddenIds = useAppSelector(state => state.courses.hidden);
   const fetching = useAppSelector(state => state.courses.fetching);
 
-  const notices = useAppSelector(state => state.notices.items);
-  const assignments = useAppSelector(state => state.assignments.items);
-  const files = useAppSelector(state => state.files.items);
+  const notices = useAppSelector(
+    state => state.notices.items,
+    (a, b) => JSON.stringify(a) === JSON.stringify(b),
+  );
+  const assignments = useAppSelector(
+    state => state.assignments.items,
+    (a, b) => JSON.stringify(a) === JSON.stringify(b),
+  );
+  const files = useAppSelector(
+    state => state.files.items,
+    (a, b) => JSON.stringify(a) === JSON.stringify(b),
+  );
 
   const coursesWithCounts = useMemo(() => {
     return courses.map(course => ({
@@ -39,6 +53,9 @@ const Courses: React.FC<Props> = ({ navigation }) => {
       ).length,
     }));
   }, [assignments, courses, files, notices]);
+
+  const all = coursesWithCounts.filter(i => !hiddenIds.includes(i.id));
+  const hidden = coursesWithCounts.filter(i => hiddenIds.includes(i.id));
 
   const handleRefresh = useCallback(() => {
     if (loggedIn) {
@@ -63,30 +80,27 @@ const Courses: React.FC<Props> = ({ navigation }) => {
     }
   }, [currentSemesterId, dispatch, loggedIn]);
 
-  const renderItem = ({ item }: { item: (typeof coursesWithCounts)[0] }) => (
-    <CourseCard
-      data={item}
-      onPress={() => navigation.navigate('CourseDetail', item as Course)}
-    />
-  );
+  const handlePress = (item: Course) => {
+    navigation.push('CourseDetail', item);
+  };
 
   return (
-    <FlatList
-      data={coursesWithCounts}
-      renderItem={renderItem}
-      keyExtractor={item => item.id}
-      contentContainerStyle={styles.list}
-      refreshControl={
-        <RefreshControl refreshing={fetching} onRefresh={handleRefresh} />
+    <FilterList
+      type="course"
+      defaultSubtitle={
+        currentSemesterId
+          ? getSemesterTextFromId(currentSemesterId)
+          : undefined
       }
+      all={all as any}
+      hidden={hidden as any}
+      itemComponent={CourseCard as any}
+      navigation={navigation}
+      onItemPress={handlePress as any}
+      refreshing={fetching}
+      onRefresh={handleRefresh}
     />
   );
 };
-
-const styles = StyleSheet.create({
-  list: {
-    padding: 8,
-  },
-});
 
 export default Courses;

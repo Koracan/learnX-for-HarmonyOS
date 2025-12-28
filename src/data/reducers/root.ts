@@ -42,7 +42,7 @@ const authPersistConfig: PersistConfig<AuthState> = {
 const settingsPersistConfig: PersistConfig<SettingsState> = {
   key: 'settings',
   storage: AsyncStorage,
-  whitelist: ['graduate', 'immersiveMode'],
+  blacklist: ['newUpdate'],
 };
 
 /**
@@ -91,38 +91,39 @@ export function rootReducer(
   action: AppActions,
 ): AppState {
   // 处理全局重置加载态
-  if (action.type === RESET_LOADING) {
+  if (state && action.type === RESET_LOADING) {
     return {
       ...state,
       auth: {
-        ...state?.auth,
+        ...state.auth,
         loggingIn: false,
       },
-      courses: {
-        ...state?.courses,
+      semesters: {
+        ...state.semesters,
         fetching: false,
+        error: null,
+      },
+      courses: {
+        ...state.courses,
+        fetching: false,
+        error: null,
       },
       notices: {
-        ...state?.notices,
+        ...state.notices,
         fetching: false,
-      },
-      assignments: {
-        ...state?.assignments,
-        fetching: false,
+        error: null,
       },
       files: {
-        ...state?.files,
+        ...state.files,
         fetching: false,
+        error: null,
       },
-      user: {
-        ...state?.user,
+      assignments: {
+        ...state.assignments,
         fetching: false,
+        error: null,
       },
-      semesters: {
-        ...state?.semesters,
-        fetching: false,
-      },
-    } as any;
+    };
   }
 
   return appReducer(state, action as any);

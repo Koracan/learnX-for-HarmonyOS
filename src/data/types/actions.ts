@@ -1,7 +1,12 @@
 import type { ThunkAction } from 'redux-thunk';
 import type { ActionType } from 'typesafe-actions';
 import { loginAction, setSSOInProgress } from 'data/actions/auth';
-import { setSetting } from 'data/actions/settings';
+import {
+  setSetting,
+  setEventIdForAssignment,
+  removeEventIdForAssignment,
+  clearEventIds,
+} from 'data/actions/settings';
 import {
   setCourses,
   setHideCourse,
@@ -37,7 +42,16 @@ type SetSsoInProgressAction = ActionType<typeof setSSOInProgress>;
 export type AuthAction = LoginAction | SetSsoInProgressAction;
 
 type SetSettingAction = ActionType<typeof setSetting>;
-export type SettingsAction = SetSettingAction;
+type SetEventIdForAssignmentAction = ActionType<typeof setEventIdForAssignment>;
+type RemoveEventIdForAssignmentAction = ActionType<
+  typeof removeEventIdForAssignment
+>;
+type ClearEventIdsAction = ActionType<typeof clearEventIds>;
+export type SettingsAction =
+  | SetSettingAction
+  | SetEventIdForAssignmentAction
+  | RemoveEventIdForAssignmentAction
+  | ClearEventIdsAction;
 
 type SetCoursesAction = ActionType<typeof setCourses>;
 type SetHideCourseAction = ActionType<typeof setHideCourse>;

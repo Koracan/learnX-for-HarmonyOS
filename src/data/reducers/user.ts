@@ -10,6 +10,10 @@ const initialState: UserState = {
   department: null,
   email: null,
   phone: null,
+  id: null,
+  gender: null,
+  type: null,
+  class: null,
 };
 
 /**

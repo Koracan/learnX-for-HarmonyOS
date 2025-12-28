@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
-import type { Assignment, Notice } from 'data/types/state';
+import type { Assignment, Notice, File } from 'data/types/state';
 
-function useFilteredData<T extends Notice | Assignment>({
+function useFilteredData<T extends Notice | Assignment | File>({
   data,
   fav,
   archived,
@@ -20,7 +20,21 @@ function useFilteredData<T extends Notice | Assignment>({
     [data, archived, hidden],
   );
 
+  const _unread = useMemo(
+    () =>
+      _all.filter(
+        i =>
+          (i as File).isNew || ((i as Notice).hasRead === false ? true : false),
+      ),
+    [_all],
+  );
+
   const _fav = useMemo(() => _all.filter(i => fav.includes(i.id)), [_all, fav]);
+
+  const _hidden = useMemo(
+    () => data.filter(i => hidden.includes(i.courseId)),
+    [hidden, data],
+  );
 
   const _archived = useMemo(
     () => data.filter(i => archived.includes(i.id)),
@@ -39,8 +53,10 @@ function useFilteredData<T extends Notice | Assignment>({
 
   return {
     all: _all,
+    unread: _unread,
     fav: _fav,
     archived: _archived,
+    hidden: _hidden,
     unfinished: _unfinished,
     finished: _finished,
   };

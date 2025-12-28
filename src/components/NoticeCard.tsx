@@ -30,7 +30,7 @@ const NoticeCard: React.FC<React.PropsWithChildren<NoticeCardProps>> = ({
 }) => {
   return (
     <CardWrapper {...restProps}>
-      <View style={styles.inner}>
+      <View style={Styles.flex1}>
         <View style={Styles.flexRowCenter}>
           <View style={styles.title}>
             {hideCourseName ? null : (
@@ -69,7 +69,6 @@ const NoticeCard: React.FC<React.PropsWithChildren<NoticeCardProps>> = ({
         ) : null}
         <View style={Styles.flexRowCenter}>
           <Caption>{publisher}</Caption>
-          <View style={Styles.flex1} />
           <Caption>{dayjs(publishTime).fromNow()}</Caption>
         </View>
       </View>
@@ -78,9 +77,6 @@ const NoticeCard: React.FC<React.PropsWithChildren<NoticeCardProps>> = ({
 };
 
 const styles = StyleSheet.create({
-  inner: {
-    padding: 16,
-  },
   title: {
     flex: 10,
   },

@@ -30,8 +30,8 @@ const FileCard: React.FC<React.PropsWithChildren<FileCardProps>> = ({
   ...restProps
 }) => {
   return (
-    <CardWrapper {...restProps} style={[styles.card, restProps.style]}>
-      <View style={styles.content}>
+    <CardWrapper {...restProps}>
+      <View style={Styles.flex1}>
         <View style={Styles.flexRowCenter}>
           <View style={styles.titleContainer}>
             {hideCourseName ? null : (
@@ -77,17 +77,8 @@ const FileCard: React.FC<React.PropsWithChildren<FileCardProps>> = ({
 };
 
 const styles = StyleSheet.create({
-  card: {
-    marginHorizontal: 12,
-    marginVertical: 6,
-    elevation: 2,
-  },
-  content: {
-    padding: 12,
-  },
   titleContainer: {
-    flex: 1,
-    marginRight: 8,
+    flex: 10,
   },
   courseName: {
     fontSize: 12,
@@ -95,15 +86,14 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   icons: {
-    alignItems: 'center',
+    flex: 2,
     justifyContent: 'flex-end',
   },
   icon: {
-    marginLeft: 6,
+    marginLeft: 4,
   },
   description: {
-    marginTop: 4,
-    marginBottom: 8,
+    marginVertical: 4,
   },
 });
 

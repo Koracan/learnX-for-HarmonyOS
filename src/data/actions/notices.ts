@@ -15,7 +15,6 @@ import {
 import type { Notice } from 'data/types/state';
 import { dataSource } from 'data/source';
 import { serializeError } from 'helpers/parse';
-import { removeTags } from 'helpers/html';
 
 export const getNoticesForCourseAction = createAsyncAction(
   GET_NOTICES_FOR_COURSE_REQUEST,

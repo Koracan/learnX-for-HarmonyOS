@@ -1,13 +1,12 @@
 import React, { useEffect, useCallback } from 'react';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { NoticeStackParams } from 'screens/types';
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
-import { Text } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from 'data/store';
 import { getAllNoticesForCourses } from 'data/actions/notices';
-import { t } from 'helpers/i18n';
 import type { Notice } from 'data/types/state';
 import NoticeCard from 'components/NoticeCard';
+import FilterList from 'components/FilterList';
+import useFilteredData from 'hooks/useFilteredData';
 
 type Props = NativeStackScreenProps<NoticeStackParams, 'Notices'>;
 /**
@@ -20,11 +19,24 @@ const Notices: React.FC<Props> = ({ navigation }) => {
     state => state.courses.items.map(i => i.id),
     (a, b) => JSON.stringify([...a].sort()) === JSON.stringify([...b].sort()),
   );
-  const { items, fetching } = useAppSelector(state => state.notices);
+  const items = useAppSelector(
+    state => state.notices.items,
+    (a, b) => JSON.stringify(a) === JSON.stringify(b),
+  );
+  const fetching = useAppSelector(state => state.notices.fetching);
+  const fav = useAppSelector(state => state.notices.favorites);
+  const archived = useAppSelector(state => state.notices.archived);
+  const hidden = useAppSelector(state => state.courses.hidden);
+
+  const filteredData = useFilteredData({
+    data: items,
+    fav,
+    archived,
+    hidden,
+  });
 
   const handleRefresh = useCallback(() => {
     if (loggedIn && courseIds.length > 0) {
-      console.log('[Notices] Refreshing notices for', courseIds.length, 'courses');
       dispatch(getAllNoticesForCourses(courseIds));
     }
   }, [dispatch, loggedIn, courseIds]);
@@ -36,62 +48,25 @@ const Notices: React.FC<Props> = ({ navigation }) => {
     [navigation],
   );
 
-  const renderItem = useCallback(
-    ({ item }: { item: Notice }) => (
-      <NoticeCard data={item} onPress={() => handlePress(item)} />
-    ),
-    [handlePress],
-  );
-
-  const keyExtractor = useCallback((item: Notice) => item.id, []);
-
   useEffect(() => {
     handleRefresh();
   }, [handleRefresh]);
 
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={items}
-        keyExtractor={keyExtractor}
-        renderItem={renderItem}
-        contentContainerStyle={styles.list}
-        initialNumToRender={10}
-        windowSize={5}
-        maxToRenderPerBatch={10}
-        updateCellsBatchingPeriod={50}
-        removeClippedSubviews
-        refreshControl={
-          <RefreshControl
-            refreshing={fetching}
-            onRefresh={handleRefresh}
-          />
-        }
-        ListEmptyComponent={
-          !fetching ? (
-            <Text style={styles.empty}>{t('empty')}</Text>
-          ) : null
-        }
-      />
-    </View>
+    <FilterList
+      type="notice"
+      all={filteredData.all}
+      unread={filteredData.unread}
+      fav={filteredData.fav}
+      archived={filteredData.archived}
+      hidden={filteredData.hidden}
+      itemComponent={NoticeCard}
+      navigation={navigation}
+      onItemPress={handlePress}
+      refreshing={fetching}
+      onRefresh={handleRefresh}
+    />
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  list: {
-    padding: 12,
-    gap: 12,
-  },
-  card: {
-    marginBottom: 8,
-  },
-  empty: {
-    textAlign: 'center',
-    marginTop: 32,
-  },
-});
 
 export default Notices;

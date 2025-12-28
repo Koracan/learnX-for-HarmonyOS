@@ -1,13 +1,12 @@
 import React, { useEffect, useCallback } from 'react';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { FileStackParams } from 'screens/types';
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
-import { Text } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from 'data/store';
 import { getAllFilesForCourses } from 'data/actions/files';
-import { t } from 'helpers/i18n';
 import type { File } from 'data/types/state';
 import FileCard from 'components/FileCard';
+import FilterList from 'components/FilterList';
+import useFilteredData from 'hooks/useFilteredData';
 
 type Props = NativeStackScreenProps<FileStackParams, 'Files'>;
 
@@ -21,11 +20,24 @@ const Files: React.FC<Props> = ({ navigation }) => {
     state => state.courses.items.map(i => i.id),
     (a, b) => JSON.stringify([...a].sort()) === JSON.stringify([...b].sort()),
   );
-  const { items, fetching } = useAppSelector(state => state.files);
+  const items = useAppSelector(
+    state => state.files.items,
+    (a, b) => JSON.stringify(a) === JSON.stringify(b),
+  );
+  const fetching = useAppSelector(state => state.files.fetching);
+  const fav = useAppSelector(state => state.files.favorites);
+  const archived = useAppSelector(state => state.files.archived);
+  const hidden = useAppSelector(state => state.courses.hidden);
+
+  const filteredData = useFilteredData({
+    data: items,
+    fav,
+    archived,
+    hidden,
+  });
 
   const handleRefresh = useCallback(() => {
     if (loggedIn && courseIds.length > 0) {
-      console.log('[Files] Refreshing files for', courseIds.length, 'courses');
       dispatch(getAllFilesForCourses(courseIds));
     }
   }, [dispatch, loggedIn, courseIds]);
@@ -37,59 +49,25 @@ const Files: React.FC<Props> = ({ navigation }) => {
     [navigation],
   );
 
-  const renderItem = useCallback(
-    ({ item }: { item: File }) => (
-      <FileCard data={item} onPress={() => handlePress(item)} />
-    ),
-    [handlePress],
-  );
-
-  const keyExtractor = useCallback((item: File) => item.id, []);
-
   useEffect(() => {
     handleRefresh();
   }, [handleRefresh]);
 
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={items}
-        keyExtractor={keyExtractor}
-        renderItem={renderItem}
-        contentContainerStyle={styles.list}
-        initialNumToRender={10}
-        windowSize={5}
-        maxToRenderPerBatch={10}
-        updateCellsBatchingPeriod={50}
-        removeClippedSubviews
-        refreshControl={
-          <RefreshControl
-            refreshing={fetching}
-            onRefresh={handleRefresh}
-          />
-        }
-        ListEmptyComponent={
-          !fetching ? (
-            <Text style={styles.empty}>{t('empty')}</Text>
-          ) : null
-        }
-      />
-    </View>
+    <FilterList
+      type="file"
+      all={filteredData.all}
+      unread={filteredData.unread}
+      fav={filteredData.fav}
+      archived={filteredData.archived}
+      hidden={filteredData.hidden}
+      itemComponent={FileCard}
+      navigation={navigation}
+      onItemPress={handlePress}
+      refreshing={fetching}
+      onRefresh={handleRefresh}
+    />
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  list: {
-    paddingVertical: 8,
-  },
-  empty: {
-    textAlign: 'center',
-    marginTop: 40,
-    opacity: 0.5,
-  },
-});
 
 export default Files;
