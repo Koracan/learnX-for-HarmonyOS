@@ -1,4 +1,4 @@
-import { createAction } from 'typesafe-actions';
+import { createAction, type PayloadAction } from 'typesafe-actions';
 import { type SettingsState } from 'data/types/state';
 import {
   SET_SETTING,
@@ -7,16 +7,19 @@ import {
   CLEAR_EVENT_IDS,
 } from 'data/types/constants';
 
-export const setSetting = createAction(
-  /**
-   * 设置单个设置项。
-   */
-  SET_SETTING,
-  <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => ({
-    key,
-    value,
-  }),
-)();
+export const setSetting: <T extends keyof SettingsState>(
+  key: T,
+  value: Partial<SettingsState[T]>,
+) => PayloadAction<
+  typeof SET_SETTING,
+  {
+    key: T;
+    value: SettingsState[T];
+  }
+> = createAction(SET_SETTING, (key, value) => ({
+  key,
+  value,
+}))();
 
 export const setEventIdForAssignment = createAction(
   SET_EVENT_ID_FOR_ASSIGNMENT,

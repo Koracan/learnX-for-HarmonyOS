@@ -1,10 +1,10 @@
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import dayjs from 'dayjs';
 import CourseCard from 'components/CourseCard';
 import { useAppDispatch, useAppSelector } from 'data/store';
 import { getCoursesForSemester } from 'data/actions/courses';
-import { getAllSemesters, getCurrentSemester } from 'data/actions/semesters';
+import { getCurrentSemester } from 'data/actions/semesters';
 import type { Course } from 'data/types/state';
 import type { CourseStackParams } from './types';
 import FilterList from 'components/FilterList';

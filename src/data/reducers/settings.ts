@@ -1,10 +1,3 @@
-import { createReducer } from 'typesafe-actions';
-import {
-  setSetting,
-  setEventIdForAssignment,
-  removeEventIdForAssignment,
-  clearEventIds,
-} from 'data/actions/settings';
 import type { SettingsAction } from 'data/types/actions';
 import type { SettingsState } from 'data/types/state';
 import {

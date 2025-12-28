@@ -46,12 +46,6 @@ import Splash from 'components/Splash';
 import Empty from 'components/Empty';
 import HeaderTitle from 'components/HeaderTitle';
 import { ToastProvider } from 'components/Toast';
-import {
-  Course,
-  Notice,
-  Assignment,
-  File,
-} from 'data/types/state';
 import { persistor, store, useAppSelector, useAppDispatch } from 'data/store';
 import { login } from 'data/actions/auth';
 import { resetLoading } from 'data/actions/root';

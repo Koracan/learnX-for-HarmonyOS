@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 import {
-  SafeAreaViewProps,
+  type SafeAreaViewProps,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import Styles from 'constants/Styles';

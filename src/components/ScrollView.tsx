@@ -1,7 +1,6 @@
 import {
-  Platform,
   ScrollView as RNScrollView,
-  ScrollViewProps,
+  type ScrollViewProps,
 } from 'react-native';
 
 const ScrollView: React.FC<ScrollViewProps> = props => {
