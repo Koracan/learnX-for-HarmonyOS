@@ -24,107 +24,113 @@ import type { Notice, Assignment, File } from 'data/types/state';
 
 type Props = NativeStackScreenProps<CourseStackParams, 'CourseDetail'>;
 
-const NoticesTab = memo(({ courseId, data }: { courseId: string; data: Notice[] }) => {
-  const navigation = useNavigation<any>();
-  const dispatch = useAppDispatch();
-  const loggedIn = useAppSelector(state => state.auth.loggedIn);
-  const fetching = useAppSelector(state => state.notices.fetching);
+const NoticesTab = memo(
+  ({ courseId, data }: { courseId: string; data: Notice[] }) => {
+    const navigation = useNavigation<any>();
+    const dispatch = useAppDispatch();
+    const loggedIn = useAppSelector(state => state.auth.loggedIn);
+    const fetching = useAppSelector(state => state.notices.fetching);
 
-  const handleRefresh = () => {
-    if (loggedIn) {
-      dispatch(getNoticesForCourse(courseId));
-    }
-  };
+    const handleRefresh = () => {
+      if (loggedIn) {
+        dispatch(getNoticesForCourse(courseId));
+      }
+    };
 
-  return (
-    <FlatList
-      data={data}
-      renderItem={({ item }) => (
-        <NoticeCard
-          data={item}
-          hideCourseName
-          onPress={() => navigation.push('NoticeDetail', item)}
-        />
-      )}
-      keyExtractor={item => item.id}
-      refreshing={fetching}
-      onRefresh={handleRefresh}
-      contentContainerStyle={[
-        { flexGrow: 1 },
-        data.length ? null : { justifyContent: 'center' },
-      ]}
-      ListEmptyComponent={<Empty />}
-    />
-  );
-});
+    return (
+      <FlatList
+        data={data}
+        renderItem={({ item }) => (
+          <NoticeCard
+            data={item}
+            hideCourseName
+            onPress={() => navigation.push('NoticeDetail', item)}
+          />
+        )}
+        keyExtractor={item => item.id}
+        refreshing={fetching}
+        onRefresh={handleRefresh}
+        contentContainerStyle={[
+          { flexGrow: 1 },
+          data.length ? null : { justifyContent: 'center' },
+        ]}
+        ListEmptyComponent={<Empty />}
+      />
+    );
+  },
+);
 
-const AssignmentsTab = memo(({ courseId, data }: { courseId: string; data: Assignment[] }) => {
-  const navigation = useNavigation<any>();
-  const dispatch = useAppDispatch();
-  const loggedIn = useAppSelector(state => state.auth.loggedIn);
-  const fetching = useAppSelector(state => state.assignments.fetching);
+const AssignmentsTab = memo(
+  ({ courseId, data }: { courseId: string; data: Assignment[] }) => {
+    const navigation = useNavigation<any>();
+    const dispatch = useAppDispatch();
+    const loggedIn = useAppSelector(state => state.auth.loggedIn);
+    const fetching = useAppSelector(state => state.assignments.fetching);
 
-  const handleRefresh = () => {
-    if (loggedIn) {
-      dispatch(getAssignmentsForCourse(courseId));
-    }
-  };
+    const handleRefresh = () => {
+      if (loggedIn) {
+        dispatch(getAssignmentsForCourse(courseId));
+      }
+    };
 
-  return (
-    <FlatList
-      data={data}
-      renderItem={({ item }) => (
-        <AssignmentCard
-          data={item}
-          hideCourseName
-          onPress={() => navigation.push('AssignmentDetail', item)}
-        />
-      )}
-      keyExtractor={item => item.id}
-      refreshing={fetching}
-      onRefresh={handleRefresh}
-      contentContainerStyle={[
-        { flexGrow: 1 },
-        data.length ? null : { justifyContent: 'center' },
-      ]}
-      ListEmptyComponent={<Empty />}
-    />
-  );
-});
+    return (
+      <FlatList
+        data={data}
+        renderItem={({ item }) => (
+          <AssignmentCard
+            data={item}
+            hideCourseName
+            onPress={() => navigation.push('AssignmentDetail', item)}
+          />
+        )}
+        keyExtractor={item => item.id}
+        refreshing={fetching}
+        onRefresh={handleRefresh}
+        contentContainerStyle={[
+          { flexGrow: 1 },
+          data.length ? null : { justifyContent: 'center' },
+        ]}
+        ListEmptyComponent={<Empty />}
+      />
+    );
+  },
+);
 
-const FilesTab = memo(({ courseId, data }: { courseId: string; data: File[] }) => {
-  const navigation = useNavigation<any>();
-  const dispatch = useAppDispatch();
-  const loggedIn = useAppSelector(state => state.auth.loggedIn);
-  const fetching = useAppSelector(state => state.files.fetching);
+const FilesTab = memo(
+  ({ courseId, data }: { courseId: string; data: File[] }) => {
+    const navigation = useNavigation<any>();
+    const dispatch = useAppDispatch();
+    const loggedIn = useAppSelector(state => state.auth.loggedIn);
+    const fetching = useAppSelector(state => state.files.fetching);
 
-  const handleRefresh = () => {
-    if (loggedIn) {
-      dispatch(getFilesForCourse(courseId));
-    }
-  };
+    const handleRefresh = () => {
+      if (loggedIn) {
+        dispatch(getFilesForCourse(courseId));
+      }
+    };
 
-  return (
-    <FlatList
-      data={data}
-      renderItem={({ item }) => (
-        <FileCard
-          data={item}
-          hideCourseName
-          onPress={() => navigation.push('FileDetail', item)}
-        />
-      )}
-      keyExtractor={item => item.id}
-      refreshing={fetching}
-      onRefresh={handleRefresh}
-      contentContainerStyle={[
-        { flexGrow: 1 },
-        data.length ? null : { justifyContent: 'center' },
-      ]}
-      ListEmptyComponent={<Empty />}
-    />
-  );
-});
+    return (
+      <FlatList
+        data={data}
+        renderItem={({ item }) => (
+          <FileCard
+            data={item}
+            hideCourseName
+            onPress={() => navigation.push('FileDetail', item)}
+          />
+        )}
+        keyExtractor={item => item.id}
+        refreshing={fetching}
+        onRefresh={handleRefresh}
+        contentContainerStyle={[
+          { flexGrow: 1 },
+          data.length ? null : { justifyContent: 'center' },
+        ]}
+        ListEmptyComponent={<Empty />}
+      />
+    );
+  },
+);
 
 const CourseDetail: React.FC<Props> = ({ route, navigation }) => {
   const course = route.params;
@@ -141,9 +147,18 @@ const CourseDetail: React.FC<Props> = ({ route, navigation }) => {
   const allAssignments = useAppSelector(state => state.assignments.items);
   const allFiles = useAppSelector(state => state.files.items);
 
-  const notices = useMemo(() => allNotices.filter(n => n.courseId === course.id), [allNotices, course.id]);
-  const assignments = useMemo(() => allAssignments.filter(a => a.courseId === course.id), [allAssignments, course.id]);
-  const files = useMemo(() => allFiles.filter(f => f.courseId === course.id), [allFiles, course.id]);
+  const notices = useMemo(
+    () => allNotices.filter(n => n.courseId === course.id),
+    [allNotices, course.id],
+  );
+  const assignments = useMemo(
+    () => allAssignments.filter(a => a.courseId === course.id),
+    [allAssignments, course.id],
+  );
+  const files = useMemo(
+    () => allFiles.filter(f => f.courseId === course.id),
+    [allFiles, course.id],
+  );
 
   const renderScene = ({ route: sceneRoute }: any) => {
     switch (sceneRoute.key) {
@@ -158,7 +173,9 @@ const CourseDetail: React.FC<Props> = ({ route, navigation }) => {
     }
   };
 
-  const renderTabBar = (props: SceneRendererProps & { navigationState: NavigationState<any> }) => (
+  const renderTabBar = (
+    props: SceneRendererProps & { navigationState: NavigationState<any> },
+  ) => (
     <TabBar
       {...props}
       indicatorStyle={{ backgroundColor: theme.colors.primary }}

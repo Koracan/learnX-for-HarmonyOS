@@ -31,6 +31,7 @@ export const downloadFile = async (
   console.log(
     `[fs] Starting download for file: ${file.title} (ID: ${file.id})`,
   );
+
   let url = file.downloadUrl;
   if (url.startsWith('file://') || url.startsWith('content://')) {
     console.log(`[fs] File already local: ${url}`);
@@ -79,10 +80,13 @@ export const downloadFile = async (
     toFile: path,
     headers: {
       Cookie: cookiesString,
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     },
-    begin: (res) => {
-      console.log(`[fs] Download started. JobID: ${res.jobId}, ContentLength: ${res.contentLength}`);
+    begin: res => {
+      console.log(
+        `[fs] Download started. JobID: ${res.jobId}, ContentLength: ${res.contentLength}`,
+      );
       console.log(`[fs] Response headers: ${JSON.stringify(res.headers)}`);
     },
     progress: result => {
@@ -96,7 +100,9 @@ export const downloadFile = async (
 
   try {
     const result = await downloadPromise.promise;
-    console.log(`[fs] Download finished. Status: ${result.statusCode}, Bytes: ${result.bytesWritten}`);
+    console.log(
+      `[fs] Download finished. Status: ${result.statusCode}, Bytes: ${result.bytesWritten}`,
+    );
 
     // HarmonyOS 库缺陷：bytesWritten 始终返回 0，我们需要手动检查文件大小
     const stat = await fs.stat(path);
@@ -108,7 +114,9 @@ export const downloadFile = async (
         await fs.unlink(path);
       } catch {}
 
-      console.error(`[fs] Download failed with status: ${result.statusCode}, file size: ${stat.size}`);
+      console.error(
+        `[fs] Download failed with status: ${result.statusCode}, file size: ${stat.size}`,
+      );
     }
 
     console.log(`[fs] File successfully downloaded to: ${path}`);
@@ -141,7 +149,9 @@ export const shareFile = async (file: File) => {
   try {
     await Share.open({
       url: `file://${path}`,
-      type: (file.fileType && mime.lookup(file.fileType)) || 'application/octet-stream',
+      type:
+        (file.fileType && mime.lookup(file.fileType)) ||
+        'application/octet-stream',
       title: '分享文件',
       showAppsToView: true,
       failOnCancel: false,

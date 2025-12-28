@@ -59,12 +59,16 @@
       window.jQuery.fn.submit = function () {
         const formElement = this[0];
 
-        const fingerPrintField = formElement.querySelector('[name="fingerPrint"]');
+        const fingerPrintField = formElement.querySelector(
+          '[name="fingerPrint"]',
+        );
         if (fingerPrintField) {
           fingerPrintField.value = '${fingerPrint}';
         }
 
-        const singleLoginField = formElement.querySelector('[name="singleLogin"]');
+        const singleLoginField = formElement.querySelector(
+          '[name="singleLogin"]',
+        );
         if (singleLoginField && !singleLoginField.checked) {
           singleLoginField.click();
         }

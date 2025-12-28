@@ -19,17 +19,11 @@ const CardWrapper: React.FC<React.PropsWithChildren<CardWrapperProps>> = ({
 
   return (
     <Touchable
-      style={[
-        styles.root,
-        { backgroundColor: theme.colors.surface },
-        style,
-      ]}
+      style={[styles.root, { backgroundColor: theme.colors.surface }, style]}
       onPress={onPress}
       onLongPress={onLongPress}
     >
-      <View style={styles.inner}>
-        {children}
-      </View>
+      <View style={styles.inner}>{children}</View>
     </Touchable>
   );
 };

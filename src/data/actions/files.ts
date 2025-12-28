@@ -96,7 +96,7 @@ export function getAllFilesForCourses(courseIds: string[]): ThunkResult {
 
       const processedJson = await LearnOHDataProcessor.processFiles(
         rawResultsJson,
-        JSON.stringify(courseNames)
+        JSON.stringify(courseNames),
       );
       files = JSON.parse(processedJson);
 

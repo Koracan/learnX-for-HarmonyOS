@@ -1,4 +1,4 @@
-import { type ApiError, ContentType } from 'thu-learn-lib';
+import { type ApiError } from 'thu-learn-lib';
 import { createAction, createAsyncAction } from 'typesafe-actions';
 import { InteractionManager } from 'react-native';
 import CookieManager from '@react-native-cookies/cookies';
@@ -98,21 +98,29 @@ export function getAllAssignmentsForCourses(courseIds: string[]): ThunkResult {
         .join('; ');
       const csrfToken = dataSource.getCSRFToken();
 
-      console.log('[Performance] Using TurboModule for fetching and processing');
+      console.log(
+        '[Performance] Using TurboModule for fetching and processing',
+      );
       const rawResultsJson = await LearnOHDataProcessor.fetchAssignments(
         courseIds,
         cookieString,
         csrfToken,
       );
-      console.log(`[Performance] Native fetching took ${Date.now() - fetchStartTime}ms`);
+      console.log(
+        `[Performance] Native fetching took ${Date.now() - fetchStartTime}ms`,
+      );
 
       const processStartTime = Date.now();
       const processedJson = await LearnOHDataProcessor.processAssignments(
         rawResultsJson,
-        JSON.stringify(courseNames)
+        JSON.stringify(courseNames),
       );
       assignments = JSON.parse(processedJson);
-      console.log(`[Performance] Native processing took ${Date.now() - processStartTime}ms`);
+      console.log(
+        `[Performance] Native processing took ${
+          Date.now() - processStartTime
+        }ms`,
+      );
 
       const sortStartTime = Date.now();
       const sorted = [
@@ -121,13 +129,23 @@ export function getAllAssignmentsForCourses(courseIds: string[]): ThunkResult {
           .reverse(),
         ...assignments.filter(a => !dayjs(a.deadline).isAfter(dayjs())),
       ];
-      console.log(`[Performance] Final sorting took ${Date.now() - sortStartTime}ms`);
+      console.log(
+        `[Performance] Final sorting took ${Date.now() - sortStartTime}ms`,
+      );
 
       InteractionManager.runAfterInteractions(() => {
         const dispatchStartTime = Date.now();
         dispatch(getAllAssignmentsForCoursesAction.success(sorted));
-        console.log(`[Performance] Dispatching success took ${Date.now() - dispatchStartTime}ms`);
-        console.log(`[Performance] Total assignment refresh took ${Date.now() - startTime}ms`);
+        console.log(
+          `[Performance] Dispatching success took ${
+            Date.now() - dispatchStartTime
+          }ms`,
+        );
+        console.log(
+          `[Performance] Total assignment refresh took ${
+            Date.now() - startTime
+          }ms`,
+        );
       });
     } catch (err) {
       dispatch(getAllAssignmentsForCoursesAction.failure(serializeError(err)));

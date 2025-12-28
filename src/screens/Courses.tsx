@@ -75,9 +75,7 @@ const Courses: React.FC<Props> = ({ navigation }) => {
     <FilterList
       type="course"
       defaultSubtitle={
-        currentSemesterId
-          ? getSemesterTextFromId(currentSemesterId)
-          : undefined
+        currentSemesterId ? getSemesterTextFromId(currentSemesterId) : undefined
       }
       all={all as any}
       hidden={hidden as any}

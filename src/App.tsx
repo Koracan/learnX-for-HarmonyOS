@@ -68,7 +68,8 @@ const RootStack = createNativeStackNavigator<RootStackParams>();
 const LoginStack = createNativeStackNavigator<LoginStackParams>();
 const CourseXStack = createNativeStackNavigator<CourseXStackParams>();
 const SearchStack = createNativeStackNavigator<SearchStackParams>();
-const AssignmentSubmissionStack = createNativeStackNavigator<AssignmentSubmissionStackParams>();
+const AssignmentSubmissionStack =
+  createNativeStackNavigator<AssignmentSubmissionStackParams>();
 const CourseStack = createNativeStackNavigator<CourseStackParams>();
 const NoticeStack = createNativeStackNavigator<NoticeStackParams>();
 const AssignmentStack = createNativeStackNavigator<AssignmentStackParams>();
@@ -281,32 +282,23 @@ const MainTabScreens = () => {
           route.name === 'CourseStack'
             ? t('courses')
             : route.name === 'NoticeStack'
-              ? t('notices')
-              : route.name === 'AssignmentStack'
-                ? t('assignments')
-                : route.name === 'FileStack'
-                  ? t('files')
-                  : route.name === 'SettingsStack'
-                    ? t('settings')
-                    : '',
+            ? t('notices')
+            : route.name === 'AssignmentStack'
+            ? t('assignments')
+            : route.name === 'FileStack'
+            ? t('files')
+            : route.name === 'SettingsStack'
+            ? t('settings')
+            : '',
       })}
     >
-      <MainNavigator.Screen
-        name="NoticeStack"
-        component={NoticeStackScreens}
-      />
+      <MainNavigator.Screen name="NoticeStack" component={NoticeStackScreens} />
       <MainNavigator.Screen
         name="AssignmentStack"
         component={AssignmentStackScreens}
       />
-      <MainNavigator.Screen
-        name="FileStack"
-        component={FileStackScreens}
-      />
-      <MainNavigator.Screen
-        name="CourseStack"
-        component={CourseStackScreens}
-      />
+      <MainNavigator.Screen name="FileStack" component={FileStackScreens} />
+      <MainNavigator.Screen name="CourseStack" component={CourseStackScreens} />
       <MainNavigator.Screen
         name="SettingsStack"
         component={SettingsStackScreens}

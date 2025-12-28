@@ -49,7 +49,12 @@ export function getCoursesForSemester(semesterId: string): ThunkResult {
     dispatch(getCoursesForSemesterAction.request());
     try {
       const lang = isLocaleChinese() ? Language.ZH : Language.EN;
-      console.log('[getCoursesForSemester] semester=', semesterId, 'lang=', lang);
+      console.log(
+        '[getCoursesForSemester] semester=',
+        semesterId,
+        'lang=',
+        lang,
+      );
 
       const courses = await dataSource.getCourseList(
         semesterId,

@@ -32,7 +32,7 @@ export const loginWithFingerPrint = async (
   fingerGenPrint3?: string,
 ) => {
   await clearLoginCookies();
-  
+
   console.log('[login debug] BigInt available:', typeof BigInt !== 'undefined');
 
   await dataSource.login(
@@ -93,7 +93,7 @@ resetDataSource();
 
 export const addCSRF = (url: string) => {
   if (new URL(url).hostname?.endsWith('tsinghua.edu.cn')) {
-	console.log(`[fs] Adding CSRF token to URL: ${url}`);
+    console.log(`[fs] Adding CSRF token to URL: ${url}`);
     return addCSRFTokenToUrl(url, dataSource.getCSRFToken());
   }
   return url;

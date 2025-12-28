@@ -14,7 +14,9 @@ import Urls from 'constants/Urls';
 /**
  * 自适应高度的 WebView：用于渲染公告 HTML 内容。
  */
-const AutoHeightWebView: React.FC<React.PropsWithChildren<WebViewProps>> = props => {
+const AutoHeightWebView: React.FC<
+  React.PropsWithChildren<WebViewProps>
+> = props => {
   const [height, setHeight] = useState(1);
   const [cookieString, setCookieString] = useState('');
   const webViewRef = useRef<WebView>(null);

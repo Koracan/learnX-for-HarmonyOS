@@ -46,11 +46,13 @@ export const courses = createReducer<CoursesState, CoursesAction>(initialState)
     order:
       state.order.length === 0
         ? action.payload.map(c => c.id)
-        : state.order.filter(id => action.payload.some(c => c.id === id)).concat(
-            action.payload
-              .filter(c => !state.order.includes(c.id))
-              .map(c => c.id),
-          ),
+        : state.order
+            .filter(id => action.payload.some(c => c.id === id))
+            .concat(
+              action.payload
+                .filter(c => !state.order.includes(c.id))
+                .map(c => c.id),
+            ),
   }))
   .handleAction(getCoursesForSemesterAction.failure, (state, action) => ({
     ...state,

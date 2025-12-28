@@ -46,7 +46,8 @@ export default {
   cancel: 'Cancel',
   ok: 'Ok',
   restartRequired: 'Restart required',
-  pleaseRestartAppToApplyImmersive: 'Please restart the app to apply immersive mode changes.',
+  pleaseRestartAppToApplyImmersive:
+    'Please restart the app to apply immersive mode changes.',
   assignmentSubmissionFilenamePlaceholder:
     '(Optional) Change attachment name...',
   assignmentSubmissionContentPlaceholder:

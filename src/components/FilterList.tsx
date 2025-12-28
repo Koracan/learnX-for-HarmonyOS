@@ -73,7 +73,10 @@ const FilterList = <T extends Notice | Assignment | File | Course>({
   );
   const filterSelected = useAppSelector(
     state =>
-      (state.settings.tabFilterSelections && state.settings.tabFilterSelections[type]) ?? defaultSelected ?? 'all',
+      (state.settings.tabFilterSelections &&
+        state.settings.tabFilterSelections[type]) ??
+      defaultSelected ??
+      'all',
   );
 
   const [filterVisible, setFilterVisible] = useState(false);
@@ -82,16 +85,16 @@ const FilterList = <T extends Notice | Assignment | File | Course>({
     filterSelected === 'unfinished' && unfinished
       ? unfinished
       : filterSelected === 'finished' && finished
-        ? finished
-        : filterSelected === 'all'
-          ? all
-          : filterSelected === 'unread' && unread
-            ? unread
-            : filterSelected === 'fav'
-              ? fav
-              : filterSelected === 'archived'
-                ? archived
-                : hidden
+      ? finished
+      : filterSelected === 'all'
+      ? all
+      : filterSelected === 'unread' && unread
+      ? unread
+      : filterSelected === 'fav'
+      ? fav
+      : filterSelected === 'archived'
+      ? archived
+      : hidden
   )!;
 
   const deferredData = useDeferredValue(data);
@@ -121,7 +124,7 @@ const FilterList = <T extends Notice | Assignment | File | Course>({
       headerTitle: props => (
         <HeaderTitle
           {...props}
-          title={t(type + 's' as any)}
+          title={t((type + 's') as any)}
           subtitle={
             filterSelected === 'all'
               ? defaultSubtitle
@@ -134,10 +137,7 @@ const FilterList = <T extends Notice | Assignment | File | Course>({
 
   const renderItem = useCallback(
     ({ item }: { item: T }) => (
-      <Component
-        data={item}
-        onPress={() => onItemPress?.(item)}
-      />
+      <Component data={item} onPress={() => onItemPress?.(item)} />
     ),
     [Component, onItemPress],
   );

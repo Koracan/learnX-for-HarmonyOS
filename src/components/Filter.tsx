@@ -115,16 +115,16 @@ const Filter: React.FC<React.PropsWithChildren<FilterProps>> = ({
               name === 'all'
                 ? 'inbox'
                 : name === 'unread'
-                  ? 'email-mark-as-unread'
-                  : name === 'fav'
-                    ? 'heart'
-                    : name === 'archived'
-                      ? 'archive'
-                      : name === 'hidden'
-                        ? (p: any) => <MaterialIcons name="visibility-off" {...p} />
-                        : name === 'unfinished'
-                          ? 'checkbox-blank-circle-outline'
-                          : 'checkbox-marked-circle-outline'
+                ? 'email-mark-as-unread'
+                : name === 'fav'
+                ? 'heart'
+                : name === 'archived'
+                ? 'archive'
+                : name === 'hidden'
+                ? (p: any) => <MaterialIcons name="visibility-off" {...p} />
+                : name === 'unfinished'
+                ? 'checkbox-blank-circle-outline'
+                : 'checkbox-marked-circle-outline'
             }
           />
         )}

@@ -181,7 +181,9 @@ const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
               {gradeLevel || grade}
             </Text>
             {removeTags(gradeContent) ? (
-              <Text style={styles.gradeContent}>{removeTags(gradeContent)}</Text>
+              <Text style={styles.gradeContent}>
+                {removeTags(gradeContent)}
+              </Text>
             ) : null}
             {gradeTime && (
               <Caption>
@@ -215,7 +217,9 @@ const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
           <Divider />
           <View style={styles.section}>
             {removeTags(answerContent) ? (
-              <Text style={styles.answerContent}>{removeTags(answerContent)}</Text>
+              <Text style={styles.answerContent}>
+                {removeTags(answerContent)}
+              </Text>
             ) : null}
             {answerAttachment && (
               <List.Item

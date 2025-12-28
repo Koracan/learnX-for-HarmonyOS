@@ -34,7 +34,11 @@ import {
 } from 'data/actions/files';
 import type { PersistAppState } from 'data/types/state';
 import { getUserInfoAction } from 'data/actions/user';
-import { getAllSemestersAction, getCurrentSemesterAction, setCurrentSemester } from 'data/actions/semesters';
+import {
+  getAllSemestersAction,
+  getCurrentSemesterAction,
+  setCurrentSemester,
+} from 'data/actions/semesters';
 import { resetLoading } from 'data/actions/root';
 
 type LoginAction = ActionType<typeof loginAction>;
@@ -56,7 +60,9 @@ export type SettingsAction =
 type SetCoursesAction = ActionType<typeof setCourses>;
 type SetHideCourseAction = ActionType<typeof setHideCourse>;
 type SetCourseOrderAction = ActionType<typeof setCourseOrder>;
-type GetCoursesForSemesterAction = ActionType<typeof getCoursesForSemesterAction>;
+type GetCoursesForSemesterAction = ActionType<
+  typeof getCoursesForSemesterAction
+>;
 export type CoursesAction =
   | SetCoursesAction
   | SetHideCourseAction

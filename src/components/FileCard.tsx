@@ -67,7 +67,9 @@ const FileCard: React.FC<React.PropsWithChildren<FileCardProps>> = ({
         ) : null}
         <View style={Styles.flexRowCenter}>
           <Caption>
-            {`${category?.title ?? ''} ${fileType?.toUpperCase() ?? ''} ${size}`.trim()}
+            {`${category?.title ?? ''} ${
+              fileType?.toUpperCase() ?? ''
+            } ${size}`.trim()}
           </Caption>
           <Caption>{dayjs(uploadTime).fromNow()}</Caption>
         </View>

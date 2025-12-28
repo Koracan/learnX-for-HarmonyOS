@@ -1,4 +1,9 @@
-import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useState,
+} from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
   useTheme,
@@ -69,10 +74,7 @@ const FileDetail: React.FC<Props> = ({ route, navigation }) => {
     navigation.setOptions({
       headerRight: () => (
         <View style={Styles.flexRow}>
-          <IconButton
-            icon="refresh"
-            onPress={() => handleDownload(true)}
-          />
+          <IconButton icon="refresh" onPress={() => handleDownload(true)} />
           <IconButton
             disabled={error || !path}
             onPress={handleShare}
@@ -96,11 +98,7 @@ const FileDetail: React.FC<Props> = ({ route, navigation }) => {
     <SafeArea>
       {error ? (
         <View style={styles.errorRoot}>
-          <MaterialIcons
-            name="error"
-            color={theme.colors.outline}
-            size={56}
-          />
+          <MaterialIcons name="error" color={theme.colors.outline} size={56} />
           <Text style={{ color: theme.colors.outline, marginTop: 8 }}>
             {t('fileDownloadFailed')}
           </Text>
@@ -188,7 +186,11 @@ const FileDetail: React.FC<Props> = ({ route, navigation }) => {
         </>
       )}
       {progress > 0 ? (
-        <ProgressBar style={styles.progressBar} progress={progress} color={theme.colors.primary} />
+        <ProgressBar
+          style={styles.progressBar}
+          progress={progress}
+          color={theme.colors.primary}
+        />
       ) : null}
     </SafeArea>
   );
@@ -253,4 +255,3 @@ const styles = StyleSheet.create({
 });
 
 export default FileDetail;
-

@@ -4,18 +4,15 @@ import { StyleSheet, useColorScheme, View, Text } from 'react-native';
 const Splash: React.FC = () => {
   const colorScheme = useColorScheme();
 
-/**
- * 启动页：在数据持久化恢复期间显示。
- */
+  /**
+   * 启动页：在数据持久化恢复期间显示。
+   */
   return (
     <View
       style={[
         styles.center,
         {
-          backgroundColor:
-              colorScheme === 'dark'
-                ? 'black'
-                : 'white',
+          backgroundColor: colorScheme === 'dark' ? 'black' : 'white',
         },
       ]}
     >

@@ -7,7 +7,6 @@ const isTablet = () => {
   }
   // Simple heuristic for Android tablets
   return Math.min(width, height) >= 600;
-  
 };
 
 export default {

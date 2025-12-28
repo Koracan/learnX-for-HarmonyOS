@@ -8,8 +8,8 @@ export const getSemesterTextFromId = (semesterId: string) => {
         texts?.[2] === '1'
           ? '秋季学期'
           : texts?.[2] === '2'
-            ? '春季学期'
-            : '夏季学期'
+          ? '春季学期'
+          : '夏季学期'
       }`
     : `${
         texts?.[2] === '1' ? 'Fall' : texts?.[2] === '2' ? 'Spring' : 'Summer'
@@ -20,12 +20,12 @@ export const getSemesterTextFromId = (semesterId: string) => {
  * 将 thu-learn-lib 的错误序列化为可持久化对象。
  */
 export const serializeError = (err: any): ApiError => {
-	if ((err as ApiError).reason) {
-		const returnedError = err as ApiError;
-		returnedError.extra = JSON.stringify(returnedError.extra);
-		return returnedError;
-	}
-	return {
-		reason: FailReason.UNEXPECTED_STATUS,
-	} as ApiError;
+  if ((err as ApiError).reason) {
+    const returnedError = err as ApiError;
+    returnedError.extra = JSON.stringify(returnedError.extra);
+    return returnedError;
+  }
+  return {
+    reason: FailReason.UNEXPECTED_STATUS,
+  } as ApiError;
 };

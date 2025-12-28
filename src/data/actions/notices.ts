@@ -1,5 +1,5 @@
 import { createAction, createAsyncAction } from 'typesafe-actions';
-import { type ApiError, ContentType } from 'thu-learn-lib';
+import { type ApiError } from 'thu-learn-lib';
 import { InteractionManager } from 'react-native';
 import CookieManager from '@react-native-cookies/cookies';
 import dayjs from 'dayjs';
@@ -84,7 +84,7 @@ export function getAllNoticesForCourses(courseIds: string[]): ThunkResult {
 
       const processedJson = await LearnOHDataProcessor.processNotices(
         rawResultsJson,
-        JSON.stringify(courseNames)
+        JSON.stringify(courseNames),
       );
       notices = JSON.parse(processedJson);
 

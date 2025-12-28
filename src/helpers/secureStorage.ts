@@ -2,7 +2,7 @@ import RNSecureKeyStore from 'react-native-secure-key-store';
 
 /**
  * Secure storage 适配器，封装 react-native-secure-key-store 为 redux-persist 兼容接口。
- * 
+ *
  * 注意：secure key store 在某些环境（模拟器、无锁屏）可能不可用，需要捕获异常。
  */
 const SecureStorage = {
@@ -28,7 +28,11 @@ const SecureStorage = {
     } catch (error) {
       // Key not found (404) - 静默处理，这是正常情况（首次安装或key不存在）
       const errorMessage = (error as any)?.message || '';
-      if (errorMessage.includes('404') || errorMessage.includes('not found') || errorMessage.includes('does not present')) {
+      if (
+        errorMessage.includes('404') ||
+        errorMessage.includes('not found') ||
+        errorMessage.includes('does not present')
+      ) {
         return null;
       }
       // 其他错误才打印日志

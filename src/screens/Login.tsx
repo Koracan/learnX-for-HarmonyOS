@@ -57,10 +57,7 @@ const Login: React.FC<Props> = ({ navigation }) => {
 
   return (
     <ScrollView contentContainerStyle={styles.root}>
-      <KeyboardAvoidingView
-        style={styles.inputs}
-        behavior={'padding'}
-      >
+      <KeyboardAvoidingView style={styles.inputs} behavior={'padding'}>
         <Text variant="headlineMedium" style={styles.title}>
           learnOH
         </Text>

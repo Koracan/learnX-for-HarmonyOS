@@ -19,8 +19,10 @@ const initialState: UserState = {
 /**
  * 用户 reducer：处理用户信息加载与错误。
  */
-export const user = createReducer(initialState)
-  .handleAction(getUserInfoAction.success, (state: UserState, action: any) => ({
+export const user = createReducer(initialState).handleAction(
+  getUserInfoAction.success,
+  (state: UserState, action: any) => ({
     ...state,
     ...action.payload,
-  }));
+  }),
+);
