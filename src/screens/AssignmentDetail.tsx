@@ -11,6 +11,7 @@ import {
 } from 'react-native-paper';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import dayjs from 'dayjs';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { HomeworkCompletionType, HomeworkSubmissionType } from 'thu-learn-lib';
 import AutoHeightWebView from 'components/AutoHeightWebView';
@@ -18,6 +19,8 @@ import Styles from 'constants/Styles';
 import type { AssignmentStackParams } from 'screens/types';
 import { getWebViewTemplate, removeTags } from 'helpers/html';
 import { isLocaleChinese, t } from 'helpers/i18n';
+import { stripExtension, getExtension } from 'helpers/fs';
+import type { File } from 'data/types/state';
 import Colors from 'constants/Colors';
 
 type Props = NativeStackScreenProps<AssignmentStackParams, 'AssignmentDetail'>;
@@ -25,6 +28,7 @@ type Props = NativeStackScreenProps<AssignmentStackParams, 'AssignmentDetail'>;
 const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
   const theme = useTheme();
   const {
+    id,
     courseName,
     title,
     deadline,
@@ -60,6 +64,20 @@ const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
       ),
     [description, theme],
   );
+
+  const handleFileOpen = (fileAttachment: any) => {
+    if (fileAttachment) {
+      const data = {
+        id: `${id}-${fileAttachment.name}`,
+        courseName,
+        title: stripExtension(fileAttachment.name),
+        downloadUrl: fileAttachment.downloadUrl,
+        fileType: getExtension(fileAttachment.name) ?? '',
+      } as File;
+
+      navigation.push('FileDetail', data);
+    }
+  };
 
   return (
     <ScrollView style={styles.container}>
@@ -113,10 +131,13 @@ const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
           <List.Item
             title={attachment.name}
             description={t('attachment')}
-            left={props => <List.Icon {...props} icon="attachment" />}
-            onPress={() => {
-              // TODO: Implement file download/open
-            }}
+            left={props => (
+              <List.Icon
+                {...props}
+                icon={p => <MaterialIcons name="attachment" {...p} />}
+              />
+            )}
+            onPress={() => handleFileOpen(attachment)}
           />
         </>
       )}
@@ -160,10 +181,13 @@ const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
               <List.Item
                 title={submittedAttachment.name}
                 description={t('attachment')}
-                left={props => <List.Icon {...props} icon="file-check" />}
-                onPress={() => {
-                  // TODO: Implement file download/open
-                }}
+                left={props => (
+                  <List.Icon
+                    {...props}
+                    icon={p => <MaterialIcons name="file-present" {...p} />}
+                  />
+                )}
+                onPress={() => handleFileOpen(submittedAttachment)}
               />
             )}
           </View>
@@ -248,7 +272,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   caption: {
-    marginLeft: 4,
+    marginLeft: 8,
   },
   section: {
     padding: 16,

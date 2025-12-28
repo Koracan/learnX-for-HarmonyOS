@@ -68,6 +68,8 @@ import type {
 } from 'screens/types';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import 'dayjs/locale/en';
+import 'dayjs/locale/zh-cn';
 
 dayjs.extend(relativeTime);
 dayjs.locale(isLocaleChinese() ? 'zh-cn' : 'en');
@@ -224,6 +226,11 @@ const NoticeStackScreens = () => {
         component={NoticeDetail as any}
         options={getDetailScreenOptions(theme)}
       />
+      <NoticeStack.Screen
+        name="FileDetail"
+        component={FileDetail as any}
+        options={getDetailScreenOptions(theme)}
+      />
     </NoticeStack.Navigator>
   );
 };
@@ -243,6 +250,11 @@ const AssignmentStackScreens = () => {
       <AssignmentStack.Screen
         name="AssignmentDetail"
         component={AssignmentDetail as any}
+        options={getDetailScreenOptions(theme)}
+      />
+      <AssignmentStack.Screen
+        name="FileDetail"
+        component={FileDetail as any}
         options={getDetailScreenOptions(theme)}
       />
     </AssignmentStack.Navigator>

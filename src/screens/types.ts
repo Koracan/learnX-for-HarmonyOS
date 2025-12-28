@@ -17,19 +17,21 @@ export type CourseStackParams = {
 };
 
 /**
- * 公告栈路由参数定义。
+ * 公告栈路由参数 definition.
  */
 export type NoticeStackParams = {
   Notices: undefined;
   NoticeDetail: Notice & ExtraParams;
+  FileDetail: File & ExtraParams;
 };
 
 /**
- * 作业栈路由参数定义。
+ * 作业栈路由参数 definition.
  */
 export type AssignmentStackParams = {
   Assignments: undefined;
   AssignmentDetail: Assignment & ExtraParams;
+  FileDetail: File & ExtraParams;
 };
 
 /**

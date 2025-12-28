@@ -132,14 +132,20 @@ const FileDetail: React.FC<Props> = ({ route, navigation }) => {
               </View>
               <Title>{file.title}</Title>
               <View style={Styles.flexRowCenter}>
-                <Caption>{file.courseTeacherName}</Caption>
-                <Caption>
-                  {dayjs(file.uploadTime).format(
-                    isLocaleChinese()
-                      ? 'YYYY 年 M 月 D 日 dddd HH:mm'
-                      : 'MMM D, YYYY HH:mm',
-                  )}
-                </Caption>
+                {file.courseTeacherName ? (
+                  <Caption>{file.courseTeacherName}</Caption>
+                ) : (
+                  <Caption>{file.courseName}</Caption>
+                )}
+                {file.uploadTime && (
+                  <Caption style={styles.caption}>
+                    {dayjs(file.uploadTime).format(
+                      isLocaleChinese()
+                        ? 'YYYY 年 M 月 D 日 dddd HH:mm'
+                        : 'MMM D, YYYY HH:mm',
+                    )}
+                  </Caption>
+                )}
               </View>
             </View>
             <Divider />
@@ -212,6 +218,9 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  caption: {
+    marginLeft: 8,
   },
   actions: {
     flexDirection: 'row',

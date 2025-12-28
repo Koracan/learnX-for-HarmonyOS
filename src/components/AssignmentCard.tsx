@@ -96,7 +96,7 @@ const AssignmentCard: React.FC<
         ) : null}
         <View style={Styles.flexRowCenter}>
           <Caption>{courseTeacherName}</Caption>
-          <Caption>
+          <Caption style={styles.time}>
             {isLocaleChinese()
               ? dayjs().isAfter(dayjs(deadline))
                 ? dayjs(deadline).fromNow() + '截止'
@@ -129,6 +129,9 @@ const styles = StyleSheet.create({
   },
   description: {
     marginVertical: 4,
+  },
+  time: {
+    marginLeft: 8,
   },
 });
 

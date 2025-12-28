@@ -1,10 +1,16 @@
 import React, { useMemo } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
-import { Text, useTheme } from 'react-native-paper';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Text, useTheme, Caption, Divider, List } from 'react-native-paper';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { NoticeStackParams } from 'screens/types';
 import AutoHeightWebView from 'components/AutoHeightWebView';
 import { getWebViewTemplate } from 'helpers/html';
+import dayjs from 'dayjs';
+import { isLocaleChinese, t } from 'helpers/i18n';
+import { stripExtension, getExtension } from 'helpers/fs';
+import type { File } from 'data/types/state';
+import Styles from 'constants/Styles';
 
 type Props = NativeStackScreenProps<NoticeStackParams, 'NoticeDetail'>;
 /**
@@ -14,42 +20,97 @@ const NoticeDetail: React.FC<Props> = ({ route, navigation }) => {
   const theme = useTheme();
   const notice = route.params;
 
+  const {
+    id,
+    courseName,
+    title,
+    publisher,
+    publishTime,
+    content,
+    attachment,
+  } = notice;
+
   const { surface, onSurface, primary } = theme.colors;
 
   const html = useMemo(
     () =>
-      getWebViewTemplate(notice.content || '<p>No content.</p>', {
+      getWebViewTemplate(content || `<p>${t('noAssignmentDescription')}</p>`, {
         backgroundColor: surface,
         textColor: onSurface,
         linkColor: primary,
         isDark: theme.dark,
       }),
-    [notice.content, onSurface, primary, surface, theme.dark],
+    [content, onSurface, primary, surface, theme.dark],
   );
+
+  const handleFileOpen = () => {
+    if (attachment) {
+      const data = {
+        id,
+        courseName,
+        title: stripExtension(attachment.name),
+        downloadUrl: attachment.downloadUrl,
+        fileType: getExtension(attachment.name) ?? '',
+      } as File;
+
+      navigation.push('FileDetail', data);
+    }
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text variant="headlineSmall" style={styles.title}>
-        {notice.title}
-      </Text>
-      <Text variant="labelLarge" style={styles.subtitle}>
-        {notice.courseName}
-      </Text>
+      <View style={styles.section}>
+        <Text variant="headlineSmall" style={styles.title}>
+          {title}
+        </Text>
+        <View style={Styles.flexRowCenter}>
+          <Caption>{publisher}</Caption>
+          <Caption style={styles.time}>
+            {dayjs(publishTime).format(
+              isLocaleChinese()
+                ? 'YYYY 年 M 月 D 日 dddd HH:mm'
+                : 'MMM D, YYYY HH:mm',
+            )}
+          </Caption>
+        </View>
+      </View>
+      <Divider />
       <AutoHeightWebView source={{ html }} />
+      {attachment && (
+        <View style={styles.attachmentSection}>
+          <Divider />
+          <List.Item
+            title={attachment.name}
+            description={t('attachment')}
+            left={props => (
+              <List.Icon
+                {...props}
+                icon={p => <MaterialIcons name="insert-drive-file" {...p} />}
+              />
+            )}
+            onPress={handleFileOpen}
+          />
+        </View>
+      )}
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    paddingBottom: 32,
+  },
+  section: {
     padding: 16,
-    gap: 8,
   },
   title: {
-    marginBottom: 4,
-  },
-  subtitle: {
     marginBottom: 8,
+  },
+  time: {
+    marginLeft: 8,
+  },
+  attachmentSection: {
+    marginTop: 16,
   },
 });
 

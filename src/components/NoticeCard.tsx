@@ -69,7 +69,7 @@ const NoticeCard: React.FC<React.PropsWithChildren<NoticeCardProps>> = ({
         ) : null}
         <View style={Styles.flexRowCenter}>
           <Caption>{publisher}</Caption>
-          <Caption>{dayjs(publishTime).fromNow()}</Caption>
+          <Caption style={styles.time}>{dayjs(publishTime).fromNow()}</Caption>
         </View>
       </View>
     </CardWrapper>
@@ -86,6 +86,9 @@ const styles = StyleSheet.create({
   },
   icon: {
     marginLeft: 6,
+  },
+  time: {
+    marginLeft: 8,
   },
 });
 
