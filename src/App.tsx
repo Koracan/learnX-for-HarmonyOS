@@ -5,6 +5,7 @@ import {
   type AppStateStatus,
   StatusBar,
 } from 'react-native';
+import { Immersive } from 'react-native-immersive';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import {
   NavigationContainer,
@@ -219,6 +220,19 @@ const FileStackScreens = () => {
 };
 
 /**
+ * 沉浸式模式控制器：调用 react-native-immersive 统一控制系统栏。
+ */
+const ImmersiveModeController = () => {
+  const immersiveMode = useAppSelector(state => state.settings.immersiveMode);
+
+  React.useEffect(() => {
+    Immersive.setImmersive(immersiveMode);
+  }, [immersiveMode]);
+
+  return null;
+};
+
+/**
  * 设置子栈：设置页面导航容器。
  */
 const SettingsStackScreens = () => {
@@ -310,7 +324,11 @@ const RootStackScreens = () => {
   const hasTriedAutoLoginRef = React.useRef<boolean>(false);
 
   const showMain =
-    !auth.error && !!auth.username && !!auth.password && !!auth.fingerPrint;
+    !auth.error &&
+    !!auth.username &&
+    !!auth.password &&
+    !!auth.fingerPrint &&
+    auth.loggedIn;
 
   console.log('[RootStackScreens] render', {
     showMain,
@@ -434,6 +452,7 @@ const App = () => {
           <StoreProvider store={store}>
             <PersistGate loading={<Splash />} persistor={persistor}>
               <SafeAreaProvider>
+                <ImmersiveModeController />
                 <NavigationContainer theme={navigationTheme}>
                   <RootStackScreens />
                 </NavigationContainer>
