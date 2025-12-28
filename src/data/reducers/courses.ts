@@ -1,5 +1,10 @@
 import { createReducer } from 'typesafe-actions';
-import { getAllCoursesAction, setCourses } from 'data/actions/courses';
+import {
+  getCoursesForSemesterAction,
+  setCourses,
+  setHideCourse,
+  setCourseOrder,
+} from 'data/actions/courses';
 import type { CoursesAction } from 'data/types/actions';
 import type { CoursesState } from 'data/types/state';
 
@@ -10,6 +15,7 @@ const initialState: CoursesState = {
   items: [],
   names: {},
   hidden: [],
+  order: [],
   fetching: false,
   error: null,
 };
@@ -18,12 +24,12 @@ const initialState: CoursesState = {
  * 课程 reducer：处理课程列表加载与存储。
  */
 export const courses = createReducer<CoursesState, CoursesAction>(initialState)
-  .handleAction(getAllCoursesAction.request, state => ({
+  .handleAction(getCoursesForSemesterAction.request, state => ({
     ...state,
     fetching: true,
     error: null,
   }))
-  .handleAction(getAllCoursesAction.success, (state, action) => ({
+  .handleAction(getCoursesForSemesterAction.success, (state, action) => ({
     ...state,
     fetching: false,
     items: action.payload,
@@ -37,8 +43,16 @@ export const courses = createReducer<CoursesState, CoursesAction>(initialState)
       }),
       {},
     ),
+    order:
+      state.order.length === 0
+        ? action.payload.map(c => c.id)
+        : state.order.filter(id => action.payload.some(c => c.id === id)).concat(
+            action.payload
+              .filter(c => !state.order.includes(c.id))
+              .map(c => c.id),
+          ),
   }))
-  .handleAction(getAllCoursesAction.failure, (state, action) => ({
+  .handleAction(getCoursesForSemesterAction.failure, (state, action) => ({
     ...state,
     fetching: false,
     error: action.payload,
@@ -46,4 +60,14 @@ export const courses = createReducer<CoursesState, CoursesAction>(initialState)
   .handleAction(setCourses, (state, action) => ({
     ...state,
     items: action.payload.courses,
+  }))
+  .handleAction(setHideCourse, (state, action) => ({
+    ...state,
+    hidden: action.payload.flag
+      ? [...new Set([...state.hidden, action.payload.courseId])]
+      : state.hidden.filter(id => id !== action.payload.courseId),
+  }))
+  .handleAction(setCourseOrder, (state, action) => ({
+    ...state,
+    order: action.payload,
   }));

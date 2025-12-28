@@ -3,9 +3,11 @@ import { type ApiError, CourseType, Language } from 'thu-learn-lib';
 import type { Course } from 'data/types/state';
 import {
   SET_COURSES,
-  GET_ALL_COURSES_REQUEST,
-  GET_ALL_COURSES_SUCCESS,
-  GET_ALL_COURSES_FAILURE,
+  SET_HIDE_COURSE,
+  SET_COURSE_ORDER,
+  GET_COURSES_FOR_SEMESTER_REQUEST,
+  GET_COURSES_FOR_SEMESTER_SUCCESS,
+  GET_COURSES_FOR_SEMESTER_FAILURE,
 } from 'data/types/constants';
 import type { ThunkResult } from 'data/types/actions';
 import { dataSource } from 'data/source';
@@ -19,13 +21,23 @@ export const setCourses = createAction(SET_COURSES, (courses: Course[]) => ({
   courses,
 }))();
 
+export const setHideCourse = createAction(
+  SET_HIDE_COURSE,
+  (courseId: string, flag: boolean) => ({ courseId, flag }),
+)();
+
+export const setCourseOrder = createAction(
+  SET_COURSE_ORDER,
+  (courseIds: string[]) => courseIds,
+)();
+
 /**
  * 获取课程列表的异步 action。
  */
-export const getAllCoursesAction = createAsyncAction(
-  GET_ALL_COURSES_REQUEST,
-  GET_ALL_COURSES_SUCCESS,
-  GET_ALL_COURSES_FAILURE,
+export const getCoursesForSemesterAction = createAsyncAction(
+  GET_COURSES_FOR_SEMESTER_REQUEST,
+  GET_COURSES_FOR_SEMESTER_SUCCESS,
+  GET_COURSES_FOR_SEMESTER_FAILURE,
 )<undefined, Course[], ApiError>();
 
 /**
@@ -33,7 +45,7 @@ export const getAllCoursesAction = createAsyncAction(
  */
 export function getCoursesForSemester(semesterId: string): ThunkResult {
   return async dispatch => {
-    dispatch(getAllCoursesAction.request());
+    dispatch(getCoursesForSemesterAction.request());
     try {
       const lang = isLocaleChinese() ? Language.ZH : Language.EN;
       console.log('[getCoursesForSemester] semester=', semesterId, 'lang=', lang);
@@ -46,15 +58,13 @@ export function getCoursesForSemester(semesterId: string): ThunkResult {
       console.log('[getCoursesForSemester] fetched courses=', courses.length);
 
       const mapped = courses.map<Course>(c => ({
-        id: c.id,
-        name: c.name,
-        teacherName: c.teacherName,
+        ...c,
+        semesterId,
       }));
-      dispatch(setCourses(mapped));
-      dispatch(getAllCoursesAction.success(mapped));
+      dispatch(getCoursesForSemesterAction.success(mapped));
     } catch (err) {
       console.error('[getCoursesForSemester] Error:', err);
-      dispatch(getAllCoursesAction.failure(serializeError(err)));
+      dispatch(getCoursesForSemesterAction.failure(serializeError(err)));
     }
   };
 }

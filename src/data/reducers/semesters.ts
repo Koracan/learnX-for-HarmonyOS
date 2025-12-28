@@ -12,8 +12,7 @@ import type { SemestersAction } from 'data/types/actions';
 import type { SemestersState } from 'data/types/state';
 
 const initialState: SemestersState = {
-  fetchingAll: false,
-  fetchingCurrent: false,
+  fetching: false,
   items: [],
   current: null,
   error: null,
@@ -25,42 +24,32 @@ export const semestersReducer = (
 ): SemestersState => {
   switch (action.type) {
     case GET_ALL_SEMESTERS_REQUEST:
+    case GET_CURRENT_SEMESTER_REQUEST:
       return {
         ...state,
-        fetchingAll: true,
+        fetching: true,
         error: null,
       };
     case GET_ALL_SEMESTERS_SUCCESS:
       return {
         ...state,
         items: action.payload || [],
-        fetchingAll: false,
+        fetching: false,
         error: null,
       };
     case GET_ALL_SEMESTERS_FAILURE:
+    case GET_CURRENT_SEMESTER_FAILURE:
       return {
         ...state,
-        fetchingAll: false,
+        fetching: false,
         error: action.payload || 'Failed to fetch semesters',
-      };
-    case GET_CURRENT_SEMESTER_REQUEST:
-      return {
-        ...state,
-        fetchingCurrent: true,
-        error: null,
       };
     case GET_CURRENT_SEMESTER_SUCCESS:
       return {
         ...state,
         current: action.payload || null,
-        fetchingCurrent: false,
+        fetching: false,
         error: null,
-      };
-    case GET_CURRENT_SEMESTER_FAILURE:
-      return {
-        ...state,
-        fetchingCurrent: false,
-        error: action.payload || 'Failed to fetch current semester',
       };
     case SET_CURRENT_SEMESTER:
       return {
@@ -70,8 +59,7 @@ export const semestersReducer = (
     case RESET_LOADING:
       return {
         ...state,
-        fetchingAll: false,
-        fetchingCurrent: false,
+        fetching: false,
       };
     default:
       return state;

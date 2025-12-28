@@ -31,6 +31,8 @@ import Assignments from 'screens/Assignments';
 import AssignmentDetail from 'screens/AssignmentDetail';
 import Files from 'screens/Files';
 import FileDetail from 'screens/FileDetail';
+import Courses from 'screens/Courses';
+import CourseDetail from 'screens/CourseDetail';
 import Settings from 'screens/Settings';
 import Splash from 'components/Splash';
 import { ToastProvider } from 'components/Toast';
@@ -48,6 +50,7 @@ import type {
   SettingsStackParams,
   MainTabParams,
   RootStackParams,
+  CourseStackParams,
 } from 'screens/types';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -56,11 +59,47 @@ dayjs.extend(relativeTime);
 dayjs.locale(isLocaleChinese() ? 'zh-cn' : 'en');
 
 const RootStack = createNativeStackNavigator<RootStackParams>();
+const CourseStack = createNativeStackNavigator<CourseStackParams>();
 const NoticeStack = createNativeStackNavigator<NoticeStackParams>();
 const AssignmentStack = createNativeStackNavigator<AssignmentStackParams>();
 const FileStack = createNativeStackNavigator<FileStackParams>();
 const SettingsStack = createNativeStackNavigator<SettingsStackParams>();
 const MainNavigator = createBottomTabNavigator<MainTabParams>();
+
+/**
+ * Course 子栈：课程列表与课程详情导航容器。
+ */
+const CourseStackScreens = () => {
+  return (
+    <CourseStack.Navigator>
+      <CourseStack.Screen
+        name="Courses"
+        component={Courses}
+        options={{ title: t('courses') }}
+      />
+      <CourseStack.Screen
+        name="CourseDetail"
+        component={CourseDetail as any}
+        options={{ title: '' }}
+      />
+      <CourseStack.Screen
+        name="NoticeDetail"
+        component={NoticeDetail as any}
+        options={{ title: '' }}
+      />
+      <CourseStack.Screen
+        name="AssignmentDetail"
+        component={AssignmentDetail as any}
+        options={{ title: '' }}
+      />
+      <CourseStack.Screen
+        name="FileDetail"
+        component={FileDetail as any}
+        options={{ title: '' }}
+      />
+    </CourseStack.Navigator>
+  );
+};
 
 /**
  * Notice 子栈：公告列表与公告详情导航容器。
@@ -161,6 +200,7 @@ const MainTabScreens = () => {
       screenOptions={({ route }) => ({
         tabBarIcon: ({ color, size }) => {
           const iconMap: Record<keyof MainTabParams, string> = {
+            CourseStack: 'book-open-variant',
             NoticeStack: 'bell',
             AssignmentStack: 'clipboard-text',
             FileStack: 'file-document',
@@ -178,15 +218,17 @@ const MainTabScreens = () => {
         inactiveTintColor: 'gray',
         headerShown: false,
         tabBarLabel:
-          route.name === 'NoticeStack'
-            ? t('notices')
-            : route.name === 'AssignmentStack'
-              ? t('assignments')
-              : route.name === 'FileStack'
-                ? t('files')
-                : route.name === 'SettingsStack'
-                  ? t('settings')
-                  : '',
+          route.name === 'CourseStack'
+            ? t('courses')
+            : route.name === 'NoticeStack'
+              ? t('notices')
+              : route.name === 'AssignmentStack'
+                ? t('assignments')
+                : route.name === 'FileStack'
+                  ? t('files')
+                  : route.name === 'SettingsStack'
+                    ? t('settings')
+                    : '',
       })}
     >
       <MainNavigator.Screen
@@ -200,6 +242,10 @@ const MainTabScreens = () => {
       <MainNavigator.Screen
         name="FileStack"
         component={FileStackScreens}
+      />
+      <MainNavigator.Screen
+        name="CourseStack"
+        component={CourseStackScreens}
       />
       <MainNavigator.Screen
         name="SettingsStack"
@@ -237,20 +283,20 @@ const RootStackScreens = () => {
   // 登录成功后初始化学期列表
   React.useEffect(() => {
     if (!auth.loggedIn) return;
-    if (semesters.items.length === 0 && !semesters.fetchingAll) {
+    if (semesters.items.length === 0 && !semesters.items) {
       console.log('[RootStackScreens] Logged in, fetching semesters');
       dispatch(getAllSemesters());
     }
-  }, [auth.loggedIn, semesters.items.length, semesters.fetchingAll, dispatch]);
+  }, [auth.loggedIn, semesters.items.length, semesters.items, dispatch]);
 
   // 登录后拉取当前学期（可与学期列表并行），避免重复请求依赖 fetchingCurrent
   React.useEffect(() => {
     if (!auth.loggedIn) return;
     if (semesters.current) return;
-    if (semesters.fetchingCurrent) return;
+    if (semesters.current) return;
     console.log('[RootStackScreens] Fetching current semester');
     dispatch(getCurrentSemester());
-  }, [auth.loggedIn, semesters.current, semesters.fetchingCurrent, dispatch]);
+  }, [auth.loggedIn, semesters.current, semesters.current, dispatch]);
 
   // 根据当前学期加载课程（无 ref、防止 fetching 抖动引起循环）
   React.useEffect(() => {

@@ -1,4 +1,15 @@
-import type { Notice, Assignment, File } from 'data/types/state';
+import type { Notice, Assignment, File, Course } from 'data/types/state';
+
+/**
+ * 课程栈路由参数定义。
+ */
+export type CourseStackParams = {
+  Courses: undefined;
+  CourseDetail: Course;
+  NoticeDetail: Notice;
+  AssignmentDetail: Assignment;
+  FileDetail: File;
+};
 
 /**
  * 公告栈路由参数定义。
@@ -35,6 +46,7 @@ export type SettingsStackParams = {
  * 主选项卡导航参数定义。
  */
 export type MainTabParams = {
+  CourseStack: undefined;
   NoticeStack: undefined;
   AssignmentStack: undefined;
   FileStack: undefined;

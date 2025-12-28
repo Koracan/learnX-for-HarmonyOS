@@ -36,7 +36,6 @@ export function getNoticesForCourse(courseId: string): ThunkResult {
           courseId,
           courseName: courseName.name,
           courseTeacherName: courseName.teacherName,
-          plainText: result.content ? removeTags(result.content) : '',
         }))
         .sort(
           (a, b) =>
@@ -75,7 +74,6 @@ export function getAllNoticesForCourses(courseIds: string[]): ThunkResult {
             courseId,
             courseName: courseName.name,
             courseTeacherName: courseName.teacherName,
-            plainText: notice.content ? removeTags(notice.content) : '',
           }));
         })
         .reduce((a, b) => a.concat(b), [])

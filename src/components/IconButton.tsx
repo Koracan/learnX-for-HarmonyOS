@@ -1,7 +1,7 @@
 import { StyleSheet } from 'react-native';
 import {
   IconButton as PaperIconButton,
-  IconButtonProps,
+  type IconButtonProps,
 } from 'react-native-paper';
 
 const IconButton: React.FC<IconButtonProps> = ({ style, ...props }) => {

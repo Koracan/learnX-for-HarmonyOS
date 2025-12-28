@@ -1,4 +1,10 @@
-import type { FailReason, Homework, File as IFile } from 'thu-learn-lib';
+import type {
+  CourseInfo,
+  FailReason,
+  Homework,
+  Notification,
+  File as IFile,
+} from 'thu-learn-lib';
 
 // Minimal state and entity definitions for the mini prototype (login + notices)
 
@@ -24,11 +30,27 @@ export interface SettingsState {
   fileOmitCourseName: boolean;
 }
 
-export interface Course {
-  id: string;
-  name: string;
-  teacherName?: string;
+export interface SemestersState {
+  fetching: boolean;
+  items: string[];
+  current: string | null;
+  error?: FailReason | null;
 }
+
+export type Course = Pick<
+  CourseInfo,
+  | 'id'
+  | 'name'
+  | 'teacherNumber'
+  | 'teacherName'
+  | 'timeAndLocation'
+  | 'courseNumber'
+  | 'courseIndex'
+  | 'chineseName'
+  | 'englishName'
+> & {
+  semesterId: string;
+};
 
 export interface CoursesState {
   fetching: boolean;
@@ -40,6 +62,7 @@ export interface CoursesState {
     };
   };
   hidden: string[];
+  order: string[];
   error?: FailReason | null;
 }
 
@@ -49,14 +72,20 @@ export interface CourseExtraInfo {
   courseTeacherName: string;
 }
 
-export interface Notice extends CourseExtraInfo {
-  id: string;
-  title: string;
-  publishTime: string;
-  content?: string;
-  // 预计算的纯文本摘要，避免在渲染期解析 HTML
-  plainText?: string;
-}
+export type Notice = Pick<
+  Notification,
+  | 'id'
+  | 'title'
+  | 'publisher'
+  | 'publishTime'
+  | 'expireTime'
+  | 'markedImportant'
+  | 'content'
+  | 'hasRead'
+  | 'attachment'
+  | 'url'
+> &
+  CourseExtraInfo;
 
 export interface NoticeState {
   fetching: boolean;
@@ -132,14 +161,14 @@ export interface FilesState {
 }
 
 export interface UserState {
-  fetching: boolean;
-  info: any | null;
-  error?: FailReason | null;
+  name: string | null;
+  department: string | null;
+  email: string | null;
+  phone: string | null;
 }
 
 export interface SemestersState {
-  fetchingAll: boolean;
-  fetchingCurrent: boolean;
+  fetching: boolean;
   items: string[];
   current: string | null;
   error?: FailReason | null;
