@@ -4,6 +4,7 @@ import {
   AppState,
   type AppStateStatus,
   StatusBar,
+  Platform,
 } from 'react-native';
 import { Immersive } from 'react-native-immersive';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -11,8 +12,13 @@ import {
   NavigationContainer,
   DefaultTheme as NavigationDefaultTheme,
   DarkTheme as NavigationDarkTheme,
+  type ParamListBase,
 } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import {
+  createNativeStackNavigator,
+  type NativeStackNavigationOptions,
+  type NativeStackScreenProps,
+} from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
@@ -20,6 +26,7 @@ import {
   MD3DarkTheme,
   MD3LightTheme,
   useTheme,
+  type MD3Theme,
 } from 'react-native-paper';
 import { Provider as StoreProvider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
@@ -37,7 +44,14 @@ import CourseDetail from 'screens/CourseDetail';
 import Settings from 'screens/Settings';
 import Splash from 'components/Splash';
 import Empty from 'components/Empty';
+import HeaderTitle from 'components/HeaderTitle';
 import { ToastProvider } from 'components/Toast';
+import {
+  Course,
+  Notice,
+  Assignment,
+  File,
+} from 'data/types/state';
 import { persistor, store, useAppSelector, useAppDispatch } from 'data/store';
 import { login } from 'data/actions/auth';
 import { resetLoading } from 'data/actions/root';
@@ -64,6 +78,32 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 dayjs.extend(relativeTime);
 dayjs.locale(isLocaleChinese() ? 'zh-cn' : 'en');
 
+const getScreenOptions = (theme: MD3Theme): NativeStackNavigationOptions => ({
+  headerTitle: props => <HeaderTitle title={props.children} />,
+  headerTitleAlign: 'center',
+  headerShadowVisible: false,
+  headerStyle: {
+    backgroundColor: theme.colors.surface,
+  },
+});
+
+const getDetailScreenOptions = (theme: MD3Theme) =>
+  function ({
+    route,
+  }: NativeStackScreenProps<ParamListBase, string>): NativeStackNavigationOptions {
+    const params = route.params as any;
+    const title = params?.title || params?.name || '';
+    const subtitle = params?.courseName || params?.teacherName || '';
+
+    return {
+      ...getScreenOptions(theme),
+      headerTitle: props => (
+        <HeaderTitle title={props.children || title} subtitle={subtitle} />
+      ),
+      headerTitleAlign: Platform.OS === 'android' ? 'left' : 'center',
+    };
+  };
+
 const RootStack = createNativeStackNavigator<RootStackParams>();
 const LoginStack = createNativeStackNavigator<LoginStackParams>();
 const CourseXStack = createNativeStackNavigator<CourseXStackParams>();
@@ -81,8 +121,9 @@ const MainNavigator = createBottomTabNavigator<MainTabParams>();
  * Login 子栈：登录与 SSO 导航容器。
  */
 const LoginStackScreens = () => {
+  const theme = useTheme();
   return (
-    <LoginStack.Navigator>
+    <LoginStack.Navigator screenOptions={getScreenOptions(theme)}>
       <LoginStack.Screen
         name="Login"
         component={Login}
@@ -97,42 +138,52 @@ const LoginStackScreens = () => {
   );
 };
 
-const CourseXStackScreens = () => (
-  <CourseXStack.Navigator>
-    <CourseXStack.Screen
-      name="CourseX"
-      component={Empty}
-      options={{ title: t('courseX') }}
-    />
-  </CourseXStack.Navigator>
-);
+const CourseXStackScreens = () => {
+  const theme = useTheme();
+  return (
+    <CourseXStack.Navigator screenOptions={getScreenOptions(theme)}>
+      <CourseXStack.Screen
+        name="CourseX"
+        component={Empty}
+        options={{ title: t('courseX') }}
+      />
+    </CourseXStack.Navigator>
+  );
+};
 
-const SearchStackScreens = () => (
-  <SearchStack.Navigator>
-    <SearchStack.Screen
-      name="Search"
-      component={Empty}
-      options={{ title: t('search') }}
-    />
-  </SearchStack.Navigator>
-);
+const SearchStackScreens = () => {
+  const theme = useTheme();
+  return (
+    <SearchStack.Navigator screenOptions={getScreenOptions(theme)}>
+      <SearchStack.Screen
+        name="Search"
+        component={Empty}
+        options={{ title: t('search') }}
+      />
+    </SearchStack.Navigator>
+  );
+};
 
-const AssignmentSubmissionStackScreens = () => (
-  <AssignmentSubmissionStack.Navigator>
-    <AssignmentSubmissionStack.Screen
-      name="AssignmentSubmission"
-      component={Empty}
-      options={{ title: t('assignmentSubmission') }}
-    />
-  </AssignmentSubmissionStack.Navigator>
-);
+const AssignmentSubmissionStackScreens = () => {
+  const theme = useTheme();
+  return (
+    <AssignmentSubmissionStack.Navigator screenOptions={getScreenOptions(theme)}>
+      <AssignmentSubmissionStack.Screen
+        name="AssignmentSubmission"
+        component={Empty}
+        options={{ title: t('assignmentSubmission') }}
+      />
+    </AssignmentSubmissionStack.Navigator>
+  );
+};
 
 /**
  * Course 子栈：课程列表与课程详情导航容器。
  */
 const CourseStackScreens = () => {
+  const theme = useTheme();
   return (
-    <CourseStack.Navigator>
+    <CourseStack.Navigator screenOptions={getScreenOptions(theme)}>
       <CourseStack.Screen
         name="Courses"
         component={Courses}
@@ -141,22 +192,22 @@ const CourseStackScreens = () => {
       <CourseStack.Screen
         name="CourseDetail"
         component={CourseDetail as any}
-        options={{ title: '' }}
+        options={getDetailScreenOptions(theme)}
       />
       <CourseStack.Screen
         name="NoticeDetail"
         component={NoticeDetail as any}
-        options={{ title: '' }}
+        options={getDetailScreenOptions(theme)}
       />
       <CourseStack.Screen
         name="AssignmentDetail"
         component={AssignmentDetail as any}
-        options={{ title: '' }}
+        options={getDetailScreenOptions(theme)}
       />
       <CourseStack.Screen
         name="FileDetail"
         component={FileDetail as any}
-        options={{ title: '' }}
+        options={getDetailScreenOptions(theme)}
       />
     </CourseStack.Navigator>
   );
@@ -166,8 +217,9 @@ const CourseStackScreens = () => {
  * Notice 子栈：公告列表与公告详情导航容器。
  */
 const NoticeStackScreens = () => {
+  const theme = useTheme();
   return (
-    <NoticeStack.Navigator>
+    <NoticeStack.Navigator screenOptions={getScreenOptions(theme)}>
       <NoticeStack.Screen
         name="Notices"
         component={Notices}
@@ -176,7 +228,7 @@ const NoticeStackScreens = () => {
       <NoticeStack.Screen
         name="NoticeDetail"
         component={NoticeDetail as any}
-        options={{ title: '' }}
+        options={getDetailScreenOptions(theme)}
       />
     </NoticeStack.Navigator>
   );
@@ -186,8 +238,9 @@ const NoticeStackScreens = () => {
  * Assignment 子栈：作业列表与作业详情导航容器。
  */
 const AssignmentStackScreens = () => {
+  const theme = useTheme();
   return (
-    <AssignmentStack.Navigator>
+    <AssignmentStack.Navigator screenOptions={getScreenOptions(theme)}>
       <AssignmentStack.Screen
         name="Assignments"
         component={Assignments}
@@ -196,7 +249,7 @@ const AssignmentStackScreens = () => {
       <AssignmentStack.Screen
         name="AssignmentDetail"
         component={AssignmentDetail as any}
-        options={{ title: '' }}
+        options={getDetailScreenOptions(theme)}
       />
     </AssignmentStack.Navigator>
   );
@@ -206,8 +259,9 @@ const AssignmentStackScreens = () => {
  * File 子栈：文件列表与文件详情导航容器。
  */
 const FileStackScreens = () => {
+  const theme = useTheme();
   return (
-    <FileStack.Navigator>
+    <FileStack.Navigator screenOptions={getScreenOptions(theme)}>
       <FileStack.Screen
         name="Files"
         component={Files}
@@ -216,7 +270,7 @@ const FileStackScreens = () => {
       <FileStack.Screen
         name="FileDetail"
         component={FileDetail as any}
-        options={{ title: '' }}
+        options={getDetailScreenOptions(theme)}
       />
     </FileStack.Navigator>
   );
@@ -239,8 +293,9 @@ const ImmersiveModeController = () => {
  * 设置子栈：设置页面导航容器。
  */
 const SettingsStackScreens = () => {
+  const theme = useTheme();
   return (
-    <SettingsStack.Navigator>
+    <SettingsStack.Navigator screenOptions={getScreenOptions(theme)}>
       <SettingsStack.Screen
         name="Settings"
         component={Settings}

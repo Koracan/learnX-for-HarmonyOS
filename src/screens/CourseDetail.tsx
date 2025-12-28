@@ -1,5 +1,5 @@
-import React, { memo, useCallback, useMemo, useState } from 'react';
-import { Dimensions, StyleSheet } from 'react-native';
+import React, { memo, useMemo, useState } from 'react';
+import { Dimensions } from 'react-native';
 import { useTheme } from 'react-native-paper';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';

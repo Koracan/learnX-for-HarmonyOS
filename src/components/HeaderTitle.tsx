@@ -1,7 +1,6 @@
 import React from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
-import DeviceInfo from 'constants/DeviceInfo';
 
 export interface HeaderTitleProps {
   title: string;
@@ -15,15 +14,16 @@ const HeaderTitle: React.FC<React.PropsWithChildren<HeaderTitleProps>> = ({
   return (
     <View
       style={{
-        maxWidth:
-          Platform.OS === 'android' && !DeviceInfo.isTablet() ? 250 : undefined,
-        height:
-          Platform.OS === 'android' ? (DeviceInfo.isTablet() ? 64 : 56) : 44,
-        justifyContent: 'center',
-        alignItems: Platform.OS === 'android' ? 'flex-start' : 'center',
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        justifyContent: Platform.OS === 'android' ? 'flex-start' : 'center',
       }}
     >
-      <Text style={styles.title} numberOfLines={1} ellipsizeMode="middle">
+      <Text
+        style={[styles.title, subtitle ? { flexShrink: 1 } : {}]}
+        numberOfLines={1}
+        ellipsizeMode="middle"
+      >
         {title}
       </Text>
       {subtitle ? (
@@ -41,10 +41,9 @@ const styles = StyleSheet.create({
     fontWeight: Platform.OS === 'ios' ? '600' : 'bold',
   },
   subtitle: {
-    fontSize: 11,
-    marginTop: 2,
-    width: '100%',
-    textAlign: Platform.OS === 'android' ? 'left' : 'center',
+    fontSize: 12,
+    marginLeft: 8,
+    opacity: 0.6,
   },
 });
 

@@ -124,7 +124,7 @@ const FilterList = <T extends Notice | Assignment | File | Course>({
       headerTitle: props => (
         <HeaderTitle
           {...props}
-          title={t((type + 's') as any)}
+          title={props.children!}
           subtitle={
             filterSelected === 'all'
               ? defaultSubtitle
@@ -133,7 +133,7 @@ const FilterList = <T extends Notice | Assignment | File | Course>({
         />
       ),
     });
-  }, [navigation, type, filterSelected, defaultSubtitle]);
+  }, [navigation, filterSelected, defaultSubtitle]);
 
   const renderItem = useCallback(
     ({ item }: { item: T }) => (
