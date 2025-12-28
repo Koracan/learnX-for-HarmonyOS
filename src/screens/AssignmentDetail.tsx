@@ -30,6 +30,7 @@ const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
   const {
     id,
     courseName,
+    courseTeacherName,
     title,
     deadline,
     description,
@@ -70,6 +71,7 @@ const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
       const data = {
         id: `${id}-${fileAttachment.name}`,
         courseName,
+        courseTeacherName,
         title: stripExtension(fileAttachment.name),
         downloadUrl: fileAttachment.downloadUrl,
         fileType: getExtension(fileAttachment.name) ?? '',
@@ -82,7 +84,6 @@ const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Caption>{courseName}</Caption>
         <View style={Styles.flexRow}>
           <Chip compact mode="outlined" style={styles.chip}>
             {completionType === HomeworkCompletionType.GROUP

@@ -23,6 +23,7 @@ const NoticeDetail: React.FC<Props> = ({ route, navigation }) => {
   const {
     id,
     courseName,
+    courseTeacherName,
     title,
     publisher,
     publishTime,
@@ -48,6 +49,7 @@ const NoticeDetail: React.FC<Props> = ({ route, navigation }) => {
       const data = {
         id,
         courseName,
+        courseTeacherName,
         title: stripExtension(attachment.name),
         downloadUrl: attachment.downloadUrl,
         fileType: getExtension(attachment.name) ?? '',

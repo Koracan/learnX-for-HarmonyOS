@@ -132,13 +132,8 @@ const FileDetail: React.FC<Props> = ({ route, navigation }) => {
               </View>
               <Title>{file.title}</Title>
               <View style={Styles.flexRowCenter}>
-                {file.courseTeacherName ? (
-                  <Caption>{file.courseTeacherName}</Caption>
-                ) : (
-                  <Caption>{file.courseName}</Caption>
-                )}
                 {file.uploadTime && (
-                  <Caption style={styles.caption}>
+                  <Caption>
                     {dayjs(file.uploadTime).format(
                       isLocaleChinese()
                         ? 'YYYY 年 M 月 D 日 dddd HH:mm'

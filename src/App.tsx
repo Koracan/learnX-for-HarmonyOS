@@ -88,14 +88,13 @@ const getDetailScreenOptions = (theme: MD3Theme) =>
     route,
   }: NativeStackScreenProps<ParamListBase, string>): NativeStackNavigationOptions {
     const params = route.params as any;
-    const title = params?.title || params?.name || '';
-    const subtitle = params?.courseName || params?.teacherName || '';
+    const title = params?.courseName || params?.name || '';
+    const subtitle =
+      params?.courseTeacherName || params?.teacherName || params?.publisher || '';
 
     return {
       ...getScreenOptions(theme),
-      headerTitle: props => (
-        <HeaderTitle title={props.children || title} subtitle={subtitle} />
-      ),
+      headerTitle: () => <HeaderTitle title={title} subtitle={subtitle} />,
       headerTitleAlign: Platform.OS === 'android' ? 'left' : 'center',
     };
   };
