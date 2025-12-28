@@ -6,7 +6,7 @@ import { getAllNoticesForCourses } from 'data/actions/notices';
 import type { Notice } from 'data/types/state';
 import NoticeCard from 'components/NoticeCard';
 import FilterList from 'components/FilterList';
-import useFilteredData from 'hooks/useFilteredData';
+import { selectFilteredNotices } from 'data/selectors/filteredData';
 
 type Props = NativeStackScreenProps<NoticeStackParams, 'Notices'>;
 /**
@@ -19,21 +19,8 @@ const Notices: React.FC<Props> = ({ navigation }) => {
     state => state.courses.items.map(i => i.id),
     (a, b) => JSON.stringify([...a].sort()) === JSON.stringify([...b].sort()),
   );
-  const items = useAppSelector(
-    state => state.notices.items,
-    (a, b) => JSON.stringify(a) === JSON.stringify(b),
-  );
   const fetching = useAppSelector(state => state.notices.fetching);
-  const fav = useAppSelector(state => state.notices.favorites);
-  const archived = useAppSelector(state => state.notices.archived);
-  const hidden = useAppSelector(state => state.courses.hidden);
-
-  const filteredData = useFilteredData({
-    data: items,
-    fav,
-    archived,
-    hidden,
-  });
+  const filteredData = useAppSelector(selectFilteredNotices);
 
   const handleRefresh = useCallback(() => {
     if (loggedIn && courseIds.length > 0) {

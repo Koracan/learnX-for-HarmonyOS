@@ -6,7 +6,7 @@ import { getAllFilesForCourses } from 'data/actions/files';
 import type { File } from 'data/types/state';
 import FileCard from 'components/FileCard';
 import FilterList from 'components/FilterList';
-import useFilteredData from 'hooks/useFilteredData';
+import { selectFilteredFiles } from 'data/selectors/filteredData';
 
 type Props = NativeStackScreenProps<FileStackParams, 'Files'>;
 
@@ -20,21 +20,8 @@ const Files: React.FC<Props> = ({ navigation }) => {
     state => state.courses.items.map(i => i.id),
     (a, b) => JSON.stringify([...a].sort()) === JSON.stringify([...b].sort()),
   );
-  const items = useAppSelector(
-    state => state.files.items,
-    (a, b) => JSON.stringify(a) === JSON.stringify(b),
-  );
   const fetching = useAppSelector(state => state.files.fetching);
-  const fav = useAppSelector(state => state.files.favorites);
-  const archived = useAppSelector(state => state.files.archived);
-  const hidden = useAppSelector(state => state.courses.hidden);
-
-  const filteredData = useFilteredData({
-    data: items,
-    fav,
-    archived,
-    hidden,
-  });
+  const filteredData = useAppSelector(selectFilteredFiles);
 
   const handleRefresh = useCallback(() => {
     if (loggedIn && courseIds.length > 0) {

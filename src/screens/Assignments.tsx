@@ -6,7 +6,7 @@ import { getAllAssignmentsForCourses } from 'data/actions/assignments';
 import type { Assignment } from 'data/types/state';
 import AssignmentCard from 'components/AssignmentCard';
 import FilterList from 'components/FilterList';
-import useFilteredData from 'hooks/useFilteredData';
+import { selectFilteredAssignments } from 'data/selectors/filteredData';
 
 type Props = NativeStackScreenProps<AssignmentStackParams, 'Assignments'>;
 
@@ -20,21 +20,8 @@ const Assignments: React.FC<Props> = ({ navigation }) => {
     state => state.courses.items.map(i => i.id),
     (a, b) => JSON.stringify([...a].sort()) === JSON.stringify([...b].sort()),
   );
-  const items = useAppSelector(
-    state => state.assignments.items,
-    (a, b) => JSON.stringify(a) === JSON.stringify(b),
-  );
   const fetching = useAppSelector(state => state.assignments.fetching);
-  const fav = useAppSelector(state => state.assignments.favorites);
-  const archived = useAppSelector(state => state.assignments.archived);
-  const hidden = useAppSelector(state => state.courses.hidden);
-
-  const filteredData = useFilteredData({
-    data: items,
-    fav,
-    archived,
-    hidden,
-  });
+  const filteredData = useAppSelector(selectFilteredAssignments);
 
   const handleRefresh = useCallback(() => {
     if (loggedIn && courseIds.length > 0) {
