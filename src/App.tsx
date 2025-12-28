@@ -41,6 +41,8 @@ import { ToastProvider } from 'components/Toast';
 import { persistor, store, useAppSelector, useAppDispatch } from 'data/store';
 import { login } from 'data/actions/auth';
 import { resetLoading } from 'data/actions/root';
+import { getAllSemesters, getCurrentSemester } from 'data/actions/semesters';
+import { getCoursesForSemester } from 'data/actions/courses';
 import { isLocaleChinese, t } from 'helpers/i18n';
 import useToast from 'hooks/useToast';
 import type {
@@ -318,6 +320,9 @@ const MainTabScreens = () => {
  */
 const RootStackScreens = () => {
   const auth = useAppSelector(state => state.auth);
+  const semesters = useAppSelector(state => state.semesters.items);
+  const currentSemesterId = useAppSelector(state => state.semesters.current);
+  const courses = useAppSelector(state => state.courses.items);
   const dispatch = useAppDispatch();
   const toast = useToast();
   const lastActiveTimeRef = React.useRef<number>(Date.now());
@@ -334,6 +339,26 @@ const RootStackScreens = () => {
     showMain,
     error: auth.error,
   });
+
+  // 全局数据初始化逻辑
+  React.useEffect(() => {
+    if (!auth.loggedIn) {
+      return;
+    }
+
+    if (semesters.length === 0) {
+      dispatch(getAllSemesters());
+    }
+    if (!currentSemesterId) {
+      dispatch(getCurrentSemester());
+    }
+  }, [dispatch, currentSemesterId, auth.loggedIn, semesters.length]);
+
+  React.useEffect(() => {
+    if (auth.loggedIn && currentSemesterId && courses.length === 0) {
+      dispatch(getCoursesForSemester(currentSemesterId));
+    }
+  }, [dispatch, currentSemesterId, auth.loggedIn, courses.length]);
 
   React.useEffect(() => {
     if (auth.error && auth.username && auth.password && auth.fingerPrint) {

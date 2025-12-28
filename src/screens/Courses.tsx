@@ -67,19 +67,6 @@ const Courses: React.FC<Props> = ({ navigation }) => {
     }
   }, [currentSemesterId, dispatch, loggedIn]);
 
-  useEffect(() => {
-    if (loggedIn && !currentSemesterId) {
-      dispatch(getAllSemesters());
-      dispatch(getCurrentSemester());
-    }
-  }, [dispatch, loggedIn, currentSemesterId]);
-
-  useEffect(() => {
-    if (loggedIn && currentSemesterId) {
-      dispatch(getCoursesForSemester(currentSemesterId));
-    }
-  }, [currentSemesterId, dispatch, loggedIn]);
-
   const handlePress = (item: Course) => {
     navigation.push('CourseDetail', item);
   };

@@ -1,4 +1,4 @@
-import { type ApiError, ContentType } from 'thu-learn-lib';
+import { type ApiError } from 'thu-learn-lib';
 import { createAction, createAsyncAction } from 'typesafe-actions';
 import { InteractionManager } from 'react-native';
 import CookieManager from '@react-native-cookies/cookies';
