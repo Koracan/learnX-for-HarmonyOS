@@ -20,6 +20,7 @@ import type {
 } from 'data/types/state';
 import type { AppActions } from 'data/types/actions';
 import { RESET_LOADING } from 'data/types/constants';
+import type { NoticeState } from 'data/types/state';
 
 /**
  * Auth 持久化配置：使用 secure storage 仅持久化敏感凭据。
@@ -60,7 +61,7 @@ const semestersPersistConfig: PersistConfig<SemestersState> = {
 const assignmentsPersistConfig: PersistConfig<AssignmentsState> = {
   key: 'assignments',
   storage: AsyncStorage,
-  whitelist: ['favorites', 'archived'],
+  whitelist: ['favorites', 'archived', 'items'],
 };
 
 /**
@@ -69,14 +70,23 @@ const assignmentsPersistConfig: PersistConfig<AssignmentsState> = {
 const filesPersistConfig: PersistConfig<FilesState> = {
   key: 'files',
   storage: AsyncStorage,
-  whitelist: ['favorites', 'archived'],
+  whitelist: ['favorites', 'archived', 'items'],
+};
+
+/**
+ * 公告持久化配置。
+ */
+const noticesPersistConfig: PersistConfig<NoticeState> = {
+  key: 'notices',
+  storage: AsyncStorage,
+  whitelist: ['favorites', 'archived', 'items'],
 };
 
 const appReducer = combineReducers({
   auth: persistReducer(authPersistConfig, auth),
   settings: persistReducer(settingsPersistConfig, settings),
   courses,
-  notices,
+  notices: persistReducer(noticesPersistConfig, notices),
   assignments: persistReducer(assignmentsPersistConfig, assignments),
   files: persistReducer(filesPersistConfig, files),
   user,

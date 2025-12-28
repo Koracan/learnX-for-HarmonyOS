@@ -27,6 +27,7 @@ type Props = NativeStackScreenProps<AssignmentStackParams, 'AssignmentDetail'>;
 
 const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
   const theme = useTheme();
+
   const {
     id,
     courseName,

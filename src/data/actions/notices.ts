@@ -87,6 +87,14 @@ export function getAllNoticesForCourses(courseIds: string[]): ThunkResult {
         JSON.stringify(courseNames),
       );
       notices = JSON.parse(processedJson);
+      console.log(`[JS] Notices processed. Count: ${notices.length}`);
+      if (notices.length > 0) {
+        console.log(`[JS] First notice sample:`, {
+          id: notices[0].id,
+          hasContent: !!notices[0].content,
+          hasAttachment: !!notices[0].attachment,
+        });
+      }
 
       InteractionManager.runAfterInteractions(() => {
         dispatch(getAllNoticesForCoursesAction.success(notices));

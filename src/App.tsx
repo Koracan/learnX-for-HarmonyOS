@@ -88,9 +88,20 @@ const getDetailScreenOptions = (theme: MD3Theme) =>
     route,
   }: NativeStackScreenProps<ParamListBase, string>): NativeStackNavigationOptions {
     const params = route.params as any;
-    const title = params?.courseName || params?.name || '';
-    const subtitle =
-      params?.courseTeacherName || params?.teacherName || params?.publisher || '';
+    let title = '';
+    let subtitle = '';
+
+    if (route.name === 'CourseDetail') {
+      title = params?.name || '';
+      subtitle = params?.teacherName || '';
+    } else if (route.name === 'FileDetail') {
+      title = params?.title || '';
+      subtitle = params?.courseName || '';
+    } else {
+      // NoticeDetail, AssignmentDetail
+      title = params?.courseName || '';
+      subtitle = params?.courseTeacherName || params?.publisher || '';
+    }
 
     return {
       ...getScreenOptions(theme),

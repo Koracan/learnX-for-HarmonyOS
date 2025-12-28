@@ -116,6 +116,14 @@ export function getAllAssignmentsForCourses(courseIds: string[]): ThunkResult {
         JSON.stringify(courseNames),
       );
       assignments = JSON.parse(processedJson);
+      console.log(`[JS] Assignments processed. Count: ${assignments.length}`);
+      if (assignments.length > 0) {
+        console.log(`[JS] First assignment sample:`, {
+          id: assignments[0].id,
+          hasDescription: !!assignments[0].description,
+          hasAttachment: !!assignments[0].attachment,
+        });
+      }
       console.log(
         `[Performance] Native processing took ${
           Date.now() - processStartTime

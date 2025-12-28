@@ -20,6 +20,13 @@ const NoticeDetail: React.FC<Props> = ({ route, navigation }) => {
   const theme = useTheme();
   const notice = route.params;
 
+  console.log(`[NoticeDetail] Rendering notice:`, {
+    id: notice.id,
+    hasContent: !!notice.content,
+    contentLength: notice.content?.length,
+    hasAttachment: !!notice.attachment,
+  });
+
   const {
     id,
     courseName,
