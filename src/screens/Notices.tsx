@@ -2,34 +2,12 @@ import React, { useEffect, useCallback } from 'react';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { NoticeStackParams } from 'screens/types';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
-import { Card, Text } from 'react-native-paper';
+import { Text } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from 'data/store';
 import { getAllNoticesForCourses } from 'data/actions/notices';
 import { t } from 'helpers/i18n';
 import type { Notice } from 'data/types/state';
-
-const NoticeItem = React.memo(
-  ({ item, onPressItem }: { item: Notice; onPressItem: (item: Notice) => void }) => {
-    const handlePress = useCallback(() => onPressItem(item), [item, onPressItem]);
-
-    return (
-      <Card style={styles.card} onPress={handlePress}>
-        <Card.Title title={item.title} subtitle={item.courseName} />
-        {item.plainText ? (
-          <Card.Content>
-            <Text variant="bodyMedium" numberOfLines={3}>
-              {item.plainText}
-            </Text>
-          </Card.Content>
-        ) : null}
-        <Card.Actions>
-          <Text variant="labelSmall">{item.publishTime}</Text>
-        </Card.Actions>
-      </Card>
-    );
-  },
-);
-NoticeItem.displayName = 'NoticeItem';
+import NoticeCard from 'components/NoticeCard';
 
 type Props = NativeStackScreenProps<NoticeStackParams, 'Notices'>;
 /**
@@ -60,7 +38,7 @@ const Notices: React.FC<Props> = ({ navigation }) => {
 
   const renderItem = useCallback(
     ({ item }: { item: Notice }) => (
-      <NoticeItem item={item} onPressItem={handlePress} />
+      <NoticeCard data={item} onPress={() => handlePress(item)} />
     ),
     [handlePress],
   );

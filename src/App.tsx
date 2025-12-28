@@ -3,8 +3,8 @@ import {
   useColorScheme,
   AppState,
   type AppStateStatus,
+  StatusBar,
 } from 'react-native';
-import { Immersive } from 'react-native-immersive';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import {
   NavigationContainer,
@@ -35,12 +35,11 @@ import Courses from 'screens/Courses';
 import CourseDetail from 'screens/CourseDetail';
 import Settings from 'screens/Settings';
 import Splash from 'components/Splash';
+import Empty from 'components/Empty';
 import { ToastProvider } from 'components/Toast';
 import { persistor, store, useAppSelector, useAppDispatch } from 'data/store';
 import { login } from 'data/actions/auth';
 import { resetLoading } from 'data/actions/root';
-import { getCoursesForSemester } from 'data/actions/courses';
-import { getAllSemesters, getCurrentSemester } from 'data/actions/semesters';
 import { isLocaleChinese, t } from 'helpers/i18n';
 import useToast from 'hooks/useToast';
 import type {
@@ -51,6 +50,10 @@ import type {
   MainTabParams,
   RootStackParams,
   CourseStackParams,
+  LoginStackParams,
+  CourseXStackParams,
+  SearchStackParams,
+  AssignmentSubmissionStackParams,
 } from 'screens/types';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -59,12 +62,66 @@ dayjs.extend(relativeTime);
 dayjs.locale(isLocaleChinese() ? 'zh-cn' : 'en');
 
 const RootStack = createNativeStackNavigator<RootStackParams>();
+const LoginStack = createNativeStackNavigator<LoginStackParams>();
+const CourseXStack = createNativeStackNavigator<CourseXStackParams>();
+const SearchStack = createNativeStackNavigator<SearchStackParams>();
+const AssignmentSubmissionStack = createNativeStackNavigator<AssignmentSubmissionStackParams>();
 const CourseStack = createNativeStackNavigator<CourseStackParams>();
 const NoticeStack = createNativeStackNavigator<NoticeStackParams>();
 const AssignmentStack = createNativeStackNavigator<AssignmentStackParams>();
 const FileStack = createNativeStackNavigator<FileStackParams>();
 const SettingsStack = createNativeStackNavigator<SettingsStackParams>();
 const MainNavigator = createBottomTabNavigator<MainTabParams>();
+
+/**
+ * Login 子栈：登录与 SSO 导航容器。
+ */
+const LoginStackScreens = () => {
+  return (
+    <LoginStack.Navigator>
+      <LoginStack.Screen
+        name="Login"
+        component={Login}
+        options={{ headerShown: false }}
+      />
+      <LoginStack.Screen
+        name="SSO"
+        component={SSO}
+        options={{ title: t('sso') }}
+      />
+    </LoginStack.Navigator>
+  );
+};
+
+const CourseXStackScreens = () => (
+  <CourseXStack.Navigator>
+    <CourseXStack.Screen
+      name="CourseX"
+      component={Empty}
+      options={{ title: t('courseX') }}
+    />
+  </CourseXStack.Navigator>
+);
+
+const SearchStackScreens = () => (
+  <SearchStack.Navigator>
+    <SearchStack.Screen
+      name="Search"
+      component={Empty}
+      options={{ title: t('search') }}
+    />
+  </SearchStack.Navigator>
+);
+
+const AssignmentSubmissionStackScreens = () => (
+  <AssignmentSubmissionStack.Navigator>
+    <AssignmentSubmissionStack.Screen
+      name="AssignmentSubmission"
+      component={Empty}
+      options={{ title: t('assignmentSubmission') }}
+    />
+  </AssignmentSubmissionStack.Navigator>
+);
 
 /**
  * Course 子栈：课程列表与课程详情导航容器。
@@ -162,19 +219,6 @@ const FileStackScreens = () => {
 };
 
 /**
- * 沉浸式模式控制器：调用 react-native-immersive 统一控制系统栏。
- */
-const ImmersiveModeController = () => {
-  const immersiveMode = useAppSelector(state => state.settings.immersiveMode);
-
-  React.useEffect(() => {
-    Immersive.setImmersive(immersiveMode);
-  }, [immersiveMode]);
-
-  return null;
-};
-
-/**
  * 设置子栈：设置页面导航容器。
  */
 const SettingsStackScreens = () => {
@@ -260,50 +304,24 @@ const MainTabScreens = () => {
  */
 const RootStackScreens = () => {
   const auth = useAppSelector(state => state.auth);
-  const semesters = useAppSelector(state => state.semesters);
   const dispatch = useAppDispatch();
-  const hasCreds = !!auth.username && !!auth.password && !!auth.fingerPrint;
-  const showMain = !auth.error && hasCreds && auth.loggedIn;
   const toast = useToast();
   const lastActiveTimeRef = React.useRef<number>(Date.now());
   const hasTriedAutoLoginRef = React.useRef<boolean>(false);
 
+  const showMain =
+    !auth.error && !!auth.username && !!auth.password && !!auth.fingerPrint;
+
   console.log('[RootStackScreens] render', {
-    hasCreds,
-    loggedIn: auth.loggedIn,
+    showMain,
     error: auth.error,
   });
 
   React.useEffect(() => {
-    if (auth.error) {
+    if (auth.error && auth.username && auth.password && auth.fingerPrint) {
       toast(t('loginFailed'), 'error', 8000);
     }
-  }, [auth.error, toast]);
-
-  // 登录成功后初始化学期列表
-  React.useEffect(() => {
-    if (!auth.loggedIn) return;
-    if (semesters.items.length === 0 && !semesters.items) {
-      console.log('[RootStackScreens] Logged in, fetching semesters');
-      dispatch(getAllSemesters());
-    }
-  }, [auth.loggedIn, semesters.items.length, semesters.items, dispatch]);
-
-  // 登录后拉取当前学期（可与学期列表并行），避免重复请求依赖 fetchingCurrent
-  React.useEffect(() => {
-    if (!auth.loggedIn) return;
-    if (semesters.current) return;
-    if (semesters.current) return;
-    console.log('[RootStackScreens] Fetching current semester');
-    dispatch(getCurrentSemester());
-  }, [auth.loggedIn, semesters.current, semesters.current, dispatch]);
-
-  // 根据当前学期加载课程（无 ref、防止 fetching 抖动引起循环）
-  React.useEffect(() => {
-    if (!auth.loggedIn) return;
-    if (!semesters.current) return;
-    dispatch(getCoursesForSemester(semesters.current));
-  }, [auth.loggedIn, semesters.current, dispatch]);
+  }, [auth.error, auth.username, auth.password, auth.fingerPrint, toast]);
 
   // 自动重新登录逻辑：检查凭据完整性、SSO 状态、登录超时
   const handleReLogin = React.useCallback(() => {
@@ -319,32 +337,17 @@ const RootStackScreens = () => {
 
     // 凭据不完整，无法重新登录
     if (!username || !password || !fingerPrint) {
-      console.log(
-        '[handleReLogin] Credentials incomplete, skipping auto-login',
-      );
       return;
     }
 
     // SSO 或登录正在进行，避免冲突
     if (ssoInProgress || loggingIn) {
-      console.log(
-        '[handleReLogin] SSO or login in progress, skipping auto-login',
-        {
-          ssoInProgress,
-          loggingIn,
-        },
-      );
       return;
     }
 
     // 初次登录或超过 10 分钟未活跃
     const shouldReLogin = idleTime > 10 * 60 * 1000 || !loggedIn;
     if (shouldReLogin) {
-      console.log('[handleReLogin] Triggering auto-login', {
-        idleTime,
-        loggedIn,
-        reason: idleTime > 10 * 60 * 1000 ? 'idle-timeout' : 'not-logged-in',
-      });
       toast(t('loggingIn'), 'success', 1000);
       dispatch(login({ reset: true }));
     }
@@ -356,20 +359,12 @@ const RootStackScreens = () => {
       'change',
       (nextAppState: AppStateStatus) => {
         if (nextAppState === 'active') {
-          // 返回前台：清除加载态、尝试重新登录
-          console.log(
-            '[AppState] Returning to foreground, reset loading and attempt re-login',
-          );
           dispatch(resetLoading());
           handleReLogin();
         } else if (
           nextAppState === 'inactive' ||
           nextAppState === 'background'
         ) {
-          // 进入后台/非活跃：记录当前时间
-          console.log(
-            '[AppState] Entering background/inactive, recording idle time start',
-          );
           lastActiveTimeRef.current = Date.now();
         }
       },
@@ -392,14 +387,32 @@ const RootStackScreens = () => {
   }, [handleReLogin]);
 
   return (
-    <RootStack.Navigator screenOptions={{ headerShown: false }}>
+    <RootStack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
       {showMain ? (
-        <RootStack.Screen name="MainTab" component={MainTabScreens} />
-      ) : (
         <>
-          <RootStack.Screen name="Login" component={Login} />
-          <RootStack.Screen name="SSO" component={SSO} />
+          <RootStack.Screen name="MainTab" component={MainTabScreens} />
+          <RootStack.Screen
+            name="CourseXStack"
+            component={CourseXStackScreens}
+            options={{ gestureEnabled: false }}
+          />
+          <RootStack.Screen
+            name="SearchStack"
+            component={SearchStackScreens}
+            options={{ gestureEnabled: false }}
+          />
+          <RootStack.Screen
+            name="AssignmentSubmissionStack"
+            component={AssignmentSubmissionStackScreens}
+            options={{ gestureEnabled: false }}
+          />
         </>
+      ) : (
+        <RootStack.Screen name="LoginStack" component={LoginStackScreens} />
       )}
     </RootStack.Navigator>
   );
@@ -421,7 +434,6 @@ const App = () => {
           <StoreProvider store={store}>
             <PersistGate loading={<Splash />} persistor={persistor}>
               <SafeAreaProvider>
-                <ImmersiveModeController />
                 <NavigationContainer theme={navigationTheme}>
                   <RootStackScreens />
                 </NavigationContainer>
@@ -429,6 +441,11 @@ const App = () => {
             </PersistGate>
           </StoreProvider>
         </ToastProvider>
+        <StatusBar
+          barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'}
+          backgroundColor={paperTheme.colors.surface}
+          animated
+        />
       </PaperProvider>
     </GestureHandlerRootView>
   );

@@ -1,14 +1,19 @@
+import { NavigatorScreenParams } from '@react-navigation/native';
 import type { Notice, Assignment, File, Course } from 'data/types/state';
+
+export interface ExtraParams {
+  disableAnimation?: boolean;
+}
 
 /**
  * 课程栈路由参数定义。
  */
 export type CourseStackParams = {
   Courses: undefined;
-  CourseDetail: Course;
-  NoticeDetail: Notice;
-  AssignmentDetail: Assignment;
-  FileDetail: File;
+  CourseDetail: Course & ExtraParams;
+  NoticeDetail: Notice & ExtraParams;
+  AssignmentDetail: Assignment & ExtraParams;
+  FileDetail: File & ExtraParams;
 };
 
 /**
@@ -16,7 +21,7 @@ export type CourseStackParams = {
  */
 export type NoticeStackParams = {
   Notices: undefined;
-  NoticeDetail: Notice;
+  NoticeDetail: Notice & ExtraParams;
 };
 
 /**
@@ -24,7 +29,7 @@ export type NoticeStackParams = {
  */
 export type AssignmentStackParams = {
   Assignments: undefined;
-  AssignmentDetail: Assignment;
+  AssignmentDetail: Assignment & ExtraParams;
 };
 
 /**
@@ -32,7 +37,7 @@ export type AssignmentStackParams = {
  */
 export type FileStackParams = {
   Files: undefined;
-  FileDetail: File;
+  FileDetail: File & ExtraParams;
 };
 
 /**
@@ -40,24 +45,55 @@ export type FileStackParams = {
  */
 export type SettingsStackParams = {
   Settings: undefined;
+  SemesterSelection: ExtraParams;
 };
 
 /**
  * 主选项卡导航参数定义。
  */
 export type MainTabParams = {
-  CourseStack: undefined;
-  NoticeStack: undefined;
-  AssignmentStack: undefined;
-  FileStack: undefined;
-  SettingsStack: undefined;
+  NoticeStack: NavigatorScreenParams<NoticeStackParams>;
+  AssignmentStack: NavigatorScreenParams<AssignmentStackParams>;
+  FileStack: NavigatorScreenParams<FileStackParams>;
+  CourseStack: NavigatorScreenParams<CourseStackParams>;
+  SettingsStack: NavigatorScreenParams<SettingsStackParams>;
+};
+
+export type LoginStackParams = {
+  Login: undefined;
+  SSO: {
+    username: string;
+    password: string;
+  };
+};
+
+export type CourseXStackParams = {
+  CourseX: { id: string } | undefined;
+};
+
+export type SearchStackParams = {
+  Search:
+    | {
+        query: string;
+      }
+    | undefined;
+  NoticeDetail: Notice & ExtraParams;
+  AssignmentDetail: Assignment & ExtraParams;
+  FileDetail: File & ExtraParams;
+};
+
+export type AssignmentSubmissionStackParams = {
+  AssignmentSubmission: Assignment;
+  FileDetail: File & ExtraParams;
 };
 
 /**
  * 根栈路由参数定义。
  */
 export type RootStackParams = {
-  Login: undefined;
-  SSO: { username: string; password: string };
-  MainTab: undefined;
+  MainTab: NavigatorScreenParams<MainTabParams>;
+  CourseXStack: NavigatorScreenParams<CourseXStackParams>;
+  SearchStack: NavigatorScreenParams<SearchStackParams>;
+  AssignmentSubmissionStack: NavigatorScreenParams<AssignmentSubmissionStackParams>;
+  LoginStack: NavigatorScreenParams<LoginStackParams>;
 };

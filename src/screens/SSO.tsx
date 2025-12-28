@@ -8,7 +8,7 @@ import { useAppDispatch } from 'data/store';
 import { login, setSSOInProgress } from 'data/actions/auth';
 import { t } from 'helpers/i18n';
 import useToast from 'hooks/useToast';
-import type { RootStackParams } from 'screens/types';
+import type { LoginStackParams } from 'screens/types';
 import packageJson from '../../package.json';
 
 const ssoCustomScript = require('helpers/preval/sso.preval.js');
@@ -18,7 +18,7 @@ const SSO_LOGIN_URL =
 const LEARN_ROAMING_URL =
   'https://learn.tsinghua.edu.cn/f/j_spring_security_thauth_roaming_entry';
 
-type Props = NativeStackScreenProps<RootStackParams, 'SSO'>;
+type Props = NativeStackScreenProps<LoginStackParams, 'SSO'>;
 
 /**
  * SSO 页面：加载统一认证 WebView，拦截指纹提交后回调登录。
