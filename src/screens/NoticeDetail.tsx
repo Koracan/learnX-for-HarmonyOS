@@ -84,10 +84,8 @@ const NoticeDetail: React.FC<Props> = ({ route, navigation }) => {
         </View>
       </View>
       <Divider />
-      <AutoHeightWebView source={{ html }} />
       {attachment && (
-        <View style={styles.attachmentSection}>
-          <Divider />
+        <>
           <List.Item
             title={attachment.name}
             description={t('attachment')}
@@ -99,8 +97,10 @@ const NoticeDetail: React.FC<Props> = ({ route, navigation }) => {
             )}
             onPress={handleFileOpen}
           />
-        </View>
+          <Divider />
+        </>
       )}
+      <AutoHeightWebView source={{ html }} />
     </ScrollView>
   );
 };

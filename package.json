@@ -1,6 +1,6 @@
 {
   "name": "learn-oh",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "private": true,
   "lint-staged": {
     "*.{js,ts,json}": [

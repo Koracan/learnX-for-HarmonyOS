@@ -9,6 +9,17 @@ import { addCSRF, loginWithFingerPrint } from 'data/source';
 import Urls from 'constants/Urls';
 
 /**
+ * 格式化文件大小。
+ */
+export const formatSize = (bytes: number): string => {
+  if (bytes <= 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+};
+
+/**
  * 获取 LearnX 文件存储根目录。
  */
 export const getLearnXFilesDir = () => {
@@ -117,6 +128,26 @@ export const downloadFile = async (
       console.error(
         `[fs] Download failed with status: ${result.statusCode}, file size: ${stat.size}`,
       );
+      throw new Error('Download failed');
+    }
+
+    // 检查是否为 HTML 页面（通常意味着下载失败，返回了登录页或错误页）
+    if (stat.size < 5000) {
+      // 登录页通常比较小
+      const content = await fs.readFile(path, 'utf8');
+      if (
+        content.includes('location.href') ||
+        content.includes('<!DOCTYPE html') ||
+        content.includes('<html')
+      ) {
+        console.error(
+          `[fs] Downloaded file is an HTML page, deleting: ${path}`,
+        );
+        try {
+          await fs.unlink(path);
+        } catch {}
+        throw new Error('Download failed: session expired or invalid');
+      }
     }
 
     console.log(`[fs] File successfully downloaded to: ${path}`);

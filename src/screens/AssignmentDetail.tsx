@@ -120,16 +120,8 @@ const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
 
       <Divider />
 
-      <View style={styles.section}>
-        <Text variant="titleSmall" style={styles.sectionTitle}>
-          {t('description')}
-        </Text>
-        <AutoHeightWebView source={{ html }} />
-      </View>
-
       {attachment && (
         <>
-          <Divider />
           <List.Item
             title={attachment.name}
             description={t('attachment')}
@@ -141,8 +133,16 @@ const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
             )}
             onPress={() => handleFileOpen(attachment)}
           />
+          <Divider />
         </>
       )}
+
+      <View style={styles.section}>
+        <Text variant="titleSmall" style={styles.sectionTitle}>
+          {t('description')}
+        </Text>
+        <AutoHeightWebView source={{ html }} />
+      </View>
 
       {(submitted || submittedContent || submittedAttachment) && (
         <>

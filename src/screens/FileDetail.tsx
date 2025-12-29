@@ -18,7 +18,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import dayjs from 'dayjs';
 import Styles from 'constants/Styles';
-import { downloadFile, openFile, shareFile } from 'helpers/fs';
+import { downloadFile, openFile, shareFile, formatSize } from 'helpers/fs';
 import { isLocaleChinese, t } from 'helpers/i18n';
 import useToast from 'hooks/useToast';
 import type { FileStackParams } from 'screens/types';
@@ -26,6 +26,7 @@ import SafeArea from 'components/SafeArea';
 import Skeleton from 'components/Skeleton';
 import IconButton from 'components/IconButton';
 import ScrollView from 'components/ScrollView';
+import fs from 'react-native-fs';
 
 type Props = NativeStackScreenProps<FileStackParams, 'FileDetail'>;
 
@@ -37,6 +38,7 @@ const FileDetail: React.FC<Props> = ({ route, navigation }) => {
   const [path, setPath] = useState('');
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState(false);
+  const [fileSize, setFileSize] = useState(file.size);
 
   const handleDownload = useCallback(
     async (refresh: boolean) => {
@@ -46,6 +48,10 @@ const FileDetail: React.FC<Props> = ({ route, navigation }) => {
         const downloadedPath = await downloadFile(file, refresh, setProgress);
         setPath(downloadedPath);
         setProgress(0);
+        
+        // Update file size after download
+        const stat = await fs.stat(downloadedPath);
+        setFileSize(formatSize(stat.size));
       } catch (e) {
         setError(true);
         toast(t('fileDownloadFailed'), 'error');
@@ -164,7 +170,7 @@ const FileDetail: React.FC<Props> = ({ route, navigation }) => {
                 size={17}
               />
               <Text style={styles.textPaddingRight}>
-                {file.size || t('noFileSize')}
+                {fileSize || t('noFileSize')}
               </Text>
             </View>
             <Divider />
