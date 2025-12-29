@@ -1,10 +1,8 @@
 import { type ApiError } from 'thu-learn-lib';
 import { createAction, createAsyncAction } from 'typesafe-actions';
 import { InteractionManager } from 'react-native';
-import CookieManager from '@react-native-cookies/cookies';
 import dayjs from 'dayjs';
-import { dataSource } from 'data/source';
-import Urls from 'constants/Urls';
+import { dataSource, fetchAssignmentsWithReAuth } from 'data/source';
 import type { ThunkResult } from 'data/types/actions';
 import { LearnOHDataProcessor } from 'react-native-learn-oh-data-processor';
 import {
@@ -87,25 +85,11 @@ export function getAllAssignmentsForCourses(courseIds: string[]): ThunkResult {
       let assignments: Assignment[];
       const courseNames = getState().courses.names;
 
-      if (!LearnOHDataProcessor) {
-        throw new Error('LearnOHDataProcessor not available');
-      }
-
       const fetchStartTime = Date.now();
-      const cookies = await CookieManager.get(Urls.learn);
-      const cookieString = Object.keys(cookies)
-        .map(key => `${key}=${cookies[key].value}`)
-        .join('; ');
-      const csrfToken = dataSource.getCSRFToken();
-
       console.log(
         '[Performance] Using TurboModule for fetching and processing',
       );
-      const rawResultsJson = await LearnOHDataProcessor.fetchAssignments(
-        courseIds,
-        cookieString,
-        csrfToken,
-      );
+      const rawResultsJson = await fetchAssignmentsWithReAuth(courseIds);
       console.log(
         `[Performance] Native fetching took ${Date.now() - fetchStartTime}ms`,
       );

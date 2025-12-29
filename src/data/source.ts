@@ -2,6 +2,7 @@ import CookieManager from '@react-native-cookies/cookies';
 import { Learn2018Helper, addCSRFTokenToUrl } from 'thu-learn-lib';
 import { store } from 'data/store';
 import Urls from 'constants/Urls';
+import { LearnOHDataProcessor } from 'react-native-learn-oh-data-processor';
 
 export let dataSource: Learn2018Helper;
 
@@ -98,3 +99,59 @@ export const addCSRF = (url: string) => {
   }
   return url;
 };
+
+/**
+ * Wrapper for Native TurboModule requests to handle automatic re-authentication.
+ * Similar to thu-learn-lib's withReAuth mechanism.
+ */
+const withNativeReAuth = async <T>(
+  task: (cookieString: string, csrfToken: string) => Promise<T>,
+): Promise<T> => {
+  const getCredentials = async () => {
+    const cookies = await CookieManager.get(Urls.learn);
+    const cookieString = Object.keys(cookies)
+      .map(key => `${key}=${cookies[key].value}`)
+      .join('; ');
+    const csrfToken = dataSource.getCSRFToken();
+    return { cookieString, csrfToken };
+  };
+
+  const { cookieString, csrfToken } = await getCredentials();
+  let result = await task(cookieString, csrfToken);
+
+  // Detect noLogin:
+  // 1. result is a string and contains login_timeout
+  // 2. result is a string and starts with < (HTML login page)
+  if (
+    typeof result === 'string' &&
+    (result.includes('login_timeout') || result.trim().startsWith('<'))
+  ) {
+    console.log(
+      '[withNativeReAuth] Session expired detected, re-logging in...',
+    );
+    // This will use the provider to fetch credentials and login
+    await dataSource.login();
+    const creds = await getCredentials();
+    console.log(
+      '[withNativeReAuth] Re-login successful, retrying native task...',
+    );
+    result = await task(creds.cookieString, creds.csrfToken);
+  }
+
+  return result;
+};
+
+export const fetchAssignmentsWithReAuth = (courseIds: string[]) =>
+  withNativeReAuth((cookie, token) =>
+    LearnOHDataProcessor.fetchAssignments(courseIds, cookie, token),
+  );
+
+export const fetchNoticesWithReAuth = (courseIds: string[]) =>
+  withNativeReAuth((cookie, token) =>
+    LearnOHDataProcessor.fetchNotices(courseIds, cookie, token),
+  );
+
+export const fetchFilesWithReAuth = (courseIds: string[]) =>
+  withNativeReAuth((cookie, token) =>
+    LearnOHDataProcessor.fetchFiles(courseIds, cookie, token),
+  );

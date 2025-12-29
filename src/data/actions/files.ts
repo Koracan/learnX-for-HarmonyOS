@@ -1,10 +1,8 @@
 import { type ApiError } from 'thu-learn-lib';
 import { createAction, createAsyncAction } from 'typesafe-actions';
 import { InteractionManager } from 'react-native';
-import CookieManager from '@react-native-cookies/cookies';
 import dayjs from 'dayjs';
-import { dataSource } from 'data/source';
-import Urls from 'constants/Urls';
+import { dataSource, fetchFilesWithReAuth } from 'data/source';
 import type { ThunkResult } from 'data/types/actions';
 import { LearnOHDataProcessor } from 'react-native-learn-oh-data-processor';
 import {
@@ -78,21 +76,7 @@ export function getAllFilesForCourses(courseIds: string[]): ThunkResult {
       let files: File[];
       const courseNames = getState().courses.names;
 
-      if (!LearnOHDataProcessor) {
-        throw new Error('LearnOHDataProcessor not available');
-      }
-
-      const cookies = await CookieManager.get(Urls.learn);
-      const cookieString = Object.keys(cookies)
-        .map(key => `${key}=${cookies[key].value}`)
-        .join('; ');
-      const csrfToken = dataSource.getCSRFToken();
-
-      const rawResultsJson = await LearnOHDataProcessor.fetchFiles(
-        courseIds,
-        cookieString,
-        csrfToken,
-      );
+      const rawResultsJson = await fetchFilesWithReAuth(courseIds);
 
       const processedJson = await LearnOHDataProcessor.processFiles(
         rawResultsJson,

@@ -1,9 +1,7 @@
 import { createAction, createAsyncAction } from 'typesafe-actions';
 import { type ApiError } from 'thu-learn-lib';
 import { InteractionManager } from 'react-native';
-import CookieManager from '@react-native-cookies/cookies';
 import dayjs from 'dayjs';
-import Urls from 'constants/Urls';
 import type { ThunkResult } from 'data/types/actions';
 import {
   GET_ALL_NOTICES_FOR_COURSES_FAILURE,
@@ -16,7 +14,7 @@ import {
   SET_FAV_NOTICE,
 } from 'data/types/constants';
 import type { Notice } from 'data/types/state';
-import { dataSource } from 'data/source';
+import { dataSource, fetchNoticesWithReAuth } from 'data/source';
 import { serializeError } from 'helpers/parse';
 import { LearnOHDataProcessor } from 'react-native-learn-oh-data-processor';
 
@@ -66,21 +64,7 @@ export function getAllNoticesForCourses(courseIds: string[]): ThunkResult {
       let notices: Notice[];
       const courseNames = getState().courses.names;
 
-      if (!LearnOHDataProcessor) {
-        throw new Error('LearnOHDataProcessor not available');
-      }
-
-      const cookies = await CookieManager.get(Urls.learn);
-      const cookieString = Object.keys(cookies)
-        .map(key => `${key}=${cookies[key].value}`)
-        .join('; ');
-      const csrfToken = dataSource.getCSRFToken();
-
-      const rawResultsJson = await LearnOHDataProcessor.fetchNotices(
-        courseIds,
-        cookieString,
-        csrfToken,
-      );
+      const rawResultsJson = await fetchNoticesWithReAuth(courseIds);
 
       const processedJson = await LearnOHDataProcessor.processNotices(
         rawResultsJson,
