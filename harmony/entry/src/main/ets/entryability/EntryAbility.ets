@@ -31,19 +31,6 @@ export default class EntryAbility extends RNAbility {
     // Main window is created, set main page for this ability
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onWindowStageCreate');
 
-
-    windowStage.getMainWindow((err: BusinessError, windowClass) => {
-      if (err.code) {
-        console.error(`Failed to obtain the main window. Cause code: ${err.code}, message: ${err.message}`);
-        return;
-      }
-
-      windowClass.setWindowLayoutFullScreen(true).catch((err: BusinessError) => {
-        console.error(`Failed to set full screen. Cause code: ${err.code}, message: ${err.message}`);
-      });
-
-    });
-
     windowStage.loadContent('pages/Index', (err) => {
       if (err.code) {
         hilog.error(DOMAIN, 'testTag', 'Failed to load the content. Cause: %{public}s', JSON.stringify(err));
