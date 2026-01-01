@@ -29,6 +29,7 @@ add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-secure-key-st
 add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-securerandom/src/main/cpp" ./secure_random)
 add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-immersive/src/main/cpp" ./rnoh_immersive)
 add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-file-viewer/src/main/cpp" ./file-viewer)
+add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-document-picker/src/main/cpp" ./document_picker)
 
 
 add_library(rnoh_app SHARED
@@ -54,3 +55,4 @@ target_link_libraries(rnoh_app PUBLIC rnoh_secure_key_store)
 target_link_libraries(rnoh_app PUBLIC rnoh_secure_random)
 target_link_libraries(rnoh_app PUBLIC rnoh_immersive)
 target_link_libraries(rnoh_app PUBLIC rnoh_file_viewer)
+target_link_libraries(rnoh_app PUBLIC rnoh_document_picker)

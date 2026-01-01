@@ -23,7 +23,8 @@
     "@react-native-ohos/react-native-securerandom": "file:../../node_modules/@react-native-ohos/react-native-securerandom/harmony/secure_random.har",
     "@react-native-ohos/react-native-immersive": "file:../../node_modules/@react-native-ohos/react-native-immersive/harmony/immersive.har",
     "@react-native-ohos/react-native-file-viewer": "file:../../node_modules/@react-native-ohos/react-native-file-viewer/harmony/file_viewer.har",
-    "learn-oh-data-processor": "file:../../node_modules/react-native-learn-oh-data-processor/harmony/learn_oh_data_processor.har"
+    "@react-native-ohos/react-native-document-picker": "file:../../node_modules/@react-native-ohos/react-native-document-picker/harmony/document_picker.har",
+    "learn-oh-data-processor": "file:../../node_modules/react-native-learn-oh-data-processor/harmony/learn_oh_data_processor.har",
   },
   "devDependencies": {},
   "dynamicDependencies": {}
