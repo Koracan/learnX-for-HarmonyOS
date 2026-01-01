@@ -7,6 +7,7 @@ import type { File } from 'data/types/state';
 import FileCard from 'components/FileCard';
 import FilterList from 'components/FilterList';
 import { selectFilteredFiles } from 'data/selectors/filteredData';
+import useDetailNavigator from 'hooks/useDetailNavigator';
 
 type Props = NativeStackScreenProps<FileStackParams, 'Files'>;
 
@@ -15,6 +16,7 @@ type Props = NativeStackScreenProps<FileStackParams, 'Files'>;
  */
 const Files: React.FC<Props> = ({ navigation }) => {
   const dispatch = useAppDispatch();
+  const detailNavigator = useDetailNavigator();
   const loggedIn = useAppSelector(state => state.auth.loggedIn);
   const courseIds = useAppSelector(
     state => state.courses.items.map(i => i.id),
@@ -31,9 +33,13 @@ const Files: React.FC<Props> = ({ navigation }) => {
 
   const handlePress = useCallback(
     (item: File) => {
-      navigation.push('FileDetail', item);
+      if (detailNavigator) {
+        detailNavigator.navigate('FileDetail', item);
+      } else {
+        navigation.push('FileDetail', item);
+      }
     },
-    [navigation],
+    [navigation, detailNavigator],
   );
 
   useEffect(() => {

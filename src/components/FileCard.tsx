@@ -1,12 +1,12 @@
 import React, { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Caption, Paragraph, Title, Subheading } from 'react-native-paper';
+import { Text } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import dayjs from 'dayjs';
-import Styles from 'constants/Styles';
-import Colors from 'constants/Colors';
-import type { File } from 'data/types/state';
-import { removeTags } from 'helpers/html';
+import Styles from '../constants/Styles';
+import Colors from '../constants/Colors';
+import type { File } from '../data/types/state';
+import { removeTags } from '../helpers/html';
 import CardWrapper, { type CardWrapperProps } from './CardWrapper';
 
 export interface FileCardProps extends CardWrapperProps {
@@ -35,11 +35,13 @@ const FileCard: React.FC<React.PropsWithChildren<FileCardProps>> = ({
         <View style={Styles.flexRowCenter}>
           <View style={styles.titleContainer}>
             {hideCourseName ? null : (
-              <Subheading numberOfLines={1} style={styles.courseName}>
+              <Text variant="labelMedium" numberOfLines={1} style={styles.courseName}>
                 {courseName}
-              </Subheading>
+              </Text>
             )}
-            <Title numberOfLines={1}>{title}</Title>
+            <Text variant="titleMedium" numberOfLines={1}>
+              {title}
+            </Text>
           </View>
           <View style={[Styles.flexRow, styles.icons]}>
             {markedImportant ? (
@@ -61,17 +63,19 @@ const FileCard: React.FC<React.PropsWithChildren<FileCardProps>> = ({
           </View>
         </View>
         {removeTags(description) ? (
-          <Paragraph numberOfLines={2} style={styles.description}>
+          <Text variant="bodyMedium" numberOfLines={2} style={styles.description}>
             {removeTags(description)}
-          </Paragraph>
+          </Text>
         ) : null}
         <View style={Styles.flexRowCenter}>
-          <Caption>
+          <Text variant="labelSmall">
             {`${category?.title ?? ''} ${
               fileType?.toUpperCase() ?? ''
             } ${size}`.trim()}
-          </Caption>
-          <Caption>{dayjs(uploadTime).fromNow()}</Caption>
+          </Text>
+          <Text variant="labelSmall" style={styles.time}>
+            {dayjs(uploadTime).fromNow()}
+          </Text>
         </View>
       </View>
     </CardWrapper>
@@ -96,6 +100,9 @@ const styles = StyleSheet.create({
   },
   description: {
     marginVertical: 4,
+  },
+  time: {
+    marginLeft: 8,
   },
 });
 

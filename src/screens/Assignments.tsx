@@ -7,6 +7,7 @@ import type { Assignment } from 'data/types/state';
 import AssignmentCard from 'components/AssignmentCard';
 import FilterList from 'components/FilterList';
 import { selectFilteredAssignments } from 'data/selectors/filteredData';
+import useDetailNavigator from 'hooks/useDetailNavigator';
 
 type Props = NativeStackScreenProps<AssignmentStackParams, 'Assignments'>;
 
@@ -15,6 +16,7 @@ type Props = NativeStackScreenProps<AssignmentStackParams, 'Assignments'>;
  */
 const Assignments: React.FC<Props> = ({ navigation }) => {
   const dispatch = useAppDispatch();
+  const detailNavigator = useDetailNavigator();
   const loggedIn = useAppSelector(state => state.auth.loggedIn);
   const courseIds = useAppSelector(
     state => state.courses.items.map(i => i.id),
@@ -31,9 +33,13 @@ const Assignments: React.FC<Props> = ({ navigation }) => {
 
   const handlePress = useCallback(
     (item: Assignment) => {
-      navigation.push('AssignmentDetail', item);
+      if (detailNavigator) {
+        detailNavigator.navigate('AssignmentDetail', item);
+      } else {
+        navigation.push('AssignmentDetail', item);
+      }
     },
-    [navigation],
+    [navigation, detailNavigator],
   );
 
   useEffect(() => {

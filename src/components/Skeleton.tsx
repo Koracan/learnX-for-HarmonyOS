@@ -32,12 +32,14 @@ const Skeleton: React.FC<React.PropsWithChildren<unknown>> = () => {
     fadeAnimation();
   }, [fadeAnimation]);
 
+  const skeletonColor = theme.dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+
   return (
     <View style={[styles.root, { backgroundColor: theme.colors.surface }]}>
-      <Animated.View style={[styles.line1, { opacity: opacity.current }]} />
-      <Animated.View style={[styles.line2, { opacity: opacity.current }]} />
-      <Animated.View style={[styles.line3, { opacity: opacity.current }]} />
-      <Animated.View style={[styles.line4, { opacity: opacity.current }]} />
+      <Animated.View style={[styles.line1, { opacity: opacity.current, backgroundColor: skeletonColor }]} />
+      <Animated.View style={[styles.line2, { opacity: opacity.current, backgroundColor: skeletonColor }]} />
+      <Animated.View style={[styles.line3, { opacity: opacity.current, backgroundColor: skeletonColor }]} />
+      <Animated.View style={[styles.line4, { opacity: opacity.current, backgroundColor: skeletonColor }]} />
     </View>
   );
 };
@@ -47,33 +49,33 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     zIndex: 0,
+    marginVertical: 4,
+    marginHorizontal: 8,
+    borderRadius: 12,
   },
   line1: {
     height: 16,
-    width: '40%',
-    backgroundColor: '#88888844',
+    width: '30%',
     borderRadius: 4,
-    marginBottom: 8,
+    marginVertical: 8,
   },
   line2: {
-    height: 24,
-    width: '80%',
-    backgroundColor: '#88888844',
+    height: 16,
+    width: '100%',
     borderRadius: 4,
-    marginBottom: 8,
+    marginVertical: 8,
   },
   line3: {
     height: 16,
-    width: '30%',
-    backgroundColor: '#88888844',
+    width: '80%',
     borderRadius: 4,
-    marginBottom: 8,
+    marginVertical: 8,
   },
   line4: {
     height: 16,
-    width: '100%',
-    backgroundColor: '#88888844',
+    width: '20%',
     borderRadius: 4,
+    marginVertical: 8,
   },
 });
 

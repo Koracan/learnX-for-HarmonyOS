@@ -9,11 +9,13 @@ import type { CourseStackParams } from './types';
 import FilterList from 'components/FilterList';
 import { getSemesterTextFromId } from 'helpers/parse';
 import { selectFilteredCourses } from 'data/selectors/filteredData';
+import useDetailNavigator from 'hooks/useDetailNavigator';
 
 type Props = NativeStackScreenProps<CourseStackParams, 'Courses'>;
 
 const Courses: React.FC<Props> = ({ navigation }) => {
   const dispatch = useAppDispatch();
+  const detailNavigator = useDetailNavigator();
   const loggedIn = useAppSelector(state => state.auth.loggedIn);
   const currentSemesterId = useAppSelector(state => state.semesters.current);
   const fetching = useAppSelector(state => state.courses.fetching);
@@ -30,7 +32,11 @@ const Courses: React.FC<Props> = ({ navigation }) => {
   }, [currentSemesterId, dispatch, loggedIn]);
 
   const handlePress = (item: Course) => {
-    navigation.push('CourseDetail', item);
+    if (detailNavigator) {
+      detailNavigator.navigate('CourseDetail', item);
+    } else {
+      navigation.push('CourseDetail', item);
+    }
   };
 
   return (

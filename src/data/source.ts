@@ -1,8 +1,10 @@
 import CookieManager from '@react-native-cookies/cookies';
 import { Learn2018Helper, addCSRFTokenToUrl } from 'thu-learn-lib';
-import { store } from 'data/store';
-import Urls from 'constants/Urls';
+import { store } from '../data/store';
+import Urls from '../constants/Urls';
 import { LearnOHDataProcessor } from 'react-native-learn-oh-data-processor';
+import axios from 'axios';
+import mime from 'mime-types';
 
 export let dataSource: Learn2018Helper;
 
@@ -155,3 +157,63 @@ export const fetchFilesWithReAuth = (courseIds: string[]) =>
   withNativeReAuth((cookie, token) =>
     LearnOHDataProcessor.fetchFiles(courseIds, cookie, token),
   );
+
+const submitAssignmentUrl = `${Urls.learn}/b/wlxt/kczy/zy/student/tjzy`;
+
+export const submitAssignment = async (
+  studentHomeworkId: string,
+  content?: string,
+  attachment?: {
+    uri: string;
+    name: string;
+  },
+  onProgress?: (progress: number) => void,
+  remove: boolean = false,
+) => {
+  if (!content && !attachment && !remove) {
+    return;
+  }
+
+  const body = new FormData();
+  body.append('xszyid', studentHomeworkId);
+  body.append('zynr', content || '');
+  body.append('isDeleted', remove ? '1' : '0');
+  if (attachment) {
+    body.append('fileupload', {
+      uri: attachment.uri,
+      name: attachment.name,
+      type: mime.lookup(attachment.uri) || 'application/octet-stream',
+    } as any);
+  }
+
+  try {
+    await dataSource.login();
+  } catch {
+    throw new Error('Failed to submit the assignment: login failed');
+  }
+
+  const cookies = await CookieManager.get(Urls.learn);
+  const cookieString = Object.keys(cookies)
+    .map(key => `${key}=${cookies[key].value}`)
+    .join('; ');
+
+  const response = await axios.post(
+    addCSRFTokenToUrl(submitAssignmentUrl, dataSource.getCSRFToken()),
+    body,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        Cookie: cookieString,
+      },
+      onUploadProgress: progressEvent => {
+        if (onProgress && progressEvent.total) {
+          onProgress(progressEvent.loaded / progressEvent.total);
+        }
+      },
+    },
+  );
+
+  if (response.data.result !== 'success') {
+    throw new Error(response.data.msg || 'Failed to submit the assignment');
+  }
+};

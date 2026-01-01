@@ -7,6 +7,7 @@ import type { Notice } from 'data/types/state';
 import NoticeCard from 'components/NoticeCard';
 import FilterList from 'components/FilterList';
 import { selectFilteredNotices } from 'data/selectors/filteredData';
+import useDetailNavigator from 'hooks/useDetailNavigator';
 
 type Props = NativeStackScreenProps<NoticeStackParams, 'Notices'>;
 /**
@@ -14,6 +15,7 @@ type Props = NativeStackScreenProps<NoticeStackParams, 'Notices'>;
  */
 const Notices: React.FC<Props> = ({ navigation }) => {
   const dispatch = useAppDispatch();
+  const detailNavigator = useDetailNavigator();
   const loggedIn = useAppSelector(state => state.auth.loggedIn);
   const courseIds = useAppSelector(
     state => state.courses.items.map(i => i.id),
@@ -30,9 +32,13 @@ const Notices: React.FC<Props> = ({ navigation }) => {
 
   const handlePress = useCallback(
     (item: Notice) => {
-      navigation.push('NoticeDetail', item);
+      if (detailNavigator) {
+        detailNavigator.navigate('NoticeDetail', item);
+      } else {
+        navigation.push('NoticeDetail', item);
+      }
     },
-    [navigation],
+    [navigation, detailNavigator],
   );
 
   useEffect(() => {

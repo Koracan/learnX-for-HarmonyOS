@@ -3,7 +3,7 @@ import {
   type SafeAreaViewProps,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
-import Styles from 'constants/Styles';
+import Styles from '../constants/Styles';
 
 const SafeArea: React.FC<
   React.PropsWithChildren<SafeAreaViewProps>

@@ -14,6 +14,7 @@ export type CourseStackParams = {
   NoticeDetail: Notice & ExtraParams;
   AssignmentDetail: Assignment & ExtraParams;
   FileDetail: File & ExtraParams;
+  AssignmentSubmission: Assignment & ExtraParams;
 };
 
 /**
@@ -32,6 +33,7 @@ export type AssignmentStackParams = {
   Assignments: undefined;
   AssignmentDetail: Assignment & ExtraParams;
   FileDetail: File & ExtraParams;
+  AssignmentSubmission: Assignment & ExtraParams;
 };
 
 /**
@@ -87,6 +89,16 @@ export type SearchStackParams = {
 export type AssignmentSubmissionStackParams = {
   AssignmentSubmission: Assignment;
   FileDetail: File & ExtraParams;
+};
+
+export type DetailStackParams = {
+  EmptyDetail: undefined;
+  NoticeDetail: Notice & ExtraParams;
+  AssignmentDetail: Assignment & ExtraParams;
+  AssignmentSubmission: Assignment & ExtraParams;
+  FileDetail: File & ExtraParams;
+  CourseDetail: Course & ExtraParams;
+  SemesterSelection: ExtraParams;
 };
 
 /**

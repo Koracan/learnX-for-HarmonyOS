@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useLayoutEffect } from 'react';
 import { StyleSheet, View, ScrollView } from 'react-native';
 import {
   Caption,
@@ -8,26 +8,28 @@ import {
   Text,
   List,
   Chip,
+  Button,
 } from 'react-native-paper';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import dayjs from 'dayjs';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { HomeworkCompletionType, HomeworkSubmissionType } from 'thu-learn-lib';
-import AutoHeightWebView from 'components/AutoHeightWebView';
-import Styles from 'constants/Styles';
-import type { AssignmentStackParams } from 'screens/types';
-import { getWebViewTemplate, removeTags } from 'helpers/html';
-import { isLocaleChinese, t } from 'helpers/i18n';
-import { stripExtension, getExtension } from 'helpers/fs';
-import type { File } from 'data/types/state';
-import Colors from 'constants/Colors';
+import AutoHeightWebView from '../components/AutoHeightWebView';
+import Styles from '../constants/Styles';
+import type { AssignmentStackParams } from './types';
+import { getWebViewTemplate, removeTags } from '../helpers/html';
+import { isLocaleChinese, t } from '../helpers/i18n';
+import { stripExtension, getExtension } from '../helpers/fs';
+import type { File } from '../data/types/state';
+import Colors from '../constants/Colors';
 
 type Props = NativeStackScreenProps<AssignmentStackParams, 'AssignmentDetail'>;
 
 const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
   const theme = useTheme();
 
+  const assignment = route.params;
   const {
     id,
     courseName,
@@ -52,7 +54,24 @@ const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
     gradeAttachment,
     answerContent,
     answerAttachment,
-  } = route.params;
+  } = assignment;
+
+  useLayoutEffect(() => {
+    if (submissionType === HomeworkSubmissionType.ONLINE && !graded) {
+      navigation.setOptions({
+        headerRight: () => (
+          <Button
+            onPress={() =>
+              (navigation as any).push('AssignmentSubmission', assignment)
+            }
+            mode="text"
+          >
+            {submitted ? t('resubmit') : t('submit')}
+          </Button>
+        ),
+      });
+    }
+  }, [navigation, submissionType, graded, submitted, assignment]);
 
   const html = useMemo(
     () =>

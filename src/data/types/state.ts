@@ -1,3 +1,4 @@
+import type { PersistState } from 'redux-persist';
 import type {
   CourseInfo,
   FailReason,
@@ -90,6 +91,7 @@ export type Course = Pick<
 
 export interface CoursesState {
   fetching: boolean;
+  hidden: string[];
   items: Course[];
   names: {
     [id: string]: {
@@ -97,12 +99,11 @@ export interface CoursesState {
       teacherName: string;
     };
   };
-  hidden: string[];
   order: string[];
   error?: FailReason | null;
 }
 
-export interface CourseExtraInfo {
+interface CourseExtraInfo {
   courseId: string;
   courseName: string;
   courseTeacherName: string;
@@ -122,7 +123,6 @@ export type Notice = Pick<
   | 'url'
 > &
   CourseExtraInfo;
-
 export interface NoticeState {
   fetching: boolean;
   favorites: string[];
@@ -160,7 +160,6 @@ export type Assignment = Pick<
   | 'excellentHomeworkList'
 > &
   CourseExtraInfo;
-
 export interface AssignmentsState {
   fetching: boolean;
   favorites: string[];
@@ -187,7 +186,6 @@ export type File = Pick<
   | 'downloadUrl'
 > &
   CourseExtraInfo;
-
 export interface FilesState {
   fetching: boolean;
   favorites: string[];
@@ -201,17 +199,19 @@ export type User = {
 };
 export interface UserState extends User {}
 
+export interface PersistPartial {
+  _persist: PersistState;
+}
+
 export interface AppState {
-  auth: AuthState;
-  settings: SettingsState;
+  auth: AuthState & PersistPartial;
+  settings: SettingsState & PersistPartial;
+  semesters: SemestersState;
   courses: CoursesState;
   notices: NoticeState;
   assignments: AssignmentsState;
   files: FilesState;
   user: UserState;
-  semesters: SemestersState;
 }
 
-export interface PersistAppState extends AppState {
-  _persist?: any;
-}
+export type PersistAppState = AppState & PersistPartial;

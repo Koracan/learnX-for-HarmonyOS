@@ -1,12 +1,12 @@
 import React, { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Caption, Paragraph, Title, Subheading } from 'react-native-paper';
+import { Text } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import dayjs from 'dayjs';
-import Styles from 'constants/Styles';
-import Colors from 'constants/Colors';
-import type { Notice } from 'data/types/state';
-import { removeTags } from 'helpers/html';
+import Styles from '../constants/Styles';
+import Colors from '../constants/Colors';
+import type { Notice } from '../data/types/state';
+import { removeTags } from '../helpers/html';
 import CardWrapper, { type CardWrapperProps } from './CardWrapper';
 
 export interface NoticeCardProps extends CardWrapperProps {
@@ -34,9 +34,13 @@ const NoticeCard: React.FC<React.PropsWithChildren<NoticeCardProps>> = ({
         <View style={Styles.flexRowCenter}>
           <View style={styles.title}>
             {hideCourseName ? null : (
-              <Subheading numberOfLines={1}>{courseName}</Subheading>
+              <Text variant="labelMedium" numberOfLines={1}>
+                {courseName}
+              </Text>
             )}
-            <Title numberOfLines={1}>{title}</Title>
+            <Text variant="titleMedium" numberOfLines={1}>
+              {title}
+            </Text>
           </View>
           <View style={[Styles.flexRowCenter, styles.icons]}>
             {attachment && (
@@ -65,11 +69,15 @@ const NoticeCard: React.FC<React.PropsWithChildren<NoticeCardProps>> = ({
           </View>
         </View>
         {removeTags(content) ? (
-          <Paragraph numberOfLines={2}>{removeTags(content)}</Paragraph>
+          <Text variant="bodyMedium" numberOfLines={2}>
+            {removeTags(content)}
+          </Text>
         ) : null}
         <View style={Styles.flexRowCenter}>
-          <Caption>{publisher}</Caption>
-          <Caption style={styles.time}>{dayjs(publishTime).fromNow()}</Caption>
+          <Text variant="labelSmall">{publisher}</Text>
+          <Text variant="labelSmall" style={styles.time}>
+            {dayjs(publishTime).fromNow()}
+          </Text>
         </View>
       </View>
     </CardWrapper>

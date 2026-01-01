@@ -20,6 +20,7 @@ import { t } from 'helpers/i18n';
 import Filter, { type FilterSelection } from './Filter';
 import HeaderTitle from './HeaderTitle';
 import Empty from './Empty';
+import Skeleton from './Skeleton';
 import type { CardWrapperProps } from './CardWrapper';
 import IconButton from './IconButton';
 
@@ -142,6 +143,8 @@ const FilterList = <T extends Notice | Assignment | File | Course>({
     [Component, onItemPress],
   );
 
+  const skeletonData = Array.from({ length: 6 }).map((_, i) => ({ id: `skeleton-${i}` } as any));
+
   return (
     <View style={styles.container}>
       <Filter
@@ -156,14 +159,14 @@ const FilterList = <T extends Notice | Assignment | File | Course>({
         unfinishedCount={unfinished?.length}
       />
       <FlatList
-        data={deferredData}
-        renderItem={renderItem}
+        data={refreshing && deferredData.length === 0 ? skeletonData : deferredData}
+        renderItem={refreshing && deferredData.length === 0 ? () => <Skeleton /> : renderItem}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.list}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
-        ListEmptyComponent={<Empty />}
+        ListEmptyComponent={refreshing ? null : <Empty />}
         removeClippedSubviews={true}
         initialNumToRender={8}
         maxToRenderPerBatch={10}

@@ -45,6 +45,12 @@ export default {
   submitAssignmentConfirmation: 'Do you want to submit the assignment?',
   cancel: 'Cancel',
   ok: 'Ok',
+  discardChanges: 'Discard Changes',
+  discardChangesDescription:
+    'You have unsaved changes. Do you want to discard them or save as draft?',
+  discard: 'Discard',
+  saveDraft: 'Save Draft',
+  resubmit: 'Resubmit',
   restartRequired: 'Restart required',
   pleaseRestartAppToApplyImmersive:
     'Please restart the app to apply immersive mode changes.',

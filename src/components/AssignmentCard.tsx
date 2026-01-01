@@ -1,15 +1,15 @@
 import React, { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Caption, Paragraph, Title, Subheading } from 'react-native-paper';
+import { Text } from 'react-native-paper';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import dayjs from 'dayjs';
-import Styles from 'constants/Styles';
-import type { Assignment } from 'data/types/state';
-import { removeTags } from 'helpers/html';
-import { isLocaleChinese } from 'helpers/i18n';
-import CardWrapper, { type CardWrapperProps } from 'components/CardWrapper';
-import Colors from 'constants/Colors';
+import Styles from '../constants/Styles';
+import type { Assignment } from '../data/types/state';
+import { removeTags } from '../helpers/html';
+import { isLocaleChinese } from '../helpers/i18n';
+import CardWrapper, { type CardWrapperProps } from './CardWrapper';
+import Colors from '../constants/Colors';
 
 export interface AssignmentCardProps extends CardWrapperProps {
   data: Assignment;
@@ -41,11 +41,13 @@ const AssignmentCard: React.FC<
         <View style={Styles.flexRowCenter}>
           <View style={styles.titleContainer}>
             {hideCourseName ? null : (
-              <Subheading numberOfLines={1} style={styles.courseName}>
+              <Text variant="labelMedium" numberOfLines={1} style={styles.courseName}>
                 {courseName}
-              </Subheading>
+              </Text>
             )}
-            <Title numberOfLines={1}>{title}</Title>
+            <Text variant="titleMedium" numberOfLines={1}>
+              {title}
+            </Text>
           </View>
           <View style={[Styles.flexRow, styles.icons]}>
             {attachment && (
@@ -90,13 +92,13 @@ const AssignmentCard: React.FC<
           </View>
         </View>
         {removeTags(description) ? (
-          <Paragraph numberOfLines={2} style={styles.description}>
+          <Text variant="bodyMedium" numberOfLines={2} style={styles.description}>
             {removeTags(description)}
-          </Paragraph>
+          </Text>
         ) : null}
         <View style={Styles.flexRowCenter}>
-          <Caption>{courseTeacherName}</Caption>
-          <Caption style={styles.time}>
+          <Text variant="labelSmall">{courseTeacherName}</Text>
+          <Text variant="labelSmall" style={styles.time}>
             {isLocaleChinese()
               ? dayjs().isAfter(dayjs(deadline))
                 ? dayjs(deadline).fromNow() + '截止'
@@ -104,7 +106,7 @@ const AssignmentCard: React.FC<
               : dayjs().isAfter(dayjs(deadline))
               ? 'Due ' + dayjs(deadline).fromNow()
               : dayjs().to(dayjs(deadline), true) + ' left'}
-          </Caption>
+          </Text>
         </View>
       </View>
     </CardWrapper>
