@@ -47,30 +47,32 @@ const SplitViewProvider: React.FC<React.PropsWithChildren<SplitViewProps>> = ({
         toggleMaster: setShowMaster,
       }}
     >
-      {splitEnabled ? (
-        <View style={styles.root}>
-          <View
-            style={[
-              styles.master,
-              {
-                flex: showDetail ? 0 : 1,
-                width: showDetail ? Numbers.splitViewMasterWidth : '100%',
-                display: showMaster ? 'flex' : 'none',
-              },
-            ]}
-          >
-            {Children.toArray(children)[0]}
-          </View>
-          {showDetail && <Divider style={styles.divider} />}
-          <View
-            style={[styles.detail, { display: showDetail ? 'flex' : 'none' }]}
-          >
-            {Children.toArray(children)[1]}
-          </View>
+      <View style={styles.root}>
+        <View
+          style={[
+            styles.master,
+            {
+              flex: showDetail ? 0 : 1,
+              width: showDetail ? Numbers.splitViewMasterWidth : '100%',
+              display: showMaster ? 'flex' : 'none',
+            },
+          ]}
+        >
+          {Children.toArray(children)[0]}
         </View>
-      ) : (
-        <>{Children.toArray(children)[0]}</>
-      )}
+        {showDetail && <Divider style={styles.divider} />}
+        <View
+          style={[
+            styles.detail,
+            {
+              display: showDetail ? 'flex' : 'none',
+              flex: showDetail ? 1 : 0,
+            },
+          ]}
+        >
+          {Children.toArray(children)[1]}
+        </View>
+      </View>
     </SplitViewContext.Provider>
   );
 };

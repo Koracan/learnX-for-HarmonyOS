@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import DocumentPicker from '@react-native-ohos/react-native-document-picker';
 import { launchImageLibrary } from '@react-native-ohos/react-native-image-picker';
@@ -6,8 +12,8 @@ import {
   Alert,
   Keyboard,
   KeyboardAvoidingView,
-  Platform,
   StyleSheet,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import {
@@ -83,9 +89,12 @@ const AssignmentSubmission: React.FC<Props> = ({ navigation, route }) => {
   const [uploadError, setUploadError] = useState(false);
   const [progress, setProgress] = useState(0);
 
+  const inputRef = useRef<any>(null);
+
   const getDefaultAttachmentName = useCallback(
     (mimeType?: string | null) => {
-      const ext = mimeTypes.extension(mimeType ?? 'application/octet-stream') || 'bin';
+      const ext =
+        mimeTypes.extension(mimeType ?? 'application/octet-stream') || 'bin';
       return isLocaleChinese()
         ? `${title}-提交.${ext}`
         : `${title} Submission.${ext}`;
@@ -295,22 +304,28 @@ const AssignmentSubmission: React.FC<Props> = ({ navigation, route }) => {
       <SafeArea>
         <KeyboardAvoidingView
           style={Styles.flex1}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={'padding'}
         >
           {progress ? <ProgressBar progress={progress} /> : null}
           <ScrollView
             contentContainerStyle={styles.scrollView}
-            scrollEnabled={false}
             keyboardShouldPersistTaps="handled"
           >
-            <TextInput
-              style={Styles.flex1}
-              disabled={removeAttachment || uploading}
-              multiline
-              placeholder={t('assignmentSubmissionContentPlaceholder')}
-              value={content}
-              onChangeText={setContent}
-            />
+            <TouchableWithoutFeedback onPress={() => inputRef.current?.focus()}>
+              <View style={Styles.flex1}>
+                <TextInput
+                  ref={inputRef}
+                  style={Styles.flex1}
+                  contentStyle={Styles.flex1}
+                  disabled={removeAttachment || uploading}
+                  multiline
+                  textAlignVertical="top"
+                  placeholder={t('assignmentSubmissionContentPlaceholder')}
+                  value={content}
+                  onChangeText={setContent}
+                />
+              </View>
+            </TouchableWithoutFeedback>
             {attachmentResult && (
               <TextInput
                 disabled={removeAttachment || uploading}
