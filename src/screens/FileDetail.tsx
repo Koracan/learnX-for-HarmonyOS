@@ -1,5 +1,6 @@
 import React, {
   useCallback,
+  useContext,
   useEffect,
   useLayoutEffect,
   useState,
@@ -15,11 +16,14 @@ import {
   Chip,
 } from 'react-native-paper';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import WebView from 'react-native-webview';
+import Pdf from 'react-native-pdf';
 import dayjs from 'dayjs';
 import Styles from 'constants/Styles';
 import { downloadFile, openFile, shareFile, formatSize } from 'helpers/fs';
 import { isLocaleChinese, t } from 'helpers/i18n';
+import { canRenderInWebview, needWhiteBackground } from 'helpers/html';
 import useToast from 'hooks/useToast';
 import type { FileStackParams } from 'screens/types';
 import SafeArea from 'components/SafeArea';
@@ -27,6 +31,7 @@ import Skeleton from 'components/Skeleton';
 import IconButton from 'components/IconButton';
 import ScrollView from 'components/ScrollView';
 import fs from 'react-native-fs';
+import { SplitViewContext } from 'components/SplitView';
 
 type Props = NativeStackScreenProps<FileStackParams, 'FileDetail'>;
 
@@ -34,11 +39,16 @@ const FileDetail: React.FC<Props> = ({ route, navigation }) => {
   const file = route.params;
   const theme = useTheme();
   const toast = useToast();
+  const { showDetail, showMaster, toggleMaster } = useContext(SplitViewContext);
 
   const [path, setPath] = useState('');
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState(false);
   const [fileSize, setFileSize] = useState(file.size);
+  const [showInfo, setShowInfo] = useState(false);
+
+  const canRender =
+    path && (file.fileType === 'pdf' || canRenderInWebview(file.fileType));
 
   const handleDownload = useCallback(
     async (refresh: boolean) => {
@@ -76,10 +86,20 @@ const FileDetail: React.FC<Props> = ({ route, navigation }) => {
     }
   }, [file]);
 
+  const handleToggleInfo = useCallback(() => {
+    setShowInfo(prev => !prev);
+  }, []);
+
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <View style={Styles.flexRow}>
+        <View style={[Styles.flexRow, { justifyContent: 'flex-end' }]}>
+          {showDetail && (
+            <IconButton
+              onPress={() => toggleMaster(!showMaster)}
+              icon={showMaster ? 'fullscreen' : 'fullscreen-exit'}
+            />
+          )}
           <IconButton icon="refresh" onPress={() => handleDownload(true)} />
           <IconButton
             disabled={error || !path}
@@ -91,10 +111,32 @@ const FileDetail: React.FC<Props> = ({ route, navigation }) => {
             onPress={handleOpen}
             icon="open-in-new"
           />
+          {canRender && (
+            <IconButton
+              disabled={error || !path}
+              onPress={handleToggleInfo}
+              icon={props => (
+                <Icon {...props} name={showInfo ? 'preview' : 'info-outline'} />
+              )}
+            />
+          )}
         </View>
       ),
     });
-  }, [navigation, handleDownload, handleShare, handleOpen, error, path]);
+  }, [
+    navigation,
+    handleDownload,
+    handleShare,
+    handleOpen,
+    handleToggleInfo,
+    error,
+    path,
+    canRender,
+    showInfo,
+    showDetail,
+    showMaster,
+    toggleMaster,
+  ]);
 
   useEffect(() => {
     handleDownload(false);
@@ -104,7 +146,7 @@ const FileDetail: React.FC<Props> = ({ route, navigation }) => {
     <SafeArea>
       {error ? (
         <View style={styles.errorRoot}>
-          <MaterialIcons name="error" color={theme.colors.outline} size={56} />
+          <Icon name="error" color={theme.colors.outline} size={56} />
           <Text style={{ color: theme.colors.outline, marginTop: 8 }}>
             {t('fileDownloadFailed')}
           </Text>
@@ -122,6 +164,27 @@ const FileDetail: React.FC<Props> = ({ route, navigation }) => {
           <Skeleton />
           <Skeleton />
         </View>
+      ) : !showInfo && canRender ? (
+        file.fileType === 'pdf' ? (
+          <Pdf
+            style={Styles.flex1}
+            source={{ uri: path }}
+            trustAllCerts={false}
+            fitPolicy={0}
+          />
+        ) : (
+          <WebView
+            style={{
+              flex: 1,
+              backgroundColor: needWhiteBackground(file.fileType)
+                ? 'white'
+                : 'transparent',
+            }}
+            source={{ uri: `file://${path}` }}
+            originWhitelist={['*']}
+            allowFileAccess={true}
+          />
+        )
       ) : (
         <>
           <ScrollView
@@ -151,7 +214,7 @@ const FileDetail: React.FC<Props> = ({ route, navigation }) => {
             </View>
             <Divider />
             <View style={[styles.section, styles.iconButton]}>
-              <MaterialIcons
+              <Icon
                 style={styles.icon}
                 name="insert-drive-file"
                 color={theme.colors.primary}
@@ -163,7 +226,7 @@ const FileDetail: React.FC<Props> = ({ route, navigation }) => {
             </View>
             <Divider />
             <View style={[styles.section, styles.iconButton]}>
-              <MaterialIcons
+              <Icon
                 style={styles.icon}
                 name="file-download"
                 color={theme.colors.primary}

@@ -61,3 +61,21 @@ export const getWebViewTemplate = (
   </html>
 `;
 };
+
+/**
+ * 判断文件是否可以在 WebView 中渲染（图片等）
+ */
+export const canRenderInWebview = (fileType?: string) => {
+  if (!fileType) return false;
+  const type = fileType.toLowerCase();
+  return ['jpg', 'jpeg', 'png', 'gif', 'svg', 'bmp', 'webp'].includes(type);
+};
+
+/**
+ * 判断文件是否需要白色背景（如透明图片）
+ */
+export const needWhiteBackground = (fileType?: string) => {
+  if (!fileType) return false;
+  const type = fileType.toLowerCase();
+  return ['png', 'svg', 'gif'].includes(type);
+};
