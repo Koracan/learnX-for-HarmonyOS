@@ -17,6 +17,7 @@
 #include "RNImmersivePackage.h"
 #include "FileViewerPackage.h"
 #include "DocumentPickerPackage.h"
+#include "RNImagePickerPackage.h"
 
 using namespace rnoh;
 
@@ -40,5 +41,6 @@ std::vector<std::shared_ptr<Package>> PackageProvider::getPackages(Package::Cont
         std::make_shared<RNImmersivePackage>(ctx),
         std::make_shared<FileViewerPackage>(ctx),
         std::make_shared<DocumentPickerPackage>(ctx),
+        std::make_shared<RNImagePickerPackage>(ctx),
     };
 }

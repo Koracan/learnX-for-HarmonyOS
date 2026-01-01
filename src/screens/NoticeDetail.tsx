@@ -88,7 +88,6 @@ const NoticeDetail: React.FC<Props> = ({ route, navigation }) => {
         <>
           <List.Item
             title={attachment.name}
-            description={t('attachment')}
             left={props => (
               <List.Icon
                 {...props}

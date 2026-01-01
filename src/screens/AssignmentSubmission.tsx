@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import DocumentPicker from '@react-native-ohos/react-native-document-picker';
+import { launchImageLibrary } from '@react-native-ohos/react-native-image-picker';
 import {
   Alert,
   Keyboard,
@@ -12,7 +13,6 @@ import {
 import {
   Button,
   Caption,
-  Menu,
   Portal,
   ProgressBar,
   Snackbar,
@@ -22,23 +22,21 @@ import {
 import dayjs from 'dayjs';
 import mimeTypes from 'mime-types';
 import type { RemoteFile } from 'thu-learn-lib';
-import SafeArea from '../components/SafeArea';
-import TextButton from '../components/TextButton';
-import ScrollView from '../components/ScrollView';
-import Styles from '../constants/Styles';
-import { getExtension, stripExtension } from '../helpers/fs';
-import { removeTags } from '../helpers/html';
-import { isLocaleChinese, t } from '../helpers/i18n';
-import { useAppDispatch, useAppSelector } from '../data/store';
-import type { File } from '../data/types/state';
-import { submitAssignment } from '../data/source';
+import SafeArea from 'components/SafeArea';
+import TextButton from 'components/TextButton';
+import ScrollView from 'components/ScrollView';
+import Styles from 'constants/Styles';
+import { getExtension, stripExtension } from 'helpers/fs';
+import { removeTags } from 'helpers/html';
+import { isLocaleChinese, t } from 'helpers/i18n';
+import { useAppDispatch, useAppSelector } from 'data/store';
+import type { File } from 'data/types/state';
+import { submitAssignment } from 'data/source';
 import {
   getAssignmentsForCourse,
   setPendingAssignmentData,
-} from '../data/actions/assignments';
-import useToast from '../hooks/useToast';
-import useDetailNavigator from '../hooks/useDetailNavigator';
-import Numbers from '../constants/Numbers';
+} from 'data/actions/assignments';
+import useToast from 'hooks/useToast';
 import type { AssignmentSubmissionStackParams } from './types';
 
 type Props = NativeStackScreenProps<
@@ -56,7 +54,6 @@ interface AttachmentResult {
 const AssignmentSubmission: React.FC<Props> = ({ navigation, route }) => {
   const theme = useTheme();
   const toast = useToast();
-  const detailNavigator = useDetailNavigator();
 
   const {
     id,
@@ -85,7 +82,6 @@ const AssignmentSubmission: React.FC<Props> = ({ navigation, route }) => {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [pickerMenuVisible, setPickerMenuVisible] = useState(false);
 
   const getDefaultAttachmentName = useCallback(
     (mimeType?: string | null) => {
@@ -101,20 +97,16 @@ const AssignmentSubmission: React.FC<Props> = ({ navigation, route }) => {
     setCustomAttachmentName(text.replaceAll('.', ''));
   };
 
-  const handleAttachmentRemove = () => {
+  const handleUploadedAttachmentRemove = () => {
     setRemoveAttachment(!removeAttachment);
   };
 
-  const handlePickerMenuOpen = () => {
-    setPickerMenuVisible(true);
-  };
-
-  const handlePickerMenuClose = () => {
-    setPickerMenuVisible(false);
+  const handlePickedAttachmentRemove = () => {
+    setAttachmentResult(null);
+    dispatch(setPendingAssignmentData(null));
   };
 
   const handleDocumentPick = async () => {
-    handlePickerMenuClose();
     try {
       const result = await DocumentPicker.pick({
         type: [DocumentPicker.types.allFiles],
@@ -135,6 +127,33 @@ const AssignmentSubmission: React.FC<Props> = ({ navigation, route }) => {
       if (DocumentPicker.isCancel(err)) {
         return;
       }
+      toast(t('filePickFailed'), 'error');
+    }
+  };
+
+  const handlePhotoPick = async () => {
+    try {
+      const result = await launchImageLibrary({
+        mediaType: 'mixed',
+        selectionLimit: 1,
+      });
+      if (result.didCancel) {
+        return;
+      }
+      const photos = result.assets;
+      if (!photos || photos.length === 0) {
+        throw new Error('No photo picked');
+      }
+
+      const photo = photos[0];
+      setAttachmentResult({
+        uri: photo.uri ?? '',
+        type: photo.type ?? null,
+        name: photo.fileName ?? getDefaultAttachmentName(photo.type),
+        size: photo.fileSize,
+      });
+      dispatch(setPendingAssignmentData(null));
+    } catch {
       toast(t('filePickFailed'), 'error');
     }
   };
@@ -244,6 +263,7 @@ const AssignmentSubmission: React.FC<Props> = ({ navigation, route }) => {
           disabled={
             uploading || (!removeAttachment && !content && !attachmentResult)
           }
+          containerStyle={{ marginRight: 16 }}
           style={{ fontSize: 17, fontWeight: 'bold' }}
           onPress={handleSubmitPress}
         >
@@ -291,12 +311,14 @@ const AssignmentSubmission: React.FC<Props> = ({ navigation, route }) => {
               value={content}
               onChangeText={setContent}
             />
-            <TextInput
-              disabled={removeAttachment || uploading}
-              placeholder={t('assignmentSubmissionFilenamePlaceholder')}
-              value={customAttachmentName}
-              onChangeText={handleCustomAttachmentNameChange}
-            />
+            {attachmentResult && (
+              <TextInput
+                disabled={removeAttachment || uploading}
+                placeholder={t('assignmentSubmissionFilenamePlaceholder')}
+                value={customAttachmentName}
+                onChangeText={handleCustomAttachmentNameChange}
+              />
+            )}
           </ScrollView>
           <View style={styles.submissionDetail}>
             {submittedAttachment ? (
@@ -347,44 +369,42 @@ const AssignmentSubmission: React.FC<Props> = ({ navigation, route }) => {
                   disabled={uploading}
                   mode="contained"
                   style={styles.submitButton}
-                  onPress={handleAttachmentRemove}
+                  onPress={handleUploadedAttachmentRemove}
                 >
                   {removeAttachment
-                    ? t('undoRemoveAttachment')
-                    : t('removeAttachment')}
+                    ? t('undoRemoveUploadedAttachment')
+                    : t('removeUploadedAttachment')}
+                </Button>
+              ) : undefined}
+              {attachmentResult && !removeAttachment ? (
+                <Button
+                  disabled={uploading}
+                  mode="contained"
+                  style={styles.submitButton}
+                  onPress={handlePickedAttachmentRemove}
+                >
+                  {t('removePickedAttachment')}
                 </Button>
               ) : undefined}
               {!removeAttachment ? (
-                <Menu
-                  visible={pickerMenuVisible}
-                  onDismiss={handlePickerMenuClose}
-                  anchorPosition="top"
-                  style={{
-                    marginTop: -100,
-                    marginLeft: detailNavigator
-                      ? -Numbers.splitViewMasterWidth
-                      : 0,
-                  }}
-                  anchor={
-                    <Button
-                      style={styles.submitButton}
-                      disabled={uploading}
-                      mode="contained"
-                      onPress={handlePickerMenuOpen}
-                    >
-                      {attachmentResult
-                        ? t('reUploadAttachment')
-                        : submittedAttachment
-                          ? t('overwriteAttachment')
-                          : t('uploadAttachment')}
-                    </Button>
-                  }
-                >
-                  <Menu.Item
+                <>
+                  <Button
+                    style={styles.submitButton}
+                    disabled={uploading}
+                    mode="contained"
                     onPress={handleDocumentPick}
-                    title={t('documents')}
-                  />
-                </Menu>
+                  >
+                    {t('documents')}
+                  </Button>
+                  <Button
+                    style={styles.submitButton}
+                    disabled={uploading}
+                    mode="contained"
+                    onPress={handlePhotoPick}
+                  >
+                    {t('photos')}
+                  </Button>
+                </>
               ) : undefined}
             </View>
             {submitTime && (

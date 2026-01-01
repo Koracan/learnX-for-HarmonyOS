@@ -1,41 +1,51 @@
-import React, { useMemo, useLayoutEffect } from 'react';
-import { StyleSheet, View, ScrollView } from 'react-native';
+import React, { useMemo, useLayoutEffect, useCallback } from 'react';
+import { StyleSheet, View } from 'react-native';
 import {
   Caption,
   Divider,
   Title,
   useTheme,
   Text,
-  List,
   Chip,
-  Button,
 } from 'react-native-paper';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { StackActions } from '@react-navigation/native';
 import dayjs from 'dayjs';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { HomeworkCompletionType, HomeworkSubmissionType } from 'thu-learn-lib';
+import {
+  HomeworkCompletionType,
+  HomeworkSubmissionType,
+  type RemoteFile,
+} from 'thu-learn-lib';
+import TextButton from '../components/TextButton';
 import AutoHeightWebView from '../components/AutoHeightWebView';
+import SafeArea from '../components/SafeArea';
+import ScrollView from '../components/ScrollView';
+import IconButton from '../components/IconButton';
 import Styles from '../constants/Styles';
 import type { AssignmentStackParams } from './types';
+import useDetailNavigator from '../hooks/useDetailNavigator';
 import { getWebViewTemplate, removeTags } from '../helpers/html';
-import { isLocaleChinese, t } from '../helpers/i18n';
+import {
+  getAssignmentGradeLevelDescription,
+  isLocaleChinese,
+  t,
+} from '../helpers/i18n';
 import { stripExtension, getExtension } from '../helpers/fs';
 import type { File } from '../data/types/state';
-import Colors from '../constants/Colors';
 
 type Props = NativeStackScreenProps<AssignmentStackParams, 'AssignmentDetail'>;
 
 const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
   const theme = useTheme();
+  const detailNavigator = useDetailNavigator();
 
-  const assignment = route.params;
   const {
-    id,
     courseName,
-    courseTeacherName,
     title,
     deadline,
+    lateSubmissionDeadline,
     description,
     completionType,
     submissionType,
@@ -50,28 +60,42 @@ const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
     gradeTime,
     grade,
     gradeLevel,
-    gradeContent,
     gradeAttachment,
-    answerContent,
+    gradeContent,
     answerAttachment,
-  } = assignment;
+    answerContent,
+    excellentHomeworkList,
+  } = route.params;
+
+  const handleSubmit = useCallback(() => {
+    if (detailNavigator) {
+      detailNavigator.dispatch(
+        StackActions.push('AssignmentSubmission', route.params),
+      );
+    } else {
+      navigation.navigate(
+        'AssignmentSubmissionStack' as any,
+        {
+          screen: 'AssignmentSubmission',
+          params: route.params,
+        } as any,
+      );
+    }
+  }, [detailNavigator, navigation, route.params]);
 
   useLayoutEffect(() => {
-    if (submissionType === HomeworkSubmissionType.ONLINE && !graded) {
+    if (submissionType !== HomeworkSubmissionType.OFFLINE) {
       navigation.setOptions({
         headerRight: () => (
-          <Button
-            onPress={() =>
-              (navigation as any).push('AssignmentSubmission', assignment)
-            }
-            mode="text"
-          >
-            {submitted ? t('resubmit') : t('submit')}
-          </Button>
+          <IconButton
+            disabled={dayjs().isAfter(dayjs(deadline))}
+            onPress={handleSubmit}
+            icon={props => <MaterialIcons {...props} name="file-upload" />}
+          />
         ),
       });
     }
-  }, [navigation, submissionType, graded, submitted, assignment]);
+  }, [navigation, submissionType, deadline, handleSubmit]);
 
   const html = useMemo(
     () =>
@@ -86,12 +110,11 @@ const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
     [description, theme],
   );
 
-  const handleFileOpen = (fileAttachment: any) => {
+  const handleFileOpen = (fileAttachment?: RemoteFile) => {
     if (fileAttachment) {
       const data = {
-        id: `${id}-${fileAttachment.name}`,
+        id: fileAttachment.id,
         courseName,
-        courseTeacherName,
         title: stripExtension(fileAttachment.name),
         downloadUrl: fileAttachment.downloadUrl,
         fileType: getExtension(fileAttachment.name) ?? '',
@@ -102,230 +125,250 @@ const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <View style={Styles.flexRow}>
-          <Chip compact mode="outlined" style={styles.chip}>
-            {completionType === HomeworkCompletionType.GROUP
-              ? t('assignmentGroupCompletion')
-              : t('assignmentIndividualCompletion')}
-          </Chip>
-          <Chip compact mode="outlined" style={styles.chip}>
-            {submissionType === HomeworkSubmissionType.OFFLINE
-              ? t('assignmentOfflineSubmission')
-              : t('assignmentOnlineSubmission')}
-          </Chip>
+    <SafeArea>
+      <ScrollView style={{ backgroundColor: theme.colors.surface }}>
+        <View style={styles.section}>
+          <View style={Styles.flexRow}>
+            <Chip compact mode="outlined" style={styles.chip}>
+              {completionType === HomeworkCompletionType.GROUP
+                ? t('assignmentGroupCompletion')
+                : t('assignmentIndividualCompletion')}
+            </Chip>
+            <Chip compact mode="outlined" style={styles.chip}>
+              {submissionType === HomeworkSubmissionType.OFFLINE
+                ? t('assignmentOfflineSubmission')
+                : t('assignmentOnlineSubmission')}
+            </Chip>
+          </View>
+          <Title>{title}</Title>
+          <View style={Styles.flexRowCenter}>
+            <Caption>
+              {isLocaleChinese()
+                ? dayjs().isAfter(dayjs(deadline))
+                  ? dayjs().to(dayjs(deadline)) + '截止'
+                  : '还剩 ' + dayjs().to(dayjs(deadline), true)
+                : dayjs().isAfter(dayjs(deadline))
+                ? 'closed ' + dayjs().to(dayjs(deadline))
+                : 'due in ' + dayjs().to(dayjs(deadline), true)}
+            </Caption>
+            <Caption>
+              {dayjs(deadline).format(
+                isLocaleChinese()
+                  ? 'YYYY 年 M 月 D 日 dddd HH:mm'
+                  : 'ddd, MMM D, YYYY HH:mm',
+              )}
+            </Caption>
+          </View>
+          {lateSubmissionDeadline && (
+            <Caption style={Styles.flexRowCenter}>
+              {dayjs(lateSubmissionDeadline).format(
+                isLocaleChinese()
+                  ? 'YYYY 年 M 月 D 日 dddd HH:mm 补交截止'
+                  : '[late submission due] ddd, MMM D, YYYY HH:mm',
+              )}
+            </Caption>
+          )}
         </View>
-        <Title>{title}</Title>
-        <View style={Styles.flexRowCenter}>
-          <Caption>
-            {isLocaleChinese()
-              ? dayjs().isAfter(dayjs(deadline))
-                ? dayjs().to(dayjs(deadline)) + '截止'
-                : '还剩 ' + dayjs().to(dayjs(deadline), true)
-              : dayjs().isAfter(dayjs(deadline))
-              ? 'closed ' + dayjs().to(dayjs(deadline))
-              : 'due in ' + dayjs().to(dayjs(deadline), true)}
-          </Caption>
-          <Caption style={styles.caption}>
-            {dayjs(deadline).format(
-              isLocaleChinese()
-                ? 'YYYY 年 M 月 D 日 dddd HH:mm'
-                : 'ddd, MMM D, YYYY HH:mm',
-            )}
-          </Caption>
-        </View>
-      </View>
-
-      <Divider />
-
-      {attachment && (
-        <>
-          <List.Item
-            title={attachment.name}
-            description={t('attachment')}
-            left={props => (
-              <List.Icon
-                {...props}
-                icon={p => <MaterialIcons name="attachment" {...p} />}
-              />
-            )}
-            onPress={() => handleFileOpen(attachment)}
-          />
-          <Divider />
-        </>
-      )}
-
-      <View style={styles.section}>
-        <Text variant="titleSmall" style={styles.sectionTitle}>
-          {t('description')}
-        </Text>
-        <AutoHeightWebView source={{ html }} />
-      </View>
-
-      {(submitted || submittedContent || submittedAttachment) && (
-        <>
-          <Divider />
-          <View style={styles.section}>
-            <Text variant="titleSmall" style={styles.sectionTitle}>
-              {t('submissionStatus')}
-            </Text>
-            <View style={Styles.flexRow}>
+        <Divider />
+        {attachment && (
+          <>
+            <View style={[styles.section, styles.iconButton]}>
               <MaterialCommunityIcons
-                name={submitted ? 'check-circle' : 'alert-circle'}
-                size={16}
-                color={submitted ? Colors.green500 : Colors.orange500}
+                style={styles.icon}
+                name="attachment"
+                color={theme.colors.primary}
+                size={17}
               />
-              <Text style={styles.statusText}>
-                {submitted ? t('submitted') : t('unsubmitted')}
-              </Text>
+              <TextButton
+                style={styles.textPaddingRight}
+                onPress={() => handleFileOpen(attachment)}
+              >
+                {attachment.name}
+              </TextButton>
             </View>
-            {submitTime && (
-              <Caption>
-                {dayjs(submitTime).format(
-                  isLocaleChinese()
-                    ? isLateSubmission
-                      ? 'YYYY 年 M 月 D 日 dddd HH:mm 补交'
-                      : 'YYYY 年 M 月 D 日 dddd HH:mm 提交'
-                    : isLateSubmission
-                    ? '[submitted late at] HH:mm, MMM D, YYYY'
-                    : '[submitted at] HH:mm, MMM D, YYYY',
+            <Divider />
+          </>
+        )}
+        {submitted && (
+          <>
+            <View style={[styles.section, styles.iconButton]}>
+              <MaterialCommunityIcons
+                style={styles.icon}
+                name="check"
+                color={theme.colors.primary}
+                size={17}
+              />
+              <View style={Styles.flex1}>
+                {submittedAttachment && (
+                  <TextButton
+                    style={[Styles.spacey1, styles.textPaddingRight]}
+                    onPress={() => handleFileOpen(submittedAttachment)}
+                  >
+                    {submittedAttachment.name}
+                  </TextButton>
                 )}
-              </Caption>
-            )}
-            {removeTags(submittedContent) ? (
-              <Text style={styles.submittedContent}>
-                {removeTags(submittedContent)}
-              </Text>
-            ) : null}
-            {submittedAttachment && (
-              <List.Item
-                title={submittedAttachment.name}
-                description={t('attachment')}
-                left={props => (
-                  <List.Icon
-                    {...props}
-                    icon={p => <MaterialIcons name="file-present" {...p} />}
+                {removeTags(submittedContent) ? (
+                  <Text style={Styles.spacey1}>
+                    {removeTags(submittedContent)}
+                  </Text>
+                ) : null}
+                <Caption>
+                  {submitTime
+                    ? dayjs(submitTime).format(
+                        isLocaleChinese()
+                          ? isLateSubmission
+                            ? 'YYYY 年 M 月 D 日 dddd HH:mm 补交'
+                            : 'YYYY 年 M 月 D 日 dddd HH:mm 提交'
+                          : isLateSubmission
+                          ? '[submitted late at] HH:mm, MMM D, YYYY'
+                          : '[submitted at] HH:mm, MMM D, YYYY',
+                      )
+                    : t('submitted')}
+                </Caption>
+              </View>
+            </View>
+            <Divider />
+          </>
+        )}
+        {graded && (
+          <>
+            <View style={[styles.section, styles.iconButton]}>
+              <MaterialIcons
+                style={styles.icon}
+                name="grade"
+                color={theme.colors.primary}
+                size={17}
+              />
+              <View style={Styles.flex1}>
+                {gradeLevel || grade ? (
+                  <Text style={Styles.spacey1}>
+                    {gradeLevel
+                      ? getAssignmentGradeLevelDescription(gradeLevel)
+                      : grade}
+                  </Text>
+                ) : null}
+                {gradeAttachment && (
+                  <TextButton
+                    style={[Styles.spacey1, styles.textPaddingRight]}
+                    onPress={() => handleFileOpen(gradeAttachment)}
+                  >
+                    {gradeAttachment.name}
+                  </TextButton>
+                )}
+                {removeTags(gradeContent) ? (
+                  <Text style={Styles.spacey1} selectable>
+                    {removeTags(gradeContent)}
+                  </Text>
+                ) : null}
+                <Caption>
+                  {dayjs(gradeTime).format(
+                    isLocaleChinese()
+                      ? graderName
+                        ? `YYYY 年 M 月 D 日 dddd HH:mm 由${graderName}批改`
+                        : 'YYYY 年 M 月 D 日 dddd HH:mm 批改'
+                      : graderName
+                      ? `[graded by ${graderName} at] HH:mm, MMM D, YYYY`
+                      : '[graded at] HH:mm, MMM D, YYYY',
+                  )}
+                </Caption>
+              </View>
+            </View>
+            <Divider />
+          </>
+        )}
+        {(answerAttachment || answerContent) && (
+          <>
+            <View style={[styles.section, styles.iconButton]}>
+              <MaterialCommunityIcons
+                style={styles.icon}
+                name="key-variant"
+                color={theme.colors.primary}
+                size={17}
+              />
+              <View style={Styles.flex1}>
+                {answerAttachment && (
+                  <TextButton
+                    style={[Styles.spacey1, styles.textPaddingRight]}
+                    onPress={() => handleFileOpen(answerAttachment)}
+                  >
+                    {answerAttachment.name}
+                  </TextButton>
+                )}
+                {removeTags(answerContent) ? (
+                  <Text style={Styles.spacey1}>
+                    {removeTags(answerContent)}
+                  </Text>
+                ) : null}
+              </View>
+            </View>
+            <Divider />
+          </>
+        )}
+        {excellentHomeworkList &&
+          excellentHomeworkList.map(excellentHomework => {
+            const attachment =
+              excellentHomework.gradeAttachment ||
+              excellentHomework.submittedAttachment;
+            const authorName = excellentHomework.author.anonymous
+              ? t('anonymous')
+              : excellentHomework.author.name;
+            return (
+              <React.Fragment key={excellentHomework.author.name}>
+                <View style={[styles.section, styles.iconButton]}>
+                  <MaterialCommunityIcons
+                    style={styles.icon}
+                    name="medal"
+                    color={theme.colors.primary}
+                    size={17}
                   />
-                )}
-                onPress={() => handleFileOpen(submittedAttachment)}
-              />
-            )}
-          </View>
-        </>
-      )}
-
-      {graded && (
-        <>
-          <Divider />
-          <View style={styles.section}>
-            <Text variant="titleSmall" style={styles.sectionTitle}>
-              {t('grade')}
-            </Text>
-            <Text variant="headlineSmall" style={styles.gradeText}>
-              {gradeLevel || grade}
-            </Text>
-            {removeTags(gradeContent) ? (
-              <Text style={styles.gradeContent}>
-                {removeTags(gradeContent)}
-              </Text>
-            ) : null}
-            {gradeTime && (
-              <Caption>
-                {dayjs(gradeTime).format(
-                  isLocaleChinese()
-                    ? graderName
-                      ? `YYYY 年 M 月 D 日 dddd HH:mm 由${graderName}批改`
-                      : 'YYYY 年 M 月 D 日 dddd HH:mm 批改'
-                    : graderName
-                    ? `[graded by ${graderName} at] HH:mm, MMM D, YYYY`
-                    : '[graded at] HH:mm, MMM D, YYYY',
-                )}
-              </Caption>
-            )}
-            {gradeAttachment && (
-              <List.Item
-                title={gradeAttachment.name}
-                description={t('attachment')}
-                left={props => <List.Icon {...props} icon="file-certificate" />}
-                onPress={() => {
-                  // TODO: Implement file download/open
-                }}
-              />
-            )}
-          </View>
-        </>
-      )}
-
-      {(answerContent || answerAttachment) && (
-        <>
-          <Divider />
-          <View style={styles.section}>
-            {removeTags(answerContent) ? (
-              <Text style={styles.answerContent}>
-                {removeTags(answerContent)}
-              </Text>
-            ) : null}
-            {answerAttachment && (
-              <List.Item
-                title={answerAttachment.name}
-                description={t('attachment')}
-                left={props => <List.Icon {...props} icon="key" />}
-                onPress={() => {
-                  // TODO: Implement file download/open
-                }}
-              />
-            )}
-          </View>
-        </>
-      )}
-
-      <View style={{ height: 40 }} />
-    </ScrollView>
+                  <View style={Styles.flex1}>
+                    {attachment && (
+                      <TextButton
+                        style={[Styles.spacey1, styles.textPaddingRight]}
+                        onPress={() => handleFileOpen(attachment)}
+                      >
+                        {attachment.name}
+                      </TextButton>
+                    )}
+                    <Caption>
+                      {isLocaleChinese()
+                        ? `${authorName}的优秀作业`
+                        : `excellent homework by ${authorName}`}
+                    </Caption>
+                  </View>
+                </View>
+                <Divider />
+              </React.Fragment>
+            );
+          })}
+        <AutoHeightWebView
+          source={{
+            html,
+          }}
+        />
+      </ScrollView>
+    </SafeArea>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    padding: 16,
-  },
-  caption: {
-    marginLeft: 8,
-  },
   section: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
-  sectionTitle: {
-    marginBottom: 8,
-    opacity: 0.6,
+  textPaddingRight: {
+    paddingRight: 16,
   },
-  statusText: {
-    marginLeft: 8,
+  icon: {
+    marginRight: 8,
+  },
+  iconButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   chip: {
     marginBottom: 8,
     marginRight: 8,
-  },
-  submittedContent: {
-    marginTop: 8,
-    padding: 8,
-    backgroundColor: 'rgba(0,0,0,0.05)',
-    borderRadius: 4,
-  },
-  gradeText: {
-    color: Colors.red500,
-    fontWeight: 'bold',
-  },
-  gradeContent: {
-    marginTop: 8,
-    fontStyle: 'italic',
-  },
-  answerContent: {
-    marginTop: 8,
-    color: Colors.blue500,
   },
 });
 

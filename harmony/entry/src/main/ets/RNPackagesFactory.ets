@@ -16,6 +16,7 @@ import { RNImmersivePackage } from '@react-native-ohos/react-native-immersive/ts
 import { RNFileViewerPackage } from '@react-native-ohos/react-native-file-viewer/ts';
 import { DataProcessorPackage } from 'learn-oh-data-processor';
 import { DocumentPickerPackage } from '@react-native-ohos/react-native-document-picker/ts';
+import { ImagePickerViewPackage } from '@react-native-ohos/react-native-image-picker/ts';
 
 
 export function createRNPackages(ctx: RNPackageContext): RNPackage[] {
@@ -36,6 +37,7 @@ export function createRNPackages(ctx: RNPackageContext): RNPackage[] {
     new RNImmersivePackage(ctx),
     new RNFileViewerPackage(ctx),
     new DataProcessorPackage(ctx),
-    new DocumentPickerPackage(ctx)
+    new DocumentPickerPackage(ctx),
+    new ImagePickerViewPackage(ctx)
   ];
 }

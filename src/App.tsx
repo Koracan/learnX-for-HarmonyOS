@@ -354,7 +354,7 @@ const AssignmentSubmissionStack = () => {
     >
       <AssignmentSubmissionNavigator.Screen
         name="AssignmentSubmission"
-        component={Empty}
+        component={AssignmentSubmission}
         options={{
           headerLeft: () => <BackButton />,
           ...getTitleOptions(t('assignmentSubmission')),

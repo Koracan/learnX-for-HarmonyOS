@@ -1,13 +1,13 @@
 import React from 'react';
-import { TouchableOpacity, TouchableOpacityProps } from 'react-native';
-import { Text, TextProps, useTheme } from 'react-native-paper';
+import { TouchableOpacity, type TouchableOpacityProps } from 'react-native';
+import { Text, type TextProps, useTheme } from 'react-native-paper';
 import Styles from '../constants/Styles';
 
-export interface TextButtonProps extends Omit<TextProps<string>, 'children'> {
+export interface TextButtonProps extends Omit<TextProps<any>, 'children'> {
   disabled?: boolean;
   containerStyle?: TouchableOpacityProps['style'];
   onPress?: TouchableOpacityProps['onPress'];
-  children?: React.ReactNode;
+  children: React.ReactNode;
 }
 
 const TextButton: React.FC<TextButtonProps> = ({
