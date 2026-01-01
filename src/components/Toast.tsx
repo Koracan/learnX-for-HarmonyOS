@@ -1,5 +1,5 @@
 import { createContext, useCallback, useState } from 'react';
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Snackbar } from 'react-native-paper';
 
 /**
@@ -68,7 +68,7 @@ const ToastProvider: React.FC<React.PropsWithChildren<unknown>> = ({
 
 const styles = StyleSheet.create({
   snackbar: {
-    marginBottom: Platform.OS === 'android' ? 80 : 48,
+    marginBottom: 48,
   },
 });
 

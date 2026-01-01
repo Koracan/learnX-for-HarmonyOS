@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 
 export interface HeaderTitleProps {
@@ -16,7 +16,7 @@ const HeaderTitle: React.FC<React.PropsWithChildren<HeaderTitleProps>> = ({
       style={{
         flexDirection: 'row',
         alignItems: 'baseline',
-        justifyContent: Platform.OS === 'android' ? 'flex-start' : 'center',
+        justifyContent: 'center',
       }}
     >
       <Text
@@ -37,8 +37,8 @@ const HeaderTitle: React.FC<React.PropsWithChildren<HeaderTitleProps>> = ({
 
 const styles = StyleSheet.create({
   title: {
-    fontSize: Platform.OS === 'ios' ? 17 : 20,
-    fontWeight: Platform.OS === 'ios' ? '600' : 'bold',
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   subtitle: {
     fontSize: 12,

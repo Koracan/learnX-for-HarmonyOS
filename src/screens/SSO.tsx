@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { ProgressBar } from 'react-native-paper';
 import WebView, { type WebViewMessageEvent } from 'react-native-webview';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -89,7 +89,6 @@ const SSO: React.FC<Props> = ({ route, navigation }) => {
       <WebView
         style={styles.webview}
         source={{ uri: SSO_LOGIN_URL, headers: { Cookie: '' } }}
-        decelerationRate={Platform.OS === 'ios' ? 'normal' : undefined}
         onLoadProgress={({ nativeEvent }) =>
           setProgress(parseFloat(nativeEvent.progress.toFixed(2)))
         }

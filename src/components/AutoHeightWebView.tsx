@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Linking, Platform } from 'react-native';
+import { Linking } from 'react-native';
 import WebView from 'react-native-webview';
 import type { WebViewProps } from 'react-native-webview';
 import type {
@@ -79,7 +79,6 @@ const AutoHeightWebView: React.FC<
       showsHorizontalScrollIndicator={false}
       showsVerticalScrollIndicator={false}
       onNavigationStateChange={onNavigationStateChange}
-      decelerationRate={Platform.OS === 'ios' ? 'normal' : undefined}
       originWhitelist={['*']}
       sharedCookiesEnabled
       {...props}
@@ -98,7 +97,7 @@ const AutoHeightWebView: React.FC<
         {
           height,
           backgroundColor: 'transparent',
-          opacity: Platform.OS === 'android' ? 0.99 : 1,
+          opacity: 1,
           minHeight: 1,
         },
         props.style,
