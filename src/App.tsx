@@ -4,6 +4,7 @@ import {
   AppState,
   type AppStateStatus,
   StatusBar,
+  BackHandler,
 } from 'react-native';
 import { Immersive } from 'react-native-immersive';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -35,6 +36,7 @@ import {
 import { Provider as StoreProvider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { LearnOHDataProcessor } from 'react-native-learn-oh-data-processor';
 import Login from 'screens/Login';
 import SSO from 'screens/SSO';
 import Notices from 'screens/Notices';
@@ -751,6 +753,24 @@ const Container = () => {
       return () => clearTimeout(timer);
     }
   }, [handleReLogin]);
+
+  // 拦截根部侧滑返回，使其进入后台运行
+  React.useEffect(() => {
+    const onBackPress = () => {
+      if (
+        mainNavigationContainerRef.current &&
+        !mainNavigationContainerRef.current.canGoBack()
+      ) {
+        LearnOHDataProcessor.moveToBackground();
+        return true;
+      }
+      return false;
+    };
+
+    BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () =>
+      BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+  }, []);
 
   const navigationContainerProps = {
     theme:
