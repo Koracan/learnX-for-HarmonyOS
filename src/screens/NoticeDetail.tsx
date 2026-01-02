@@ -38,17 +38,14 @@ const NoticeDetail: React.FC<Props> = ({ route, navigation }) => {
     attachment,
   } = notice;
 
-  const { surface, onSurface, primary } = theme.colors;
-
   const html = useMemo(
     () =>
-      getWebViewTemplate(content || `<p>${t('noAssignmentDescription')}</p>`, {
-        backgroundColor: surface,
-        textColor: onSurface,
-        linkColor: primary,
-        isDark: theme.dark,
-      }),
-    [content, onSurface, primary, surface, theme.dark],
+      getWebViewTemplate(
+        content || `<p>${t('noNoticeContent')}</p>`,
+        theme.dark,
+        theme.colors.surface,
+      ),
+    [content, theme],
   );
 
   const handleFileOpen = () => {
