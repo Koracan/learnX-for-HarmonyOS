@@ -101,11 +101,8 @@ const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
     () =>
       getWebViewTemplate(
         description || `<p>${t('noAssignmentDescription')}</p>`,
-        {
-          isDark: theme.dark,
-          backgroundColor: theme.colors.surface,
-          textColor: theme.colors.onSurface,
-        },
+        theme.dark,
+        theme.colors.surface,
       ),
     [description, theme],
   );
