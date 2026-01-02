@@ -3,8 +3,8 @@ import { Learn2018Helper, addCSRFTokenToUrl } from 'thu-learn-lib';
 import { store } from '../data/store';
 import Urls from '../constants/Urls';
 import { LearnOHDataProcessor } from 'react-native-learn-oh-data-processor';
-import axios from 'axios';
 import mime from 'mime-types';
+import { DeviceEventEmitter } from 'react-native';
 
 export let dataSource: Learn2018Helper;
 
@@ -36,8 +36,6 @@ export const loginWithFingerPrint = async (
 ) => {
   await clearLoginCookies();
 
-  console.log('[login debug] BigInt available:', typeof BigInt !== 'undefined');
-
   await dataSource.login(
     username,
     password,
@@ -50,7 +48,7 @@ export const loginWithFingerPrint = async (
 export const resetDataSource = () => {
   dataSource = new Learn2018Helper({
     fetch: async (url, options) => {
-      const response = await fetch(url, {
+      return fetch(url, {
         ...options,
         headers: {
           ...options?.headers,
@@ -58,36 +56,16 @@ export const resetDataSource = () => {
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         },
       });
-
-      // 调试登录页面内容
-      if (url.toString().includes('id.tsinghua.edu.cn/do/login')) {
-        const clone = response.clone();
-        const text = await clone.text();
-        console.log(`[login debug] Page snippet: ${text.substring(0, 1000)}`);
-        if (text.includes('sm2publicKey')) {
-          console.log('[login debug] sm2publicKey found in page');
-        } else {
-          console.warn('[login debug] sm2publicKey NOT found in page!');
-        }
-      }
-
-      return response;
     },
     provider: () => {
       const state = store.getState();
-      const creds = {
+      return {
         username: state.auth.username || undefined,
         password: state.auth.password || undefined,
         fingerPrint: state.auth.fingerPrint || '',
         fingerGenPrint: state.auth.fingerGenPrint || '',
         fingerGenPrint3: state.auth.fingerGenPrint3 || '',
       };
-      console.log('[dataSource provider] Providing credentials:', {
-        hasUsername: !!creds.username,
-        hasPassword: !!creds.password,
-        hasFingerprint: !!creds.fingerPrint,
-      });
-      return creds;
     },
   });
 };
@@ -128,15 +106,9 @@ const withNativeReAuth = async <T>(
     typeof result === 'string' &&
     (result.includes('login_timeout') || result.trim().startsWith('<'))
   ) {
-    console.log(
-      '[withNativeReAuth] Session expired detected, re-logging in...',
-    );
     // This will use the provider to fetch credentials and login
     await dataSource.login();
     const creds = await getCredentials();
-    console.log(
-      '[withNativeReAuth] Re-login successful, retrying native task...',
-    );
     result = await task(creds.cookieString, creds.csrfToken);
   }
 
@@ -174,46 +146,72 @@ export const submitAssignment = async (
     return;
   }
 
-  const body = new FormData();
-  body.append('xszyid', studentHomeworkId);
-  body.append('zynr', content || '');
-  body.append('isDeleted', remove ? '1' : '0');
-  if (attachment) {
-    body.append('fileupload', {
-      uri: attachment.uri,
-      name: attachment.name,
-      type: mime.lookup(attachment.uri) || 'application/octet-stream',
-    } as any);
-  }
+  await loginWithFingerPrint();
 
   try {
-    await dataSource.login();
-  } catch {
-    throw new Error('Failed to submit the assignment: login failed');
-  }
+    const url = addCSRF(submitAssignmentUrl);
+    const cookies = await CookieManager.get(Urls.learn);
+    const cookieString = Object.keys(cookies)
+      .map(key => `${key.trim()}=${cookies[key].value}`)
+      .join('; ');
+    const csrfToken = dataSource.getCSRFToken();
 
-  const cookies = await CookieManager.get(Urls.learn);
-  const cookieString = Object.keys(cookies)
-    .map(key => `${key}=${cookies[key].value}`)
-    .join('; ');
+    const params = {
+      xszyid: studentHomeworkId,
+      zynr: content || '',
+      isDeleted: remove ? '1' : '0',
+    };
 
-  const response = await axios.post(
-    addCSRFTokenToUrl(submitAssignmentUrl, dataSource.getCSRFToken()),
-    body,
-    {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-        Cookie: cookieString,
-      },
-      onUploadProgress: progressEvent => {
-        if (onProgress && progressEvent.total) {
-          onProgress(progressEvent.loaded / progressEvent.total);
+    let filePath: string | undefined;
+    if (attachment) {
+      filePath = attachment.uri.replace('file://', '');
+    }
+
+    const requestId = `upload_${Date.now()}`;
+    const subscription = DeviceEventEmitter.addListener(
+      'LearnOHUploadProgress',
+      e => {
+        if (e.requestId === requestId && onProgress && e.total > 0) {
+          onProgress?.(
+            parseFloat((e.total ? e.loaded / e.total : 0).toFixed(2)),
+          );
         }
       },
-    },
-  );
+    );
 
-  if (response.data.result !== 'success') {
-    throw new Error(response.data.msg || 'Failed to submit the assignment');
+    let resultStr: string;
+    try {
+      resultStr = await LearnOHDataProcessor.post(
+        url,
+        cookieString,
+        csrfToken,
+        JSON.stringify(params),
+        filePath,
+        attachment?.name,
+        attachment
+          ? mime.lookup(attachment.name) || 'application/octet-stream'
+          : undefined,
+        requestId,
+      );
+    } finally {
+      subscription.remove();
+    }
+
+    let resData: any;
+    try {
+      resData = JSON.parse(resultStr);
+    } catch (e) {
+      if (!resultStr || resultStr.includes('error')) {
+        throw new Error('Failed to submit the assignment: invalid response');
+      }
+      return;
+    }
+
+    if (resData?.result === 'error') {
+      throw new Error('Failed to submit the assignment: ' + resData?.msg);
+    }
+  } catch (e: any) {
+    console.error('[submitAssignment] error:', e.message);
+    throw e;
   }
 };
