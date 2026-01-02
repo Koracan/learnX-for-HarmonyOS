@@ -169,7 +169,6 @@ const FileDetail: React.FC<Props> = ({ route, navigation }) => {
           <Pdf
             style={Styles.flex1}
             source={{ uri: path }}
-            trustAllCerts={false}
             fitPolicy={0}
           />
         ) : (

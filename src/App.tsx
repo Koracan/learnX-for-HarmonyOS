@@ -792,6 +792,7 @@ const Container = () => {
         detailNavigationContainerRef={
           showDetail ? detailNavigationContainerRef : null
         }
+        masterNavigationContainerRef={mainNavigationContainerRef}
         showDetail={showDetail}
       >
         <RootNavigator.Navigator
