@@ -1,20 +1,22 @@
 import React from 'react';
 import { Alert, StyleSheet } from 'react-native';
-import { type NativeStackScreenProps } from '@react-navigation/native-stack';
+import { type StackScreenProps } from '@react-navigation/stack';
 import { Text } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from 'data/store';
 import { setSetting } from 'data/actions/settings';
 import { removeFileDir } from 'helpers/fs';
 import { isLocaleChinese, t } from 'helpers/i18n';
 import useToast from 'hooks/useToast';
+import useNavigationAnimation from 'hooks/useNavigationAnimation';
 import TableCell from 'components/TableCell';
 import SafeArea from 'components/SafeArea';
 import ScrollView from 'components/ScrollView';
 import { type SettingsStackParams } from './types';
 
-type Props = NativeStackScreenProps<SettingsStackParams, 'FileSettings'>;
+type Props = StackScreenProps<SettingsStackParams, 'FileSettings'>;
 
-const FileSettings: React.FC<Props> = () => {
+const FileSettings: React.FC<Props> = (props) => {
+  useNavigationAnimation(props as any);
   const toast = useToast();
   const dispatch = useAppDispatch();
   const fileUseDocumentDir = useAppSelector(

@@ -6,7 +6,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { StackScreenProps } from '@react-navigation/stack';
 import { useIsFocused } from '@react-navigation/native';
 import { Searchbar, Text, useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,7 +23,7 @@ import { t } from 'helpers/i18n';
 import type { SearchStackParams } from 'screens/types';
 import useDetailNavigator from 'hooks/useDetailNavigator';
 
-type Props = NativeStackScreenProps<SearchStackParams, 'Search'>;
+type Props = StackScreenProps<SearchStackParams, 'Search'>;
 
 const Search: React.FC<Props> = ({ navigation, route }) => {
   const theme = useTheme();
@@ -53,7 +53,10 @@ const Search: React.FC<Props> = ({ navigation, route }) => {
 
   const handlePush = (name: any, item: any) => {
     if (detailNavigator) {
-      detailNavigator.navigate(name, item);
+      detailNavigator.navigate(name, {
+        ...item,
+        disableAnimation: true,
+      });
     } else {
       navigation.push(name, item);
     }

@@ -12,10 +12,10 @@ import { setSSOInProgress } from 'data/actions/auth';
 import { setSetting } from 'data/actions/settings';
 import { clearLoginCookies } from 'data/source';
 import { t } from 'helpers/i18n';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { StackScreenProps } from '@react-navigation/stack';
 import type { LoginStackParams } from 'screens/types';
 
-type Props = NativeStackScreenProps<LoginStackParams, 'Login'>;
+type Props = StackScreenProps<LoginStackParams, 'Login'>;
 
 /**
  * 登录页：收集用户名/密码，跳转 SSO 完成统一认证。

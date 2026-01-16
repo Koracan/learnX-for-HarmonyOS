@@ -17,9 +17,12 @@ import {
   type ParamListBase,
 } from '@react-navigation/native';
 import {
+  createStackNavigator,
+  type StackNavigationOptions,
+  CardStyleInterpolators,
+} from '@react-navigation/stack';
+import {
   createNativeStackNavigator,
-  type NativeStackNavigationOptions,
-  type NativeStackScreenProps,
 } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import {
@@ -37,6 +40,10 @@ import { Provider as StoreProvider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { LearnOHDataProcessor } from 'react-native-learn-oh-data-processor';
+import { enableScreens } from 'react-native-screens';
+
+enableScreens(false);
+
 import Login from 'screens/Login';
 import SSO from 'screens/SSO';
 import Notices from 'screens/Notices';
@@ -101,12 +108,16 @@ const BackButton = () => {
 };
 
 const getTitleOptions = (title: string, subtitle?: string) => {
-  return {
+  const options = {
     title,
     headerTitle: () => <HeaderTitle title={title} subtitle={subtitle} />,
     headerTitleAlign: 'center' as const,
     headerShadowVisible: false,
+    animationEnabled: true,
+    gestureEnabled: true,
+    cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
   };
+  return options;
 };
 
 const getScreenOptions = <P extends ParamListBase, N extends keyof P>(
@@ -115,7 +126,10 @@ const getScreenOptions = <P extends ParamListBase, N extends keyof P>(
 ) =>
   function ({
     navigation,
-  }: NativeStackScreenProps<P, N>): NativeStackNavigationOptions {
+  }: {
+    navigation: any;
+    route: any;
+  }): StackNavigationOptions {
     return {
       ...getTitleOptions(title),
       headerRight: hideSearch
@@ -126,13 +140,11 @@ const getScreenOptions = <P extends ParamListBase, N extends keyof P>(
               icon={props => <MaterialIcons {...props} name="search" />}
             />
           ),
-    };
+    } as any;
   };
 
 const getDetailScreenOptions = <P extends ParamListBase, N extends keyof P>() =>
-  function ({
-    route,
-  }: NativeStackScreenProps<P, N>): NativeStackNavigationOptions {
+  function ({ route }: { route: any }): StackNavigationOptions {
     const params = route.params as any;
     let title = '';
     let subtitle = '';
@@ -149,24 +161,22 @@ const getDetailScreenOptions = <P extends ParamListBase, N extends keyof P>() =>
       subtitle = params?.courseTeacherName || params?.publisher || '';
     }
 
-    return getTitleOptions(title, subtitle);
+    return getTitleOptions(title, subtitle) as any;
   };
 
 const RootNavigator = createNativeStackNavigator<RootStackParams>();
-const CourseStackNavigator = createNativeStackNavigator<CourseStackParams>();
-const NoticeStackNavigator = createNativeStackNavigator<NoticeStackParams>();
-const AssignmentStackNavigator =
-  createNativeStackNavigator<AssignmentStackParams>();
-const FileStackNavigator = createNativeStackNavigator<FileStackParams>();
-const SettingsStackNavigator =
-  createNativeStackNavigator<SettingsStackParams>();
-const LoginNavigator = createNativeStackNavigator<LoginStackParams>();
-const SearchNavigator = createNativeStackNavigator<SearchStackParams>();
-const CourseXNavigator = createNativeStackNavigator<CourseXStackParams>();
+const CourseStackNavigator = createStackNavigator<CourseStackParams>();
+const NoticeStackNavigator = createStackNavigator<NoticeStackParams>();
+const AssignmentStackNavigator = createStackNavigator<AssignmentStackParams>();
+const FileStackNavigator = createStackNavigator<FileStackParams>();
+const SettingsStackNavigator = createStackNavigator<SettingsStackParams>();
+const LoginNavigator = createStackNavigator<LoginStackParams>();
+const SearchNavigator = createStackNavigator<SearchStackParams>();
+const CourseXNavigator = createStackNavigator<CourseXStackParams>();
 const AssignmentSubmissionNavigator =
-  createNativeStackNavigator<AssignmentSubmissionStackParams>();
+  createStackNavigator<AssignmentSubmissionStackParams>();
 const MainNavigator = createBottomTabNavigator<MainTabParams>();
-const DetailNavigator = createNativeStackNavigator<DetailStackParams>();
+const DetailNavigator = createStackNavigator<DetailStackParams>();
 
 const { LightTheme, DarkTheme } = adaptNavigationTheme({
   reactNavigationLight: NavigationDefaultTheme,
@@ -380,7 +390,6 @@ const CourseStack = () => {
       <CourseStackNavigator.Screen
         name="Courses"
         component={Courses}
-        options={getScreenOptions(t('courses'))}
       />
       <CourseStackNavigator.Screen
         name="CourseDetail"
@@ -422,7 +431,6 @@ const NoticeStack = () => {
       <NoticeStackNavigator.Screen
         name="Notices"
         component={Notices}
-        options={getScreenOptions(t('notices'))}
       />
       <NoticeStackNavigator.Screen
         name="NoticeDetail"
@@ -449,7 +457,6 @@ const AssignmentStack = () => {
       <AssignmentStackNavigator.Screen
         name="Assignments"
         component={Assignments}
-        options={getScreenOptions(t('assignments'))}
       />
       <AssignmentStackNavigator.Screen
         name="AssignmentDetail"
@@ -476,11 +483,7 @@ const AssignmentStack = () => {
 const FileStack = () => {
   return (
     <FileStackNavigator.Navigator screenOptions={getScreenOptions(t('files'))}>
-      <FileStackNavigator.Screen
-        name="Files"
-        component={Files}
-        options={getScreenOptions(t('files'))}
-      />
+      <FileStackNavigator.Screen name="Files" component={Files} />
       <FileStackNavigator.Screen
         name="FileDetail"
         component={FileDetail as any}
@@ -838,7 +841,8 @@ const Container = () => {
         <RootNavigator.Navigator
           screenOptions={{
             headerShown: false,
-            presentation: 'fullScreenModal',
+            presentation: 'card',
+            animation: 'default',
           }}
         >
           {showMain ? (

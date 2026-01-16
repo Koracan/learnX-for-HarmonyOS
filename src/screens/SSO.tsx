@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { ProgressBar } from 'react-native-paper';
 import WebView, { type WebViewMessageEvent } from 'react-native-webview';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { StackScreenProps } from '@react-navigation/stack';
 import type { OnShouldStartLoadWithRequest } from 'react-native-webview/lib/WebViewTypes';
 import { useAppDispatch } from 'data/store';
 import { login, setSSOInProgress } from 'data/actions/auth';
@@ -18,7 +18,7 @@ const SSO_LOGIN_URL =
 const LEARN_ROAMING_URL =
   'https://learn.tsinghua.edu.cn/f/j_spring_security_thauth_roaming_entry';
 
-type Props = NativeStackScreenProps<LoginStackParams, 'SSO'>;
+type Props = StackScreenProps<LoginStackParams, 'SSO'>;
 
 /**
  * SSO 页面：加载统一认证 WebView，拦截指纹提交后回调登录。

@@ -1,17 +1,19 @@
 import React from 'react';
 import { Linking, StyleSheet } from 'react-native';
-import { type NativeStackScreenProps } from '@react-navigation/native-stack';
+import { type StackScreenProps } from '@react-navigation/stack';
 import { Title, Text, useTheme } from 'react-native-paper';
 import DeviceInfo from 'constants/DeviceInfo';
 import SafeArea from 'components/SafeArea';
 import ScrollView from 'components/ScrollView';
+import useNavigationAnimation from 'hooks/useNavigationAnimation';
 import { t } from 'helpers/i18n';
 import { type SettingsStackParams } from './types';
 const packageJson = require('../../package.json');
 
-type Props = NativeStackScreenProps<SettingsStackParams, 'About'>;
+type Props = StackScreenProps<SettingsStackParams, 'About'>;
 
-const About: React.FC<Props> = () => {
+const About: React.FC<Props> = (props) => {
+  useNavigationAnimation(props as any);
   const theme = useTheme();
 
   return (

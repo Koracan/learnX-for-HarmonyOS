@@ -5,7 +5,7 @@ import React, {
   useState,
 } from 'react';
 import { FlatList, RefreshControl, View, StyleSheet } from 'react-native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { StackNavigationProp } from '@react-navigation/stack';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import type { Assignment, Course, File, Notice } from 'data/types/state';
 import { setSetting } from 'data/actions/settings';
@@ -41,10 +41,10 @@ export interface FilterListProps<T> {
   hidden: T[];
   itemComponent: React.FC<React.PropsWithChildren<ItemComponentProps<T>>>;
   navigation:
-    | NativeStackNavigationProp<NoticeStackParams, 'Notices'>
-    | NativeStackNavigationProp<AssignmentStackParams, 'Assignments'>
-    | NativeStackNavigationProp<FileStackParams, 'Files'>
-    | NativeStackNavigationProp<CourseStackParams, 'Courses'>;
+    | StackNavigationProp<NoticeStackParams, 'Notices'>
+    | StackNavigationProp<AssignmentStackParams, 'Assignments'>
+    | StackNavigationProp<FileStackParams, 'Files'>
+    | StackNavigationProp<CourseStackParams, 'Courses'>;
   onItemPress?: (item: T) => void;
   refreshing: boolean;
   onRefresh?: () => void;

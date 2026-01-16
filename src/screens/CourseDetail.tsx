@@ -1,7 +1,7 @@
-import React, { memo, useMemo, useState } from 'react';
-import { Dimensions } from 'react-native';
-import { useTheme } from 'react-native-paper';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React, { memo, useMemo, useState, useEffect } from 'react';
+import { Dimensions, InteractionManager, View } from 'react-native';
+import { useTheme, ActivityIndicator } from 'react-native-paper';
+import type { StackScreenProps } from '@react-navigation/stack';
 import { useNavigation } from '@react-navigation/native';
 import {
   TabBar,
@@ -18,11 +18,13 @@ import AssignmentCard from 'components/AssignmentCard';
 import FileCard from 'components/FileCard';
 import Empty from 'components/Empty';
 import FlatList from 'components/FlatList';
+import useNavigationAnimation from 'hooks/useNavigationAnimation';
 import { t } from 'helpers/i18n';
 import type { CourseStackParams } from './types';
 import type { Notice, Assignment, File } from 'data/types/state';
+import Styles from 'constants/Styles';
 
-type Props = NativeStackScreenProps<CourseStackParams, 'CourseDetail'>;
+type Props = StackScreenProps<CourseStackParams, 'CourseDetail'>;
 
 const NoticesTab = memo(
   ({ courseId, data }: { courseId: string; data: Notice[] }) => {
@@ -133,15 +135,24 @@ const FilesTab = memo(
 );
 
 const CourseDetail: React.FC<Props> = ({ route, navigation }) => {
+  useNavigationAnimation({ route, navigation } as any);
   const course = route.params;
   const theme = useTheme();
 
   const [index, setIndex] = useState(0);
+  const [isReady, setIsReady] = useState(false);
   const [routes] = useState([
     { key: 'notices', title: t('notices') },
     { key: 'assignments', title: t('assignments') },
     { key: 'files', title: t('files') },
   ]);
+
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => {
+      setIsReady(true);
+    });
+    return () => task.cancel();
+  }, []);
 
   const allNotices = useAppSelector(state => state.notices.items);
   const allAssignments = useAppSelector(state => state.assignments.items);
@@ -187,6 +198,14 @@ const CourseDetail: React.FC<Props> = ({ route, navigation }) => {
   React.useLayoutEffect(() => {
     navigation.setOptions({ title: course.name });
   }, [navigation, course.name]);
+
+  if (!isReady) {
+    return (
+      <View style={Styles.flexCenter}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
 
   return (
     <TabView

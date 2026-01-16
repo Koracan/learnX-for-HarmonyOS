@@ -1,5 +1,5 @@
-import React, { useMemo, useLayoutEffect, useCallback } from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useMemo, useLayoutEffect, useCallback, useState, useEffect } from 'react';
+import { StyleSheet, View, InteractionManager } from 'react-native';
 import {
   Caption,
   Divider,
@@ -7,8 +7,9 @@ import {
   useTheme,
   Text,
   Chip,
+  ActivityIndicator,
 } from 'react-native-paper';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { StackScreenProps } from '@react-navigation/stack';
 import { StackActions } from '@react-navigation/native';
 import dayjs from 'dayjs';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -26,6 +27,7 @@ import IconButton from '../components/IconButton';
 import Styles from '../constants/Styles';
 import type { AssignmentStackParams } from './types';
 import useDetailNavigator from '../hooks/useDetailNavigator';
+import useNavigationAnimation from '../hooks/useNavigationAnimation';
 import { getWebViewTemplate, removeTags } from '../helpers/html';
 import {
   getAssignmentGradeLevelDescription,
@@ -33,13 +35,21 @@ import {
   t,
 } from '../helpers/i18n';
 import { stripExtension, getExtension } from '../helpers/fs';
-import type { File } from '../data/types/state';
 
-type Props = NativeStackScreenProps<AssignmentStackParams, 'AssignmentDetail'>;
+type Props = StackScreenProps<AssignmentStackParams, 'AssignmentDetail'>;
 
 const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
+  useNavigationAnimation({ route, navigation } as any);
   const theme = useTheme();
   const detailNavigator = useDetailNavigator();
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => {
+      setIsReady(true);
+    });
+    return () => task.cancel();
+  }, []);
 
   const {
     courseName,
@@ -70,7 +80,10 @@ const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
   const handleSubmit = useCallback(() => {
     if (detailNavigator) {
       detailNavigator.dispatch(
-        StackActions.push('AssignmentSubmission', route.params),
+        StackActions.push('AssignmentSubmission', {
+          ...route.params,
+          disableAnimation: true,
+        }),
       );
     } else {
       navigation.navigate(
@@ -115,7 +128,8 @@ const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
         title: stripExtension(fileAttachment.name),
         downloadUrl: fileAttachment.downloadUrl,
         fileType: getExtension(fileAttachment.name) ?? '',
-      } as File;
+        disableAnimation: (route.params as any)?.disableAnimation,
+      } as any;
 
       navigation.push('FileDetail', data);
     }
@@ -338,11 +352,17 @@ const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
               </React.Fragment>
             );
           })}
-        <AutoHeightWebView
-          source={{
-            html,
-          }}
-        />
+        {isReady ? (
+          <AutoHeightWebView
+            source={{
+              html,
+            }}
+          />
+        ) : (
+          <View style={{ padding: 32, alignItems: 'center' }}>
+            <ActivityIndicator />
+          </View>
+        )}
       </ScrollView>
     </SafeArea>
   );

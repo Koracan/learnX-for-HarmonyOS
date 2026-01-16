@@ -1,6 +1,6 @@
 import React from 'react';
 import { Alert, StyleSheet } from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { StackScreenProps } from '@react-navigation/stack';
 import SafeArea from 'components/SafeArea';
 import TableCell from 'components/TableCell';
 import ScrollView from 'components/ScrollView';
@@ -12,7 +12,7 @@ import useDetailNavigator from 'hooks/useDetailNavigator';
 import { t } from 'helpers/i18n';
 import { type SettingsStackParams } from './types';
 
-type Props = NativeStackScreenProps<SettingsStackParams, 'Settings'>;
+type Props = StackScreenProps<SettingsStackParams, 'Settings'>;
 
 /**
  * 设置屏幕：显示用户设置和应用偏好。

@@ -5,7 +5,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { StackScreenProps } from '@react-navigation/stack';
 import DocumentPicker from '@react-native-ohos/react-native-document-picker';
 import { launchImageLibrary } from '@react-native-ohos/react-native-image-picker';
 import {
@@ -28,6 +28,7 @@ import {
 import dayjs from 'dayjs';
 import mimeTypes from 'mime-types';
 import type { RemoteFile } from 'thu-learn-lib';
+import useNavigationAnimation from 'hooks/useNavigationAnimation';
 import SafeArea from 'components/SafeArea';
 import TextButton from 'components/TextButton';
 import ScrollView from 'components/ScrollView';
@@ -45,7 +46,7 @@ import {
 import useToast from 'hooks/useToast';
 import type { AssignmentSubmissionStackParams } from './types';
 
-type Props = NativeStackScreenProps<
+type Props = StackScreenProps<
   AssignmentSubmissionStackParams,
   'AssignmentSubmission'
 >;
@@ -58,6 +59,7 @@ interface AttachmentResult {
 }
 
 const AssignmentSubmission: React.FC<Props> = ({ navigation, route }) => {
+  useNavigationAnimation({ navigation, route } as any);
   const theme = useTheme();
   const toast = useToast();
 

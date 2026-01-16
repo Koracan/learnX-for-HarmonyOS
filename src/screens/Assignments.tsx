@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { StackScreenProps } from '@react-navigation/stack';
 import type { AssignmentStackParams } from 'screens/types';
 import { useAppDispatch, useAppSelector } from 'data/store';
 import { getAllAssignmentsForCourses } from 'data/actions/assignments';
@@ -9,7 +9,7 @@ import FilterList from 'components/FilterList';
 import { selectFilteredAssignments } from 'data/selectors/filteredData';
 import useDetailNavigator from 'hooks/useDetailNavigator';
 
-type Props = NativeStackScreenProps<AssignmentStackParams, 'Assignments'>;
+type Props = StackScreenProps<AssignmentStackParams, 'Assignments'>;
 
 /**
  * 作业列表页：展示课程作业并支持下拉刷新。
@@ -34,7 +34,10 @@ const Assignments: React.FC<Props> = ({ navigation }) => {
   const handlePress = useCallback(
     (item: Assignment) => {
       if (detailNavigator) {
-        detailNavigator.navigate('AssignmentDetail', item);
+        detailNavigator.navigate('AssignmentDetail', {
+          ...item,
+          disableAnimation: true,
+        });
       } else {
         navigation.push('AssignmentDetail', item);
       }

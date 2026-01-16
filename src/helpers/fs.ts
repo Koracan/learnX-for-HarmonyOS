@@ -76,15 +76,12 @@ export const downloadFile = async (
     await loginWithFingerPrint();
   }
   url = addCSRF(url);
-  console.log(`[fs] Final download URL: ${url}`);
 
   // 获取 Cookie
   const cookies = await CookieManager.get(Urls.learn);
   const cookiesString = Object.values(cookies)
     .map(({ name, value }) => `${name}=${value}`)
     .join('; ');
-
-  console.log(`[fs] Cookies for download: ${cookiesString}`);
 
   const downloadPromise = fs.downloadFile({
     fromUrl: url,
@@ -98,7 +95,6 @@ export const downloadFile = async (
       console.log(
         `[fs] Download started. JobID: ${res.jobId}, ContentLength: ${res.contentLength}`,
       );
-      console.log(`[fs] Response headers: ${JSON.stringify(res.headers)}`);
     },
     progress: result => {
       if (result.contentLength > 0) {

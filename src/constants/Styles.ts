@@ -13,6 +13,11 @@ const Styles = StyleSheet.create({
   flex1: {
     flex: 1,
   },
+  flexCenter: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   ml0: {
     marginLeft: 0,
   },

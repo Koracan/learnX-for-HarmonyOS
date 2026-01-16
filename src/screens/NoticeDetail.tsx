@@ -1,31 +1,34 @@
-import React, { useMemo } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { Text, useTheme, Caption, Divider, List } from 'react-native-paper';
+import React, { useMemo, useState, useEffect } from 'react';
+import { ScrollView, StyleSheet, View, InteractionManager } from 'react-native';
+import { Text, useTheme, Caption, Divider, List, ActivityIndicator } from 'react-native-paper';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { StackScreenProps } from '@react-navigation/stack';
 import type { NoticeStackParams } from 'screens/types';
 import AutoHeightWebView from 'components/AutoHeightWebView';
 import { getWebViewTemplate } from 'helpers/html';
 import dayjs from 'dayjs';
 import { isLocaleChinese, t } from 'helpers/i18n';
 import { stripExtension, getExtension } from 'helpers/fs';
-import type { File } from 'data/types/state';
 import Styles from 'constants/Styles';
+import useNavigationAnimation from 'hooks/useNavigationAnimation';
 
-type Props = NativeStackScreenProps<NoticeStackParams, 'NoticeDetail'>;
+type Props = StackScreenProps<NoticeStackParams, 'NoticeDetail'>;
 /**
  * 公告详情页：展示公告标题、课程与正文内容。
  */
 const NoticeDetail: React.FC<Props> = ({ route, navigation }) => {
+  useNavigationAnimation({ route, navigation } as any);
   const theme = useTheme();
   const notice = route.params;
+  const [isReady, setIsReady] = useState(false);
 
-  console.log(`[NoticeDetail] Rendering notice:`, {
-    id: notice.id,
-    hasContent: !!notice.content,
-    contentLength: notice.content?.length,
-    hasAttachment: !!notice.attachment,
-  });
+  useEffect(() => {
+    // 延迟渲染重型组件（如 WebView），等待导航动画结束
+    const task = InteractionManager.runAfterInteractions(() => {
+      setIsReady(true);
+    });
+    return () => task.cancel();
+  }, []);
 
   const {
     id,
@@ -57,7 +60,8 @@ const NoticeDetail: React.FC<Props> = ({ route, navigation }) => {
         title: stripExtension(attachment.name),
         downloadUrl: attachment.downloadUrl,
         fileType: getExtension(attachment.name) ?? '',
-      } as File;
+        disableAnimation: (route.params as any)?.disableAnimation,
+      } as any;
 
       navigation.push('FileDetail', data);
     }
@@ -96,7 +100,13 @@ const NoticeDetail: React.FC<Props> = ({ route, navigation }) => {
           <Divider />
         </>
       )}
-      <AutoHeightWebView source={{ html }} />
+      {isReady ? (
+        <AutoHeightWebView source={{ html }} />
+      ) : (
+        <View style={styles.loader}>
+          <ActivityIndicator />
+        </View>
+      )}
     </ScrollView>
   );
 };
@@ -116,6 +126,10 @@ const styles = StyleSheet.create({
   },
   attachmentSection: {
     marginTop: 16,
+  },
+  loader: {
+    padding: 32,
+    alignItems: 'center',
   },
 });
 

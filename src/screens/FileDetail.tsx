@@ -5,7 +5,7 @@ import React, {
   useLayoutEffect,
   useState,
 } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, InteractionManager } from 'react-native';
 import {
   useTheme,
   Text,
@@ -14,8 +14,9 @@ import {
   Caption,
   Divider,
   Chip,
+  ActivityIndicator,
 } from 'react-native-paper';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { StackScreenProps } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import WebView from 'react-native-webview';
 import Pdf from 'react-native-pdf';
@@ -25,17 +26,18 @@ import { downloadFile, openFile, shareFile, formatSize } from 'helpers/fs';
 import { isLocaleChinese, t } from 'helpers/i18n';
 import { canRenderInWebview, needWhiteBackground } from 'helpers/html';
 import useToast from 'hooks/useToast';
+import useNavigationAnimation from 'hooks/useNavigationAnimation';
 import type { FileStackParams } from 'screens/types';
 import SafeArea from 'components/SafeArea';
-import Skeleton from 'components/Skeleton';
 import IconButton from 'components/IconButton';
 import ScrollView from 'components/ScrollView';
 import fs from 'react-native-fs';
 import { SplitViewContext } from 'components/SplitView';
 
-type Props = NativeStackScreenProps<FileStackParams, 'FileDetail'>;
+type Props = StackScreenProps<FileStackParams, 'FileDetail'>;
 
 const FileDetail: React.FC<Props> = ({ route, navigation }) => {
+  useNavigationAnimation({ route, navigation } as any);
   const file = route.params;
   const theme = useTheme();
   const toast = useToast();
@@ -46,6 +48,14 @@ const FileDetail: React.FC<Props> = ({ route, navigation }) => {
   const [error, setError] = useState(false);
   const [fileSize, setFileSize] = useState(file.size);
   const [showInfo, setShowInfo] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => {
+      setIsReady(true);
+    });
+    return () => task.cancel();
+  }, []);
 
   const canRender =
     path && (file.fileType === 'pdf' || canRenderInWebview(file.fileType));
@@ -151,18 +161,9 @@ const FileDetail: React.FC<Props> = ({ route, navigation }) => {
             {t('fileDownloadFailed')}
           </Text>
         </View>
-      ) : !path ? (
-        <View style={styles.skeletons}>
-          <Skeleton />
-          <Skeleton />
-          <Skeleton />
-          <Skeleton />
-          <Skeleton />
-          <Skeleton />
-          <Skeleton />
-          <Skeleton />
-          <Skeleton />
-          <Skeleton />
+      ) : !path || !isReady ? (
+        <View style={Styles.flexCenter}>
+          <ActivityIndicator />
         </View>
       ) : !showInfo && canRender ? (
         file.fileType === 'pdf' ? (

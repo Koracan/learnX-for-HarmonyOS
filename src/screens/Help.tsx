@@ -1,15 +1,17 @@
 import React from 'react';
 import { Linking, StyleSheet } from 'react-native';
-import { type NativeStackScreenProps } from '@react-navigation/native-stack';
+import { type StackScreenProps } from '@react-navigation/stack';
 import { Title, Text, useTheme } from 'react-native-paper';
 import SafeArea from 'components/SafeArea';
 import ScrollView from 'components/ScrollView';
+import useNavigationAnimation from 'hooks/useNavigationAnimation';
 import { t } from 'helpers/i18n';
 import { type SettingsStackParams } from './types';
 
-type Props = NativeStackScreenProps<SettingsStackParams, 'Help'>;
+type Props = StackScreenProps<SettingsStackParams, 'Help'>;
 
-const Help: React.FC<Props> = () => {
+const Help: React.FC<Props> = (props) => {
+  useNavigationAnimation(props as any);
   const theme = useTheme();
 
   return (

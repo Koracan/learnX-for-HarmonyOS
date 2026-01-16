@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { StackScreenProps } from '@react-navigation/stack';
 import type { NoticeStackParams } from 'screens/types';
 import { useAppDispatch, useAppSelector } from 'data/store';
 import { getAllNoticesForCourses } from 'data/actions/notices';
@@ -9,7 +9,7 @@ import FilterList from 'components/FilterList';
 import { selectFilteredNotices } from 'data/selectors/filteredData';
 import useDetailNavigator from 'hooks/useDetailNavigator';
 
-type Props = NativeStackScreenProps<NoticeStackParams, 'Notices'>;
+type Props = StackScreenProps<NoticeStackParams, 'Notices'>;
 /**
  * 公告列表页：展示课程公告并支持下拉刷新。
  */
@@ -33,7 +33,10 @@ const Notices: React.FC<Props> = ({ navigation }) => {
   const handlePress = useCallback(
     (item: Notice) => {
       if (detailNavigator) {
-        detailNavigator.navigate('NoticeDetail', item);
+        detailNavigator.navigate('NoticeDetail', {
+          ...item,
+          disableAnimation: true,
+        });
       } else {
         navigation.push('NoticeDetail', item);
       }

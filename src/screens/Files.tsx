@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { StackScreenProps } from '@react-navigation/stack';
 import type { FileStackParams } from 'screens/types';
 import { useAppDispatch, useAppSelector } from 'data/store';
 import { getAllFilesForCourses } from 'data/actions/files';
@@ -9,7 +9,7 @@ import FilterList from 'components/FilterList';
 import { selectFilteredFiles } from 'data/selectors/filteredData';
 import useDetailNavigator from 'hooks/useDetailNavigator';
 
-type Props = NativeStackScreenProps<FileStackParams, 'Files'>;
+type Props = StackScreenProps<FileStackParams, 'Files'>;
 
 /**
  * 文件列表页：展示课程文件并支持下拉刷新。
@@ -34,7 +34,10 @@ const Files: React.FC<Props> = ({ navigation }) => {
   const handlePress = useCallback(
     (item: File) => {
       if (detailNavigator) {
-        detailNavigator.navigate('FileDetail', item);
+        detailNavigator.navigate('FileDetail', {
+          ...item,
+          disableAnimation: true,
+        });
       } else {
         navigation.push('FileDetail', item);
       }

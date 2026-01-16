@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
-import { type NativeStackScreenProps } from '@react-navigation/native-stack';
+import { type StackScreenProps } from '@react-navigation/stack';
 import TableCell from 'components/TableCell';
 import SafeArea from 'components/SafeArea';
 import FlatList from 'components/FlatList';
@@ -12,11 +12,13 @@ import {
   setCurrentSemester,
 } from 'data/actions/semesters';
 import { getSemesterTextFromId } from 'helpers/parse';
+import useNavigationAnimation from 'hooks/useNavigationAnimation';
 import { type SettingsStackParams } from './types';
 
-type Props = NativeStackScreenProps<SettingsStackParams, 'SemesterSelection'>;
+type Props = StackScreenProps<SettingsStackParams, 'SemesterSelection'>;
 
-const SemesterSelection: React.FC<Props> = () => {
+const SemesterSelection: React.FC<Props> = (props) => {
+  useNavigationAnimation(props as any);
   const dispatch = useAppDispatch();
   const semesters = useAppSelector(state => state.semesters.items);
   const fetching = useAppSelector(state => state.semesters.fetching);

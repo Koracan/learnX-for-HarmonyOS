@@ -8,13 +8,18 @@ const katex = require('./preval/katex.preval.js');
 /**
  * 移除 HTML 标签，提取纯文本摘要。
  */
-export const removeTags = (html?: string) => {
+export const removeTags = (html?: string, limit = 150) => {
   if (!html) return '';
   try {
+    // 仅仅处理前一小部分字符以提高性能
+    const snippet = html.slice(0, limit * 5);
     return he
-      .decode(html.replace(/<!--(.*?)-->/g, '').replace(/<(?:.|\n)*?>/gm, ''))
+      .decode(
+        snippet.replace(/<!--(.*?)-->/g, '').replace(/<(?:.|\n)*?>/gm, ''),
+      )
       .replace(/\s\s+/g, ' ')
-      .trim();
+      .trim()
+      .slice(0, limit);
   } catch {
     return '';
   }

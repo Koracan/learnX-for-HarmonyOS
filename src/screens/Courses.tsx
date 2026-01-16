@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { StackScreenProps } from '@react-navigation/stack';
 import CourseCard from 'components/CourseCard';
 import { useAppDispatch, useAppSelector } from 'data/store';
 import { getCoursesForSemester } from 'data/actions/courses';
@@ -11,7 +11,7 @@ import { getSemesterTextFromId } from 'helpers/parse';
 import { selectFilteredCourses } from 'data/selectors/filteredData';
 import useDetailNavigator from 'hooks/useDetailNavigator';
 
-type Props = NativeStackScreenProps<CourseStackParams, 'Courses'>;
+type Props = StackScreenProps<CourseStackParams, 'Courses'>;
 
 const Courses: React.FC<Props> = ({ navigation }) => {
   const dispatch = useAppDispatch();
@@ -33,7 +33,10 @@ const Courses: React.FC<Props> = ({ navigation }) => {
 
   const handlePress = (item: Course) => {
     if (detailNavigator) {
-      detailNavigator.navigate('CourseDetail', item);
+      detailNavigator.navigate('CourseDetail', {
+        ...item,
+        disableAnimation: true,
+      });
     } else {
       navigation.push('CourseDetail', item);
     }
