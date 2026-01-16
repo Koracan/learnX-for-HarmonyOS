@@ -84,6 +84,8 @@ export const addCSRF = (url: string) => {
  * Wrapper for Native TurboModule requests to handle automatic re-authentication.
  * Similar to thu-learn-lib's withReAuth mechanism.
  */
+let reAuthPromise: Promise<void> | null = null;
+
 const withNativeReAuth = async (
   task: (cookieString: string, csrfToken: string) => Promise<string>,
 ): Promise<string> => {
@@ -104,7 +106,20 @@ const withNativeReAuth = async (
     console.log(
       '[withNativeReAuth] Detected empty result, re-authenticating...',
     );
-    await loginWithFingerPrint();
+
+    // Check if another request is already re-authenticating
+    if (!reAuthPromise) {
+      reAuthPromise = (async () => {
+        try {
+          await loginWithFingerPrint();
+        } finally {
+          reAuthPromise = null;
+        }
+      })();
+    }
+
+    await reAuthPromise;
+
     const creds = await getCredentials();
     result = await task(creds.cookieString, creds.csrfToken);
     console.log(

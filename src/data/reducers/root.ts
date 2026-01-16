@@ -17,6 +17,7 @@ import type {
   SemestersState,
   AssignmentsState,
   FilesState,
+  CoursesState,
 } from 'data/types/state';
 import type { AppActions } from 'data/types/actions';
 import { RESET_LOADING, CLEAR_STORE } from 'data/types/constants';
@@ -56,6 +57,23 @@ const semestersPersistConfig: PersistConfig<SemestersState> = {
 };
 
 /**
+ * Courses 持久化配置：持久化课程列表和顺序。
+ */
+const coursesPersistConfig: PersistConfig<CoursesState> = {
+  key: 'courses',
+  storage: AsyncStorage,
+  whitelist: ['items', 'names', 'order', 'hidden'],
+};
+
+/**
+ * User 持久化配置。
+ */
+const userPersistConfig: PersistConfig<any> = {
+  key: 'user',
+  storage: AsyncStorage,
+};
+
+/**
  * Assignments 持久化配置：持久化收藏与存档。
  */
 const assignmentsPersistConfig: PersistConfig<AssignmentsState> = {
@@ -85,11 +103,11 @@ const noticesPersistConfig: PersistConfig<NoticeState> = {
 const appReducer = combineReducers({
   auth: persistReducer(authPersistConfig, auth),
   settings: persistReducer(settingsPersistConfig, settings),
-  courses,
+  courses: persistReducer(coursesPersistConfig, courses),
   notices: persistReducer(noticesPersistConfig, notices),
   assignments: persistReducer(assignmentsPersistConfig, assignments),
   files: persistReducer(filesPersistConfig, files),
-  user,
+  user: persistReducer(userPersistConfig, user),
   semesters: persistReducer(semestersPersistConfig, semesters),
 }) as (state: AppState | undefined, action: AppActions) => AppState;
 

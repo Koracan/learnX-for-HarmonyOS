@@ -708,9 +708,21 @@ const Container = () => {
     }
   }, [dispatch, currentSemesterId, auth.loggedIn, semesters.length]);
 
+  // 全局课程自动刷新：仅在学期切换或课程列表缺失时触发一次
+  const lastFetchedSemesterRef = React.useRef<string | null>(null);
+
   React.useEffect(() => {
-    if (auth.loggedIn && currentSemesterId && courses.length === 0) {
-      dispatch(getCoursesForSemester(currentSemesterId));
+    if (auth.loggedIn && currentSemesterId) {
+      const isNewSemester = lastFetchedSemesterRef.current !== currentSemesterId;
+      const isMissingCourses = courses.length === 0 && lastFetchedSemesterRef.current === null;
+
+      if (isNewSemester || isMissingCourses) {
+        lastFetchedSemesterRef.current = currentSemesterId;
+        dispatch(getCoursesForSemester(currentSemesterId));
+      }
+    }
+    if (!auth.loggedIn) {
+      lastFetchedSemesterRef.current = null;
     }
   }, [dispatch, currentSemesterId, auth.loggedIn, courses.length]);
 

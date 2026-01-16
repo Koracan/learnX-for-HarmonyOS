@@ -29,7 +29,16 @@ const rootPersistConfig: PersistConfig<AppState> = {
   key: 'root',
   storage: AsyncStorage,
   stateReconciler: autoMergeLevel2,
-  blacklist: ['auth', 'settings', 'semesters'],
+  blacklist: [
+    'auth',
+    'settings',
+    'semesters',
+    'courses',
+    'notices',
+    'assignments',
+    'files',
+    'user',
+  ],
 };
 
 /**
