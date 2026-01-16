@@ -1,5 +1,9 @@
 import { createAction } from 'typesafe-actions';
-import { RESET_LOADING, CLEAR_STORE } from 'data/types/constants';
+import {
+  RESET_LOADING,
+  CLEAR_STORE,
+  SET_MOCK_STORE,
+} from 'data/types/constants';
 import { persistor } from 'data/store';
 import type { ThunkResult } from 'data/types/actions';
 
@@ -22,3 +26,5 @@ export function clearStore(): ThunkResult {
     persistor.persist();
   };
 }
+
+export const setMockStore = createAction(SET_MOCK_STORE)();

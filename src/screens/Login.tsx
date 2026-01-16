@@ -9,9 +9,11 @@ import {
 import { Button, Switch, Text, TextInput } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from 'data/store';
 import { setSSOInProgress } from 'data/actions/auth';
+import { setMockStore } from 'data/actions/root';
 import { setSetting } from 'data/actions/settings';
 import { clearLoginCookies } from 'data/source';
 import { t } from 'helpers/i18n';
+import env from 'helpers/env';
 import type { StackScreenProps } from '@react-navigation/stack';
 import type { LoginStackParams } from 'screens/types';
 
@@ -37,6 +39,12 @@ const Login: React.FC<Props> = ({ navigation }) => {
     if (!username || !password) {
       return;
     }
+
+    if (username === env.DUMMY_USERNAME && password === env.DUMMY_PASSWORD) {
+      dispatch(setMockStore());
+      return;
+    }
+
     Alert.alert(
       t('sso'),
       t('ssoNote'),

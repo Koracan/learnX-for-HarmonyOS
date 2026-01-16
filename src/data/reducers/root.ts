@@ -20,8 +20,25 @@ import type {
   CoursesState,
 } from 'data/types/state';
 import type { AppActions } from 'data/types/actions';
-import { RESET_LOADING, CLEAR_STORE } from 'data/types/constants';
+import {
+  RESET_LOADING,
+  CLEAR_STORE,
+  SET_MOCK_STORE,
+  SET_FAV_NOTICE,
+  SET_ARCHIVE_NOTICES,
+  SET_FAV_FILE,
+  SET_ARCHIVE_FILES,
+  SET_FAV_ASSIGNMENT,
+  SET_ARCHIVE_ASSIGNMENTS,
+  SET_PENDING_ASSIGNMENT_DATA,
+  SET_HIDE_COURSE,
+  SET_COURSE_ORDER,
+  SET_CURRENT_SEMESTER,
+  SET_SETTING,
+} from 'data/types/constants';
 import type { NoticeState } from 'data/types/state';
+import mockStore from 'data/mock';
+import env from 'helpers/env';
 
 /**
  * Auth 持久化配置：使用 secure storage 仅持久化敏感凭据。
@@ -118,6 +135,30 @@ export function rootReducer(
   state: AppState | undefined,
   action: AppActions,
 ): AppState {
+  if (action.type === SET_MOCK_STORE) {
+    return mockStore as unknown as AppState;
+  } else if (action.type === CLEAR_STORE) {
+    state = undefined;
+  } else if (state && state.auth.username === env.DUMMY_USERNAME) {
+    if (
+      ![
+        SET_FAV_NOTICE,
+        SET_ARCHIVE_NOTICES,
+        SET_FAV_FILE,
+        SET_ARCHIVE_FILES,
+        SET_FAV_ASSIGNMENT,
+        SET_ARCHIVE_ASSIGNMENTS,
+        SET_PENDING_ASSIGNMENT_DATA,
+        SET_HIDE_COURSE,
+        SET_COURSE_ORDER,
+        SET_CURRENT_SEMESTER,
+        SET_SETTING,
+      ].includes(action.type)
+    ) {
+      return state;
+    }
+  }
+
   // 处理全局重置加载态
   if (state && action.type === RESET_LOADING) {
     return {

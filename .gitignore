@@ -71,3 +71,4 @@ tmp/
 skills/
 package-lock.json
 .bundle/
+.env
