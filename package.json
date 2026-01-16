@@ -1,6 +1,6 @@
 {
   "name": "learn-oh",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "private": true,
   "lint-staged": {
     "*.{js,ts,json}": [
@@ -27,6 +27,7 @@
     "@react-native-ohos/async-storage": "1.21.1-rc.3",
     "@react-native-ohos/cookies": "^6.2.2-rc.3",
     "@react-native-ohos/react-native-blob-util": "^0.19.8-rc.2",
+    "@react-native-ohos/react-native-device-info": "^11.1.1-rc.4",
     "@react-native-ohos/react-native-document-picker": "^9.2.2-rc.1",
     "@react-native-ohos/react-native-file-viewer": "github:Koracan/react-native-file-viewer",
     "@react-native-ohos/react-native-fs": "^2.20.2-rc.1",

@@ -50,6 +50,10 @@ import FileDetail from 'screens/FileDetail';
 import Courses from 'screens/Courses';
 import CourseDetail from 'screens/CourseDetail';
 import Settings from 'screens/Settings';
+import SemesterSelection from 'screens/SemesterSelection';
+import FileSettings from 'screens/FileSettings';
+import About from 'screens/About';
+import Help from 'screens/Help';
 import Splash from 'components/Splash';
 import Empty from 'components/Empty';
 import HeaderTitle from 'components/HeaderTitle';
@@ -491,8 +495,33 @@ const SettingDetails = (
   <>
     <SettingsStackNavigator.Screen
       name="SemesterSelection"
-      component={Empty}
+      component={SemesterSelection}
       options={getTitleOptions(t('semesterSelection'))}
+    />
+    <SettingsStackNavigator.Screen
+      name="FileSettings"
+      component={FileSettings}
+      options={getTitleOptions(t('fileSettings'))}
+    />
+    <SettingsStackNavigator.Screen
+      name="About"
+      component={About}
+      options={getTitleOptions(t('about'))}
+    />
+    <SettingsStackNavigator.Screen
+      name="Help"
+      component={Help}
+      options={getTitleOptions(t('helpAndFeedback'))}
+    />
+    <SettingsStackNavigator.Screen
+      name="CalendarEvent"
+      component={Empty}
+      options={getTitleOptions(t('calendarsAndReminders'))}
+    />
+    <SettingsStackNavigator.Screen
+      name="CourseInformationSharing"
+      component={Empty}
+      options={getTitleOptions(t('courseInformationSharing'))}
     />
   </>
 );

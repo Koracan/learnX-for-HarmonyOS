@@ -26,7 +26,7 @@ const Files: React.FC<Props> = ({ navigation }) => {
   const filteredData = useAppSelector(selectFilteredFiles);
 
   const handleRefresh = useCallback(() => {
-    if (loggedIn && courseIds.length > 0) {
+    if (loggedIn) {
       dispatch(getAllFilesForCourses(courseIds));
     }
   }, [dispatch, loggedIn, courseIds]);

@@ -1,9 +1,20 @@
-import { Dimensions } from 'react-native';
+import Info from 'react-native-device-info';
 
-const { width, height } = Dimensions.get('window');
+const cached: {
+  buildNo: string;
+  isTablet: boolean;
+  systemVersion: string;
+  model: string;
+} = {
+  buildNo: Info.getBuildNumber(),
+  isTablet: Info.isTablet(),
+  systemVersion: Info.getSystemVersion(),
+  model: Info.getModel(),
+};
 
 export default {
-  isTablet: () => Math.min(width, height) >= 600,
-  isMac: () => false,
-  model: () => 'HarmonyOS Device',
+  isTablet: () => cached.isTablet,
+  model: () => cached.model,
+  buildNo: () => cached.buildNo,
+  systemVersion: () => cached.systemVersion,
 };

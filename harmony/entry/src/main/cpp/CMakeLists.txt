@@ -31,6 +31,7 @@ add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-immersive/src
 add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-file-viewer/src/main/cpp" ./file-viewer)
 add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-document-picker/src/main/cpp" ./document_picker)
 add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-image-picker/src/main/cpp" ./image_picker)
+add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-device-info/src/main/cpp" ./device_info)
 
 
 add_library(rnoh_app SHARED
@@ -58,3 +59,4 @@ target_link_libraries(rnoh_app PUBLIC rnoh_immersive)
 target_link_libraries(rnoh_app PUBLIC rnoh_file_viewer)
 target_link_libraries(rnoh_app PUBLIC rnoh_document_picker)
 target_link_libraries(rnoh_app PUBLIC rnoh_image_picker)
+target_link_libraries(rnoh_app PUBLIC device_info)

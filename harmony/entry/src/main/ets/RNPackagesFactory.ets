@@ -17,6 +17,7 @@ import { RNFileViewerPackage } from '@react-native-ohos/react-native-file-viewer
 import { DataProcessorPackage } from 'learn-oh-data-processor';
 import { DocumentPickerPackage } from '@react-native-ohos/react-native-document-picker/ts';
 import { ImagePickerViewPackage } from '@react-native-ohos/react-native-image-picker/ts';
+import {RNDeviceInfoPackage} from '@react-native-ohos/react-native-device-info/ts';
 
 
 export function createRNPackages(ctx: RNPackageContext): RNPackage[] {
@@ -38,6 +39,7 @@ export function createRNPackages(ctx: RNPackageContext): RNPackage[] {
     new RNFileViewerPackage(ctx),
     new DataProcessorPackage(ctx),
     new DocumentPickerPackage(ctx),
-    new ImagePickerViewPackage(ctx)
+    new ImagePickerViewPackage(ctx),
+    new RNDeviceInfoPackage(ctx)
   ];
 }

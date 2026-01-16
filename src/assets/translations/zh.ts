@@ -199,6 +199,7 @@ const zh: typeof en = {
   ssoFailed: '登录失败，请重试。',
   courseEventOmitLocation: '不写入位置信息',
   restartRequired: '需要重启',
+  immersiveMode: '沉浸式模式',
   pleaseRestartAppToApplyImmersive: '请重启应用以应用沉浸式模式设置。',
 };
 

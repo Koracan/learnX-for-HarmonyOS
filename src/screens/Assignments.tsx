@@ -26,7 +26,7 @@ const Assignments: React.FC<Props> = ({ navigation }) => {
   const filteredData = useAppSelector(selectFilteredAssignments);
 
   const handleRefresh = useCallback(() => {
-    if (loggedIn && courseIds.length > 0) {
+    if (loggedIn) {
       dispatch(getAllAssignmentsForCourses(courseIds));
     }
   }, [dispatch, loggedIn, courseIds]);

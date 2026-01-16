@@ -50,6 +50,11 @@ export type FileStackParams = {
 export type SettingsStackParams = {
   Settings: undefined;
   SemesterSelection: ExtraParams;
+  FileSettings: ExtraParams;
+  About: ExtraParams;
+  Help: ExtraParams;
+  CourseInformationSharing: ExtraParams;
+  CalendarEvent: ExtraParams;
 };
 
 /**
@@ -99,6 +104,11 @@ export type DetailStackParams = {
   FileDetail: File & ExtraParams;
   CourseDetail: Course & ExtraParams;
   SemesterSelection: ExtraParams;
+  FileSettings: ExtraParams;
+  About: ExtraParams;
+  Help: ExtraParams;
+  CourseInformationSharing: ExtraParams;
+  CalendarEvent: ExtraParams;
 };
 
 /**

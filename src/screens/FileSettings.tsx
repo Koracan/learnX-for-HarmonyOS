@@ -1,0 +1,119 @@
+import React from 'react';
+import { Alert, StyleSheet } from 'react-native';
+import { type NativeStackScreenProps } from '@react-navigation/native-stack';
+import { Text } from 'react-native-paper';
+import { useAppDispatch, useAppSelector } from 'data/store';
+import { setSetting } from 'data/actions/settings';
+import { removeFileDir } from 'helpers/fs';
+import { isLocaleChinese, t } from 'helpers/i18n';
+import useToast from 'hooks/useToast';
+import TableCell from 'components/TableCell';
+import SafeArea from 'components/SafeArea';
+import ScrollView from 'components/ScrollView';
+import { type SettingsStackParams } from './types';
+
+type Props = NativeStackScreenProps<SettingsStackParams, 'FileSettings'>;
+
+const FileSettings: React.FC<Props> = () => {
+  const toast = useToast();
+  const dispatch = useAppDispatch();
+  const fileUseDocumentDir = useAppSelector(
+    state => state.settings.fileUseDocumentDir,
+  );
+  const fileOmitCourseName = useAppSelector(
+    state => state.settings.fileOmitCourseName,
+  );
+
+  const handleClearCache = () => {
+    Alert.alert(
+      t('clearFileCache'),
+      t('clearFileCacheConfirmation'),
+      [
+        {
+          text: t('cancel'),
+          style: 'cancel',
+        },
+        {
+          text: t('ok'),
+          onPress: async () => {
+            try {
+              await removeFileDir();
+              toast(t('clearFileCacheSucceeded'), 'success');
+            } catch (e) {
+              toast(t('clearFileCacheFailed') + (e as Error).message, 'error');
+            }
+          },
+        },
+      ],
+      { cancelable: true },
+    );
+  };
+
+  return (
+    <SafeArea>
+      <ScrollView contentContainerStyle={styles.scrollViewPaddings}>
+        <TableCell
+          iconName="cached"
+          primaryText={t('fileUseDocumentDir')}
+          switchValue={fileUseDocumentDir}
+          onSwitchValueChange={value =>
+            dispatch(setSetting('fileUseDocumentDir', value))
+          }
+          type="switch"
+        />
+        <Text style={styles.caption}>
+          {isLocaleChinese()
+            ? fileUseDocumentDir
+              ? '文件保存在 App 的“文档”中，只会随 App 卸载而被删除。'
+              : '文件保存在 App 的“缓存”中，会在设备空间不足或其他系统预设情况下被自动清除以节约空间。'
+            : fileUseDocumentDir
+              ? 'Files are saved in App Document folder and will only be deleted along with the App.'
+              : 'Files are saved in App Cache Folder and will be deleted by the system on demand.'}
+        </Text>
+        <TableCell
+          style={styles.marginTop}
+          iconName="drive-file-rename-outline"
+          primaryText={t('fileOmitCourseName')}
+          switchValue={fileOmitCourseName}
+          onSwitchValueChange={value =>
+            dispatch(setSetting('fileOmitCourseName', value))
+          }
+          type="switch"
+        />
+        <Text style={styles.caption}>
+          {isLocaleChinese()
+            ? fileOmitCourseName
+              ? '文件以“文件名”形式保存。'
+              : '文件以“课程名-文件名”形式保存。'
+            : fileOmitCourseName
+              ? 'Files are saved as "filename".'
+              : 'Files are saved as "coursename-filename".'}
+        </Text>
+        <TableCell
+          style={styles.marginTop}
+          iconName="delete"
+          primaryText={t('clearFileCache')}
+          type="none"
+          onPress={handleClearCache}
+        />
+      </ScrollView>
+    </SafeArea>
+  );
+};
+
+const styles = StyleSheet.create({
+  marginTop: {
+    marginTop: 24,
+  },
+  scrollViewPaddings: {
+    paddingVertical: 16,
+  },
+  caption: {
+    fontSize: 12,
+    marginTop: 4,
+    marginHorizontal: 16,
+    opacity: 0.6,
+  },
+});
+
+export default FileSettings;

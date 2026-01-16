@@ -206,6 +206,7 @@ export default {
   ssoFailed: 'Failed to complete the login process. Please try again.',
   courseEventOmitLocation: 'Omit Location',
   restartRequired: 'Restart Required',
+  immersiveMode: 'Immersive Mode',
   pleaseRestartAppToApplyImmersive:
     'Please restart the app to apply immersive mode setting.',
 };

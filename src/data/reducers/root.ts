@@ -19,7 +19,7 @@ import type {
   FilesState,
 } from 'data/types/state';
 import type { AppActions } from 'data/types/actions';
-import { RESET_LOADING } from 'data/types/constants';
+import { RESET_LOADING, CLEAR_STORE } from 'data/types/constants';
 import type { NoticeState } from 'data/types/state';
 
 /**
@@ -134,6 +134,11 @@ export function rootReducer(
         error: null,
       },
     };
+  }
+
+  // 处理登出时的全局状态清空
+  if (action.type === CLEAR_STORE) {
+    return appReducer(undefined, action as any);
   }
 
   return appReducer(state, action as any);

@@ -81,6 +81,11 @@ export function getAllAssignmentsForCourses(courseIds: string[]): ThunkResult {
     console.log('[Performance] Start fetching all assignments');
     dispatch(getAllAssignmentsForCoursesAction.request());
 
+    if (courseIds.length === 0) {
+      dispatch(getAllAssignmentsForCoursesAction.success([]));
+      return;
+    }
+
     try {
       let assignments: Assignment[];
       const courseNames = getState().courses.names;

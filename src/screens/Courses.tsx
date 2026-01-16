@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import CourseCard from 'components/CourseCard';
 import { useAppDispatch, useAppSelector } from 'data/store';
@@ -38,6 +38,10 @@ const Courses: React.FC<Props> = ({ navigation }) => {
       navigation.push('CourseDetail', item);
     }
   };
+
+  useEffect(() => {
+    handleRefresh();
+  }, [handleRefresh]);
 
   return (
     <FilterList

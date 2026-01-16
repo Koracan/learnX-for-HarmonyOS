@@ -39,7 +39,7 @@ import {
   getCurrentSemesterAction,
   setCurrentSemester,
 } from 'data/actions/semesters';
-import { resetLoading } from 'data/actions/root';
+import { resetLoading, clearStoreAction } from 'data/actions/root';
 
 type LoginAction = ActionType<typeof loginAction>;
 type SetSsoInProgressAction = ActionType<typeof setSSOInProgress>;
@@ -123,7 +123,8 @@ export type SemestersAction =
   | SetCurrentSemesterAction;
 
 export type ResetLoadingAction = ActionType<typeof resetLoading>;
-export type StoreAction = ResetLoadingAction;
+export type ClearStoreAction = ActionType<typeof clearStoreAction>;
+export type StoreAction = ResetLoadingAction | ClearStoreAction;
 
 export type AppActions =
   | AuthAction

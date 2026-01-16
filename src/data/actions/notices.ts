@@ -60,6 +60,11 @@ export function getAllNoticesForCourses(courseIds: string[]): ThunkResult {
   return async (dispatch, getState) => {
     dispatch(getAllNoticesForCoursesAction.request());
 
+    if (courseIds.length === 0) {
+      dispatch(getAllNoticesForCoursesAction.success([]));
+      return;
+    }
+
     try {
       let notices: Notice[];
       const courseNames = getState().courses.names;

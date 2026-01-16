@@ -2,8 +2,8 @@
   "app": {
     "bundleName": "com.koracan.learnOH",
     "vendor": "koracan",
-    "versionCode": 1000022,
-    "versionName": "0.2.3",
+    "versionCode": 1000024,
+    "versionName": "0.3.0",
     "icon": "$media:layered_image",
     "label": "$string:app_name"
   }

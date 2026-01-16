@@ -72,6 +72,11 @@ export function getAllFilesForCourses(courseIds: string[]): ThunkResult {
   return async (dispatch, getState) => {
     dispatch(getAllFilesForCoursesAction.request());
 
+    if (courseIds.length === 0) {
+      dispatch(getAllFilesForCoursesAction.success([]));
+      return;
+    }
+
     try {
       let files: File[];
       const courseNames = getState().courses.names;

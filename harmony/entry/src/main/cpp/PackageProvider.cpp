@@ -18,6 +18,7 @@
 #include "FileViewerPackage.h"
 #include "DocumentPickerPackage.h"
 #include "RNImagePickerPackage.h"
+#include "RNDeviceInfoPackage.h"
 
 using namespace rnoh;
 
@@ -42,5 +43,6 @@ std::vector<std::shared_ptr<Package>> PackageProvider::getPackages(Package::Cont
         std::make_shared<FileViewerPackage>(ctx),
         std::make_shared<DocumentPickerPackage>(ctx),
         std::make_shared<RNImagePickerPackage>(ctx),
+        std::make_shared<RNDeviceInfoPackage>(ctx),
     };
 }

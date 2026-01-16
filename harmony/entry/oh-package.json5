@@ -26,6 +26,7 @@
     "@react-native-ohos/react-native-document-picker": "file:../../node_modules/@react-native-ohos/react-native-document-picker/harmony/document_picker.har",
     "learn-oh-data-processor": "file:../../node_modules/react-native-learn-oh-data-processor/harmony/learn_oh_data_processor.har",
     "@react-native-ohos/react-native-image-picker": "file:../../node_modules/@react-native-ohos/react-native-image-picker/harmony/image_picker.har",
+    "@react-native-ohos/react-native-device-info": "file:../../node_modules/@react-native-ohos/react-native-device-info/harmony/device_info.har",
   },
   "devDependencies": {},
   "dynamicDependencies": {}

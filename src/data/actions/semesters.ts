@@ -50,14 +50,14 @@ export const getCurrentSemesterAction = createAsyncAction(
 )<undefined, string, Error>();
 
 export function getCurrentSemester(): ThunkResult {
-  return async dispatch => {
+  return async (dispatch, getState) => {
     dispatch(getCurrentSemesterAction.request());
     try {
       const semester = await dataSource.getCurrentSemester();
       console.log('[getCurrentSemester] Backend returned:', semester?.id);
       dispatch(getCurrentSemesterAction.success(semester?.id));
 
-      if (semester?.id) {
+      if (semester?.id && !getState().semesters.current) {
         dispatch(setCurrentSemester(semester.id));
       }
     } catch (err) {

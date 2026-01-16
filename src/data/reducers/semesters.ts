@@ -47,7 +47,6 @@ export const semestersReducer = (
     case GET_CURRENT_SEMESTER_SUCCESS:
       return {
         ...state,
-        current: action.payload || null,
         fetching: false,
         error: null,
       };

@@ -25,7 +25,7 @@ const Notices: React.FC<Props> = ({ navigation }) => {
   const filteredData = useAppSelector(selectFilteredNotices);
 
   const handleRefresh = useCallback(() => {
-    if (loggedIn && courseIds.length > 0) {
+    if (loggedIn) {
       dispatch(getAllNoticesForCourses(courseIds));
     }
   }, [dispatch, loggedIn, courseIds]);
