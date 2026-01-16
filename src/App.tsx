@@ -104,25 +104,28 @@ const getTitleOptions = (title: string, subtitle?: string) => {
   return {
     title,
     headerTitle: () => <HeaderTitle title={title} subtitle={subtitle} />,
+    headerTitleAlign: 'center' as const,
+    headerShadowVisible: false,
   };
 };
 
 const getScreenOptions = <P extends ParamListBase, N extends keyof P>(
   title: string,
+  hideSearch = false,
 ) =>
   function ({
     navigation,
   }: NativeStackScreenProps<P, N>): NativeStackNavigationOptions {
     return {
       ...getTitleOptions(title),
-      headerTitleAlign: 'center',
-      headerShadowVisible: false,
-      headerRight: () => (
-        <IconButton
-          onPress={() => navigation.navigate('SearchStack' as any)}
-          icon={props => <MaterialIcons {...props} name="search" />}
-        />
-      ),
+      headerRight: hideSearch
+        ? undefined
+        : () => (
+            <IconButton
+              onPress={() => navigation.navigate('SearchStack' as any)}
+              icon={props => <MaterialIcons {...props} name="search" />}
+            />
+          ),
     };
   };
 
@@ -146,11 +149,7 @@ const getDetailScreenOptions = <P extends ParamListBase, N extends keyof P>() =>
       subtitle = params?.courseTeacherName || params?.publisher || '';
     }
 
-    return {
-      ...getTitleOptions(title, subtitle),
-      headerTitleAlign: 'center',
-      headerShadowVisible: false,
-    };
+    return getTitleOptions(title, subtitle);
   };
 
 const RootNavigator = createNativeStackNavigator<RootStackParams>();
@@ -532,7 +531,7 @@ const SettingDetails = (
 const SettingsStack = () => {
   return (
     <SettingsStackNavigator.Navigator
-      screenOptions={getScreenOptions(t('settings'))}
+      screenOptions={getScreenOptions(t('settings'), true)}
     >
       <SettingsStackNavigator.Screen
         name="Settings"
@@ -550,7 +549,7 @@ const DetailStack = () => {
       <DetailNavigator.Screen
         name="EmptyDetail"
         component={Empty}
-        options={{ headerShadowVisible: false, ...getTitleOptions('') }}
+        options={getTitleOptions('')}
       />
       <DetailNavigator.Screen
         name="NoticeDetail"

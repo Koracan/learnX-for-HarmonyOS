@@ -57,6 +57,10 @@ const SplitViewProvider: React.FC<React.PropsWithChildren<SplitViewProps>> = ({
             'FileDetail',
             'CourseDetail',
             'AssignmentSubmission',
+            'SemesterSelection',
+            'FileSettings',
+            'About',
+            'Help',
           ];
           if (detailRoutes.includes(currentRoute.name)) {
             // 如果当前在详情页，则尝试将其迁移到右侧

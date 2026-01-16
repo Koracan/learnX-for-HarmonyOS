@@ -1,6 +1,5 @@
 import React from 'react';
 import { Alert, StyleSheet } from 'react-native';
-import { StackActions } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import SafeArea from 'components/SafeArea';
 import TableCell from 'components/TableCell';
@@ -27,11 +26,9 @@ const Settings: React.FC<Props> = ({ navigation }) => {
 
   const handlePush = (name: keyof SettingsStackParams) => {
     if (detailNavigator) {
-      detailNavigator.dispatch(
-        StackActions.replace(name, {
-          disableAnimation: true,
-        }),
-      );
+      detailNavigator.navigate(name as any, {
+        disableAnimation: true,
+      });
     } else {
       navigation.push(name, { disableAnimation: false } as any);
     }
