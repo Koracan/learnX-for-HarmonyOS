@@ -46,7 +46,7 @@ const AssignmentCard: React.FC<
               </Text>
             )}
             <Text variant="titleMedium" numberOfLines={1}>
-              {title}
+              {removeTags(title)}
             </Text>
           </View>
           <View style={[Styles.flexRow, styles.icons]}>

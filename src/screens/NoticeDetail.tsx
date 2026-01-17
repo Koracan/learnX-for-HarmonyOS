@@ -11,6 +11,7 @@ import { isLocaleChinese, t } from 'helpers/i18n';
 import { stripExtension, getExtension } from 'helpers/fs';
 import Styles from 'constants/Styles';
 import useNavigationAnimation from 'hooks/useNavigationAnimation';
+import { removeTags } from 'helpers/html';
 
 type Props = StackScreenProps<NoticeStackParams, 'NoticeDetail'>;
 /**
@@ -71,7 +72,7 @@ const NoticeDetail: React.FC<Props> = ({ route, navigation }) => {
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.section}>
         <Text variant="headlineSmall" style={styles.title}>
-          {title}
+          {removeTags(title)}
         </Text>
         <View style={Styles.flexRowCenter}>
           <Caption>{publisher}</Caption>

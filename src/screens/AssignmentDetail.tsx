@@ -151,7 +151,7 @@ const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
                 : t('assignmentOnlineSubmission')}
             </Chip>
           </View>
-          <Title>{title}</Title>
+          <Title>{removeTags(title)}</Title>
           <View style={Styles.flexRowCenter}>
             <Caption>
               {isLocaleChinese()

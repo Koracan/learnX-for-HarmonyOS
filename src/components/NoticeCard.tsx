@@ -39,7 +39,7 @@ const NoticeCard: React.FC<React.PropsWithChildren<NoticeCardProps>> = ({
               </Text>
             )}
             <Text variant="titleMedium" numberOfLines={1}>
-              {title}
+              {removeTags(title)}
             </Text>
           </View>
           <View style={[Styles.flexRowCenter, styles.icons]}>

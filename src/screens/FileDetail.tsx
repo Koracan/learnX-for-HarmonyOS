@@ -33,6 +33,7 @@ import IconButton from 'components/IconButton';
 import ScrollView from 'components/ScrollView';
 import fs from 'react-native-fs';
 import { SplitViewContext } from 'components/SplitView';
+import { removeTags } from 'helpers/html';
 
 type Props = StackScreenProps<FileStackParams, 'FileDetail'>;
 
@@ -199,7 +200,7 @@ const FileDetail: React.FC<Props> = ({ route, navigation }) => {
                   </Chip>
                 )}
               </View>
-              <Title>{file.title}</Title>
+              <Title>{removeTags(file.title)}</Title>
               <View style={Styles.flexRowCenter}>
                 {file.uploadTime && (
                   <Caption>
