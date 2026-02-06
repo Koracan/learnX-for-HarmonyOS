@@ -178,6 +178,7 @@ export default {
   loggingIn: 'Logging in...',
   archive: 'Archive',
   restore: 'Restore',
+  undo: 'Undo',
   reorder: 'Reorder',
   select: 'Select',
   checkAll: 'Check All Or None',

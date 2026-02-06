@@ -13,7 +13,16 @@ type ToastType = 'success' | 'warning' | 'error' | 'none';
 const ToastContext = createContext<{
   text: string;
   duration: number;
-  toggleToast: (text: string, type: ToastType, duration?: number) => void;
+  action?: {
+    label: string;
+    onPress: () => void;
+  };
+  toggleToast: (
+    text: string,
+    type: ToastType,
+    duration?: number,
+    action?: { label: string; onPress: () => void },
+  ) => void;
 }>({
   text: '',
   duration: 3000,
@@ -28,20 +37,30 @@ const ToastProvider: React.FC<React.PropsWithChildren<unknown>> = ({
 }) => {
   const [toastText, setToastText] = useState('');
   const [toastDuration, setToastDuration] = useState(3000);
+  const [toastAction, setToastAction] = useState<
+    { label: string; onPress: () => void } | undefined
+  >();
 
   const handleToast = useCallback(
-    (text: string, type: ToastType, duration?: number) => {
+    (
+      text: string,
+      type: ToastType,
+      duration?: number,
+      action?: { label: string; onPress: () => void },
+    ) => {
       setToastDuration(
         duration ??
           (type === 'success' ? 3000 : type === 'warning' ? 4000 : 5000),
       );
       setToastText(text);
+      setToastAction(action);
     },
     [],
   );
 
   const handleDismiss = () => {
     setToastText('');
+    setToastAction(undefined);
   };
 
   return (
@@ -49,6 +68,7 @@ const ToastProvider: React.FC<React.PropsWithChildren<unknown>> = ({
       value={{
         text: toastText,
         duration: toastDuration,
+        action: toastAction,
         toggleToast: handleToast,
       }}
     >
@@ -59,6 +79,7 @@ const ToastProvider: React.FC<React.PropsWithChildren<unknown>> = ({
         visible={toastText ? true : false}
         duration={toastDuration}
         onDismiss={handleDismiss}
+        action={toastAction}
       >
         {toastText}
       </Snackbar>

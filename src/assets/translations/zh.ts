@@ -171,6 +171,7 @@ const zh: typeof en = {
   loggingIn: '登录中……',
   archive: '归档',
   restore: '恢复',
+  undo: '撤销',
   reorder: '排序',
   select: '选择',
   checkAll: '全选/取消全选',

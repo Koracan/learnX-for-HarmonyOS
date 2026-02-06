@@ -4,12 +4,15 @@ import React, {
   useLayoutEffect,
   useState,
 } from 'react';
-import { FlatList, RefreshControl, View, StyleSheet } from 'react-native';
+import { RefreshControl, View, StyleSheet } from 'react-native';
+import { FlatList } from 'react-native-gesture-handler';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import type { Assignment, Course, File, Notice } from 'data/types/state';
 import { setSetting } from 'data/actions/settings';
+import { setHideCourse } from 'data/actions/courses';
 import { useAppDispatch, useAppSelector } from 'data/store';
+import useToast from 'hooks/useToast';
 import type {
   AssignmentStackParams,
   CourseStackParams,
@@ -68,6 +71,7 @@ const FilterList = <T extends Notice | Assignment | File | Course>({
   onRefresh,
 }: FilterListProps<T>) => {
   const dispatch = useAppDispatch();
+  const toast = useToast();
 
   const tabFilterSelections = useAppSelector(
     state => state.settings.tabFilterSelections || {},
@@ -81,6 +85,8 @@ const FilterList = <T extends Notice | Assignment | File | Course>({
   );
 
   const [filterVisible, setFilterVisible] = useState(false);
+
+  const isCourse = type === 'course';
 
   const data = (
     filterSelected === 'unfinished' && unfinished
@@ -102,6 +108,19 @@ const FilterList = <T extends Notice | Assignment | File | Course>({
 
   const handleFilter = () => {
     setFilterVisible(v => !v);
+  };
+
+  const handleHide = (isHidden: boolean, id: string) => {
+    dispatch(setHideCourse(id, !isHidden));
+
+    if (isHidden) {
+      toast(t('undoHide'), 'success');
+    } else {
+      toast(t('hideSucceeded'), 'success', undefined, {
+        label: t('undo'),
+        onPress: () => dispatch(setHideCourse(id, false)),
+      });
+    }
   };
 
   const handleFilterSelect = (selected: FilterSelection) => {
@@ -138,9 +157,18 @@ const FilterList = <T extends Notice | Assignment | File | Course>({
 
   const renderItem = useCallback(
     ({ item }: { item: T }) => (
-      <Component data={item} onPress={() => onItemPress?.(item)} />
+      <Component
+        data={item}
+        onPress={() => onItemPress?.(item)}
+        hidden={hidden.some(h => h.id === item.id)}
+        onHide={
+          isCourse
+            ? () => handleHide(hidden.some(h => h.id === item.id), item.id)
+            : undefined
+        }
+      />
     ),
-    [Component, onItemPress],
+    [Component, onItemPress, hidden, isCourse, handleHide],
   );
 
   const skeletonData = Array.from({ length: 6 }).map((_, i) => ({ id: `skeleton-${i}` } as any));

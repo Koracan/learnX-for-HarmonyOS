@@ -41,7 +41,7 @@ The HarmonyOS port of [robertying/learnX](https://github.com/robertying/learnX).
 - ⏳归档内容 Archiving read posts
 - ✅提交作业 Submitting assignments
 - ⏳收藏内容 Adding to Favorites
-- ⏳隐藏课程 Hiding courses
+- ✅隐藏课程 Hiding courses
 - ✅暗黑模式 Dark mode
 - ✅全局搜索 Global search
 - ✅切换学期 Switching among semesters
