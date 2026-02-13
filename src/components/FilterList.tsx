@@ -11,6 +11,12 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import type { Assignment, Course, File, Notice } from 'data/types/state';
 import { setSetting } from 'data/actions/settings';
 import { setHideCourse } from 'data/actions/courses';
+import { setArchiveNotices, setFavNotice } from 'data/actions/notices';
+import {
+  setArchiveAssignments,
+  setFavAssignment,
+} from 'data/actions/assignments';
+import { setArchiveFiles, setFavFile } from 'data/actions/files';
 import { useAppDispatch, useAppSelector } from 'data/store';
 import useToast from 'hooks/useToast';
 import type {
@@ -110,6 +116,47 @@ const FilterList = <T extends Notice | Assignment | File | Course>({
     setFilterVisible(v => !v);
   };
 
+  const handleFav = (isFav: boolean, item: T) => {
+    if (type === 'notice') {
+      dispatch(setFavNotice(item.id, !isFav));
+    } else if (type === 'assignment') {
+      dispatch(setFavAssignment(item.id, !isFav));
+    } else if (type === 'file') {
+      dispatch(setFavFile(item.id, !isFav));
+    }
+
+    if (isFav) {
+      toast(t('removeFromFav'), 'success', undefined, {
+        label: t('undo'),
+        onPress: () => handleFav(false, item),
+      });
+    } else {
+      toast(t('addToFav'), 'success', undefined, {
+        label: t('undo'),
+        onPress: () => handleFav(true, item),
+      });
+    }
+  };
+
+  const handleArchive = (isArchived: boolean, item: T) => {
+    if (type === 'notice') {
+      dispatch(setArchiveNotices([item.id], !isArchived));
+    } else if (type === 'assignment') {
+      dispatch(setArchiveAssignments([item.id], !isArchived));
+    } else if (type === 'file') {
+      dispatch(setArchiveFiles([item.id], !isArchived));
+    }
+
+    if (isArchived) {
+      toast(t('undoArchive'), 'success');
+    } else {
+      toast(t('archiveSucceeded'), 'success', undefined, {
+        label: t('undo'),
+        onPress: () => handleArchive(true, item),
+      });
+    }
+  };
+
   const handleHide = (isHidden: boolean, id: string) => {
     dispatch(setHideCourse(id, !isHidden));
 
@@ -160,6 +207,22 @@ const FilterList = <T extends Notice | Assignment | File | Course>({
       <Component
         data={item}
         onPress={() => onItemPress?.(item)}
+        fav={fav?.some(f => f.id === item.id)}
+        onFav={
+          !isCourse
+            ? () => handleFav(fav?.some(f => f.id === item.id) ?? false, item)
+            : undefined
+        }
+        archived={archived?.some(a => a.id === item.id)}
+        onArchive={
+          !isCourse
+            ? () =>
+                handleArchive(
+                  archived?.some(a => a.id === item.id) ?? false,
+                  item,
+                )
+            : undefined
+        }
         hidden={hidden.some(h => h.id === item.id)}
         onHide={
           isCourse
@@ -168,7 +231,7 @@ const FilterList = <T extends Notice | Assignment | File | Course>({
         }
       />
     ),
-    [Component, onItemPress, hidden, isCourse, handleHide],
+    [Component, onItemPress, fav, archived, hidden, isCourse, handleFav, handleArchive, handleHide],
   );
 
   const skeletonData = Array.from({ length: 6 }).map((_, i) => ({ id: `skeleton-${i}` } as any));

@@ -4,6 +4,7 @@ import { useTheme } from 'react-native-paper';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { RectButton } from 'react-native-gesture-handler';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Colors from 'constants/Colors';
 import Touchable from './Touchable';
 
@@ -13,6 +14,10 @@ const SwipeActions: React.FC<{
   position: 'left' | 'right';
   dragX: Animated.AnimatedInterpolation<number>;
   swipeable: Swipeable;
+  fav?: boolean;
+  onFav?: (fav: boolean) => void;
+  archived?: boolean;
+  onArchive?: (archived: boolean) => void;
   hidden?: boolean;
   onHide?: (hide: boolean) => void;
 }> = ({
@@ -20,8 +25,12 @@ const SwipeActions: React.FC<{
   swipeable,
   onHide,
   hidden,
+  onArchive,
+  archived,
+  onFav,
+  fav,
 }) => {
-  const totalButtonWidth = buttonWidth;
+  const totalButtonWidth = onHide ? buttonWidth : buttonWidth * (archived ? 1 : 2);
 
   const trans = dragX.interpolate({
     inputRange: [-totalButtonWidth, 0],
@@ -29,30 +38,83 @@ const SwipeActions: React.FC<{
     extrapolate: 'clamp',
   });
 
+  const resetSnap = () => {
+    swipeable.close();
+  };
+
+  const handleFav = () => {
+    onFav?.(!fav);
+    resetSnap();
+  };
+
+  const handleArchive = () => {
+    onArchive?.(!archived);
+    resetSnap();
+  };
+
   const handleHide = () => {
     onHide?.(!hidden);
-    swipeable.close();
+    resetSnap();
   };
 
   return (
     <View style={{ width: totalButtonWidth, flexDirection: 'row' }}>
-      <Animated.View style={{ flex: 1, transform: [{ translateX: trans }] }}>
-        <Touchable
-          type="opacity"
-          style={[
-            styles.button,
-            {
-              backgroundColor: 'rgba(255,204,0,0.2)',
-            },
-          ]}
-          onPress={handleHide}
-        >
-          <MaterialIcons
-            name={hidden ? 'visibility' : 'visibility-off'}
-            size={32}
-            color={Colors.yellow500}
-          />
-        </Touchable>
+      <Animated.View style={{ flex: 1, flexDirection: 'row', transform: [{ translateX: trans }] }}>
+        {onHide ? (
+          <Touchable
+            type="opacity"
+            style={[
+              styles.button,
+              {
+                backgroundColor: 'rgba(255,204,0,0.2)',
+              },
+            ]}
+            onPress={handleHide}
+          >
+            <MaterialIcons
+              name={hidden ? 'visibility' : 'visibility-off'}
+              size={32}
+              color={Colors.yellow500}
+            />
+          </Touchable>
+        ) : (
+          <>
+            {archived ? null : (
+              <Touchable
+                type="opacity"
+                style={[
+                  styles.button,
+                  {
+                    backgroundColor: 'rgba(255,59,48,0.2)',
+                  },
+                ]}
+                onPress={handleFav}
+              >
+                <MaterialCommunityIcons
+                  name={fav ? 'heart-off' : 'heart'}
+                  size={32}
+                  color={Colors.red500}
+                />
+              </Touchable>
+            )}
+            <Touchable
+              type="opacity"
+              style={[
+                styles.button,
+                {
+                  backgroundColor: 'rgba(33,150,243,0.2)',
+                },
+              ]}
+              onPress={handleArchive}
+            >
+              <MaterialCommunityIcons
+                name={archived ? 'archive-arrow-up' : 'archive-arrow-down'}
+                size={32}
+                color={Colors.blue500}
+              />
+            </Touchable>
+          </>
+        )}
       </Animated.View>
     </View>
   );
@@ -62,6 +124,10 @@ export interface CardWrapperProps {
   style?: StyleProp<ViewStyle>;
   onPress?: () => void;
   onLongPress?: () => void;
+  fav?: boolean;
+  onFav?: (fav: boolean) => void;
+  archived?: boolean;
+  onArchive?: (archived: boolean) => void;
   hidden?: boolean;
   onHide?: (hide: boolean) => void;
   disableSwipe?: boolean;
@@ -72,6 +138,10 @@ const CardWrapper: React.FC<React.PropsWithChildren<CardWrapperProps>> = ({
   style,
   onPress,
   onLongPress,
+  fav,
+  onFav,
+  archived,
+  onArchive,
   hidden,
   onHide,
   disableSwipe,
@@ -89,7 +159,7 @@ const CardWrapper: React.FC<React.PropsWithChildren<CardWrapperProps>> = ({
   };
 
   const handleLongPress = () => {
-    if (onHide && !disableSwipe) {
+    if ((onHide || onFav || onArchive) && !disableSwipe) {
       swipeableRef.current?.openRight();
     }
     onLongPress?.();
@@ -101,7 +171,7 @@ const CardWrapper: React.FC<React.PropsWithChildren<CardWrapperProps>> = ({
       dragX: Animated.AnimatedInterpolation<number>,
       swipeable: Swipeable,
     ) => {
-      if (!onHide) {
+      if (!onHide && !onFav && !onArchive) {
         return null;
       }
       return (
@@ -109,12 +179,16 @@ const CardWrapper: React.FC<React.PropsWithChildren<CardWrapperProps>> = ({
           position="right"
           dragX={dragX}
           swipeable={swipeable}
+          fav={fav}
+          onFav={onFav}
+          archived={archived}
+          onArchive={onArchive}
           hidden={hidden}
           onHide={onHide}
         />
       );
     },
-    [hidden, onHide],
+    [fav, onFav, archived, onArchive, hidden, onHide],
   );
 
   const content = (
@@ -133,7 +207,7 @@ const CardWrapper: React.FC<React.PropsWithChildren<CardWrapperProps>> = ({
     </RectButton>
   );
 
-  if (disableSwipe || !onHide) {
+  if (disableSwipe || (!onHide && !onFav && !onArchive)) {
     return (
       <View style={[styles.root, style]}>
         {content}
