@@ -7,6 +7,7 @@ import { store } from 'data/store';
 import type { File } from 'data/types/state';
 import { addCSRF, loginWithFingerPrint } from 'data/source';
 import Urls from 'constants/Urls';
+import env from 'helpers/env';
 
 /**
  * 格式化文件大小。
@@ -72,8 +73,18 @@ export const downloadFile = async (
   }
 
   if (refresh) {
-    console.log(`[fs] Refreshing login...`);
-    await loginWithFingerPrint();
+    const auth = store.getState().auth;
+    const isMockUser = auth.username === env.DUMMY_USERNAME;
+    const isTsinghuaUrl = new URL(url).hostname?.endsWith('tsinghua.edu.cn');
+
+    if (isTsinghuaUrl && !isMockUser) {
+      console.log(`[fs] Refreshing login for protected URL...`);
+      await loginWithFingerPrint();
+    } else {
+      console.log(
+        `[fs] Skip refresh login (isMockUser=${isMockUser}, isTsinghuaUrl=${isTsinghuaUrl})`,
+      );
+    }
   }
   url = addCSRF(url);
 

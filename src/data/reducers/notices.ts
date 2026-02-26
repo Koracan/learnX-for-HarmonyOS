@@ -36,7 +36,7 @@ export const notices = createReducer<NoticeState, NoticesAction>(initialState)
   .handleAction(getAllNoticesForCoursesAction.failure, (state, action) => ({
     ...state,
     fetching: false,
-    error: action.payload,
+    error: action.payload.reason,
   }))
   .handleAction(getNoticesForCourseAction.request, state => ({
     ...state,
@@ -54,7 +54,7 @@ export const notices = createReducer<NoticeState, NoticesAction>(initialState)
   .handleAction(getNoticesForCourseAction.failure, (state, action) => ({
     ...state,
     fetching: false,
-    error: action.payload,
+    error: action.payload.reason,
   }))
   .handleAction(setFavNotice, (state, action) => ({
     ...state,
