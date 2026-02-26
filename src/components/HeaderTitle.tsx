@@ -1,29 +1,37 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useSafeAreaFrame } from 'react-native-safe-area-context';
 import { Text } from 'react-native-paper';
 
 export interface HeaderTitleProps {
   title: string;
   subtitle?: string;
+  avoidWidth?: number;
 }
 
 const HeaderTitle: React.FC<React.PropsWithChildren<HeaderTitleProps>> = ({
   title,
   subtitle,
+  avoidWidth = 0,
 }) => {
+  let pageWidth = useSafeAreaFrame().width;
+  let pageHeight = useSafeAreaFrame().height;
+  if (pageWidth >= 750 && pageWidth > pageHeight) { // 分屏模式
+    pageWidth -= 450;
+  }
+
+  const availableWidth = pageWidth - avoidWidth;
+
   return (
     <View
       style={{
         flexDirection: 'row',
         alignItems: 'baseline',
         justifyContent: 'center',
+        maxWidth: availableWidth,
       }}
     >
-      <Text
-        style={[styles.title, subtitle ? { flexShrink: 1 } : {}]}
-        numberOfLines={1}
-        ellipsizeMode="middle"
-      >
+      <Text style={styles.title} numberOfLines={1} ellipsizeMode="middle">
         {title}
       </Text>
       {subtitle ? (

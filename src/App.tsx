@@ -107,10 +107,12 @@ const BackButton = () => {
   );
 };
 
-const getTitleOptions = (title: string, subtitle?: string) => {
+const getTitleOptions = (title: string, subtitle?: string, avoidWidth?: number) => {
   const options = {
     title,
-    headerTitle: () => <HeaderTitle title={title} subtitle={subtitle} />,
+    headerTitle: () => (
+      <HeaderTitle title={title} subtitle={subtitle} avoidWidth={avoidWidth} />
+    ),
     headerTitleAlign: 'center' as const,
     headerShadowVisible: false,
     animationEnabled: true,
@@ -148,20 +150,22 @@ const getDetailScreenOptions = <P extends ParamListBase, N extends keyof P>() =>
     const params = route.params as any;
     let title = '';
     let subtitle = '';
+    let avoidWidth = 96;
 
     if (route.name === 'CourseDetail') {
       title = params?.name || '';
       subtitle = params?.teacherName || '';
     } else if (route.name === 'FileDetail') {
       title = params?.title || '';
-      subtitle = params?.courseName || '';
+      subtitle = '';
+      avoidWidth = 300;
     } else {
       // NoticeDetail, AssignmentDetail
       title = params?.courseName || '';
       subtitle = params?.courseTeacherName || params?.publisher || '';
     }
 
-    return getTitleOptions(title, subtitle) as any;
+    return getTitleOptions(title, subtitle, avoidWidth) as any;
   };
 
 const RootNavigator = createNativeStackNavigator<RootStackParams>();
