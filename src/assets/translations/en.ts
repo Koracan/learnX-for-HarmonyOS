@@ -32,6 +32,7 @@ export default {
   filePickFailed: 'Failed to pick the file',
   assignmentSubmissionSucceeded: 'Successfully submitted the assignment',
   assignmentSubmissionFailed: 'Failed to submit the assignment',
+  assignmentPastDeadline: 'Assignment has passed the deadline',
   submitAssignment: 'Submit Assignment',
   submitAssignmentConfirmation: 'Do you want to submit the assignment?',
   cancel: 'Cancel',

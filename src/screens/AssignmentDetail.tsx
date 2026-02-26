@@ -35,6 +35,7 @@ import {
   t,
 } from '../helpers/i18n';
 import { stripExtension, getExtension } from '../helpers/fs';
+import useToast from '../hooks/useToast';
 
 type Props = StackScreenProps<AssignmentStackParams, 'AssignmentDetail'>;
 
@@ -43,6 +44,7 @@ const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
   const theme = useTheme();
   const detailNavigator = useDetailNavigator();
   const [isReady, setIsReady] = useState(false);
+  const Toast = useToast();
 
   useEffect(() => {
     const task = InteractionManager.runAfterInteractions(() => {
@@ -78,6 +80,10 @@ const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
   } = route.params;
 
   const handleSubmit = useCallback(() => {
+    if (dayjs().isAfter(dayjs(deadline))) {
+      Toast(t('assignmentPastDeadline'), 'error');
+      return;
+    }
     if (detailNavigator) {
       detailNavigator.dispatch(
         StackActions.push('AssignmentSubmission', {
@@ -94,21 +100,20 @@ const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
         } as any,
       );
     }
-  }, [detailNavigator, navigation, route.params]);
+  }, [detailNavigator, navigation, route.params, deadline, Toast]);
 
   useLayoutEffect(() => {
     if (submissionType !== HomeworkSubmissionType.OFFLINE) {
       navigation.setOptions({
         headerRight: () => (
           <IconButton
-            disabled={dayjs().isAfter(dayjs(deadline))}
             onPress={handleSubmit}
             icon={props => <MaterialIcons {...props} name="file-upload" />}
           />
         ),
       });
     }
-  }, [navigation, submissionType, deadline, handleSubmit]);
+  }, [navigation, submissionType, handleSubmit]);
 
   const html = useMemo(
     () =>

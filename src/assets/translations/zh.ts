@@ -34,6 +34,7 @@ const zh: typeof en = {
   filePickFailed: '选取文件失败',
   assignmentSubmissionSucceeded: '作业提交成功',
   assignmentSubmissionFailed: '作业提交失败',
+  assignmentPastDeadline: '作业已截止',
   submitAssignment: '提交作业',
   submitAssignmentConfirmation: '确定提交作业？',
   cancel: '取消',
