@@ -202,6 +202,9 @@ const zh: typeof en = {
   courseEventOmitLocation: '不写入位置信息',
   restartRequired: '需要重启',
   immersiveMode: '沉浸式模式',
+  avoidFrontCamera: '避让前置摄像头',
+  immersiveModeDescription: '隐藏导航栏和状态栏，需要重启应用',
+  avoidFrontCameraDescription: '在上部留出空间以避让挖孔区域，需要重启应用',
   pleaseRestartAppToApplyImmersive: '请重启应用以应用沉浸式模式设置。',
 };
 

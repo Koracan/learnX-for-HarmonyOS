@@ -18,6 +18,7 @@ const initialState: SettingsState = {
   newUpdate: false,
   graduate: false,
   immersiveMode: false,
+  immersiveAvoidFrontCamera: false,
   fileUseDocumentDir: false,
   fileOmitCourseName: false,
   tabFilterSelections: {

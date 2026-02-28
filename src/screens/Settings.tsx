@@ -4,12 +4,12 @@ import type { StackScreenProps } from '@react-navigation/stack';
 import SafeArea from 'components/SafeArea';
 import TableCell from 'components/TableCell';
 import ScrollView from 'components/ScrollView';
-import { setSetting } from 'data/actions/settings';
 import { clearStore } from 'data/actions/root';
 import { useAppDispatch, useAppSelector } from 'data/store';
 import { clearLoginCookies, dataSource } from 'data/source';
 import useDetailNavigator from 'hooks/useDetailNavigator';
 import { t } from 'helpers/i18n';
+import env from 'helpers/env';
 import { type SettingsStackParams } from './types';
 
 type Props = StackScreenProps<SettingsStackParams, 'Settings'>;
@@ -22,7 +22,7 @@ const Settings: React.FC<Props> = ({ navigation }) => {
   const dispatch = useAppDispatch();
   const userInfo = useAppSelector(state => state.user);
   const username = useAppSelector(state => state.auth.username);
-  const settings = useAppSelector(state => state.settings);
+  const isMockUser = username === env.DUMMY_USERNAME;
 
   const handlePush = (name: keyof SettingsStackParams) => {
     if (detailNavigator) {
@@ -56,16 +56,6 @@ const Settings: React.FC<Props> = ({ navigation }) => {
     );
   };
 
-  const handleImmersiveToggle = (value: boolean) => {
-    dispatch(setSetting('immersiveMode', value));
-    Alert.alert(
-      t('restartRequired'),
-      t('pleaseRestartAppToApplyImmersive'),
-      [{ text: t('ok') }],
-      { cancelable: true },
-    );
-  };
-
   return (
     <SafeArea>
       <ScrollView style={styles.flex1}>
@@ -81,14 +71,15 @@ const Settings: React.FC<Props> = ({ navigation }) => {
           type="none"
           onPress={handleLogout}
         />
-        <TableCell
-          style={styles.marginTop}
-          iconName="fullscreen"
-          primaryText={t('immersiveMode')}
-          type="switch"
-          switchValue={settings.immersiveMode}
-          onSwitchValueChange={handleImmersiveToggle}
-        />
+        {!isMockUser ? (
+          <TableCell
+            style={styles.marginTop}
+            iconName="fullscreen"
+            primaryText={t('immersiveMode')}
+            type="arrow"
+            onPress={() => handlePush('ImmersiveSettings')}
+          />
+        ) : null}
         <TableCell
           style={styles.marginTop}
           iconName="loop"

@@ -57,6 +57,7 @@ export interface SettingsState {
   alarms: AlarmSettings;
   graduate: boolean;
   immersiveMode: boolean;
+  immersiveAvoidFrontCamera: boolean;
   fileUseDocumentDir: boolean;
   fileOmitCourseName: boolean;
   newUpdate: boolean;

@@ -112,6 +112,10 @@ const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
           />
         ),
       });
+    } else {
+      navigation.setOptions({
+        headerRight: () => null,
+      });
     }
   }, [navigation, submissionType, handleSubmit]);
 

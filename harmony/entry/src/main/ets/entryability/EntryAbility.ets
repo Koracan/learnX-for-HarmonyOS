@@ -7,7 +7,6 @@ import { BusinessError } from '@kit.BasicServicesKit';
 const DOMAIN = 0x0000;
 
 export default class EntryAbility extends RNAbility {
-  private immersive: boolean | undefined = undefined;
 
   getPagePath() {
     return 'pages/Index';

@@ -27,6 +27,7 @@ import {
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import {
   useSafeAreaFrame,
+  useSafeAreaInsets,
   SafeAreaProvider,
 } from 'react-native-safe-area-context';
 import {
@@ -59,6 +60,7 @@ import CourseDetail from 'screens/CourseDetail';
 import Settings from 'screens/Settings';
 import SemesterSelection from 'screens/SemesterSelection';
 import FileSettings from 'screens/FileSettings';
+import ImmersiveSettings from 'screens/ImmersiveSettings';
 import About from 'screens/About';
 import Help from 'screens/Help';
 import Splash from 'components/Splash';
@@ -96,6 +98,9 @@ import 'dayjs/locale/zh-cn';
 dayjs.extend(relativeTime);
 dayjs.locale(isLocaleChinese() ? 'zh-cn' : 'en');
 
+let headerTopInsetFallback = 0;
+let disableHeaderTopInsetFallback = false;
+
 const BackButton = () => {
   const navigation = useNavigation();
 
@@ -113,6 +118,10 @@ const getTitleOptions = (title: string, subtitle?: string, avoidWidth?: number) 
     headerTitle: () => (
       <HeaderTitle title={title} subtitle={subtitle} avoidWidth={avoidWidth} />
     ),
+    headerStatusBarHeight:
+      !disableHeaderTopInsetFallback && headerTopInsetFallback > 0
+        ? headerTopInsetFallback
+        : undefined,
     headerTitleAlign: 'center' as const,
     headerShadowVisible: false,
     animationEnabled: true,
@@ -500,6 +509,11 @@ const FileStack = () => {
 const SettingDetails = (
   <>
     <SettingsStackNavigator.Screen
+      name="ImmersiveSettings"
+      component={ImmersiveSettings}
+      options={getTitleOptions(t('immersiveMode'))}
+    />
+    <SettingsStackNavigator.Screen
       name="SemesterSelection"
       component={SemesterSelection}
       options={getTitleOptions(t('semesterSelection'))}
@@ -678,12 +692,17 @@ const ImmersiveModeController = () => {
 const Container = () => {
   const colorScheme = useColorScheme();
   const auth = useAppSelector(state => state.auth);
+  const immersiveMode = useAppSelector(state => state.settings.immersiveMode);
+  const immersiveAvoidFrontCamera = useAppSelector(
+    state => state.settings.immersiveAvoidFrontCamera,
+  );
   const semesters = useAppSelector(state => state.semesters.items);
   const currentSemesterId = useAppSelector(state => state.semesters.current);
   const courses = useAppSelector(state => state.courses.items);
   const dispatch = useAppDispatch();
   const toast = useToast();
   const frame = useSafeAreaFrame();
+  const insets = useSafeAreaInsets();
 
   const mainNavigationContainerRef =
     React.useRef<NavigationContainerRef<{}>>(null);
@@ -699,6 +718,14 @@ const Container = () => {
     !!auth.password &&
     !!auth.fingerPrint &&
     auth.loggedIn;
+
+  disableHeaderTopInsetFallback = immersiveMode && !immersiveAvoidFrontCamera;
+
+  React.useEffect(() => {
+    if (insets.top > 0 && insets.top !== headerTopInsetFallback) {
+      headerTopInsetFallback = insets.top;
+    }
+  }, [frame.width, frame.height, insets.top, insets.bottom, insets.left, insets.right, ]);
 
   // 全局数据初始化逻辑
   React.useEffect(() => {

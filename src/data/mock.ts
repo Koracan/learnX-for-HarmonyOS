@@ -31,6 +31,7 @@ const mockStore: PersistAppState = {
       assignmentReminderAlarm: false,
     },
     immersiveMode: false,
+    immersiveAvoidFrontCamera: false,
     assignmentCalendarSync: false,
     assignmentReminderSync: false,
     syncedCalendarAssignments: {},

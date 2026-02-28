@@ -49,6 +49,7 @@ export type FileStackParams = {
  */
 export type SettingsStackParams = {
   Settings: undefined;
+  ImmersiveSettings: ExtraParams;
   SemesterSelection: ExtraParams;
   FileSettings: ExtraParams;
   About: ExtraParams;
@@ -103,6 +104,7 @@ export type DetailStackParams = {
   AssignmentSubmission: Assignment & ExtraParams;
   FileDetail: File & ExtraParams;
   CourseDetail: Course & ExtraParams;
+  ImmersiveSettings: ExtraParams;
   SemesterSelection: ExtraParams;
   FileSettings: ExtraParams;
   About: ExtraParams;

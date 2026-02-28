@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useLayoutEffect, useState, useEffect } from 'react';
 import { ScrollView, StyleSheet, View, InteractionManager } from 'react-native';
 import { Text, useTheme, Caption, Divider, List, ActivityIndicator } from 'react-native-paper';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -30,6 +30,12 @@ const NoticeDetail: React.FC<Props> = ({ route, navigation }) => {
     });
     return () => task.cancel();
   }, []);
+
+  useLayoutEffect(() => {
+      navigation.setOptions({
+          headerRight: () => null,
+        });
+    }, [navigation]);
 
   const {
     id,

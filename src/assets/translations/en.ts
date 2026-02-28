@@ -209,6 +209,11 @@ export default {
   courseEventOmitLocation: 'Omit Location',
   restartRequired: 'Restart Required',
   immersiveMode: 'Immersive Mode',
+  avoidFrontCamera: 'Avoid Front Camera',
+  immersiveModeDescription:
+    'Hide the navigation bar and status bar. App restart required.',
+  avoidFrontCameraDescription:
+    'Leave top space to avoid the front camera cutout. App restart required.',
   pleaseRestartAppToApplyImmersive:
     'Please restart the app to apply immersive mode setting.',
 };
