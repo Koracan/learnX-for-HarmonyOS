@@ -11,7 +11,10 @@ The HarmonyOS port of [robertying/learnX](https://github.com/robertying/learnX).
 </div>
 
 ## 下载 Download
-目前应用处于测试阶段，您可以联系我 [koracan@163.com](mailto:koracan@163.com) 获得测试链接。
+
+### HarmonyOS 5+
+
+- [在 AppGallery 下载 Download from AppGallery](https://appgallery.huawei.com/app/detail?id=com.koracan.learnOH)
 
 ## 功能 Features
 
