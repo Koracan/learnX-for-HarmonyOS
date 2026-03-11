@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, StyleSheet } from 'react-native';
+import { Alert, Linking, StyleSheet } from 'react-native';
 import type { StackScreenProps } from '@react-navigation/stack';
 import SafeArea from 'components/SafeArea';
 import TableCell from 'components/TableCell';
@@ -95,6 +95,16 @@ const Settings: React.FC<Props> = ({ navigation }) => {
         />
         <TableCell
           style={styles.marginTop}
+          iconName="policy"
+          primaryText={t('privacyPolicy')}
+          type="arrow"
+          onPress={() =>
+            Linking.openURL(
+              'https://agreement-drcn.hispace.dbankcloud.cn/index.html?lang=zh&agreementId=1864655084378428992',
+            )
+          }
+        />
+        <TableCell
           iconName="help"
           primaryText={t('helpAndFeedback')}
           type="arrow"

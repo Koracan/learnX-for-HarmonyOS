@@ -54,7 +54,7 @@ const About: React.FC<Props> = (props) => {
         <Title style={styles.marginTop}>{t('specialThanks')}</Title>
         
         <Text style={styles.text}>
-          {'Rui Ying'}{' '}
+          {t('ruiYing')}{' '}
           <Text
             style={{ color: theme.colors.primary }}
             onPress={() =>
