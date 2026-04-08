@@ -1,5 +1,5 @@
 import { RNPackageContext, RNPackage } from '@rnoh/react-native-openharmony/ts';
-import { SafeAreaViewPackage } from '@react-native-oh-tpl/react-native-safe-area-context/ts';
+import { SafeAreaViewPackage } from '@react-native-ohos/react-native-safe-area-context/ts';
 import { AsyncStoragePackage } from '@react-native-ohos/async-storage/ts';
 import { WebViewPackage } from '@react-native-ohos/react-native-webview/ts';
 import { CookiesPackage } from '@react-native-ohos/cookies/ts';
@@ -18,6 +18,7 @@ import { DataProcessorPackage } from 'learn-oh-data-processor';
 import { DocumentPickerPackage } from '@react-native-ohos/react-native-document-picker/ts';
 import { ImagePickerViewPackage } from '@react-native-ohos/react-native-image-picker/ts';
 import {RNDeviceInfoPackage} from '@react-native-ohos/react-native-device-info/ts';
+import RnohReactNativeHarmonyScreensPackage from '@react-native-ohos/react-native-screens';
 
 
 export function createRNPackages(ctx: RNPackageContext): RNPackage[] {
@@ -40,6 +41,7 @@ export function createRNPackages(ctx: RNPackageContext): RNPackage[] {
     new DataProcessorPackage(ctx),
     new DocumentPickerPackage(ctx),
     new ImagePickerViewPackage(ctx),
-    new RNDeviceInfoPackage(ctx)
+    new RNDeviceInfoPackage(ctx),
+    new RnohReactNativeHarmonyScreensPackage(ctx)
   ];
 }

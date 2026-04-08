@@ -28,7 +28,7 @@ type Props = StackScreenProps<SearchStackParams, 'Search'>;
 const Search: React.FC<Props> = ({ navigation, route }) => {
   const theme = useTheme();
   const safeAreaInsets = useSafeAreaInsets();
-  const detailNavigator = useDetailNavigator();
+  const detailNavigatorRef = useDetailNavigator();
   const isFocused = useIsFocused();
   const searchRef = useRef<TextInput>(null);
 
@@ -52,8 +52,8 @@ const Search: React.FC<Props> = ({ navigation, route }) => {
   );
 
   const handlePush = (name: any, item: any) => {
-    if (detailNavigator) {
-      detailNavigator.navigate(name, {
+    if (detailNavigatorRef?.current) {
+      detailNavigatorRef.current.navigate(name, {
         ...item,
         disableAnimation: true,
       });

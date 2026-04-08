@@ -6,8 +6,8 @@
 #include "CookiesPackage.h"
 #include "GestureHandlerPackage.h"
 #include "BlobUtilPackage.h"
-#include "FsPackage.h"
-#include "LocalizePackage.h"
+#include "RNFSPackage.h"
+#include "RNLocalizePackage.h"
 #include "ViewPagerPackage.h"
 #include "PdfViewPackage.h"
 #include "ReanimatedPackage.h"
@@ -19,6 +19,7 @@
 #include "DocumentPickerPackage.h"
 #include "RNImagePickerPackage.h"
 #include "RNDeviceInfoPackage.h"
+#include "RnohReactNativeHarmonyScreensPackage.h"
 
 using namespace rnoh;
 
@@ -31,8 +32,8 @@ std::vector<std::shared_ptr<Package>> PackageProvider::getPackages(Package::Cont
         std::make_shared<CookiesPackage>(ctx),
         std::make_shared<GestureHandlerPackage>(ctx),
         std::make_shared<BlobUtilPackage>(ctx),
-        std::make_shared<FsPackage>(ctx),
-        std::make_shared<LocalizePackage>(ctx),
+        std::make_shared<RNFSPackage>(ctx),
+        std::make_shared<RNLocalizePackage>(ctx),
         std::make_shared<ViewPagerPackage>(ctx),
         std::make_shared<PdfViewPackage>(ctx),
         std::make_shared<ReanimatedPackage>(ctx),
@@ -44,5 +45,6 @@ std::vector<std::shared_ptr<Package>> PackageProvider::getPackages(Package::Cont
         std::make_shared<DocumentPickerPackage>(ctx),
         std::make_shared<RNImagePickerPackage>(ctx),
         std::make_shared<RNDeviceInfoPackage>(ctx),
+        std::make_shared<RnohReactNativeHarmonyScreensPackage>(ctx),
     };
 }

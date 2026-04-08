@@ -13,7 +13,7 @@ set(LOG_VERBOSITY_LEVEL 1)
 set(WITH_HITRACE_SYSTRACE 1) # for other CMakeLists.txt files to use
 
 add_subdirectory("${RNOH_CPP_DIR}" ./rn)
-add_subdirectory("${OH_MODULE_DIR}/@react-native-oh-tpl/react-native-safe-area-context/src/main/cpp" ./safe-area)
+add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-safe-area-context/src/main/cpp" ./safe-area)
 add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/async-storage/src/main/cpp" ./async-storage)
 add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-webview/src/main/cpp" ./webview)
 add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/cookies/src/main/cpp" ./rn_cookies)
@@ -32,6 +32,7 @@ add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-file-viewer/s
 add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-document-picker/src/main/cpp" ./document_picker)
 add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-image-picker/src/main/cpp" ./image_picker)
 add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-device-info/src/main/cpp" ./device_info)
+add_subdirectory("${OH_MODULE_DIR}/@react-native-ohos/react-native-screens/src/main/cpp" ./rnoh_screens)
 
 
 add_library(rnoh_app SHARED
@@ -60,3 +61,4 @@ target_link_libraries(rnoh_app PUBLIC rnoh_file_viewer)
 target_link_libraries(rnoh_app PUBLIC rnoh_document_picker)
 target_link_libraries(rnoh_app PUBLIC rnoh_image_picker)
 target_link_libraries(rnoh_app PUBLIC device_info)
+target_link_libraries(rnoh_app PUBLIC rnoh_screens)

@@ -15,7 +15,7 @@ type Props = StackScreenProps<CourseStackParams, 'Courses'>;
 
 const Courses: React.FC<Props> = ({ navigation }) => {
   const dispatch = useAppDispatch();
-  const detailNavigator = useDetailNavigator();
+  const detailNavigatorRef = useDetailNavigator();
   const loggedIn = useAppSelector(state => state.auth.loggedIn);
   const currentSemesterId = useAppSelector(state => state.semesters.current);
   const fetching = useAppSelector(state => state.courses.fetching);
@@ -32,8 +32,8 @@ const Courses: React.FC<Props> = ({ navigation }) => {
   }, [currentSemesterId, dispatch, loggedIn]);
 
   const handlePress = (item: Course) => {
-    if (detailNavigator) {
-      detailNavigator.navigate('CourseDetail', {
+    if (detailNavigatorRef?.current) {
+      detailNavigatorRef.current.navigate('CourseDetail', {
         ...item,
         disableAnimation: true,
       });

@@ -15,7 +15,7 @@ type Props = StackScreenProps<NoticeStackParams, 'Notices'>;
  */
 const Notices: React.FC<Props> = ({ navigation }) => {
   const dispatch = useAppDispatch();
-  const detailNavigator = useDetailNavigator();
+  const detailNavigatorRef = useDetailNavigator();
   const loggedIn = useAppSelector(state => state.auth.loggedIn);
   const courseIds = useAppSelector(
     state => state.courses.items.map(i => i.id),
@@ -32,8 +32,8 @@ const Notices: React.FC<Props> = ({ navigation }) => {
 
   const handlePress = useCallback(
     (item: Notice) => {
-      if (detailNavigator) {
-        detailNavigator.navigate('NoticeDetail', {
+      if (detailNavigatorRef?.current) {
+        detailNavigatorRef.current.navigate('NoticeDetail', {
           ...item,
           disableAnimation: true,
         });
@@ -41,7 +41,7 @@ const Notices: React.FC<Props> = ({ navigation }) => {
         navigation.push('NoticeDetail', item);
       }
     },
-    [navigation, detailNavigator],
+    [navigation, detailNavigatorRef],
   );
 
   useEffect(() => {

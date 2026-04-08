@@ -18,15 +18,15 @@ type Props = StackScreenProps<SettingsStackParams, 'Settings'>;
  * 设置屏幕：显示用户设置和应用偏好。
  */
 const Settings: React.FC<Props> = ({ navigation }) => {
-  const detailNavigator = useDetailNavigator();
+  const detailNavigatorRef = useDetailNavigator();
   const dispatch = useAppDispatch();
   const userInfo = useAppSelector(state => state.user);
   const username = useAppSelector(state => state.auth.username);
   const isMockUser = username === env.DUMMY_USERNAME;
 
   const handlePush = (name: keyof SettingsStackParams) => {
-    if (detailNavigator) {
-      detailNavigator.navigate(name as any, {
+    if (detailNavigatorRef?.current) {
+      detailNavigatorRef.current.navigate(name as any, {
         disableAnimation: true,
       });
     } else {

@@ -14,6 +14,7 @@ import type { ThunkResult } from 'data/types/actions';
 import { dataSource } from 'data/source';
 import { serializeError } from 'helpers/parse';
 import { isLocaleChinese } from 'helpers/i18n';
+import env from 'helpers/env';
 
 /**
  * 设置课程列表。
@@ -45,7 +46,12 @@ export const getCoursesForSemesterAction = createAsyncAction(
  * 拉取指定学期课程列表并写入 store。
  */
 export function getCoursesForSemester(semesterId: string): ThunkResult {
-  return async dispatch => {
+  return async (dispatch, getState) => {
+    const { auth } = getState();
+    if (auth.username === env.DUMMY_USERNAME) {
+      return;
+    }
+
     dispatch(getCoursesForSemesterAction.request());
     try {
       const lang = isLocaleChinese() ? Language.ZH : Language.EN;

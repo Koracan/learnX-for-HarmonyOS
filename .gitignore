@@ -72,3 +72,4 @@ skills/
 package-lock.json
 .bundle/
 .env
+.github

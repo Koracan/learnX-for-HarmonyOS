@@ -42,7 +42,7 @@ type Props = StackScreenProps<AssignmentStackParams, 'AssignmentDetail'>;
 const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
   useNavigationAnimation({ route, navigation } as any);
   const theme = useTheme();
-  const detailNavigator = useDetailNavigator();
+  const detailNavigatorRef = useDetailNavigator();
   const [isReady, setIsReady] = useState(false);
   const Toast = useToast();
 
@@ -84,8 +84,8 @@ const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
       Toast(t('assignmentPastDeadline'), 'error');
       return;
     }
-    if (detailNavigator) {
-      detailNavigator.dispatch(
+    if (detailNavigatorRef?.current) {
+      detailNavigatorRef.current.dispatch(
         StackActions.push('AssignmentSubmission', {
           ...route.params,
           disableAnimation: true,
@@ -100,7 +100,7 @@ const AssignmentDetail: React.FC<Props> = ({ route, navigation }) => {
         } as any,
       );
     }
-  }, [detailNavigator, navigation, route.params, deadline, Toast]);
+  }, [detailNavigatorRef, navigation, route.params, deadline, Toast]);
 
   useLayoutEffect(() => {
     if (submissionType !== HomeworkSubmissionType.OFFLINE) {

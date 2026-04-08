@@ -13,6 +13,7 @@ import {
 import { createRNPackages } from '../RNPackagesFactory';
 import { WebView, WEB_VIEW } from "@react-native-ohos/react-native-webview";
 import { RTNPdfView, PDF_VIEW_TYPE } from '@react-native-ohos/react-native-pdf';
+import { componentBuilder } from "@react-native-ohos/react-native-screens";
 
 @Builder
 export function buildCustomRNComponent(ctx: ComponentBuilderContext) {
@@ -26,6 +27,10 @@ export function buildCustomRNComponent(ctx: ComponentBuilderContext) {
       ctx: ctx.rnComponentContext,
       tag: ctx.tag,
     })
+  }
+
+  Stack() {
+    componentBuilder(ctx)
   }
 }
 
@@ -68,7 +73,16 @@ struct Index {
             enableCAPIArchitecture: true, // 该项必须为true，用于开启CAPI
             arkTsComponentNames: [
               WEB_VIEW,
-              PDF_VIEW_TYPE
+              PDF_VIEW_TYPE,
+             "RNSScreen",
+             "RNSFullWindowOverlay",
+             "RNSModalScreen",
+             "RNSScreenContainer",
+             "RNSScreenNavigationContainer",
+             "RNSScreenStack",
+             "RNSScreenStackHeaderSubview",
+             "RNSSearchBar",
+             "RNSScreenStackHeaderConfig",
             ],
             fontResourceByFontFamily: {
               'anticon': $rawfile('fonts/AntDesign.ttf'),

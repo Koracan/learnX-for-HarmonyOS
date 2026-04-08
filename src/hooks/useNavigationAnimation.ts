@@ -11,7 +11,7 @@ const useNavigationAnimation = <T extends keyof ParamListBase>({
   useLayoutEffect(() => {
     if (disableAnimation && navigation) {
       navigation.setOptions({
-        animationEnabled: false,
+        animation: 'none',
       });
     }
   }, [navigation, disableAnimation, route.name]);

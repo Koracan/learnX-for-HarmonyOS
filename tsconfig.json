@@ -1,5 +1,5 @@
 {
-  "extends": "@react-native/typescript-config",
+  "extends": "@react-native/typescript-config/tsconfig.json",
   "include": ["**/*.ts", "**/*.tsx"],
   "exclude": ["**/node_modules", "**/Pods", "harmony", "src-reference"],
   "compilerOptions": {
@@ -25,20 +25,20 @@
         "../node_modules/@react-native-ohos/react-native-webview"
       ],
       "@react-navigation/elements": [
-        "../node_modules/@react-native-oh-tpl/elements"
+        "../node_modules/@react-native-ohos/elements"
       ],
       "@react-navigation/native-stack": [
-        "../node_modules/@react-native-oh-tpl/native-stack"
+        "../node_modules/@react-native-ohos/native-stack"
       ],
       "react-native-safe-area-context": [
-        "../node_modules/@react-native-oh-tpl/react-native-safe-area-context"
+        "../node_modules/@react-native-ohos/react-native-safe-area-context"
       ],
-      "@react-navigation/stack": ["../node_modules/@react-native-oh-tpl/stack"],
+      "@react-navigation/stack": ["../node_modules/@react-native-ohos/stack"],
       "react-native-localize": [
         "../node_modules/@react-native-ohos/react-native-localize"
       ],
       "react-native-pager-view": [
-        "../node_modules/@react-native-oh-tpl/react-native-pager-view"
+        "../node_modules/@react-native-ohos/react-native-pager-view"
       ],
       "react-native-pdf": [
         "../node_modules/@react-native-ohos/react-native-pdf"
@@ -50,7 +50,7 @@
         "../node_modules/@react-native-ohos/react-native-share"
       ],
       "react-native-tab-view": [
-        "../node_modules/@react-native-oh-tpl/react-native-tab-view"
+        "../node_modules/@react-native-ohos/react-native-tab-view"
       ],
       "react-native-secure-key-store": [
         "../node_modules/@react-native-ohos/react-native-secure-key-store"
@@ -66,6 +66,9 @@
       ],
       "react-native-device-info": [
         "../node_modules/@react-native-ohos/react-native-device-info"
+      ],
+      "react-native-screens": [
+        "../node_modules/@react-native-ohos/react-native-screens"
       ]
     }
   }

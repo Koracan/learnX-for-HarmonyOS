@@ -6,8 +6,8 @@ import React, {
   useState,
 } from 'react';
 import type { StackScreenProps } from '@react-navigation/stack';
-import DocumentPicker from '@react-native-ohos/react-native-document-picker';
-import { launchImageLibrary } from '@react-native-ohos/react-native-image-picker';
+import DocumentPicker from 'react-native-document-picker';
+import { launchImageLibrary } from 'react-native-image-picker';
 import {
   Alert,
   Keyboard,

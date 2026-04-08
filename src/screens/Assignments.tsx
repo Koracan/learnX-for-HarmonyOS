@@ -16,7 +16,7 @@ type Props = StackScreenProps<AssignmentStackParams, 'Assignments'>;
  */
 const Assignments: React.FC<Props> = ({ navigation }) => {
   const dispatch = useAppDispatch();
-  const detailNavigator = useDetailNavigator();
+  const detailNavigatorRef = useDetailNavigator();
   const loggedIn = useAppSelector(state => state.auth.loggedIn);
   const courseIds = useAppSelector(
     state => state.courses.items.map(i => i.id),
@@ -33,8 +33,8 @@ const Assignments: React.FC<Props> = ({ navigation }) => {
 
   const handlePress = useCallback(
     (item: Assignment) => {
-      if (detailNavigator) {
-        detailNavigator.navigate('AssignmentDetail', {
+      if (detailNavigatorRef?.current) {
+        detailNavigatorRef.current.navigate('AssignmentDetail', {
           ...item,
           disableAnimation: true,
         });
@@ -42,7 +42,7 @@ const Assignments: React.FC<Props> = ({ navigation }) => {
         navigation.push('AssignmentDetail', item);
       }
     },
-    [navigation, detailNavigator],
+    [navigation, detailNavigatorRef],
   );
 
   useEffect(() => {

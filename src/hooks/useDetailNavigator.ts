@@ -1,13 +1,13 @@
-import { useContext } from 'react';
+import { useContext, type RefObject } from 'react';
 import { SplitViewContext } from 'components/SplitView';
 import { type NavigationContainerRef } from '@react-navigation/native';
 import { type DetailStackParams } from 'screens/types';
 
-const useDetailNavigator = () => {
-  const context = useContext(SplitViewContext);
+const useDetailNavigator =
+  (): RefObject<NavigationContainerRef<DetailStackParams> | null> | null => {
+    const context = useContext(SplitViewContext);
 
-  return context.detailNavigationContainerRef
-    ?.current as NavigationContainerRef<DetailStackParams> | null;
-};
+    return context.detailNavigationContainerRef as RefObject<NavigationContainerRef<DetailStackParams> | null> | null;
+  };
 
 export default useDetailNavigator;

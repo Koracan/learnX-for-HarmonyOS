@@ -16,7 +16,7 @@ type Props = StackScreenProps<FileStackParams, 'Files'>;
  */
 const Files: React.FC<Props> = ({ navigation }) => {
   const dispatch = useAppDispatch();
-  const detailNavigator = useDetailNavigator();
+  const detailNavigatorRef = useDetailNavigator();
   const loggedIn = useAppSelector(state => state.auth.loggedIn);
   const courseIds = useAppSelector(
     state => state.courses.items.map(i => i.id),
@@ -33,8 +33,8 @@ const Files: React.FC<Props> = ({ navigation }) => {
 
   const handlePress = useCallback(
     (item: File) => {
-      if (detailNavigator) {
-        detailNavigator.navigate('FileDetail', {
+      if (detailNavigatorRef?.current) {
+        detailNavigatorRef.current.navigate('FileDetail', {
           ...item,
           disableAnimation: true,
         });
@@ -42,7 +42,7 @@ const Files: React.FC<Props> = ({ navigation }) => {
         navigation.push('FileDetail', item);
       }
     },
-    [navigation, detailNavigator],
+    [navigation, detailNavigatorRef],
   );
 
   useEffect(() => {

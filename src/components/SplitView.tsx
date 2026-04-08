@@ -36,6 +36,7 @@ const SplitViewProvider: React.FC<React.PropsWithChildren<SplitViewProps>> = ({
   masterNavigationContainerRef,
   children,
 }) => {
+  const [masterChild, detailChild] = Children.toArray(children);
   const [showMaster, setShowMaster] = useState(true);
   const lastSplitEnabled = useRef(splitEnabled);
 
@@ -105,32 +106,36 @@ const SplitViewProvider: React.FC<React.PropsWithChildren<SplitViewProps>> = ({
         toggleMaster: setShowMaster,
       }}
     >
-      <View style={styles.root}>
-        <View
-          style={[
-            styles.master,
-            {
-              flex: showDetail ? 0 : 1,
-              width: showDetail ? Numbers.splitViewMasterWidth : '100%',
-              display: showMaster ? 'flex' : 'none',
-            },
-          ]}
-        >
-          {Children.toArray(children)[0]}
+      {splitEnabled ? (
+        <View style={styles.root}>
+          <View
+            style={[
+              styles.master,
+              {
+                flex: showDetail ? 0 : 1,
+                width: showDetail ? Numbers.splitViewMasterWidth : '100%',
+                display: showMaster ? 'flex' : 'none',
+              },
+            ]}
+          >
+            {masterChild}
+          </View>
+          {showDetail && <Divider style={styles.divider} />}
+          <View
+            style={[
+              styles.detail,
+              {
+                display: showDetail ? 'flex' : 'none',
+                flex: showDetail ? 1 : 0,
+              },
+            ]}
+          >
+            {detailChild}
+          </View>
         </View>
-        {showDetail && <Divider style={styles.divider} />}
-        <View
-          style={[
-            styles.detail,
-            {
-              display: showDetail ? 'flex' : 'none',
-              flex: showDetail ? 1 : 0,
-            },
-          ]}
-        >
-          {Children.toArray(children)[1]}
-        </View>
-      </View>
+      ) : (
+        <>{masterChild}</>
+      )}
     </SplitViewContext.Provider>
   );
 };
@@ -142,11 +147,12 @@ const styles = StyleSheet.create({
   },
   master: {
     width: Numbers.splitViewMasterWidth,
+    overflow: 'hidden',
     zIndex: 2,
   },
   detail: {
     flex: 1,
-    zIndex: 1,
+    zIndex: 3,
   },
   divider: {
     height: '100%',

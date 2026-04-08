@@ -1,15 +1,18 @@
 import React from 'react';
 import {
   useColorScheme,
+  useWindowDimensions,
   AppState,
   type AppStateStatus,
   StatusBar,
   BackHandler,
+  View,
 } from 'react-native';
 import { Immersive } from 'react-native-immersive';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import {
   NavigationContainer,
+  NavigationIndependentTree,
   useNavigation,
   type NavigationContainerRef,
   DefaultTheme as NavigationDefaultTheme,
@@ -702,7 +705,9 @@ const Container = () => {
   const dispatch = useAppDispatch();
   const toast = useToast();
   const frame = useSafeAreaFrame();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const [layoutSize, setLayoutSize] = React.useState({ width: 0, height: 0 });
 
   const mainNavigationContainerRef =
     React.useRef<NavigationContainerRef<{}>>(null);
@@ -725,7 +730,7 @@ const Container = () => {
     if (insets.top > 0 && insets.top !== headerTopInsetFallback) {
       headerTopInsetFallback = insets.top;
     }
-  }, [frame.width, frame.height, insets.top, insets.bottom, insets.left, insets.right, ]);
+  }, [windowWidth, windowHeight, insets.top, insets.bottom, insets.left, insets.right]);
 
   // 全局数据初始化逻辑
   React.useEffect(() => {
@@ -841,9 +846,11 @@ const Container = () => {
       return false;
     };
 
-    BackHandler.addEventListener('hardwareBackPress', onBackPress);
-    return () =>
-      BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+    const subscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      onBackPress,
+    );
+    return () => subscription.remove();
   }, []);
 
   const navigationContainerProps = {
@@ -854,60 +861,80 @@ const Container = () => {
     fallback: <Splash />,
   };
 
-  const showDetail = showMain && frame.width >= 750 && frame.width > frame.height;
+  // Prefer root layout size because it tracks real render area on rotation.
+  const measuredWidth = layoutSize.width;
+  const measuredHeight = layoutSize.height;
+  const effectiveWidth =
+    measuredWidth > 0 ? measuredWidth : Math.max(windowWidth, frame.width);
+  const isLandscape =
+    measuredWidth > 0 && measuredHeight > 0
+      ? measuredWidth > measuredHeight
+      : windowWidth > windowHeight || frame.width > frame.height;
+  const showDetail = showMain && effectiveWidth >= 750 && isLandscape;
 
   return (
-    <NavigationContainer
-      ref={mainNavigationContainerRef}
-      {...navigationContainerProps}
-    >
-      <SplitViewProvider
-        splitEnabled={showDetail}
-        detailNavigationContainerRef={
-          showDetail ? detailNavigationContainerRef : null
+    <View
+      style={{ flex: 1 }}
+      onLayout={event => {
+        const { width, height } = event.nativeEvent.layout;
+        if (width !== layoutSize.width || height !== layoutSize.height) {
+          setLayoutSize({ width, height });
         }
-        masterNavigationContainerRef={mainNavigationContainerRef}
-        showDetail={showDetail}
+      }}
+    >
+      <NavigationContainer
+        ref={mainNavigationContainerRef}
+        {...navigationContainerProps}
       >
-        <RootNavigator.Navigator
-          screenOptions={{
-            headerShown: false,
-            presentation: 'card',
-            animation: 'default',
-          }}
+        <SplitViewProvider
+          splitEnabled={showDetail}
+          detailNavigationContainerRef={
+            showDetail ? detailNavigationContainerRef : null
+          }
+          masterNavigationContainerRef={mainNavigationContainerRef}
+          showDetail={showDetail}
         >
-          {showMain ? (
-            <>
-              <RootNavigator.Screen name="MainTab" component={MainTabScreens} />
-              <RootNavigator.Screen
-                name="CourseXStack"
-                component={CourseXStack}
-                options={{ gestureEnabled: false }}
-              />
-              <RootNavigator.Screen
-                name="SearchStack"
-                component={SearchStack}
-                options={{ gestureEnabled: false }}
-              />
-              <RootNavigator.Screen
-                name="AssignmentSubmissionStack"
-                component={AssignmentSubmissionStack}
-                options={{ gestureEnabled: false }}
-              />
-            </>
-          ) : (
-            <RootNavigator.Screen name="LoginStack" component={LoginStack} />
-          )}
-        </RootNavigator.Navigator>
-        <NavigationContainer
-          independent={true}
-          ref={detailNavigationContainerRef}
-          {...navigationContainerProps}
-        >
-          <DetailStack />
-        </NavigationContainer>
-      </SplitViewProvider>
-    </NavigationContainer>
+          <RootNavigator.Navigator
+            screenOptions={{
+              headerShown: false,
+              presentation: 'card',
+              animation: 'default',
+            }}
+          >
+            {showMain ? (
+              <>
+                <RootNavigator.Screen name="MainTab" component={MainTabScreens} />
+                <RootNavigator.Screen
+                  name="CourseXStack"
+                  component={CourseXStack}
+                  options={{ gestureEnabled: false }}
+                />
+                <RootNavigator.Screen
+                  name="SearchStack"
+                  component={SearchStack}
+                  options={{ gestureEnabled: false }}
+                />
+                <RootNavigator.Screen
+                  name="AssignmentSubmissionStack"
+                  component={AssignmentSubmissionStack}
+                  options={{ gestureEnabled: false }}
+                />
+              </>
+            ) : (
+              <RootNavigator.Screen name="LoginStack" component={LoginStack} />
+            )}
+          </RootNavigator.Navigator>
+          <NavigationIndependentTree>
+            <NavigationContainer
+              ref={detailNavigationContainerRef}
+              {...navigationContainerProps}
+            >
+              <DetailStack />
+            </NavigationContainer>
+          </NavigationIndependentTree>
+        </SplitViewProvider>
+      </NavigationContainer>
+    </View>
   );
 };
 
