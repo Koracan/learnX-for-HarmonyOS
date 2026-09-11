@@ -84,6 +84,21 @@ const sorted = semesters?.sort().reverse();
 
 **这条也是 ticket 05 那批失败用例的判据**：夹具必须**服从参考实现的行为**，而不是服从人眼期望——否则夹具本身就成了"要求新实现比参考实现更正确"，那不是移植。
 
+**同一件事的另一半（别只读上面半条）：渲染层是「解码」的。** 参考实现把实体解码**推迟到渲染**，而不是不做。`src/helpers/html.ts:11-22` 的 `removeTags()` 依次做四件事：去 HTML 注释 → 去标签 → **`he.decode()`（全实体集）** → 折叠连续空白并 trim；`src/components/NoticeCard.tsx:42,72` 用它渲染标题与正文摘要。
+
+所以实体这件事的契约是**两层**，必须同时成立：
+
+| 层 | 行为 | 依据 |
+| --- | --- | --- |
+| 解析层 | **不解码**，`&amp;` 原样参与正则 | 本条上半（锁定） |
+| 渲染层 | **解码**，且是 `he` 的完整实体集（含 `&#39;` / `&#x27;` 数字实体），并去标签 | `helpers/html.ts:11-22` |
+
+**新实现的缺口**：`entry/src/main/ets/domain/parse/Text.ets` 的 `decodeHtmlEntities` 只覆盖参考实现 DataProcessor 的 **6 个命名实体**，而**渲染层的 `removeTags` 等价物目前没有实现**。真实公告的 `content` 含 `<p>` / `<span>` / `&nbsp;`（ticket 03 的 mock 逐字保留了这些），标题也可能含标签。
+
+**后果与边界**：若在 UI 里直接渲染原始字段，界面上会出现字面量 `<p>`、`&nbsp;`、`&#39;`。这是**渲染层**的活——不要靠"让解析层解码"来解决，那正好违反本条上半。
+
+**取证**：`src/helpers/html.ts:11-22`（`he.decode`、注释与标签正则、连续空白折叠、`trim`）；`src/components/NoticeCard.tsx:42,72`；`src/data/mock.ts:242-352`（7 条公告的原始 content 形状）。
+
 ---
 
 ## 5. 搜索的"手工精确匹配合并"是 CJK 下的必要行为 —— 锁定
