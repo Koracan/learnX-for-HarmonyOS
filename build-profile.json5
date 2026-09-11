@@ -1,0 +1,72 @@
+{
+  "app": {
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "C:\\Users\\korac\\.ohos\\config\\default_learnOH_6uz4OuodasnedkLdS2S-oUS2qoFbrIeEEZyZDvk8iHg=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001B2C15BA480B2EC3F79CC34D2C91CEDA112F5D53C5ACA4451A6C67031DECFF48F53D0CCEA83F0E0D",
+          "profile": "C:\\Users\\korac\\.ohos\\config\\default_learnOH_6uz4OuodasnedkLdS2S-oUS2qoFbrIeEEZyZDvk8iHg=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "C:\\Users\\korac\\.ohos\\config\\default_learnOH_6uz4OuodasnedkLdS2S-oUS2qoFbrIeEEZyZDvk8iHg=.p12",
+          "storePassword": "0000001B159F9228DC3BF497DD1931AE3E4641CC757C67E75EC381DB8F92DD81F8970EA98046F2B146A2C9"
+        }
+      },
+      {
+        "name": "release",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "C:\\Users\\korac\\.ohos\\config\\release_learnOH_6uz4OuodasnedkLdS2S-oUS2qoFbrIeEEZyZDvk8iHg=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001B172F087362DA97D8E1C45B2C615B60D52F75059B4E3A4459C27DDC7E8011C1F3E5D99370635054",
+          "profile": "C:\\Users\\korac\\.ohos\\config\\release_learnOH_6uz4OuodasnedkLdS2S-oUS2qoFbrIeEEZyZDvk8iHg=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "C:\\Users\\korac\\.ohos\\config\\release_learnOH_6uz4OuodasnedkLdS2S-oUS2qoFbrIeEEZyZDvk8iHg=.p12",
+          "storePassword": "0000001BE438B551D79121965ADFAC84C7ED3A41834DAA7F97603654FF62D2916544683A798E32F2248968"
+        }
+      }
+    ],
+    "products": [
+      {
+        "name": "default",
+        // Local debug/device builds use the auto-generated debug signature above.
+        // For AppGallery / release packaging, change this to "release" so the app is signed
+        // with the original published learnOH certificate.
+        "signingConfig": "default",
+        "targetSdkVersion": "6.1.0(23)",
+        "compatibleSdkVersion": "6.1.0(23)",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
+      }
+    ],
+    "buildModeSet": [
+      {
+        "name": "debug"
+      },
+      {
+        "name": "release"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    }
+  ]
+}
