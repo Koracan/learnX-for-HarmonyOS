@@ -4,7 +4,7 @@
 
 **Blocked by:** 03（导航骨架 + 公告列表）
 
-**Status:** ready-for-verification — 6/6 项均有模拟器证据；验收 3/5/6 为本轮按统筹复核结论更正或重取，待统筹复核
+**Status:** verified（统筹复核通过，2026-09-12；见 Comments 末尾「第二轮统筹验收」）
 （注：`ready-for-verification` 不在 `docs/agents/issue-tracker.md` 的既有词表里，此处用它表达"实现方已交付、等复核"；
 **是否置为 verified 由统筹决定**，实现方不自行判定。）
 
@@ -244,3 +244,50 @@ theme audit native.isDark=true defined=true enabled=true bodyBg=rgb(30, 26, 29) 
 2. **CSRF 追加到链接的运行时行为未取证**：Mock token 是空串，只有模板级单测；
 3. **返回列表后的滚动位置未复测**（ticket 03 的结论在本次 Navigation 外壳改造后未重跑）；
 4. 全部证据来自**模拟器**，无真机证据。
+
+### 第二轮统筹验收（2026-09-12，模拟器口径）→ Status: verified
+
+**结论：6/6 通过。** 第一轮我只接受 4 项（3 改判达成、5 判未验证）；本轮 A/B/C/E 的处理我都独立复核过。
+
+#### 我独立重跑的（在 `f11c325` 上）
+
+| 检查 | 手段 | 结果 |
+| --- | --- | --- |
+| 全量单测 | 删 `entry/.test` 后 `--no-incremental` | 19 类 **TOTAL=116 FAIL=0**（`test_result.txt` 04:55:35 重新生成） |
+| **全部取证开关** | `git grep` HEAD + `= true` 反查 | 7 个开关（EVIDENCE_DETAIL_CONTENT / EVIDENCE_DARK_TOGGLE / EVIDENCE_THEME_AUDIT / MOCK_EMPTY / FORCE_DARK / FORCE_ENGLISH / SLOW_MOCK）**均为 false**；`= true` 反查零命中 |
+| 票据完整性 | 标记计数 | `# 04:` 与 `## Comments` 各出现 **1** 次（246 行）——`$` 展开事故确已修复 |
+| 台账状态 | 第 6/7 条 | 6 → `已复审`（附替代验收标准）；7 → `锁定`（行为等价） |
+| 工作区 | `git status --porcelain` | 空 |
+
+#### 验收 5：我核对了**原始 hilog**，链路成立
+
+`04c-toggle-hilog.txt` / `04b-dark-hilog.txt` 的原始行：
+- 浅色：`theme audit native.isDark=false defined=false enabled=err:ReferenceError: DarkReader is not defined`
+  —— 注意它**没有**谎报 `enabled=true`：浅色下模板不含 darkreader，`DarkReader` 本就不该存在。这种"该报错就报错"的探针比一个恒真的探针可信得多。
+- 切到 DARK：`evidence colorMode -> DARK` → `theme changed -> reload content: native.isDark=true` → `load finished: native.isDark=true` → `theme audit native.isDark=true defined=true enabled=true bodyBg=rgb(30, 26, 29) bodyColor=rgb(232, 230, 227)`。
+- `04b` 用 `FORCE_DARK` **独立复现**同一条链路：两条独立路径互证，不是一次性巧合。
+
+我还看了 `04c-after-toggle-dark.png`：控制条 `dark=true`、底色确实深、文字浅、公式与链接可读。**这一条从"未验证"变为确证达成。**
+
+#### 本轮最值钱的地方：它没停在"重取一张图"
+
+重取时它抓出并修掉了两个**真实缺陷**：
+1. `loadData` 只在 `onControllerAttached` 调一次 → **主题变化不重载模板**。这其实正是上一轮"控制条说 dark=true、正文仍浅色"的真因——**上一轮那张图虽然取错了状态，但它怀疑的方向是对的。** 这句话值得记下来：证据无效不等于怀疑无效。
+2. 底色 `surfaceColor` 与 `isDark` **不同源** → DarkReader 拿到浅底，深色文字不可读。
+
+并且把 `loaded` 在重送前归位，避免重送的主帧请求被 `onLoadIntercept` 当成用户点击而**跳到系统浏览器**。我读了 `HtmlWebView.ets:279-304` 与 `:420-422`，逻辑成立，且注释明确标着"这是实测抓出来的缺陷"。
+
+#### 它按我要求区分了「未验证」与「未达成」
+
+上一轮把"证据无效"写成了"功能未达成"。这一轮把三条教训写进了 Comments：**截图与 layout 同态取、中途不点开关；不用 layout 支撑颜色论断；不把未验证写成未达成**。这是正确方向的沉淀。
+
+#### 继续如实标注的未验证项（我认可，不阻塞）
+
+1. Web 组件的**高度属性值**未被断言（只有行为证据：内容可见、公式完整、外层唯一滚动）。
+2. CSRF 追加到链接的**运行时**行为未取证（Mock token 为空串，仅模板级单测）。
+3. **返回列表后的滚动位置未复测**——已由我挂回 **ticket 03**（见该 ticket Comments 的「后置变更对本文证据的影响」）。
+4. 全部证据来自模拟器，无真机证据（归 ticket 18 前一次性复验）。
+
+#### 关于 `f4c07f2` 的历史
+
+该提交里票据正文被 JS 的 `$` 展开破坏（`$&`-类替换语义），`f11c325` 已修复，标记唯一性我已核对。**提交历史保留了这个中间态**，看那个 commit 时请以 `f11c325` 之后为准。实现方主动报备这一点值得肯定——这类"我搞坏了、已修、但历史里有"若不报，后来人 checkout 到该提交会看到一份复制两遍的票据。
