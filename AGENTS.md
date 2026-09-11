@@ -29,6 +29,11 @@ learnOH —— HarmonyOS 原生（ArkTS / ArkUI）应用，是原 React Native f
 
  - **需要独占时向统筹者申请窗口**，不要在共享资源上自行重试或抢占；拿到窗口的 agent 在收尾时明确回报"窗口关闭"。
 
+ - **工作区是共享的：任何"半成品"都会冻住别人的构建。** 实测过两次：ticket 05 留下 21 个编译错误挡住 ticket 03；ticket 07 给 `EnrollmentScriptSpec` 加了必填字段却没同步它的测试，挡住 ticket 08（对方 `COMPILE RESULT:FAIL {ERROR:2}`，一行自己的代码都没编到）。因此：
+   - **加/改必填字段、改签名、改导出名，必须与所有构造点/调用点在**同一次编辑**里落地**——不要让工作区停留在编译不过的状态；
+   - **并行只在文件与层都真正不重叠时才开。** 同一个 feature 目录（`features/auth`、`domain/auth` 之类）下的两条线应当串行；
+   - 交付顺序仍是"**先让门禁全绿再交接**"；多线并行时，让**在关键路径上的那条线先提交**。
+
  - **取证必须可追溯到源码版本**：截图与日志要记下当时的 `git rev-parse HEAD`；若工作区是脏的，同时记下 `git status --porcelain` 的哈希。取证期间工作区被他人改动，该取证就不再对应任何提交，只能作为过程证据。
 
 ## 取证要点
@@ -54,6 +59,11 @@ learnOH —— HarmonyOS 原生（ArkTS / ArkUI）应用，是原 React Native f
  - `devecocli build`（后台作业或重定向到 `.dsh/logs/`；构建以分钟计）。
 
  - `node scripts/check-domain-purity.mjs` → PASS；`node scripts/check-import-graph.mjs` → PASS；`node scripts/check-i18n-keys.mjs` → `RESULT: OK`。
+
+ - `node scripts/check-generated-fresh.mjs` → PASS。**要守的不变量**：在任何一次提交上，**重跑生成器后 `git diff` 必须为空**（生成物与生成器输入一致）。该脚本就是它的可操作形式：对 6 个 i18n 生成物取哈希 → 重跑两个生成器 → 再取哈希，**变了就 FAIL 并已就地重生**（一致时不动任何文件）。
+   - 起因（实测）：两个 agent 同时改了 i18n 的生成器输入（一个 `generate-i18n-resources.mjs`、一个 `i18n-ui-strings.mjs`），生成物同时含两边的键；此时任一方只提交自己那份输入，提交点上的生成物就无法由已提交的输入复现。
+   - **两个 agent 不要同时改 i18n 生成器的输入。** 若不可避免：**后提交者负责重跑生成器**；先提交者若带上对方的输入，必须在**提交信息里写明归因**。
+   - 安全方向是明确的：**键已声明但没人用 = 无害；有人用但键没声明 = 编译错误**（`I18nKeys.ets` 是类型化联合）。所以"先把键声明带上"是可以接受的。
 
  - **不要用作业退出码判断成败**：把命令写成 `cmd *> log; ('EXIT=' + $LASTEXITCODE) | Out-File ...` 时，进程退出码会变成 **0**（最后一条是 `Out-File`）。必须读日志/产物。
 
