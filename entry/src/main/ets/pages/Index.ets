@@ -197,9 +197,12 @@ struct Index {
   /**
    * 卡片。
    *
-   * 注意参数形态：@Builder 只有**按引用**传递（调用点传对象字面量、方法只收一个对象参数）时，
-   * 参数变化才会驱动 builder 内的 UI 刷新。早先写成 `infoCard(theme, title, rows)` 三个按值参数，
-   * 结果切换系统深浅色时卡片整块保持旧主题（2026-09-12 真机截图发现），故改成单对象参数。
+   * 这里踩过两个真实的实时刷新坑，都在 2026-09-12 模拟器上以"同一进程切深浅色"复现：
+   *  1. @Builder 参数必须**按引用**（调用点传对象字面量、方法只收一个对象参数）；早先写成
+   *     `infoCard(theme, title, rows)` 三个按值参数，切主题后卡片整块保持旧主题。
+   *  2. ForEach 的键必须包含会变的值；早先键取 `row.label`（如"系统配色"，切主题时不变），
+   *     ArkUI 复用旧子节点，于是卡片配色变了、行文案还停在 `DARK_COLORS`。键改成
+   *     `label|value` 后，值一变即重建节点。
    */
   @Builder
   infoCard(spec: CardSpec) {
@@ -225,7 +228,7 @@ struct Index {
         }
         .width('100%')
         .margin({ top: spec.theme.sizes.space2 })
-      }, (row: InfoRow) => row.label)
+      }, (row: InfoRow) => row.label + '|' + row.value)
     }
     .alignItems(HorizontalAlign.Start)
     .width('100%')
