@@ -16,6 +16,8 @@ learnOH —— HarmonyOS 原生（ArkTS / ArkUI）应用，是原 React Native f
 
  - 签名问题参见 `docs\sign.md`。
 
+ - **验收证据口径**：日常验收在模拟器 `Pura 90` 上取证即可（串口 `127.0.0.1:5555`，HarmonyOS **6.1.0(23)**，与工程声明的 `compatibleSdkVersion` 同版本）。截图与日志按实标注来源为"模拟器"，**不要写成"真机"**。真机 `3FYBB25407201890`（MatePad Air，**API 24**）只做**最终一次性复验**，时点卡在 ticket 18（发布收尾）之前，用于覆盖"更高 API 上的向后兼容"这一层——见 `spec.md` 第 8 节。
+
 ## Agent skills
 
 ### 问题跟踪

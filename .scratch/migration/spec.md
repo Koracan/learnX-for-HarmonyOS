@@ -125,8 +125,9 @@ _注入面已缩小_：页面自己会在加载时写好 `fingerPrint`/`fingerGe
 
 ## 8. 验收
 
-- 每功能 `spec.md` 附**逐条验收清单**（我起草，你可改），你在真机截图后逐条判。
-- 真机证据存 `.scratch/<feature>/evidence/`。唯一真机：`3FYBB25407201890`（MatePad Air，API 24）。
+- 每功能 `spec.md` 附**逐条验收清单**（我起草，你可改），你在设备截图后逐条判。
+- 证据存 `.scratch/<feature>/evidence/`。**口径（2026-09-12 定）**：日常验收用**模拟器 `Pura 90`**（`127.0.0.1:5555`，HarmonyOS **6.1.0(23)**）——它与工程声明的 `compatibleSdkVersion` 同版本，因此 API 语义层证据比真机更贴目标；证据一律按实标注"模拟器"。
+- **真机 `3FYBB25407201890`（MatePad Air，API 24）做最终一次性复验**，时点卡在 ticket 18 之前，专门覆盖"在更高 API 上的向后兼容"这一层（与 §11 #7 同一笔账）。真机未接入期间，凡验收项字面写着"真机"的，按模拟器取证并在 ticket 内注明**该条真机复验仍欠**。
 - **纯逻辑写 Hypium 单测**：解析正则、排序、cookie jar、CSRF/URL 组装、路径规范化、搜索评分、快照 schema 迁移。这些"最容易悄悄错、又最难肉眼发现"。
 - 真机诊断靠可导出日志（`foundation` 交付）。
 - **搜索的 CJK 注**：fuse 的 Bitap 与 flexsearch 的 `cjk` charset 都按码点逐字切分，匹配不了拼音/同音字。参考实现里那段"手工精确匹配合并"是 CJK 下的**必要行为**而非 bug 权宜，必须保留。拼音检索需独立拼音索引字段（后续增强，不在本次范围）。
@@ -150,5 +151,5 @@ _注入面已缩小_：页面自己会在加载时写好 `fingerPrint`/`fingerGe
 | 3 | 目标设备（MatePad Air）上 HMS Core 是否满足 PDF Kit / Preview Kit / ShareKit 要求 | `files` |
 | 4 | `@ohos.window` 沉浸式/全屏 setter 的确切签名 | `shell` |
 | 5 | ArkWeb 的 `onLoadIntercept` / cookie 读取 API 在 API 23 的确切形态 | `auth` 的 Enrollment |
-| 6 | `dayjs` 是否有可用 ohpm 包（48 处使用） | `foundation` |
-| 7 | 本机仅装 API 24 SDK，工程声明 23 —— 需确认 API 23 语义下的构建与 API 可用性边界 | 全程 |
+| 6 | ✅ **已验证**（2026-09-12）：**不采用 dayjs**。本机 ohpm 6.1.2.285 无 `search` 子命令；`ohpm info dayjs` 能解析（dayjs@1.11.13），但 tarball 是**原样镜像的 npm UMD 包**——无 `oh-package.json5`、`package.json` 无 `module`/`exports`、locale 靠运行时动态 `require`，ArkTS 无法 import。改用 `@ohos.intl` + 可注入 formatter 接缝（纯阶梯策略可单测）。查证脚本 `scripts/investigate-dayjs-ohpm.mjs`，详见 issue 02 Comments | `foundation` |
+| 7 | **部分解决**（2026-09-12）：工程声明 `compatibleSdkVersion 6.1.0(23)`，本机 SDK 与模拟器 `Pura 90` 运行时**均为 HarmonyOS 6.1.0(23)**，故 API 23 语义下的构建与运行已在模拟器上持续验证通过（见 issue 01/02 证据）。**欠账**：真机 `3FYBB25407201890` 是 **API 24**，"更高 API 上的向后兼容"未验证 —— 已并入 ticket 18 前的真机一次性复验（见第 8 节） | 全程 |
