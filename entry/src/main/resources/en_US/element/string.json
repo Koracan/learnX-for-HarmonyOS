@@ -1,748 +1,736 @@
 {
   "string": [
     {
-      "name": "module_desc",
-      "value": "module description"
-    },
-    {
-      "name": "EntryAbility_desc",
-      "value": "description"
-    },
-    {
-      "name": "EntryAbility_label",
-      "value": "label"
-    },
-    {
       "name": "loh_back",
-      "value": "返回"
+      "value": "Back"
     },
     {
       "name": "loh_notices",
-      "value": "通知"
+      "value": "Notices"
     },
     {
       "name": "loh_assignments",
-      "value": "作业"
+      "value": "Assignments"
     },
     {
       "name": "loh_files",
-      "value": "文件"
+      "value": "Files"
     },
     {
       "name": "loh_courses",
-      "value": "课程"
+      "value": "Courses"
     },
     {
       "name": "loh_calendars_and_reminders",
-      "value": "日历与提醒事项"
+      "value": "Calendars & Reminders"
     },
     {
       "name": "loh_semester_selection",
-      "value": "学期切换"
+      "value": "Semester Selection"
     },
     {
       "name": "loh_file_settings",
-      "value": "文件"
+      "value": "Files"
     },
     {
       "name": "loh_privacy_policy",
-      "value": "隐私政策"
+      "value": "Privacy Policy"
     },
     {
       "name": "loh_help_and_feedback",
-      "value": "帮助与反馈"
+      "value": "Help & Feedbacks"
     },
     {
       "name": "loh_about",
-      "value": "关于"
+      "value": "About"
     },
     {
       "name": "loh_changelog",
-      "value": "更新日志"
+      "value": "Changelog"
     },
     {
       "name": "loh_settings",
-      "value": "设置"
+      "value": "Settings"
     },
     {
       "name": "loh_search",
-      "value": "搜索"
+      "value": "Search"
     },
     {
       "name": "loh_submit",
-      "value": "提交"
+      "value": "Submit"
     },
     {
       "name": "loh_submitted",
-      "value": "已提交"
+      "value": "Submitted"
     },
     {
       "name": "loh_assignment_submission",
-      "value": "作业提交"
+      "value": "Assignment Submission"
     },
     {
       "name": "loh_login_failed",
-      "value": "登录失败，请检查网络连接并确保用户电子身份服务系统的登录依旧有效"
+      "value": "Login failed. Please check your network and ensure that the login to the Electronic ID Service System is still valid"
     },
     {
       "name": "loh_version_information",
-      "value": "版本信息"
+      "value": "Version"
     },
     {
       "name": "loh_opensource_at",
-      "value": "本项目开源于"
+      "value": "Opensource at"
     },
     {
       "name": "loh_special_thanks",
-      "value": "特别感谢"
+      "value": "Special Thanks"
     },
     {
       "name": "loh_harry_chen",
-      "value": "Harry Chen 的"
+      "value": "Harry Chen's"
     },
     {
       "name": "loh_rui_ying",
-      "value": "Rui Ying 的"
+      "value": "Rui Ying's"
     },
     {
       "name": "loh_yayu_xiao",
-      "value": "Yayu Xiao 制作的 App icon"
+      "value": "Yayu Xiao's App icon"
     },
     {
       "name": "loh_opensource_dependencies",
-      "value": "开源依赖"
+      "value": "Opensource Dependencies"
     },
     {
       "name": "loh_no_assignment_description",
-      "value": "无作业描述"
+      "value": "No assignment description"
     },
     {
       "name": "loh_assignment_sync_no_calendar_permission",
-      "value": "作业同步失败：请给予 App 日历的完全访问权限；如果您已经授予该权限，请尝试重启 App"
+      "value": "Assignment Sync failed. Please grant the App full access to calendars, or try restarting the App if you have already done so."
     },
     {
       "name": "loh_assignment_sync_no_reminder_permission",
-      "value": "作业同步失败：请给予 App 提醒事项访问权限；如果您已经授予该权限，请尝试重启 App"
+      "value": "Assignment Sync failed. Please grant the App access to reminders, or try restarting the App if you have already done so."
     },
     {
       "name": "loh_assignment_sync_failed",
-      "value": "作业同步失败："
+      "value": "Assignment Sync failed: "
     },
     {
       "name": "loh_file_pick_failed",
-      "value": "选取文件失败"
+      "value": "Failed to pick the file"
     },
     {
       "name": "loh_assignment_submission_succeeded",
-      "value": "作业提交成功"
+      "value": "Successfully submitted the assignment"
     },
     {
       "name": "loh_assignment_submission_failed",
-      "value": "作业提交失败"
+      "value": "Failed to submit the assignment"
     },
     {
       "name": "loh_assignment_past_deadline",
-      "value": "作业已截止"
+      "value": "Assignment has passed the deadline"
     },
     {
       "name": "loh_submit_assignment",
-      "value": "提交作业"
+      "value": "Submit Assignment"
     },
     {
       "name": "loh_submit_assignment_confirmation",
-      "value": "确定提交作业？"
+      "value": "Do you want to submit the assignment?"
     },
     {
       "name": "loh_cancel",
-      "value": "取消"
+      "value": "Cancel"
     },
     {
       "name": "loh_ok",
-      "value": "确定"
+      "value": "Ok"
     },
     {
       "name": "loh_assignment_submission_filename_placeholder",
-      "value": "自定义附件名（可选）"
+      "value": "(Optional) Change attachment name..."
     },
     {
       "name": "loh_assignment_submission_content_placeholder",
-      "value": "作业内容（可选）"
+      "value": "(Optional) Enter assignment content..."
     },
     {
       "name": "loh_undo_remove_uploaded_attachment",
-      "value": "撤销移除"
+      "value": "Undo removal"
     },
     {
       "name": "loh_remove_uploaded_attachment",
-      "value": "移除已上传的附件"
+      "value": "Remove uploaded attachment"
     },
     {
       "name": "loh_remove_picked_attachment",
-      "value": "移除已选择的附件"
+      "value": "Remove picked attachment"
     },
     {
       "name": "loh_re_upload_attachment",
-      "value": "选择新附件"
+      "value": "Pick new attachment"
     },
     {
       "name": "loh_overwrite_attachment",
-      "value": "覆盖已上传的附件"
+      "value": "Overwrite uploaded attachment"
     },
     {
       "name": "loh_pick_attachment",
-      "value": "选择附件"
+      "value": "Pick attachment"
     },
     {
       "name": "loh_course_schedule_sync_succeeded",
-      "value": "课表同步成功"
+      "value": "Successfully synced course schedule"
     },
     {
       "name": "loh_course_schedule_sync_no_calendar_permission",
-      "value": "课表同步失败：请给予 App 日历的完全访问权限；如果您已经授予该权限，请尝试重启 App"
+      "value": "Course Schedule Sync failed. Please grant the App full access to calendars, or try restarting the App if you have already done so."
     },
     {
       "name": "loh_course_schedule_sync_no_reminder_permission",
-      "value": "课表同步失败：请给予 App 提醒事项访问权限；如果您已经授予该权限，请尝试重启 App"
+      "value": "Course Schedule Sync failed. Please grant the App access to reminders, or try restarting the App if you have already done so."
     },
     {
       "name": "loh_course_schedule_sync_repetitive_error",
-      "value": "课表同步失败，请重试。请确保已连接至校园网；如果问题持续存在，请尝试缩小或更改同步的日期范围"
+      "value": "Course Schedule Sync failed. Please try again. Make sure you are connected to the campus network. Try narrowing down or change the sync date range if the issue persists."
     },
     {
       "name": "loh_course_schedule_sync_no_course",
-      "value": "无课表可供同步，请检查网络学堂网页版在此日期范围内是否存在上课日程"
+      "value": "No course schedule to sync. Check Web Learning to see if there exists any schedule in the selected range."
     },
     {
       "name": "loh_configure_calendar_and_reminder",
-      "value": "日历与提醒事项权限设置"
+      "value": "Calendars & Reminders Permission Settings"
     },
     {
       "name": "loh_delete_synced_calendars_and_reminders",
-      "value": "删除已同步的日历与提醒事项"
+      "value": "Delete Synced Calendars & Reminders"
     },
     {
       "name": "loh_delete_synced_calendars_and_reminders_confirmation",
-      "value": "确定删除已同步的日历与提醒事项？该操作不可撤销。"
+      "value": "Do you want to delete synced calendars and reminders? This cannot be undone."
     },
     {
       "name": "loh_delete_succeeded",
-      "value": "删除成功"
+      "value": "Successfully deleted"
     },
     {
       "name": "loh_delete_failed_no_calendar_permission",
-      "value": "删除失败：请给予 App 日历的完全访问权限；如果您已经授予该权限，请尝试重启 App"
+      "value": "Failed to delete. Please grant the App full access to calendars, or try restarting the App if you have already done so."
     },
     {
       "name": "loh_delete_failed_no_reminder_permission",
-      "value": "删除失败：请给予 App 提醒事项访问权限；如果您已经授予该权限，请尝试重启 App"
+      "value": "Failed to delete. Please grant the App access to reminders, or try restarting the App if you have already done so."
     },
     {
       "name": "loh_delete_failed",
-      "value": "删除失败："
+      "value": "Failed to delete: "
     },
     {
       "name": "loh_graduate",
-      "value": "研究生"
+      "value": "Graduate"
     },
     {
       "name": "loh_sync_course_schedule",
-      "value": "同步课表"
+      "value": "Sync Course Schedule"
     },
     {
       "name": "loh_class_alarm",
-      "value": "上课提醒"
+      "value": "Class Alert"
     },
     {
       "name": "loh_class_alarm_before",
-      "value": "提前提醒（分钟）"
+      "value": "Before Class (in mins)"
     },
     {
       "name": "loh_assignment_calendar_sync",
-      "value": "作业日历同步"
+      "value": "Assignment Calendar Sync"
     },
     {
       "name": "loh_calendar_event_length",
-      "value": "日程长度（分钟）"
+      "value": "Event Length (in mins)"
     },
     {
       "name": "loh_assignment_calendar_alarm",
-      "value": "日历提醒"
+      "value": "Calendar Alert"
     },
     {
       "name": "loh_assignment_calendar_alarm_offset",
-      "value": "提前提醒（分钟）"
+      "value": "Alert Before Deadline (in mins)"
     },
     {
       "name": "loh_assignment_calendar_second_alarm",
-      "value": "日历第二次提醒"
+      "value": "Second Calendar Alert"
     },
     {
       "name": "loh_assignment_calendar_second_alarm_offset",
-      "value": "第二次提前提醒（分钟）"
+      "value": "Second Alert Before Deadline (in mins)"
     },
     {
       "name": "loh_assignment_calendar_no_alarm_if_complete",
-      "value": "已完成的作业不提醒"
+      "value": "Disable Alerts for Completed Assignments"
     },
     {
       "name": "loh_assignment_reminder_sync",
-      "value": "作业提醒事项同步"
+      "value": "Assignment Reminder Sync"
     },
     {
       "name": "loh_assignment_reminder_alarm",
-      "value": "提醒事项截止时间提前"
+      "value": "Reminder Early Deadline"
     },
     {
       "name": "loh_assignment_reminder_alarm_offset",
-      "value": "截止时间提前（分钟）"
+      "value": "Move Deadline Forward (in mins)"
     },
     {
       "name": "loh_assignment_sync_description",
-      "value": "启用后，作业会在刷新时自动同步；已屏蔽课程的作业或已归档、已过期的作业不会被同步；请在更改设置后刷新作业以应用更改。"
+      "value": "If enabled, assignments will be synced automatically when refreshed. Assignments that are hidden, archived or have passed the due date will not be synced. Please refresh assignments after any setting change."
     },
     {
       "name": "loh_clear_file_cache",
-      "value": "清空文件缓存"
+      "value": "Clear File Cache"
     },
     {
       "name": "loh_clear_file_cache_confirmation",
-      "value": "确定清空文件缓存？该操作不可撤销。"
+      "value": "Do you want to clear file cache? This cannot be undone."
     },
     {
       "name": "loh_clear_file_cache_succeeded",
-      "value": "清空文件缓存成功"
+      "value": "Successfully cleared file cache"
     },
     {
       "name": "loh_clear_file_cache_failed",
-      "value": "清空文件缓存失败："
+      "value": "Failed to clear file cache"
     },
     {
       "name": "loh_file_use_document_dir",
-      "value": "保存打开的文件到“文档”"
+      "value": "Save Downloaded Files to Documents"
     },
     {
       "name": "loh_file_omit_course_name",
-      "value": "文件名不包含课程名"
+      "value": "Omit Course Name in Filenames"
     },
     {
       "name": "loh_file_download_failed",
-      "value": "文件下载失败，请重试。"
+      "value": "Failed to download the file. Please retry."
     },
     {
       "name": "loh_open_file_failed",
-      "value": "文件打开失败。请重新下载文件或确保存在可打开此文件类型的应用。"
+      "value": "Failed to open the file. Re-download the file or make sure there is some app on system that can handle the file type."
     },
     {
       "name": "loh_share",
-      "value": "分享"
+      "value": "Share"
     },
     {
       "name": "loh_open",
-      "value": "打开"
+      "value": "Open"
     },
     {
       "name": "loh_email",
-      "value": "邮件"
+      "value": "Email"
     },
     {
       "name": "loh_missing_username",
-      "value": "请输入用户名或学号"
+      "value": "Please enter your username or ID"
     },
     {
       "name": "loh_missing_password",
-      "value": "请输入密码"
+      "value": "Please enter your password"
     },
     {
       "name": "loh_unknown_error",
-      "value": "未知错误："
+      "value": "Unknown error: "
     },
     {
       "name": "loh_username_or_id",
-      "value": "用户名 / 学号"
+      "value": "Username / ID"
     },
     {
       "name": "loh_password",
-      "value": "密码"
+      "value": "Password"
     },
     {
       "name": "loh_security_note",
-      "value": "您的用户信息仅会被保存在本地，并由操作系统安全地加密"
+      "value": "Your credential will only be stored locally and secured by the system"
     },
     {
       "name": "loh_login",
-      "value": "登录"
+      "value": "Login"
     },
     {
       "name": "loh_no_notice_content",
-      "value": "无通知内容"
+      "value": "No notice content"
     },
     {
       "name": "loh_search_placeholder",
-      "value": "搜索通知、作业、文件……"
+      "value": "Notices, assignments & files..."
     },
     {
       "name": "loh_logout",
-      "value": "退出登录"
+      "value": "Logout"
     },
     {
       "name": "loh_logout_confirmation",
-      "value": "确定退出登录？该操作会清除你当前的所有设置。"
+      "value": "Are you sure to logout? This will clear all of your settings."
     },
     {
       "name": "loh_found_new_version",
-      "value": "检测到新版本"
+      "value": "Found New Version"
     },
     {
       "name": "loh_unfinished",
-      "value": "未完成"
+      "value": "unfinished"
     },
     {
       "name": "loh_finished",
-      "value": "已完成"
+      "value": "finished"
     },
     {
       "name": "loh_all",
-      "value": "全部"
+      "value": "all"
     },
     {
       "name": "loh_unread",
-      "value": "未读"
+      "value": "unread"
     },
     {
       "name": "loh_fav",
-      "value": "收藏"
+      "value": "favorite"
     },
     {
       "name": "loh_archived",
-      "value": "归档"
+      "value": "archived"
     },
     {
       "name": "loh_hidden",
-      "value": "屏蔽"
+      "value": "hidden"
     },
     {
       "name": "loh_empty",
-      "value": "无内容"
+      "value": "No Content"
     },
     {
       "name": "loh_remove_from_fav",
-      "value": "已从收藏移除"
+      "value": "Removed from Favorites"
     },
     {
       "name": "loh_add_to_fav",
-      "value": "已添加到收藏"
+      "value": "Added to Favorites"
     },
     {
       "name": "loh_undo_archive",
-      "value": "已撤销归档"
+      "value": "Undo archiving"
     },
     {
       "name": "loh_archive_succeeded",
-      "value": "已归档"
+      "value": "Archived"
     },
     {
       "name": "loh_undo_hide",
-      "value": "已撤销屏蔽"
+      "value": "Undo hiding"
     },
     {
       "name": "loh_hide_succeeded",
-      "value": "已屏蔽"
+      "value": "Hidden"
     },
     {
       "name": "loh_course_information_sharing",
-      "value": "课程信息共享计划"
+      "value": "Course Information Sharing"
     },
     {
       "name": "loh_join_course_information_sharing",
-      "value": "加入课程信息共享计划"
+      "value": "Enable Course Information Sharing"
     },
     {
       "name": "loh_join_course_information_sharing_confirmation",
-      "value": "确定加入课程信息共享计划？当前学期的课程信息将会被自动上传；上传内容不包含任何个人信息。"
+      "value": "Do you want to enable Course Information Sharing? Information of courses of the current semester will be uploaded. Personal information will never be uploaded or shared."
     },
     {
       "name": "loh_course_x",
-      "value": "课程信息共享计划 courseX"
+      "value": "courseX"
     },
     {
       "name": "loh_course_information",
-      "value": "课程信息"
+      "value": "Course Information"
     },
     {
       "name": "loh_missing_calendar_source",
-      "value": "不存在可写入的日历：请确保“日历”应用内存在 iCloud 日历目录或至少一个本地日历目录。"
+      "value": "Missing calendar source. Make sure you have an iCloud enabled calendar category or at least one local calendar category set up in the Calendar app."
     },
     {
       "name": "loh_push_notifications",
-      "value": "推送通知"
+      "value": "Push Notifications"
     },
     {
       "name": "loh_copy_push_notification_token",
-      "value": "复制设备标识符"
+      "value": "Copy Device Token"
     },
     {
       "name": "loh_push_notification_token_description",
-      "value": "使用此标识符，配合 learnX Companion 应用，您可以在此设备上接收推送通知。请勿分享此标识符给其他人。"
+      "value": "Use this token with the learnX Companion app to receive push notifications on this device. Don't share it with others."
     },
     {
       "name": "loh_copied",
-      "value": "已复制"
+      "value": "Copied"
     },
     {
       "name": "loh_configure_push_notifications",
-      "value": "推送通知权限设置"
+      "value": "Push Notifications Permission Settings"
     },
     {
       "name": "loh_no_push_notifications_permission",
-      "value": "未授予推送通知权限"
+      "value": "No Push Notifications Permission"
     },
     {
       "name": "loh_learn_xcompanion_usage_guide",
-      "value": "learnX Companion 使用指南"
+      "value": "learnX Companion Usage Guide"
     },
     {
       "name": "loh_no_file_description",
-      "value": "无文件描述"
+      "value": "No file description"
     },
     {
       "name": "loh_github_recommended",
-      "value": "GitHub（推荐）"
+      "value": "GitHub (Recommended)"
     },
     {
       "name": "loh_create_new_git_hub_issue",
-      "value": "创建新的 GitHub Issue"
+      "value": "Create New GitHub Issue"
     },
     {
       "name": "loh_email_not_recommended",
-      "value": "邮箱"
+      "value": "Email"
     },
     {
       "name": "loh_issue_template",
-      "value": "问题反馈与帮助"
+      "value": "Issue Template"
     },
     {
       "name": "loh_issue_template_description",
-      "value": "如通过邮件提交问题反馈或寻求帮助，请务必使用以下模板："
+      "value": "If you are submitting an issue or asking for help via email, please use the following template:"
     },
     {
       "name": "loh_issue_template_content",
-      "value": "\n    - 问题描述\n    - 复现步骤\n    - 已尝试的解决方案\n    - 截图\n    - App 版本\n    - 设备型号\n    - 系统版本\n    - 其他补充信息\n  "
+      "value": "\n    - Issue Description\n    - Reproduction Steps\n    - Attempts to Fix\n    - Screenshots\n    - App Version\n    - Device Model\n    - OS Version\n    - Other Information\n  "
     },
     {
       "name": "loh_share_received",
-      "value": "您刚分享的内容已被接收，将在下次作业提交时自动选中"
+      "value": "The content you just shared has been received. It will be automatically chosen during the next assignment submission."
     },
     {
       "name": "loh_share_error",
-      "value": "分享的内容接收失败，文件可能过大"
+      "value": "Failed to receive the shared content. The file size may be too large."
     },
     {
       "name": "loh_shared_content_selected",
-      "value": "您之前分享的内容已被自动选中作为作业附件"
+      "value": "The previously shared content has been automatically chosen as the attachment."
     },
     {
       "name": "loh_no_file_size",
-      "value": "未知文件大小"
+      "value": "Unknown file size"
     },
     {
       "name": "loh_date_picker_start_label",
-      "value": "开始"
+      "value": "Start"
     },
     {
       "name": "loh_date_picker_end_label",
-      "value": "结束"
+      "value": "End"
     },
     {
       "name": "loh_date_picker_save_label",
-      "value": "同步"
+      "value": "Sync"
     },
     {
       "name": "loh_date_picker_label",
-      "value": "选择同步范围"
+      "value": "Select Sync Range"
     },
     {
       "name": "loh_reviewed",
-      "value": "已阅"
+      "value": "Reviewed"
     },
     {
       "name": "loh_good",
-      "value": "优秀"
+      "value": "Good"
     },
     {
       "name": "loh_exempted_course",
-      "value": "免课"
+      "value": "Exempted Course"
     },
     {
       "name": "loh_exempted",
-      "value": "免修"
+      "value": "Exempted"
     },
     {
       "name": "loh_pass",
-      "value": "通过"
+      "value": "Pass"
     },
     {
       "name": "loh_fail",
-      "value": "不通过"
+      "value": "Fail"
     },
     {
       "name": "loh_incomplete",
-      "value": "缓考"
+      "value": "Incomplete"
     },
     {
       "name": "loh_open_file_after_download",
-      "value": "自动打开已下载的文件"
+      "value": "Open downloaded files automatically"
     },
     {
       "name": "loh_logging_in",
-      "value": "登录中……"
+      "value": "Logging in..."
     },
     {
       "name": "loh_archive",
-      "value": "归档"
+      "value": "Archive"
     },
     {
       "name": "loh_restore",
-      "value": "恢复"
+      "value": "Restore"
     },
     {
       "name": "loh_undo",
-      "value": "撤销"
+      "value": "Undo"
     },
     {
       "name": "loh_reorder",
-      "value": "排序"
+      "value": "Reorder"
     },
     {
       "name": "loh_select",
-      "value": "选择"
+      "value": "Select"
     },
     {
       "name": "loh_check_all",
-      "value": "全选/取消全选"
+      "value": "Check All Or None"
     },
     {
       "name": "loh_filter",
-      "value": "过滤"
+      "value": "Filter"
     },
     {
       "name": "loh_refresh",
-      "value": "刷新"
+      "value": "Refresh"
     },
     {
       "name": "loh_drag_to_reorder",
-      "value": "长按并拖动以排序"
+      "value": "Long press and drag to reorder"
     },
     {
       "name": "loh_documents",
-      "value": "文件"
+      "value": "Files"
     },
     {
       "name": "loh_photos",
-      "value": "照片"
+      "value": "Photos"
     },
     {
       "name": "loh_assignment_individual_completion",
-      "value": "独立完成"
+      "value": "Complete Individually"
     },
     {
       "name": "loh_assignment_group_completion",
-      "value": "小组完成"
+      "value": "Complete as a Group"
     },
     {
       "name": "loh_assignment_online_submission",
-      "value": "在线提交"
+      "value": "Submit Online"
     },
     {
       "name": "loh_assignment_offline_submission",
-      "value": "线下提交"
+      "value": "Submit Offline"
     },
     {
       "name": "loh_become_maintainer",
-      "value": "成为维护者"
+      "value": "Become a Maintainer"
     },
     {
       "name": "loh_maintainer_description",
-      "value": "你想成为 learnX 的维护者吗？让我们聊聊吧！要求有前端开发经验，最好是 React.js；有 React Native 经验者优先。请发送邮件至"
+      "value": "Do you want to become a maintainer of learnX? Let's talk! Experience in frontend development is required, preferably with React.js; experience with React Native is a plus. Send an email to"
     },
     {
       "name": "loh_anonymous",
-      "value": "匿名"
+      "value": "Anonymous"
     },
     {
       "name": "loh_maintainers",
-      "value": "维护者"
+      "value": "Maintainers"
     },
     {
       "name": "loh_offline_mode",
-      "value": "离线模式"
+      "value": "Offline Mode"
     },
     {
       "name": "loh_open_file_download_directory",
-      "value": "打开文件保存目录"
+      "value": "Open File Save Folder"
     },
     {
       "name": "loh_download",
-      "value": "下载"
+      "value": "Download"
     },
     {
       "name": "loh_download_to_downloads_succeeded",
-      "value": "成功下载文件到“下载”文件夹"
+      "value": "Successfully downloaded the file to Downloads"
     },
     {
       "name": "loh_download_to_downloads_failed",
-      "value": "下载文件到“下载”文件夹失败"
+      "value": "Failed to download the file to Downloads"
     },
     {
       "name": "loh_sso",
-      "value": "清华大学用户电子身份服务系统"
+      "value": "Electronic ID Service System of Tsinghua University"
     },
     {
       "name": "loh_sso_note",
-      "value": "请在即将打开的网页中完成登录。如需更改网页中预填的账号或密码，请关闭网页，再在 learnX 登录界面重新输入正确的账号及密码。\n\n如果提示“信任浏览器数量已达到上限”，请在浏览器登录 https://id.tsinghua.edu.cn，前往账号设置-多因子认证-信任浏览器数量-维护，选择并删除其他设备。"
+      "value": "Please complete the login on the webpage that will open. If you need to change the pre-filled username or password, please close the webpage and re-enter the correct username and password on the learnX login screen.\n\nIf seeing an error on trusted browser limit, please log in to https://id.tsinghua.edu.cn in your browser, go to Settings - Two-factor Authentication - Number of trusted device browsers - Manage, and delete other devices."
     },
     {
       "name": "loh_sso_failed",
-      "value": "登录失败，请重试。"
+      "value": "Failed to complete the login process. Please try again."
     },
     {
       "name": "loh_course_event_omit_location",
-      "value": "不写入位置信息"
+      "value": "Omit Location"
     },
     {
       "name": "loh_restart_required",
-      "value": "需要重启"
+      "value": "Restart Required"
     },
     {
       "name": "loh_immersive_mode",
-      "value": "沉浸式模式"
+      "value": "Immersive Mode"
     },
     {
       "name": "loh_avoid_front_camera",
-      "value": "避让前置摄像头"
+      "value": "Avoid Front Camera"
     },
     {
       "name": "loh_immersive_mode_description",
-      "value": "隐藏导航栏和状态栏，需要重启应用"
+      "value": "Hide the navigation bar and status bar. App restart required."
     },
     {
       "name": "loh_avoid_front_camera_description",
-      "value": "在上部留出空间以避让挖孔区域，需要重启应用"
+      "value": "Leave top space to avoid the front camera cutout. App restart required."
     },
     {
       "name": "loh_please_restart_app_to_apply_immersive",
-      "value": "请重启应用以应用沉浸式模式设置。"
+      "value": "Please restart the app to apply immersive mode setting."
     },
     {
       "name": "loh_fall",
-      "value": "秋季学期"
+      "value": "Fall"
     },
     {
       "name": "loh_spring",
-      "value": "春季学期"
+      "value": "Spring"
     },
     {
       "name": "loh_summer",
-      "value": "夏季学期"
+      "value": "Summer"
     },
     {
       "name": "ui_app_name",
@@ -750,95 +738,95 @@
     },
     {
       "name": "ui_app_tagline",
-      "value": "HarmonyOS 原生重写 · foundation / 01 分层 + 日志 + 主题令牌"
+      "value": "Native HarmonyOS rewrite · foundation / 01 layering + logging + theme tokens"
     },
     {
       "name": "ui_self_check_card_title",
-      "value": "自检"
+      "value": "Self-check"
     },
     {
       "name": "ui_system_color_mode",
-      "value": "系统配色"
+      "value": "System color mode"
     },
     {
       "name": "ui_dark",
-      "value": "深色"
+      "value": "Dark"
     },
     {
       "name": "ui_light",
-      "value": "浅色"
+      "value": "Light"
     },
     {
       "name": "ui_color_tokens",
-      "value": "颜色令牌"
+      "value": "Color tokens"
     },
     {
       "name": "ui_recent_log_count",
-      "value": "最近日志条数"
+      "value": "Recent log records"
     },
     {
       "name": "ui_semester_parse_failed",
-      "value": "解析失败"
+      "value": "Parse failed"
     },
     {
       "name": "ui_semester_parse",
-      "value": "domain.Semester 解析"
+      "value": "domain.Semester parse"
     },
     {
       "name": "ui_semester_compare",
-      "value": "domain.Semester 比较"
+      "value": "domain.Semester compare"
     },
     {
       "name": "ui_semester_later",
-      "value": "较晚 = %1$s"
+      "value": "later = %1$s"
     },
     {
       "name": "ui_reference_palette",
-      "value": "参考实现调色板（Colors.ts）"
+      "value": "Reference palette (Colors.ts)"
     },
     {
       "name": "ui_export_logs",
-      "value": "导出日志为文本文件"
+      "value": "Export logs to a text file"
     },
     {
       "name": "ui_exported",
-      "value": "已导出 %1$s 条 / %2$s 字节"
+      "value": "Exported %1$s records / %2$s bytes"
     },
     {
       "name": "ui_export_failed",
-      "value": "导出失败：%1$s"
+      "value": "Export failed: %1$s"
     },
     {
       "name": "ui_locale_live_demo",
-      "value": "语言切换（无需重启）"
+      "value": "Language switch (no restart)"
     },
     {
       "name": "ui_switch_chinese",
-      "value": "切到中文"
+      "value": "Switch to Chinese"
     },
     {
       "name": "ui_switch_english",
-      "value": "切到英文"
+      "value": "Switch to English"
     },
     {
       "name": "ui_current_locale",
-      "value": "当前语言"
+      "value": "Current locale"
     },
     {
       "name": "ui_relative_time_sample",
-      "value": "相对时间示例"
+      "value": "Relative time sample"
     },
     {
       "name": "ui_date_time_sample",
-      "value": "日期时间示例"
+      "value": "Date/time sample"
     },
     {
       "name": "ui_semester_sample",
-      "value": "学期文案示例"
+      "value": "Semester text sample"
     },
     {
       "name": "ui_language",
-      "value": "语言"
+      "value": "Language"
     }
   ]
 }
