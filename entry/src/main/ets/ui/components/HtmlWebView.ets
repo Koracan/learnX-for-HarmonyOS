@@ -42,6 +42,7 @@ import { common, Want } from '@kit.AbilityKit';
 import { resourceManager } from '@kit.LocalizationKit';
 import { webview } from '@kit.ArkWeb';
 import { Logger } from '../../core/log/Logger';
+import { resolveTheme } from '../theme/Tokens';
 import { LEARN_URL, SessionHeaderProvider } from '../../core/web/SessionHeaderProvider';
 import {
   DARK_READER_FILE, KATEX_AUTO_RENDER_FILE, KATEX_SCRIPT_FILE, KATEX_STYLES_FILE, WEB_ASSET_DIR, readRawFileText
@@ -53,6 +54,16 @@ const logger: Logger = new Logger('ui.webview');
 /** 加载完成后原生侧再催测高几次（覆盖 KaTeX 字体/图片到达后的重排）。 */
 const MEASURE_ATTEMPTS: number = 8;
 const MEASURE_ATTEMPT_INTERVAL_MILLIS: number = 400;
+
+/**
+ * 取证开关：加载完成后在页面里量一次**深色是否真的生效**，并把结果经桥写进 hilog。
+ *
+ * 为什么需要它："深浅色下正文对比度均可读"这条验收里，"没变深"有两种可能——
+ * DarkReader 没生效，或模板的 dark 分支没进去。只看截图分不出来，所以把页面侧的
+ * 三个事实（DarkReader 是否定义/是否 enabled、body 的计算背景色、模板 dark 段是否在 DOM 里）
+ * 打进我们自己的日志。**提交态 false**（它的实际生效值同时会被记一条日志，自证开关状态）。
+ */
+const EVIDENCE_THEME_AUDIT: boolean = false;
 
 /** 注入桥的对象名；必须与 MEASURE_SCRIPT 里的 `window.learnOHBridge` 一致。 */
 const BRIDGE_NAME: string = 'learnOHBridge';
@@ -149,8 +160,14 @@ export struct HtmlWebView {
   @Prop content: string = '';
   /** 空正文时显示的文案（`loh_no_notice_content` = 无通知内容）。 */
   @Prop emptyText: string = '';
-  @Prop isDark: boolean = false;
-  @Prop surfaceColor: string = '';
+  /**
+   * 深色标志。**带 @Watch**：深浅色变化时必须重新送入模板——见 onThemeChanged 的注释。
+   */
+  @Prop @Watch('onThemeChanged') isDark: boolean = false;
+  // 底色**不再作为 @Prop 传入**：它与 isDark 必须同源。实测教训是 ArkUI 里
+  // `@Prop isDark` 的 @Watch 可能早于同批的其它 @Prop 赋值触发，于是"深色标志已更新、
+  // 底色还是浅色"，DarkReader 拿到浅底色 → 深色文字配浅底不可读。
+  // 现在两者都由 isDark 推导（见 surfaceColor()），不存在不一致的窗口。
   /** 会话注入端口（features 注入；Mock 阶段是空实现）。 */
   session: SessionHeaderProvider | null = null;
 
@@ -202,11 +219,16 @@ export struct HtmlWebView {
       + ' dark=' + this.isDark.toString());
   }
 
+  /** 容器底色：与 isDark 同源（深色取 DARK_COLORS.surface，浅色取 LIGHT_COLORS.surface）。 */
+  private surfaceColor(): string {
+    return resolveTheme(this.isDark).colors.surface;
+  }
+
   private buildHtml(): string {
     this.loadAssetsOnce();
     const body: string = this.content.trim().length > 0 ? this.content : '<p>' + this.emptyText + '</p>';
     const token: string = this.session === null ? '' : this.session.csrfToken();
-    const html: string = getWebViewTemplate(body, this.isDark, this.surfaceColor, token, LEARN_URL, this.assets);
+    const html: string = getWebViewTemplate(body, this.isDark, this.surfaceColor(), token, LEARN_URL, this.assets);
     this.htmlChars = html.length;
     return html;
   }
@@ -246,9 +268,30 @@ export struct HtmlWebView {
    * `javaScriptOnDocumentStart`（见 INJECTED_SCRIPTS）把测高脚本放进页面，
    * 否则不会有人调用桥。这条也是实测踩出来的。
    */
+  /**
+   * 深浅色变化 → 重新送入模板。
+   *
+   * **这是实测抓出来的缺陷**：`loadData` 只在 `onControllerAttached` 里调用一次，改
+   * `@Prop isDark` 不会让 ArkWeb 重新加载（控制器已附着，`src` 也没变），于是控制条显示
+   * `dark=true`、正文却仍是浅色——验收第 5 条"切换后正文即时更新"因此不成立。
+   * 修法就是在标志变化时自己再送一次（同时把 `loaded` 归位，见 loadHtmlFromCache）。
+   */
+  onThemeChanged(): void {
+    if (!this.loaded) {
+      // 首次加载还没完成时不用重入：onControllerAttached 会带着最新标志送一次。
+      logger.info('theme changed before first load: native.isDark=' + this.isDark.toString());
+      return;
+    }
+    logger.info('theme changed -> reload content: native.isDark=' + this.isDark.toString());
+    this.loadHtmlFromCache();
+  }
+
   private loadHtmlFromCache(): void {
     const html: string = this.buildHtml();
     const baseUrl: string = LEARN_URL + '/learnoh/notice-detail.html';
+    // 归位：onLoadIntercept 用 `loaded` 区分"首次加载"与"用户点链接"，
+    // 重送模板时主框架请求会被当成点击而被外部打开（实测风险），所以必须先置 false。
+    this.loaded = false;
     try {
       // baseUrl + historyUrl 都给：baseUrl 让文档有 learn 站点的网络来源
       // （参考实现 AutoHeightWebView.tsx:87-89 的 `source.baseUrl = Urls.learn`），
@@ -276,9 +319,46 @@ export struct HtmlWebView {
   /** 首次加载完成：立刻测一次，并在此后按间隔再测几次（字体/图片重排）。 */
   private handleLoadFinished(): void {
     this.loaded = true;
+    // 自证开关状态：否则"没抓到审计行"分不清是开关没开还是没走到这一步。
+    logger.info('load finished: native.isDark=' + this.isDark.toString()
+      + ' themeAuditSwitch=' + EVIDENCE_THEME_AUDIT.toString());
     this.attemptsLeft = MEASURE_ATTEMPTS;
     this.requestMeasure();
     this.scheduleNextMeasure();
+    if (EVIDENCE_THEME_AUDIT) {
+      // 等字体/深色注入稳定后再量（DarkReader 是异步改造 DOM 的）。
+      setTimeout(() => {
+        this.auditTheme();
+      }, 2500);
+    }
+  }
+
+  /**
+   * 取证用：把页面侧的深色事实经桥回传（`runJavaScript` 的返回值在设备上恒为 null，
+   * 所以只能走桥）。日志里同时带上**原生侧的 isDark**，于是"模板没进 dark 分支"
+   * 与"DarkReader 没生效"能区分开。
+   */
+  private auditTheme(): void {
+    const script: string = 'var learnOhParts = [];'
+      + 'learnOhParts.push("defined=" + (typeof DarkReader !== "undefined"));'
+      + 'try { learnOhParts.push("enabled=" + DarkReader.isEnabled()); }'
+      + ' catch (learnOhE1) { learnOhParts.push("enabled=err:" + learnOhE1); }'
+      + 'try { learnOhParts.push("bodyBg=" + getComputedStyle(document.body).backgroundColor); }'
+      + ' catch (learnOhE2) { learnOhParts.push("bodyBg=err"); }'
+      + 'try { learnOhParts.push("bodyColor=" + getComputedStyle(document.body).color); }'
+      + ' catch (learnOhE3) { learnOhParts.push("bodyColor=err"); }'
+      + 'try { learnOhParts.push("darkCallInDom="'
+      + ' + (document.documentElement.innerHTML.indexOf("DarkReader.enable") >= 0)); }'
+      + ' catch (learnOhE4) { learnOhParts.push("darkCallInDom=err"); }'
+      + 'window.' + BRIDGE_NAME + '.log("theme audit native.isDark=' + this.isDark.toString()
+      + ' " + learnOhParts.join(" "));';
+    try {
+      this.controller.runJavaScript(script);
+      logger.info('theme audit requested: native.isDark=' + this.isDark.toString()
+        + ' auditSwitch=' + EVIDENCE_THEME_AUDIT.toString());
+    } catch (error) {
+      logger.warn('theme audit failed: ' + (error as Error).message);
+    }
   }
 
   private scheduleNextMeasure(): void {
@@ -342,7 +422,7 @@ export struct HtmlWebView {
         })
         .width('100%')
         .height(this.heightVp())
-        .backgroundColor(this.surfaceColor)
+        .backgroundColor(this.surfaceColor())
     }
     .width('100%')
     .height(this.heightVp())

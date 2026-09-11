@@ -126,7 +126,7 @@ const sorted = semesters?.sort().reverse();
 
 ---
 
-## 6. 模板内联 <script> 与正文里的 </script> —— ticket 04 新增（已加固）
+## 6. 模板内联 <script> 与正文里的 </script> —— 已复审（ticket 04 加固）
 
 **参考实现行为**：`helpers/html.ts:32-118` 的 `getWebViewTemplate` 把正文 `content` 直接拼进
 模板（`:108`），而模板里有若干内联 `<script>`（CSRF 注入、DarkReader、KaTeX、数学调用）。
@@ -141,13 +141,17 @@ const sorted = semesters?.sort().reverse();
 `</script` 转义成 `<\/script`（对渲染无影响：HTML 里 `<\/script` 不是有效标签，按文本显示）。
 **只在正文含该字面量时才有差异**，单测 `escapes script end tags in the notice content` 守住。
 
+**替代验收标准（本表"已复审"档要求写明的那一条）**：正文含字面量 `</script>` 时，
+渲染结果**仍是文本**（既不被当作裸 JS 执行，也不提前结束模板里的内联 `<script>`）——
+由单测 `escapes script end tags in the notice content` 断言"产物里只剩模板自己的 3 个 `</script>`"来承载。
+
 **取证**：`reference/learnOH-old/src/helpers/html.ts:108`（`${content}` 直接插值）；
 `entry/src/main/ets/domain/render/WebViewTemplate.ets` 的 `escapeScriptEndTags`；
 `entry/src/test/NoticeDetail.test.ets`。
 
 ---
 
-## 7. 模板注入脚本里的 new URL() —— ticket 04 新增（改成等价的手工解析）
+## 7. 模板注入脚本里的 new URL() —— 锁定（ticket 04 因平台约束换实现方式，行为等价）
 
 **参考实现行为**：`helpers/html.ts:60-66` 的注入脚本用 `new URL(url)` 取 hostname，只对
 **hostname 以 `tsinghua.edu.cn` 结尾**的 `href`/`src` 追加 `_csrf`。
@@ -156,6 +160,10 @@ const sorted = semesters?.sort().reverse();
 前提变了（文档由 `loadData` 生成，是 opaque origin，`new URL()` 抛 TypeError），照抄会让全部链接
 更新失败。但**改法必须是等价的手工解析**，不能把只对 tsinghua 追加这个条件去掉——那会变成对
 所有链接都追加 `_csrf`，是行为偏离。
+
+**为什么状态是"锁定"而不是"已复审"**：新实现**没有偏离**参考实现的行为——同一条件、同一追加方式、
+同一跳过规则，只是把 `new URL()` 换成手工解析（等价的实现方式替换）。既然保真约束本身没变，按本表的词表
+就该记 `锁定`：它约束的正是"别去掉只对 tsinghua.edu.cn 追加这个条件"。
 
 **新实现做法（逐条对齐，只有解析方式不同）**：
 
@@ -192,6 +200,7 @@ const sorted = semesters?.sort().reverse();
 **取证**：`.scratch/notices-detail/evidence/04-hilog-probe4.txt`（`ERR_ACCESS_DENIED`）、
 `04-hilog-probe5.txt`（`page log: bridge=object keys=log,onExternalLink,onHeight`）、
 `04-hilog-detail.txt`（`loadData issued` + `no content height`）。
+
 ---
 
 ## 9. 行内单 `$…$` 公式**不渲染**（只有 `$$…$$` 与 `\(…\)`）—— 锁定

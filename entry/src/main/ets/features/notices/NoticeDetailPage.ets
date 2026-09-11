@@ -32,7 +32,7 @@
  *    目前不存在（怪癖台账第 4 条已登记该缺口，挂在渲染层），本 ticket 不新造一个
  *    只在标题上生效的半成品 —— 与 ticket 03 的口径一致（挂 ticket 09）。
  */
-import { ConfigurationConstant } from '@kit.AbilityKit';
+import { common, ConfigurationConstant } from '@kit.AbilityKit';
 import { PLAIN_PALETTE, ThemeTokens, resolveTheme } from '../../ui/theme/Tokens';
 import { i18nService } from '../../core/i18n/I18n';
 import { COLOR_MODE_KEY } from '../../entryability/EntryAbility';
@@ -64,14 +64,7 @@ export struct NoticeDetailPage {
   stack: NavPathStack | null = null;
   /** 会话注入端口（Mock 阶段为空实现）。 */
   session: SessionHeaderProvider | null = null;
-  /**
-   * 取证态下的"正文深浅"开关（见 NoticeDetailEvidence.EVIDENCE_DARK_TOGGLE）。
-   * 提交态恒为 false，与 colorMode 同值 —— 于是那份构建的行为与生产完全一致。
-   */
-  @State evidenceDark: boolean = false;
-
   aboutToAppear(): void {
-    this.evidenceDark = this.isDark();
     logEvidenceContentState();
     logger.info('detail evidence dark toggle: enabled=' + EVIDENCE_DARK_TOGGLE.toString()
       + ' effectiveDark=' + this.isDark().toString());
@@ -168,11 +161,38 @@ export struct NoticeDetailPage {
     this.stack.pushPath({ name: ROUTE_FILE_DETAIL, param: params });
   }
 
-  /** 取证态才渲染的控制条（提交态 `EVIDENCE_DARK_TOGGLE=false`，整段是死分支）。 */
+  /**
+   * 取证态才渲染的控制条（提交态 `EVIDENCE_DARK_TOGGLE=false`，整段是死分支）。
+   *
+   * 它**不翻转本地标志**，而是调用应用级 `setColorMode`（与 ticket 03 同一办法，只作用于
+   * 本应用、不动设备全局设置）—— 于是这条控制条走的是**生产同一条链路**：
+   * `setColorMode` → `onConfigurationUpdate` → `COLOR_MODE_KEY` → 本组件的 `@StorageProp`
+   * → `isDark()` → `@Prop isDark` → HtmlWebView 的 `@Watch` → 重送模板。
+   *
+   * 为什么不在组件里自己翻一个 `@State`：早先就是这么做的，结果只翻了 WebView 的 dark 标志、
+   * 没翻 surface 色，DarkReader 拿到浅色底 → 深色文字配浅色底不可读；而且控制条显示的
+   * `dark=` 是那个本地标志、不是真实生效值，直接造成了"截图说 dark=true、画面却是浅色"的
+   * 证据错位。现在 `dark=` 读的就是 `isDark()` 本身。
+   */
+  /** 取证实录：切换**应用级**深浅色（不改设备全局设置），走生产同一条链路。 */
+  private toggleAppColorMode(): void {
+    const next: number = this.isDark()
+      ? ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT
+      : ConfigurationConstant.ColorMode.COLOR_MODE_DARK;
+    try {
+      const context: common.UIAbilityContext = getContext() as common.UIAbilityContext;
+      context.getApplicationContext().setColorMode(next);
+      logger.info('evidence colorMode -> ' + (next === ConfigurationConstant.ColorMode.COLOR_MODE_DARK
+        ? 'DARK' : 'LIGHT'));
+    } catch (error) {
+      logger.error('evidence setColorMode failed: ' + (error as Error).message);
+    }
+  }
+
   @Builder
   evidenceControls() {
     Row() {
-      Text('dark=' + this.evidenceDark.toString())
+      Text('dark=' + this.isDark().toString())
         .fontSize(this.theme().typography.labelSmall.fontSize)
         .fontColor(this.theme().colors.onSurfaceVariant)
       Button('toggle')
@@ -182,8 +202,7 @@ export struct NoticeDetailPage {
         .fontColor(this.theme().colors.onPrimaryContainer)
         .margin({ left: this.theme().sizes.space2 })
         .onClick(() => {
-          this.evidenceDark = !this.evidenceDark;
-          logger.info('evidence dark toggled: effectiveDark=' + this.evidenceDark.toString());
+          this.toggleAppColorMode();
         })
     }
     .width('100%')
@@ -286,8 +305,9 @@ export struct NoticeDetailPage {
           HtmlWebView({
             content: this.preparedContent(),
             emptyText: this.s($r('app.string.loh_no_notice_content')),
-            isDark: this.evidenceDark,
-            surfaceColor: this.theme().colors.surface,
+            // 唯一来源就是 isDark()（= 应用 colorMode）；取证控制条改的也是它，
+            // 所以不存在"界面显示的标志"与"模板实际用的标志"不一致的余地。
+            isDark: this.isDark(),
             session: this.session
           })
         }
