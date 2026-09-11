@@ -61,3 +61,13 @@ Hypium 用例在运行环境里读工程内文件要么走 `resourceManager` + r
 local 单测环境里 `@ohos.util` 的文本能力实测不可用（TextEncoder/TextDecoder/Base64Helper
 返回空值，见 `Utf8.test.ets` 的 `core.textChannels` 探针日志）。因此解析用例注入的是
 `TestHelpers` 里**纯 JS** 的 Base64 + UTF-8 实现；平台通道（`Base64Helper`）属于设备侧待复验项。
+
+## 认证夹具（ticket 06，AuthFixtures.ets）
+
+| 夹具 | 成色 | 依据 |
+| --- | --- | --- |
+| `REAL_SM2_PUBLIC_KEY` / `REAL_ID_LOGIN_FORM_SNIPPET` | **抓取** | ID 登录页公开可访问，开发机上取回后原样保存的 `#sm2publicKey` 片段。真实页面里它是 **div 的文本**（不是 input 的 value），且公钥**带 `04` 前缀**（130 hex）——ticket 06 派单前这条只是推断，现在落实。 |
+| `SM2_WIRE` / `SM2_WIRE_{X,Y,C3,C2}` | **设备** | 模拟器产出的真实上线密文（`.scratch/migration/sm2-verify/arkts-wire.txt`，256 hex）。纯组装函数必须由四段原样拼出它。 |
+| `ID_CHECK_WITH_TICKET_HTML`、`ID_CHECK_CAPTCHA_HTML`、`COURSE_LIST_PAGE_HTML`、`COURSE_LIST_PAGE_EN_HTML`、`LOGIN_TIMEOUT_BODY`、`EMPTY_LIST_BODY`、`SET_COOKIE_*`、`INPUT_STYLE_SM2_PUBLIC_KEY_HTML`、`SM2_WIRE_X_TRUNCATED` | 反推 | 由参考实现的字段/正则（`thu-learn-lib/lib/module/index.js:101-183` 与 `src/data/source.ts:104`）反推构造。课程列表页刻意含「同一行两个 `&_csrf=`」与「无 `&` 前缀的 `_csrf=`」两种形态，用来锁定贪婪正则的语义。 |
+
+认证区的 `RawFetchPort` 夹具（脚本化端口）在用例内定义，不在本文件。

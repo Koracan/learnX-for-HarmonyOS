@@ -20,20 +20,29 @@ export class HttpResponse {
   readonly body: string;
   readonly ok: boolean;
   readonly error?: string;
+  /** 响应头原样（诊断用）。 */
+  readonly headers: Record<string, string>;
+  /** 服务端下发的 Set-Cookie 原始串（平台在 response.cookies 里给出）。 */
+  readonly setCookie: string;
 
-  private constructor(statusCode: number, body: string, ok: boolean, error?: string) {
+  private constructor(statusCode: number, body: string, ok: boolean, error: string | undefined,
+    headers: Record<string, string>, setCookie: string) {
     this.statusCode = statusCode;
     this.body = body;
     this.ok = ok;
     this.error = error;
+    this.headers = headers;
+    this.setCookie = setCookie;
   }
 
-  static success(statusCode: number, body: string): HttpResponse {
-    return new HttpResponse(statusCode, body, true);
+  static success(statusCode: number, body: string, headers: Record<string, string>,
+    setCookie: string): HttpResponse {
+    return new HttpResponse(statusCode, body, true, undefined, headers, setCookie);
   }
 
   static failure(message: string): HttpResponse {
-    return new HttpResponse(0, '', false, message);
+    const empty: Record<string, string> = {};
+    return new HttpResponse(0, '', false, message, empty, '');
   }
 
   /** 折算成上层使用的 outcome（只有 HTTP 200 算成功，与参考实现一致）。 */
@@ -52,6 +61,25 @@ export class HttpResponse {
   }
 }
 
+/** 把平台给的头对象摊平成字符串表（只用于诊断与 Set-Cookie 之外的展示）。 */
+function flatHeaders(raw: Object): Record<string, string> {
+  const flat: Record<string, string> = {};
+  if (raw === undefined || raw === null) {
+    return flat;
+  }
+  try {
+    const record: Record<string, Object> = raw as Record<string, Object>;
+    const keys: string[] = Object.keys(record);
+    for (let i = 0; i < keys.length; i++) {
+      const value: Object = record[keys[i]];
+      flat[keys[i]] = typeof value === 'string' ? value : JSON.stringify(value);
+    }
+  } catch (error) {
+    flat['error'] = (error as Error).message;
+  }
+  return flat;
+}
+
 /** HTTP 客户端：把 `RequestSpec` 发出去，返回响应。 */
 export class HttpClient {
   private readonly session: Session;
@@ -67,6 +95,11 @@ export class HttpClient {
   /** 发送请求；任何失败都折算为 `HttpResponse.failure`，不抛异常。 */
   async send(spec: RequestSpec): Promise<HttpResponse> {
     return this.request(spec.url, spec.method, spec.headers, spec.body, undefined, undefined);
+  }
+
+  /** 发送二进制体（multipart）；失败语义同 `send`。 */
+  async sendBinary(spec: RequestSpec, binaryBody: Uint8Array): Promise<HttpResponse> {
+    return this.request(spec.url, spec.method, spec.headers, undefined, binaryBody.buffer as ArrayBuffer, undefined);
   }
 
   /**
@@ -126,7 +159,8 @@ export class HttpClient {
       const response: http.HttpResponse = await request.request(url, options);
       const result: string | Object | ArrayBuffer = response.result;
       const text: string = typeof result === 'string' ? result : JSON.stringify(result);
-      return HttpResponse.success(response.responseCode, text);
+      return HttpResponse.success(response.responseCode, text, flatHeaders(response.header),
+        response.cookies === undefined || response.cookies === null ? '' : response.cookies);
     } catch (error) {
       return HttpResponse.failure((error as Error).message);
     } finally {

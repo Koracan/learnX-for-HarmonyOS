@@ -3,13 +3,13 @@
  *
  * 参考实现的 `post` 把三件事揉在一起：读文件、拼 multipart、发请求。
  * 移植后拆成：
- *   - `domain/parse/Multipart.ets`：纯字节组装（可单测）；
+ *   - `data/upload/Multipart.ets`：纯字节组装（可单测）；
  *   - 本类：把"参数 + 文件字节 + 边界"装配成一次可发送的请求；
  *   - `HttpClient.sendMultipart`：真正发出去。
  */
 
 import { buildMultipartBody, generateBoundary, MultipartBody, TextEncoderFn, UploadFile, DEFAULT_FILE_FIELD } from
-  '../../domain/parse/Multipart';
+  './Multipart';
 import { USER_AGENT } from '../remote/Requests';
 
 /** 一次组装好的上传请求。 */

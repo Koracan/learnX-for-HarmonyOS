@@ -6,11 +6,11 @@
 
 **Status:** ready-for-agent
 
-- [ ] 真机上用真实账号完成纯 HTTP 登录，日志显示成功取得会话 cookie 与请求令牌
-- [ ] 全程不启动任何 Web 容器
-- [ ] SM2 加密输出能被服务端接受（以登录成功为证），并与参考库的输出格式一致
-- [ ] cookie jar 能在请求之间保持与拼接 Cookie 头，且有可诊断日志
-- [ ] 若证伪（服务端强制要求浏览器），在 Comments 中记录证据与结论，并提请复审 ADR-0004
+- [ ] 真机上用真实账号完成纯 HTTP 登录，日志显示成功取得会话 cookie 与请求令牌 —— **未验证（凭据门控）**；`AuthProbe` + 脚本已就绪，见 Comments
+- [x] 全程不启动任何 Web 容器 —— 登录路径四个目录内零 Web 引用，只用 `@ohos.net.http`（见 Comments）
+- [ ] SM2 加密输出能被服务端接受（以登录成功为证），并与参考库的输出格式一致 —— **未验证（凭据门控）**；本地已用设备真实密文向量锁定组装格式
+- [x] cookie jar 能在请求之间保持与拼接 Cookie 头，且有可诊断日志 —— `core.CookieJar` 8 条（诊断串脱敏）
+- [ ] 若证伪（服务端强制要求浏览器），在 Comments 中记录证据与结论，并提请复审 ADR-0004 —— **未触发**；判定出口（`NO_TICKET_IN_RESPONSE` + `idLoginPage=true`）已就绪
 
 ## Comments
 
@@ -203,3 +203,98 @@ sm2.doDecrypt(该 wire, sk, 1) = ""   (不兼容)
 - 置信度：**高**（格式兼容部分）。依据是本机 SDK 的 .d.ts + 本机离线官方文档 + 设备实测 + 双向密码学互解（含独立重算 C3），路径全部可复现。
 - 服务端实际接受度：**未测**，不做判断。
 - 会推翻本判定的新证据：① 真实登录时服务端拒绝 ArkTS 产物（例如服务端其实按 C1C2C3 或要求 DER）；② 服务端要求密码以外的东西参与（时间戳/HMAC）；③ `#sm2publicKey` 实际是压缩点或带其它前缀。前两条只能靠 ticket 06 的真实登录来回答。
+
+### 实现与门禁（2026-09-12，模拟器口径 / 提交见下）
+
+**交付清单**（全部为新增或对 ticket 05 交付物的**扩展**）：
+
+| 文件 | 作用 |
+| --- | --- |
+| `core/http/CookieJar.ets`（新） | 纯内存 cookie jar：Set-Cookie 拆分/解析、域与路径匹配、Cookie 头拼接、同名同域同路径覆盖、过期删除、id 域 JSESSIONID 重置；诊断串**只含域名/名字/条数/字符数，不含值**（日志会被导出，脱敏是硬要求） |
+| `core/crypto/Sm2Cipher.ets`（新） | SM2 口令加密：纯组装（`04`+X+Y+C3+C2、左补零、小写）+ 平台 `cryptoFramework`（`SM2_256\|SM3`、`getCipherTextSpec(der,'C1C3C2')`） |
+| `data/auth/AuthTypes.ets`（新） | `FailReason`（照 thu-learn-lib 的字符串值）、`Credentials`、`LoginResult.requiresEnrollment()` |
+| `data/auth/LoginParsers.ets`（新） | 两条逐字保真正则（CSRF 贪婪 / lang 精确）+ `#sm2publicKey` + 票据 + 失效判据 |
+| `data/auth/LoginClient.ets`（新） | 7 步纯 HTTP 登录（清 jar → 取公钥 → SM2 → multipart 检查 → 票据 → 漫游 → CSRF/语言） |
+| `data/auth/ReAuth.ets`（新） | 触发并集（`'[]'` ∪ `noLogin`）、**单飞**、只重试一次、失败分类 |
+| `data/remote/Port.ets`（扩展） | 新增 `RawFetchPort`（`sendRaw`）+ `RawRequest/RawResponse`；**`FetchPort` 契约未动** |
+| `data/remote/HttpClient.ets`（扩展） | 响应带 `headers`/`setCookie`；新增 `sendBinary` |
+| `data/remote/HttpFetchPort.ets`（扩展） | `implements FetchPort, RawFetchPort`；原始通道**不自动注入 Cookie**（cookie 由调用方按 jar 显式给） |
+| `data/upload/UploadForm.ets`（修） | **修掉 ticket 05 遗留的错误 import 路径**（见下「顺手修的不是参考实现」） |
+| `entry/src/test/{CookieJar,LoginParsers,Sm2Wire,LoginFlow,ReAuth}.test.ets` | 43 条新单测 |
+| `entry/src/test/fixtures/AuthFixtures.ets` + README 增补 | 认证夹具与成色 |
+| `.scratch/auth/tools/`（新） | 一次性设备探针 `AuthProbe.ets` + `run-auth-probe.ps1` + README（用法与失败判读） |
+
+**门禁（真实输出）**：
+- 单测：`Tests run: 159, Failure: 0, Error: 0, Pass: 159`（先删 `entry/.test`、`--no-incremental`；日志 `.dsh/logs/ticket06-test4.log`）。
+  我这轮的 5 个类共 **43** 条：`core.CookieJar` 8、`data.auth.LoginParsers` 7、`core.Sm2Cipher` 6、`data.auth.LoginClient` 13、`data.auth.ReAuth` 9（116 + 43 = 159）。
+- 领域纯度：`node scripts/check-domain-purity.mjs` → PASS（12 个领域源文件）。
+- i18n：`node scripts/check-i18n-keys.mjs` → `RESULT: OK`（231 键；本轮无新增文案，登录错误只走日志）。
+- 构建：`devecocli build` → `BUILD SUCCESSFUL in 24 s 89 ms`，产物 `entry-default-signed.hap` 重新生成（1 282 920 字节，05:08:41；日志 `.dsh/logs/ticket06-build.log`）。
+- 探针编译校验：把 `AuthProbe.ets` 临时放进树里跑一次 `hvigorw test` → `PROBE_COMPILE_EXIT=0`，随后 `git checkout` 复原（`.dsh/logs/ticket06-probe-compile2.log`）。
+
+### 逐条验收
+
+- [ ] **真机用真实账号完成纯 HTTP 登录，日志显示成功取得会话 cookie 与请求令牌** —— **未验证（凭据门控）**。
+  能力已实现并通过 43 条注入式单测；`AuthProbe.ets` 就是那条「换个真实凭据就能跑」的通道（用法见 `.scratch/auth/tools/README.md`），
+  它会在设备上打 `PROBE login ok=… csrfChars=… cookieChars=…` 与 `PROBE session page status=… firstCourseId=…`。
+  本项**不勾选**：没跑过真实服务端。
+- [x] **全程不启动任何 Web 容器** —— 登录路径只用 `@ohos.net.http`。静态证据：
+  登录路径的四个目录（`data/auth`、`data/remote`、`core/http`、`core/crypto`）内 `webview|WebView|@ohos.web|@kit.ArkWeb` **零命中**；
+  `core/web/`（ticket 04 的公告详情渲染）不在登录路径上。导入 `@ohos.net.http` 的只有 `data/remote/HttpClient.ets`。
+- [ ] **SM2 加密输出能被服务端接受（以登录成功为证）** —— **未验证（凭据门控）**。
+  本地能做的那半已做且证据强：用**模拟器产出的真实上线密文**（`.scratch/migration/sm2-verify/arkts-wire.txt`）锁定纯组装 `'04'+X+Y+C3+C2` 与左补零（`core.Sm2Cipher` 6 条）。
+  「服务端接受」这半只能靠 `AuthProbe` 的真跑（`ERROR_ROAMING` 就是它的反证出口）。
+- [x] **cookie jar 在请求之间保持与拼接 Cookie 头，且有可诊断日志** —— `core.CookieJar` 8 条：多 cookie 拆分（含 `Expires` 里的逗号）、
+  域/路径匹配（`learn` 的 cookie 不发往 `id`；`.tsinghua.edu.cn` 两者都发）、头拼接顺序、同名覆盖、过期删除（`Max-Age=0` 与 1970 `Expires`）、
+  `resetIdDomainSession`（URL 与 host 两种入参）、`describe()` **不泄漏值**。
+- [ ] **若证伪（服务端强制要求浏览器），记录证据并提请复审 ADR-0004** —— **未触发**（无账号）。
+  判定出口已就绪：`NO_TICKET_IN_RESPONSE` + `diagnostic` 里的 `idLoginPage=true`（`LoginClient` 3 条单测覆盖），
+  且 `RequiresEnrollment()` 对所有失败返回 true（spec 第 5 节的降级在代码里可见，不是注释）。
+
+### 三条最容易错的细节：都照参考实现做了，并有单测
+
+1. **桌面 Chrome UA**：`USER_AGENT` 与参考实现 `src/data/source.ts:55-57` 逐字相同；`LoginFlow.test` 断言**每个**请求（4 个）的 `User-Agent` 都等于它，且含 `Windows NT 10.0` 与 `Chrome/120.0.0.0`。
+2. **登录前显式重置 jar**：`jar.reset()` + `resetIdDomainSession`，对应 `clearLoginCookies`（`source.ts:11-46`，锁定行为）。单测先往 jar 里塞 `JSESSIONID=STALE-ID` / `SERVERID=STALE-LEARN`，再断言第一个请求的 Cookie 头里都没有它们。
+3. **`i_captcha` 恒发空串**：multipart 里字段存在且值为空（单测断言字段名存在 + 值为 `''`）；若服务端要验证码，会由「取不到票据」暴露成 `NO_TICKET_IN_RESPONSE`，不会被静默当成功。
+
+另：**`i_pass` 不再重复拼 `04`**。参考实现是 `'04' + sm2.doEncrypt(...)`（`doEncrypt` 不返回 04），我的 `assembleCipherText` 已经把 `04` 拼好，单测直接断言 `i_pass === SM2_WIRE` 且不以 `0404` 开头。
+
+### 重登：并集 + 各自保留语义（照台账第 2 条）
+
+| 首次结果 | 触发重登 | 重试后 | 返回 |
+| --- | --- | --- | --- |
+| 正常 | 否 | —— | ok |
+| `'[]'`（原生路径，`source.ts:104`） | 是（单飞） | 仍 `'[]'` | ok + `sessionLostAfterReAuth=true`（照原生路径不重分类） |
+| `noLogin`（403 / `login_timeout`，`index.js:21`） | 是（单飞） | 仍 noLogin | 失败 `NOT_LOGGED_IN` |
+| `noLogin` | 是 | 非 200 | 失败 `UNEXPECTED_STATUS` |
+| 任意 | 登录失败 | —— | 失败（透传登录原因，`requiresEnrollment=true`） |
+
+单飞照搬 `source.ts:111-121`：单测用 5 个并发 `gate.run()` + 30ms 延迟的替身登录，断言 `login.calls === 1`、5 个任务各跑 2 次（只重试一次）。
+
+### 与参考实现的有意差异（均已在此登记）
+
+1. **`FailReason.NO_TICKET_IN_RESPONSE`（新增）**：参考实现把「取不到票据」并进 `ERROR_FETCH_FROM_ID`；这里单独一类，因为它是**验收第 5 条（服务端强制浏览器）的唯一可判读出口**。既有分类的字符串值未改动。
+2. **`noLogin` 的 URL 判据补了响应体判据**：平台 `@ohos.net.http` **不暴露重定向后的最终 URL**，`res.url.includes('login_timeout')` 这一半在设备上可能永远拿不到；因此判据是「403 ∪ URL 含 ∪ **响应体含**」，是**并集**（更保守），不是替换。
+3. **`CookieJar` 的域参数接受 URL 或 host**（内部规范化为 host）：参考实现用 `CookieManager.set(Urls.id, …)` 传的是 URL；单测覆盖两种入参。
+4. **`ReAuthRunResult` 多一个 `sessionLostAfterReAuth`**：让「重登后仍失效」这条（原生路径原本静默返回 `'[]'`）在日志与返回值里可见，便于日后升级为 Enrollment 而不改行为。
+5. **`Port` 扩展而非改动**：`FetchPort` 的三个方法原样保留，新增 `RawFetchPort`；三域仓储与既有测试端口未受影响。
+
+### 顺手修的不是参考实现的怪癖（如实登记）
+
+`data/upload/UploadForm.ets` 从 ticket 05 起就 import 了 `'../../domain/parse/Multipart'`——而 `Multipart.ets` 实际在 `data/upload/`。
+这个错误路径此前**没有暴露**，因为 `UploadForm.ets` 在应用里不可达（`HttpFetchPort` 无人 import，ArkTS 不编译不可达模块）。本轮登录流第一次真正 import 它，编译立刻报 `Could not resolve`。
+已改成 `'./Multipart'`（模块位置未变）。这与 `docs/reference-quirks.md` 无关：它不是参考实现的行为，是我在 ticket 05 留下的路径错误。
+
+### 未验证项（判据可复核，不要当成「应该没问题」）
+
+1. **真实账号纯 HTTP 登录**（验收 1）：需要用户先手动登记（ticket 07）。关闭方式：在 `AuthProbe.ets` 填三个常量 → `pwsh -File .scratch/auth/tools/run-auth-probe.ps1` → 看 `PROBE login ok=true` 与 `PROBE session page status=200`。
+2. **SM2 产物被服务端接受**（验收 3）：同上那条命令；失败时 `reason` 是 `ERROR_ROAMING`（票据不被接受）即命中 ticket 06 派单前写下的反证条件 ①。
+3. **平台 `cryptoFramework` 加密路径本身**：本地只验了纯组装（真实向量）；`createCipher/initSync/doFinalSync/getCipherTextSpec` 只能设备上验。ticket 06 派单前已在模拟器上验过这条链（`.scratch/migration/sm2-verify/device-sm2probe-hilog.log`），但**那次的探针不是本轮代码**——本轮代码的这条路径同样只在探针里跑过编译，没跑过执行。
+4. **服务端是否要求验证码**：无账号，无法判断。这是 `idp-login-flow.md` 第 4 节待验证第 3 项。
+5. **自动重登在真实 403/`login_timeout` 下的行为**：单测用替身覆盖了全部分支；真实触发条件没遇到过。
+
+### 给 07/08 的接口
+
+- 凭据：`LoginClient.login(credentials?)` 或注入 `provider: () => Promise<Credentials>`；**本模块不读盘**（凭据库归 07）。
+- 会话：`LoginResult.session`（`{cookie, csrfToken}` 快照）+ `LoginClient.getJar()` / `sessionForLearn(csrf)`（cookie 会随响应轮换，随用随组）。
+- 抓取：`NoticesFetcher/AssignmentsFetcher/FilesFetcher` 接收 `Session`；重登用 `SessionGate.run(task)` 包一层即可，`ReAuthCoordinator` 保证并发只登录一次。

@@ -6,7 +6,10 @@
  */
 
 import { HttpClient as NetClient, HttpResponse } from './HttpClient';
-import { FetchPort, FetchOutcome, GetSpec, PostFormSpec, UploadSpec, UploadProgressSink } from './Port';
+import {
+  FetchPort, FetchOutcome, GetSpec, PostFormSpec, UploadSpec, UploadProgressSink,
+  RawFetchPort, RawRequest, RawResponse
+} from './Port';
 import { HttpOutcome, HttpMethod, RequestSpec, Session, defaultHeaders, formHeaders } from './Requests';
 import { buildUploadRequest, newBoundary, UploadRequest } from '../upload/UploadForm';
 import { encodeUtf8 } from '../../core/codec/TextCodec';
@@ -38,11 +41,47 @@ function toOutcome(response: HttpResponse): FetchOutcome {
   return { ok: true, status: response.statusCode, body: response.body };
 }
 
-export class HttpFetchPort implements FetchPort {
+/** 原始请求通道用的空会话：它意味着「不要自动注入 Cookie」，Cookie 由调用方按 jar 自己给。 */
+const NO_SESSION: Session = { cookie: '', csrfToken: '' };
+
+export class HttpFetchPort implements FetchPort, RawFetchPort {
   private readonly client: (session: Session) => NetClient;
 
   constructor(client?: (session: Session) => NetClient) {
     this.client = client === undefined ? (session: Session): NetClient => new NetClient(session) : client;
+  }
+
+  /**
+   * 原始请求（登录流用）。
+   *
+   * 与 `postForm`/`get` 的区别：**不自动注入会话 Cookie**（登录时还没有会话，
+   * 且 cookie jar 的重置/拼接必须显式可见），并把响应头与 Set-Cookie 原样带回。
+   */
+  async sendRaw(spec: RawRequest): Promise<RawResponse> {
+    const request: RequestSpec = {
+      url: spec.url,
+      method: spec.method,
+      headers: spec.headers
+    };
+    if (spec.body !== undefined) {
+      request.body = spec.body;
+    }
+    const client: NetClient = this.client(NO_SESSION);
+    const response: HttpResponse = spec.binaryBody === undefined
+      ? await client.send(request)
+      : await client.sendBinary(request, spec.binaryBody);
+    const result: RawResponse = {
+      ok: response.ok,
+      status: response.statusCode,
+      body: response.body,
+      setCookie: response.setCookie,
+      headers: response.headers,
+      requestUrl: spec.url
+    };
+    if (response.error !== undefined) {
+      result.error = response.error;
+    }
+    return result;
   }
 
   async postForm(session: Session, spec: PostFormSpec): Promise<FetchOutcome> {

@@ -10,7 +10,7 @@
  * 端口不抛异常：失败也是 `FetchOutcome`（照参考实现 `catch(err => console.error)` 的容错）。
  */
 
-import { HttpOutcome, Session } from './Requests';
+import { HttpMethod, HttpOutcome, Session } from './Requests';
 
 export { Session } from './Requests';
 
@@ -70,4 +70,43 @@ export interface FetchPort {
   postForm(session: Session, spec: PostFormSpec): Promise<FetchOutcome>;
   get(session: Session, spec: GetSpec): Promise<FetchOutcome>;
   upload(session: Session, spec: UploadSpec, onProgress?: UploadProgressSink): Promise<HttpOutcome>;
+}
+/* ------------------------------------------------------------------ *
+ * 扩展（ticket 06）：**原始请求**通道，供登录流使用。
+ *
+ * 为什么不改 FetchPort：FetchPort 描述的是「三域抓取」那三种固定请求（args 已收敛成
+ * courseId/id），登录要发的是 ID 域的表单页、multipart 检查请求、漫游 GET 与课程列表页，
+ * 需要响应头与 Set-Cookie。新增一个独立接口，两个接口由同一个 HttpFetchPort 实现，
+ * 三域仓储与既有测试端口**无需改动**。
+ * ------------------------------------------------------------------ */
+
+/** 一次原始请求（头与体都由调用方给全，端口不做任何业务判断）。 */
+export interface RawRequest {
+  url: string;
+  method: HttpMethod;
+  headers: Record<string, string>;
+  /** 文本体（urlencoded 等）。与 binaryBody 互斥。 */
+  body?: string;
+  /** 二进制体（multipart）。与 body 互斥。 */
+  binaryBody?: Uint8Array;
+}
+
+/** 一次原始响应。 */
+export interface RawResponse {
+  /** 网络层是否拿到响应（4xx/5xx 也算 true）。 */
+  ok: boolean;
+  status: number;
+  body: string;
+  /** 服务端下发的 Set-Cookie 原始串（可能含多个 cookie，解析见 core/http/CookieJar）。 */
+  setCookie: string;
+  /** 响应头原样（诊断用）。 */
+  headers: Record<string, string>;
+  /** 请求 URL。平台**不暴露重定向后的最终 URL**，见 LoginParsers 的说明。 */
+  requestUrl: string;
+  error?: string;
+}
+
+/** 原始请求端口。 */
+export interface RawFetchPort {
+  sendRaw(spec: RawRequest): Promise<RawResponse>;
 }

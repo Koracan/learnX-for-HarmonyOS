@@ -14,6 +14,11 @@ import dataFetchTest from './DataFetch.test';
 import noticesTest from './Notices.test';
 import noticeDetailTest from './NoticeDetail.test';
 import utf8Test from './Utf8.test';
+import cookieJarTest from './CookieJar.test';
+import loginParsersTest from './LoginParsers.test';
+import sm2WireTest from './Sm2Wire.test';
+import loginFlowTest from './LoginFlow.test';
+import reAuthTest from './ReAuth.test';
 
 export default function testsuite() {
   semesterTest();
@@ -28,4 +33,9 @@ export default function testsuite() {
   noticesTest();
   noticeDetailTest();
   utf8Test();
+  cookieJarTest();
+  loginParsersTest();
+  sm2WireTest();
+  loginFlowTest();
+  reAuthTest();
 }
