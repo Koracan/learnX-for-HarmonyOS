@@ -142,3 +142,48 @@ data.files       fetched courses=<n> items=<n> elapsedMs=<n> requests=<n> failur
    并确认它无平台 import、无领域实体 import。
 4. **设备窗口可用时**：用一条 `data.fetch` 用例复验平台 `util.Base64Helper.decodeSync` 通道
    （本地单测环境不可用）。这一条需要独占设备，先向统筹申请窗口。
+
+### D4 设备复验：平台 Base64 通道（2026-09-12，模拟器 Pura 90 / 127.0.0.1:5555）
+
+**结论：平台上该通道工作正常**——local 单测环境里解不出字节，纯粹是该环境对 `@ohos.util` 的桩实现所致，
+不是生产代码的问题。生产路径（`core/codec/TextCodec.decodeBase64Text` → 平台 `Base64Helper.decodeSync`
+→ 纯 UTF-8 解码）与预期一致。
+
+走法（临时探针，一轮；遵守 AGENTS「取证要点」的自证生效要求）：
+
+1. 临时文件 `core/codec/TextCodecProbe.ets`（`TEXT_CODEC_EVIDENCE=true`）+ `EntryAbility.onCreate`
+   一行调用；探针**无论开关取值都先打一行 `PROBE-SWITCH`**，因此"没有 PROBE 行"才可判定为
+   "探针没跑到"，而不会被误读成"现象不存在"。
+2. `devecocli run --device 127.0.0.1:5555`（BUILD SUCCESSFUL → App installed successfully →
+   start ability successfully）→ `devecocli log --from 10m --bundle-name com.koracan.learnOH`。
+3. 原始 hilog（`.dsh/logs/ticket05-evidence-hilog.log`，域 A04c4f = 0x4C4F）：
+```
+09-12 03:45:48.486  7658  7658 I A04c4f/evidence.textcodec: ... PROBE-SWITCH switch=on
+09-12 03:45:48.487  7658  7658 I A04c4f/evidence.textcodec: ... PROBE base64 input=PHA+5Yqh platform="<p>务" expected="<p>务" match=true threw=false
+```
+   - `switch=on`：开关生效值自证（排除"改了但没生效"）。
+   - `platform="<p>务"` = `expected`（expected 由 Node `Buffer` 独立算出）⇒ **match=true**。
+4. 复原并核对：`git checkout -- entryability/EntryAbility.ets`、删除探针文件；
+   `git status --porcelain -- entry/src/main/ets/entryability` 为空、探针文件不存在；
+   全量重跑（删 `entry/.test`）`Tests run: 101, Failure: 0, Pass: 101`。
+
+**仍未单独测出**：平台 `util.TextDecoder.decodeWithStream/decodeToString` 在设备上的行为。
+这一项**已不再重要**：生产路径的"字节 → 文本"改用 `domain/parse/Utf8.ets` 的纯实现，
+`TextDecoder` 不在任何生产路径上（只有探针会碰它）。因此不再为它排取证窗口。
+
+### D 前三件的收尾（同一轮）
+
+- `TestHelpers.ets`：注释改为**逐 API 实测表**（TextEncoder 返回空数组 / Base64Helper 解不出字节 /
+  TextDecoder 未单独测出），删除了原先那句把推断写成实测的描述；死代码 `deviceBase64Decoder`
+  改名 `platformProbeBase64Decoder` 并注明"只在设备上有效、不参与断言"。
+- `domain/parse/Utf8.ets`：文件头注明属 spec 第 2 节「纯叶子工具」唯一例外（core 允许引用它），
+  自查写明**零 import**。
+- `Utf8.test.ets`：探针用例名改为 `platformTextChannelProbe`，避免"名字像断言、实际不断言"。
+
+**最终单测取证**：`HEAD=3dc63b8473a681029645f51f01d8e64d7d56168d` + 本次三个未提交文件的改动，
+全量 `Tests run: 101, Failure: 0, Error: 0, Pass: 101`（`.dsh/logs/ticket05-test5.log`，
+先删 `entry/.test` 再跑，非缓存命中）。per-class：
+domain.Semester 9 / ui.theme.Tokens 5 / core.LogFormat 4 / core.i18n 10 / core.i18n.DateTimeUtil 14 /
+domain.NoticeParser 13 / domain.AssignmentParser 9 / domain.FileParser 4 / data.Multipart 6 /
+data.fetch 7 / features.notices.NoticeOrder 8 / NoticeRepository 3 / NoticeListStore 4 /
+domain.Utf8 4 / core.textChannels 1。

@@ -1,15 +1,18 @@
 /*
- * UTF-8 编解码——**纯函数，零平台依赖**（见 scripts/check-domain-purity.mjs）。
+ * UTF-8 编解码——**纯叶子工具**，零平台依赖（见 scripts/check-domain-purity.mjs）。
  *
- * 为什么要自己写：平台侧 `util.TextDecoder.decodeWithStream` 在单测运行环境里返回
- * `undefined`（实测：同一个 `Uint8Array` 用 `decodeToString` 正常、用 `decodeWithStream`
- * 拿不到字符串），把"公告正文能不能解出来"和"平台 API 在这个环境里准不准"绑在了一起。
- * 自己实现之后：
- *   - 生产路径与单测路径**是同一份代码**，host 与设备行为一致；
- *   - 解析逻辑的正确性不再由平台解码器背书（Base64 → 字节仍走平台 `Base64Helper`，
- *     字节 → 文本用本文件）。
+ * `domain/` 默认不允许被 `core/` 反向依赖；本文件是 spec 第 2 节明确的**唯一例外**：
+ * "纯叶子工具（无平台依赖、无领域实体、无业务规则，例如 domain/parse/Utf8.ets 的 UTF-8
+ * 编解码）……放在 domain/ 下可获得 check-domain-purity.mjs 的自动纯度保护，而 core 允许引用它"。
+ * 自查：本文件**没有任何 import**（无 @ohos.* / @kit.* / @hms.*，也不 import 任何领域实体），
+ * 因此它只是一个受纯度保护的编解码工具，被 core/codec/TextCodec 与测试共同引用。
  *
- * 只实现 UTF-8（站点发出的就是 UTF-8），不含 BOM / 代理对以外的边界分支。
+ * 为什么要自己写而不是用平台 API：见 TestHelpers.ets 文件头的逐 API 实测表——
+ * local 单测环境里 `util.TextEncoder.encodeInto` 返回空数组、`util.Base64Helper.decodeSync`
+ * 解不出字节，而平台 `TextDecoder` 未被单独测出。把"字节 ↔ 文本"建立在平台 API 上会让
+ * host 与设备行为不一致；自己实现后，生产与测试是同一份代码。
+ *
+ * 只实现 UTF-8（站点发出的就是 UTF-8），非法序列按 U+FFFD 处理，不抛异常。
  */
 
 /** 文本 → UTF-8 字节。 */

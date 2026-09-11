@@ -9,6 +9,7 @@ import { describe, it, expect } from '@ohos/hypium';
 import util from '@ohos.util';
 import { decodeUtf8, encodeUtf8 } from '../main/ets/domain/parse/Utf8';
 import { Logger } from '../main/ets/core/log/Logger';
+import { platformProbeBase64Decoder } from './TestHelpers';
 
 
 /** UTF-8 编码后的字节序列（十六进制），便于断言。 */
@@ -62,14 +63,17 @@ export default function utf8Test() {
   });
 
   describe('core.textChannels', () => {
-    it('logsPlatformTextChannelAvailability', 0, () => {
-      // 只记录、不断言：本工程的 local 单测环境里 `@ohos.util` 的文本能力实测返回空值
-      // （TextEncoder/TextDecoder/Base64Helper 都如此），因此文本编解码**不能**依赖它——
-      // 解析器只用 domain/parse/Utf8 的纯实现（见 TestHelpers 头注释与 ticket 05 Comments）。
+    it('platformTextChannelProbe', 0, () => {
+      // 只记录、不断言：本工程的 local 单测环境里 `@ohos.util` 只提供部分实现。
+      // 逐 API 的实测结论（TextEncoder 返回空数组、Base64Helper 解不出字节、TextDecoder 未单独测出）
+      // 见 TestHelpers.ets 文件头的实测表；因此文本编解码不依赖平台，走 domain/parse/Utf8 纯实现。
       const bytes: Uint8Array = new util.TextEncoder().encodeInto('abc');
       const decoder = new util.TextDecoder();
       const streamed: string = decoder.decodeWithStream(bytes);
       const direct: string = decoder.decodeToString(bytes);
+      // 平台 Base64 通道：local 环境实测解不出字节（返回空/异常），设备窗口再观测
+      const probeEncoded: string = 'PHA+5Yqh';
+      const probePlatform: string = platformProbeBase64Decoder(probeEncoded);
       let base64Length: number = -1;
       try {
         base64Length = new util.Base64Helper().decodeSync('YWJj').length;
@@ -81,7 +85,9 @@ export default function utf8Test() {
         + ' decodeWithStream=' + JSON.stringify(streamed) + ' (' + (typeof streamed) + ')'
         + ' decodeToString=' + JSON.stringify(direct) + ' (' + (typeof direct) + ')'
         + ' base64Helper.decodeSync("YWJj").length=' + base64Length.toString()
-        + ' pureDecode(abc)=' + JSON.stringify(decodeUtf8(new util.TextEncoder().encodeInto('abc'))));
+        + ' platformProbeBase64("PHA+5Yqh")=' + JSON.stringify(probePlatform)
+        + ' pureBase64("PHA+5Yqh")=' + JSON.stringify(decodeUtf8(encodeUtf8('<p>务')))
+        + ' pureDecodeOfPlatformBytes=' + JSON.stringify(decodeUtf8(bytes)));
       // 本地实现的确定性断言（与平台无关）
       expect(decodeUtf8(encodeUtf8('abc'))).assertEqual('abc');
     });
