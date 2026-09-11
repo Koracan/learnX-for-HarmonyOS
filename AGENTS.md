@@ -22,7 +22,10 @@ learnOH —— HarmonyOS 原生（ArkTS / ArkUI）应用，是原 React Native f
 
  - **构建产物与模拟器都是单例资源**，同一时刻只允许一个 agent 占用。两个 agent 同时跑 `devecocli build` 会互相覆盖 `entry/build/default/outputs/default/entry-default-signed.hap`——后者的产物会让前者已装的 app 与源码对不上；两个 agent 同时操作同一台模拟器会让 `hdc install`/点击/截图互相踩踏（已实测：一次 install 卡死 11 分钟，产物于 02:32:35 被另一 agent 的构建覆盖）。
 
- - **按资源类型分工，而不是让所有人排队**：要产 hap、要装设备、要点 UI、要截图、要取 log 的 agent **独占设备**；只跑 `hvigorw test` 与改代码的 agent **不需要设备**（`hvigorw test` 写 `entry/.test` 与 build 中间产物，不产 signed hap，不影响设备上已安装的 app）。让这两类工作并行。
+ - **实际是两把锁，别只按"设备"分**：
+   1. **构建锁**——任何 `hvigorw`（**含 `test`**）与 `devecocli build` 都会写 `entry/build` 与 `.hvigor` 缓存。**同一时刻只允许一个构建进程**：两个并发构建会互相污染产物，并给出不可信的编译/测试结果。
+   2. **设备锁**——`devecocli install/run`、`devecocli ui`（截图 / layout / 点击）、`devecocli log`、任何 `hdc` 命令。同一时刻只允许一个 agent 操作设备。
+   `devecocli run` 同时占两把锁（既构建又安装）。两把锁相互独立：**改代码与读文件不需要任何锁**，所以"改代码"和"占设备取证"可以真并行——这才是让多 agent 不排长队的办法。
 
  - **需要独占时向统筹者申请窗口**，不要在共享资源上自行重试或抢占；拿到窗口的 agent 在收尾时明确回报"窗口关闭"。
 
