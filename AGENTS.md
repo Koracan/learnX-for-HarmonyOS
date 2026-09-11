@@ -57,6 +57,13 @@ learnOH —— HarmonyOS 原生（ArkTS / ArkUI）应用，是原 React Native f
 
  - **不要用作业退出码判断成败**：把命令写成 `cmd *> log; ('EXIT=' + $LASTEXITCODE) | Out-File ...` 时，进程退出码会变成 **0**（最后一条是 `Out-File`）。必须读日志/产物。
 
+ - **`devecocli build` 报 BUILD SUCCESSFUL 也可能是陈旧产物**（ticket 07 实测）：探针用完后把模块删掉，增量构建仍返回成功、**产物时间戳不变**，而 hap 里的 `ets/modules.abc` **仍引用已删除的模块**，装机启动即 `ReferenceError`。判定与修法：
+   1. **时间戳不变 = 没重新构建**——这是必要条件，但不充分；
+   2. 还需要**内容级检查**：把 hap 当 zip 解开（`Copy-Item x.hap x.zip; Expand-Archive x.zip out`），在解出来的 `ets/modules.abc` 里搜「应当消失的符号」（探针名）与「应当存在的符号」（本轮新增的桥名）。**不要直接对 `.hap` 做字节检索**——zip 条目是压缩的，搜不到不等于没有，会给出**假阴性**；
+   3. 不确定时**删 `entry/build` 全量重建**，并装机后确认应用日志里启动正常——`ReferenceError` 只在运行时才会炸。
+
+   推论（很重要）：**"我把开关翻回 false / 把探针删了，并重新构建过"不是证据**。取证态到提交态的转变必须给出**产物级或视觉级**证据（产物内容检索，或一张提交态界面截图），否则可能验的是上一个产物。
+
  - **`check-import-graph.mjs` 为什么存在（实测）**：`data/upload/UploadForm.ets` 从 ticket 05 起就 import 了不存在的 `../../domain/parse/Multipart`（真身在 `data/upload/Multipart.ets`），而 ticket 05 的 `devecocli build` 与 116 条单测**全绿**。原因是 **ArkTS 的编译按入口可达性进行**：没有任何可达者 import 的模块**不会被编译**，其中的硬错误（含无法解析的 import）不会让任何门禁变红。直到 ticket 06 第一次 import 它才暴露。
    因此：**新交付的模块必须至少被一条可达路径（应用入口或某个测试）import**，否则它的"编译通过"是没被验证过的。该脚本会 FAIL 掉不可解析的相对 import，并 WARN 列出**孤儿模块**（没有任何可达者 import 的 main 源文件）——入口文件出现在该列表属正常，**其余任何文件出现在那里，就意味着它从未被编译过**。
 

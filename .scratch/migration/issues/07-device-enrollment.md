@@ -4,7 +4,7 @@
 
 **Blocked by:** 03（导航骨架 + 公告列表）、06（HTTP 客户端 + cookie jar + SM2 登录）
 
-**Status:** implemented-partial —— 2 条达成、1 条机制已证（合成凭据）、1 条部分闭环、1 条待用户操作；见 Comments
+**Status:** verified-partial —— 统筹验收：2 条达成、1 条机制已证（合成凭据）、1 条部分闭环、1 条待用户操作；见 Comments 末尾「统筹验收」
 
 - [ ] 真机完成一次完整登记（含短信验证），回到应用后处于已登录可用状态 —— **待用户操作**（短信门控）；短信之前的环节已在模拟器自测通过。口径：本轮只有模拟器证据，真机复验欠（归 ticket 18 前）
 - [ ] 服务端登记的设备指纹与我们保存的凭据指纹是同一个值 —— **部分闭环**：三点脱敏等式的第①点已证（`formFieldDom=d4314739`），②③ 待用户提交后闭合
@@ -141,4 +141,48 @@ Error message: cannot find record '&entry/src/main/ets/core/codec/EnrollmentProb
 ### 主要交付文件
 
 `entry/src/main/ets/{core/asset/AssetSecretStore.ets, core/asset/SecretStorePort.ets, core/device/AppIdentity.ets, data/auth/{CredentialStore,EnrollmentSession,AuthSession}.ets, domain/auth/{DeviceIdentity,CredentialRecord,EnrollmentScript,FingerprintDigest}.ets, features/auth/{AuthServices,AuthStore,LoginPage,EnrollmentWebView}.ets}`；改动：`core/http/CookieJar.ets`、`core/web/SessionHeaderProvider.ets`、`pages/Index.ets`、`entry/src/test/List.test.ets`。证据：`.scratch/enrollment/evidence/`（`README.md` 含字节数与 SHA256，`git add -f` 只入 README；`revision.txt`）。一次性探针与脚本：`.scratch/enrollment/tools/`。
+
+### 统筹验收（2026-09-12，模拟器口径）→ Status: verified-partial
+
+**结论：2 条达成、1 条机制已证、1 条部分闭环、1 条待用户操作。不是 `verified`。**
+
+#### 我独立重跑的（在 `982b2eb` 上）
+
+- 单测：删 `entry/.test` + `--no-incremental` → **29 类 TOTAL=207 FAIL=0**（`test_result.txt` 07:26:53 重新生成）；本轮新增类逐类全绿（EnrollmentScript 15 / data.Enrollment 12 / DeviceIdentity 8 / CredentialRecord 7 / FingerprintDigest 6）。
+- `check-domain-purity.mjs` PASS（16 个领域文件）；`check-import-graph.mjs` PASS（97 个源文件，WARN **只剩两个入口文件**——`HttpFetchPort` 的孤儿告警确实消失，它现在由 `AuthServices` 装配，终于受常设门禁的编译保护）。
+- 工作区干净；`git grep` HEAD 里没有 `EnrollmentProbe` / `TEMP-EVIDENCE` 残留（探针都在源码树之外的 `.scratch/*/tools/`）。
+- 证据新鲜度：`.scratch/enrollment/evidence/` 19 个文件，最早 **07:05:20** —— 与"污染窗口 06:57–07:04 已删除重采"一致。
+
+#### 产物级复核：我自己解包 hap 查了内容
+
+你报的"字节检索确认不含探针残留"我**没有直接采信**——**对 `.hap` 直接做字节检索是不可靠的**（zip 条目是压缩的，搜不到会给假阴性，一个真残留也可能"搜不到"）。我把 hap 复制成 `.zip` 解开，在 `ets/modules.abc` 里查：
+
+- `learnOHEnrollmentBridge` → **命中**（当前代码确实在产物里）
+- `EnrollmentProbe` → **0 命中**
+- `TEMP-EVIDENCE` → **0 命中**
+
+提交态产物是干净的，你"删 `entry/build` 全量重建"的修法有效。
+
+#### 你抓到的构建缓存坑，我已固化进 `AGENTS.md`
+
+这条是本轮最有价值的产出：**`devecocli build` 可以报 BUILD SUCCESSFUL 却给出陈旧产物**——时间戳不变、`modules.abc` 仍引用已删除的探针模块、装机启动 `ReferenceError`。危害在于它是**静默**的：命令成功、门禁全绿、测试全过，只有装机才炸。
+我把它写进了门禁节，并提炼出那条推论：**"我把开关翻回 false / 把探针删了并重新构建过"不是证据**；取证态→提交态的转变必须给出**产物级或视觉级**证据。这一条同时回头解释了为什么 ticket 03/04 的收尾截图（`03-final-zh.png`、`04-final-detail-zh.png`）是必要的——它们正是那种"产物级视觉证据"。
+
+#### `singleLogin`：你的升级版我认可
+
+"不设上限轮询重 assert + jQuery 公开 API 的 submit 钩子"，加上 `[submitHook] attached=1` 的自证——正好覆盖了我上一条担心的竞态。你在 Comments 里写明"勾选只是请求信任 ≠ 已授予，端到端证明归 08"，这句边界写对了。
+
+#### 未验证项（我认可，不阻塞）
+
+1. 验收 1（完整登记）——待用户操作。
+2. 验收 2 的等式 ②③（`saveFingerXhr` / `persistedReadBack`）——要等用户提交才可能闭合；`saveFingerXhr=empty` 是**预期**。
+3. `fingerGenPrint`/`fingerGenPrint3` 在真实提交时是否非空（本轮全新 profile 上页面自己也没回填）。
+4. asset 在真机 API 24 的行为（归 ticket 18 前一次性复验）。
+5. "服务端确实把指纹当信任键"——只能由 08 的无短信重登证明。
+6. ArkWeb 引擎 cookie 的**文件系统层面**不落盘（本轮只在行为上 clear 了）。
+
+#### 两点我要补进记录
+
+1. **指纹每次登记会重新生成**：`formFieldDom` 从上一轮的 `97435e8e` 变成 `d4314739`。这是对的（凭据与本次提交值同源），但要记住一个边界：**若用户在一次已经提交的登记之后才取消/失败，服务端可能已登记了一个我们随后丢弃的指纹。** 我们保证的是"本地无半登记状态"；服务端是否已部分登记不在我们控制内（参考实现同样如此）。这不算缺陷，但要写进已知边界，免得 08 排查时误判。
+2. 本轮改动了 `core/http/CookieJar.ets`、`core/web/SessionHeaderProvider.ets`、`pages/Index.ets`（分别是 ticket 06 与 04 的文件）。diff 规模（+55/+23/+29）看起来是必要的扩展（Cookie 头导入、内存单例、认证门）。可以接受，但**这三个文件现在已被三个 ticket 依次改过**，下一个人动它们时要多一分小心。
 
