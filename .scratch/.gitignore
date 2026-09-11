@@ -3,4 +3,5 @@ migration/sm2-verify
 shell/evidence
 notices-detail/evidence
 auth/evidence
+enrollment/evidence
 auth/tools/credentials.local.txt

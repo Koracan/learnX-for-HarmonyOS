@@ -19,6 +19,11 @@ import loginParsersTest from './LoginParsers.test';
 import sm2WireTest from './Sm2Wire.test';
 import loginFlowTest from './LoginFlow.test';
 import reAuthTest from './ReAuth.test';
+import deviceIdentityTest from './DeviceIdentity.test';
+import credentialRecordTest from './CredentialRecord.test';
+import enrollmentScriptTest from './EnrollmentScript.test';
+import enrollmentFlowTest from './EnrollmentFlow.test';
+import fingerprintDigestTest from './FingerprintDigest.test';
 
 export default function testsuite() {
   semesterTest();
@@ -38,4 +43,9 @@ export default function testsuite() {
   sm2WireTest();
   loginFlowTest();
   reAuthTest();
+  deviceIdentityTest();
+  credentialRecordTest();
+  enrollmentScriptTest();
+  enrollmentFlowTest();
+  fingerprintDigestTest();
 }

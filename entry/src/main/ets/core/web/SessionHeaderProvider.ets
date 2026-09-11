@@ -60,11 +60,28 @@ export class InMemorySessionHeaderProvider implements SessionHeaderProvider {
   }
 }
 
-const emptyProvider: EmptySessionHeaderProvider = new EmptySessionHeaderProvider();
+/**
+ * 当前生效的会话提供者（**进程内单例**）。ticket 07 起是内存实现：
+ * 登记成功后由 \`updateWebSessionHeader()\` 写入；未登录时两个值都是空串
+ * （与参考实现未登录时一致）。ticket 04 预留的注入点就此接上。
+ */
+const webSessionProvider: InMemorySessionHeaderProvider = new InMemorySessionHeaderProvider();
 
-/** 当前生效的会话提供者。Mock 阶段是空实现；ticket 06 在此换成内存实现并 update。 */
+/** 取得当前生效的会话提供者（调用点不关心它是空实现还是内存实现）。 */
 export function createSessionHeaderProvider(): SessionHeaderProvider {
-  return emptyProvider;
+  return webSessionProvider;
+}
+
+/**
+ * 会话建立 / 失效时更新 Web 容器可见的会话。
+ *
+ * **只写内存**（ADR-0004）：这里没有任何 preferences / 文件写入。空参数即清空
+ * （登出、降级回 Enrollment 时调用）。写完后把**实际生效值**打进 hilog——"没抓到"与
+ * "端口没接上"必须能区分开（AGENTS.md「取证」）。
+ */
+export function updateWebSessionHeader(cookie: string, csrfToken: string): void {
+  webSessionProvider.update(cookie, csrfToken);
+  logSessionHeaderState(webSessionProvider);
 }
 
 /**

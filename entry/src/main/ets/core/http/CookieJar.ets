@@ -160,6 +160,42 @@ export function splitSetCookieHeader(raw: string): string[] {
   return parts;
 }
 
+/** cookie 头里的一对 name=value。 */
+export interface CookiePair {
+  name: string;
+  value: string;
+}
+
+/**
+ * 解析 `Cookie` 头形态的字符串（`a=1; b=2`）。
+ *
+ * 与 `parseSetCookie` 的区别：这里**没有属性段**，只按 `;` 切对；空 name 的对被丢掉
+ * （宁可少写一个 cookie，也不要写进去一个空的）。值里允许出现 `=`（取第一个等号切分）。
+ */
+export function parseCookieHeaderPairs(header: string): CookiePair[] {
+  const pairs: CookiePair[] = [];
+  if (header.length === 0) {
+    return pairs;
+  }
+  const segments: string[] = header.split(';');
+  for (let i = 0; i < segments.length; i++) {
+    const segment: string = segments[i].trim();
+    if (segment.length === 0) {
+      continue;
+    }
+    const eq: number = segment.indexOf('=');
+    if (eq <= 0) {
+      continue;
+    }
+    const name: string = segment.substring(0, eq).trim();
+    if (name.length === 0) {
+      continue;
+    }
+    pairs.push({ name: name, value: segment.substring(eq + 1).trim() });
+  }
+  return pairs;
+}
+
 /** 解析单个 Set-Cookie 串；缺少 name 或 name 非法时返回 undefined。 */
 export function parseSetCookie(one: string, requestUrl: string): JarCookie | undefined {
   const segments: string[] = one.split(';');
@@ -264,6 +300,25 @@ export class CookieJar {
       expiresAt: 0
     };
     this.store(cookie);
+  }
+
+  /**
+   * 由**浏览器**给出的 `Cookie` 头形态字符串写入（ticket 07 的登记收割路径）。
+   *
+   * 为什么需要这条入口：设备登记的会话是在 ArkWeb 里建立的（用户在那里完成短信验证），
+   * 拿到的就是 `WebCookieManager.fetchCookieSync(url)` 返回的 `a=1; b=2` 形态文本——
+   * 它没有域/路径/属性，只有一个"这些就是发给该 URL 的 cookie"的事实。于是按该 URL 的
+   * host 与 `/` 路径存入（正是 cookie 头能被发出去的最小充分条件）。
+   *
+   * 返回写入条数，便于调用方判断"到底有没有收割到会话"。
+   */
+  absorbCookieHeader(header: string, url: string): number {
+    const pairs: CookiePair[] = parseCookieHeaderPairs(header);
+    const domain: string = hostOf(url);
+    for (let i = 0; i < pairs.length; i++) {
+      this.set(pairs[i].name, pairs[i].value, domain, '/');
+    }
+    return pairs.length;
   }
 
   /** 由一次响应的 Set-Cookie 串写入（可含多个 cookie）。 */
