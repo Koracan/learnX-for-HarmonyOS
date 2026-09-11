@@ -145,7 +145,7 @@ _注入面已缩小_：页面自己会在加载时写好 `fingerPrint`/`fingerGe
 
 | # | 事项 | 阻断 |
 | --- | --- | --- |
-| 1 | `cryptoFramework.createCipher` 接受的确切 SM2 变换字符串，及其密文排列是否与 `sm-crypto` 的 `04` 前缀格式一致（决定 Re-auth 能否纯 ArkTS 实现） | `auth` 的 Re-auth |
+| 1 | ✅ **已验证**（2026-09-12）：变换串 = `SM2_256|SM3`（`SM2|SM3` 亦可；`SM2_256`/`SM2` → 401，`SM2_256|SM3|C1C2C3` → 801）；`doFinal` 出 ASN.1 DER，用 `SM2CryptoUtil.getCipherTextSpec(der,'C1C3C2')` 取出后在左侧补零拼 `04 + C1x + C1y + C3 + C2`，与 `sm-crypto@0.3.14` 默认 C1C3C2 **双向互解通过** ⇒ Re-auth 可纯 ArkTS，ADR-0004 不变。证据：`.scratch/migration/sm2-verify/`（`device-sm2probe-hilog.log`、`sm2-probe.log`、`arkts-verify.log`、`analyze-sha256-der.log`）；详见 issue 06 Comments | `auth` 的 Re-auth |
 | 2 | `@ohos/flexsearch` 的 `.js` 入口能否在 API 23 工程中导入 | `search` |
 | 3 | 目标设备（MatePad Air）上 HMS Core 是否满足 PDF Kit / Preview Kit / ShareKit 要求 | `files` |
 | 4 | `@ohos.window` 沉浸式/全屏 setter 的确切签名 | `shell` |

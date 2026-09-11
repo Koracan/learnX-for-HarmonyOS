@@ -8,7 +8,7 @@ learnOH —— HarmonyOS 原生（ArkTS / ArkUI）应用，是原 React Native f
 
 ## 注意
 
- - 多设备时必须显式传 `--device`；当前唯一真机是 `3FYBB25407201890`（HUAWEI MatePad Air，API 24）。
+ - 多设备时必须显式传 `--device`。当前目标设备是**模拟器** `Pura 90`（电话形态，HarmonyOS 6.1.0(23)，串口 `127.0.0.1:5555`；未启动则 `devecocli emulator start "Pura 90"`）。真机 `3FYBB25407201890`（HUAWEI MatePad Air，API 24）暂未连接。先用 `devecocli device list` 解析出确切串口再传。
 
  - `devecocli run` 必须作为后台作业运行。 它在应用启动后仍保持运行，直到应用退出才返回——前台调用会一直挂住。
 
