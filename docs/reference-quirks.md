@@ -6,7 +6,11 @@
 1. 有人读到它，判断"这写错了"，于是改掉；改了之后**行为偏离参考实现**，而移植的完成定义是"与参考实现的行为一致"（见 `spec.md` 第 1 节）。
 2. 有人把它当成 bug 权宜而"清理"，结果丢掉的是**鸿蒙能力缺口下的必要补丁**（例如下面第 1 条）。
 
-**这些文件的事实来源**：`reference/learnOH-old/`（只读）。每条都带**源文件与行号**，不是转述。
+**这些文件的事实来源**：`reference/learnOH-old/`（只读）。编号条目都带**源文件与行号**，不是转述。
+
+**两类条目，别混用判据**：
+- **参考实现怪癖**（绝大多数编号条目）：定义"移植要与什么保持一致"。状态用 `锁定`／`已复审`／`待查`。
+- **平台事实**（标题里注明【平台事实】的条目）：是本工程在**设备上实测**到的平台行为，**不是**参考实现的行为，因此**不构成保真约束**。它的作用是解释"为什么参考实现在平台上的写法不能照抄"，证据是设备 hilog 而非源文件。
 
 ## 怎么用
 
@@ -171,7 +175,7 @@ const sorted = semesters?.sort().reverse();
 
 ---
 
-## 8. ArkWeb 的两条平台事实（不是参考实现的怪癖，但会误导移植者）—— ticket 04 新增
+## 8. 【平台事实】ArkWeb 的两条行为（不是参考实现的怪癖，故**不构成保真约束**）—— ticket 04 新增
 
 设备实测（模拟器 Pura 90，HarmonyOS 6.1.0(23)），两条都写进了
 `entry/src/main/ets/ui/components/HtmlWebView.ets` 的注释与 ticket 04 的取证记录：
@@ -188,6 +192,28 @@ const sorted = semesters?.sort().reverse();
 **取证**：`.scratch/notices-detail/evidence/04-hilog-probe4.txt`（`ERR_ACCESS_DENIED`）、
 `04-hilog-probe5.txt`（`page log: bridge=object keys=log,onExternalLink,onHeight`）、
 `04-hilog-detail.txt`（`loadData issued` + `no content height`）。
+---
+
+## 9. 行内单 `$…$` 公式**不渲染**（只有 `$$…$$` 与 `\(…\)`）—— 锁定
+
+**参考实现行为**：`src/helpers/html.ts:110-114` 调用 `renderMathInElement(document.querySelector("#root"), { throwOnError: false })`，**没有传 `delimiters`**。KaTeX auto-render 的默认分隔符集（从 `katex/dist/contrib/auto-render.min.js` 的 `n.delimiters=n.delimiters||[...]` 读出）是：
+
+| 左 | 右 | display |
+| --- | --- | --- |
+| `$$` | `$$` | true（行间） |
+| `\(` | `\)` | false（行内） |
+| `\begin{equation}` / `\begin{align}` / `\begin{gather}` 等环境 | 对应 `\end{…}` | true |
+
+**单 `$` 不在其中。** 所以正文里写 `$E = mc^2$`，参考实现会把它**当字面量显示**（页面上直接看到 `$E = mc^2$` 这串字符）；`$$…$$` 正常排版。
+
+**为什么别急着"修好"**：这是本表里最容易被误判为 bug 的一条——用 `$x$` 试一下发现没渲染，几乎必然会想给 `delimiters` 补上单 `$`。但参考实现没这么做，补上就**行为偏离**：真实公告里出现的单个 `$`（价格、变量名等）会被突然当成公式吞掉，变成新的错误来源。KaTeX 上游默认不给单 `$` 也正是这个原因。
+
+**新实现做法**：照参考实现**不传 `delimiters`**（`domain/render/WebViewTemplate.ets` 的数学调用保持 `{ throwOnError: false }`）。
+
+**背景**：ticket 04 曾把"行内 `$…$` 未渲染"记为"部分达成／根因未定论"。经查证它属**参考实现行为**，故验收第 3 条以"`$$…$$` 正常排版"为达成判据。若将来确实要支持单 `$`，那是**新增**，需单独定义验收标准并评估与真实正文的冲突。
+
+**取证**：`reference/learnOH-old/src/helpers/html.ts:110-114`（未传 delimiters）；`reference/learnOH-old/node_modules/katex/dist/contrib/auto-render.min.js`（默认分隔符数组）；`entry/src/main/ets/domain/render/WebViewTemplate.ets`。
+
 ---
 
 ## 待查
