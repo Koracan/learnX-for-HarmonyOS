@@ -79,3 +79,81 @@
 - 断言空正文时落到 `noNoticeContent` 文案；
 - 断言深色开关只切换 DarkReader 段而不改其它结构。
 读数（rawfile）与桥接（`javaScriptProxy` / `runJavaScript`）留在 `core/`。
+
+### 04 交付记录（实现 agent，2026-09-12，模拟器口径）
+
+**提交**：`6e87a08`（`feat(notices): 公告详情 + HTML 渲染（Mock，ticket 04）`，30 个文件）。
+**门禁**：`hvigorw … test --no-incremental`（先删 `entry/.test`）→ **19 类 116 用例全过**，
+其中新增 `features.notices.detail.*` 15 例（WebViewTemplate 9 / NoticeDateText 4 / FileNames 1 / MockAttachment 1）；
+`check-domain-purity.mjs` → **PASS**（12 个领域文件）；`check-i18n-keys.mjs` → **RESULT: OK**（231 键，37 处源码引用全解析）；
+`assembleHap` → **BUILD SUCCESSFUL**（提交态，产物 1,280,685 B）。
+
+#### 1. 逐条验收（**只有 1、4 达成；2、3 部分；5 未达成；6 两张在但深色无差异**）
+
+| 验收项 | 结论 | 证据（模拟器 Pura 90） |
+| --- | --- | --- |
+| 1 标题/副标题由参数决定 | **达成**（按参考实现：发布者 + 绝对时间，**不显示课程名**） | `04-detail-light-zh.png` + layout 的 `Text` 节点：「第一次大作业」「薛有泽」「2020 年 9 月 10 日 星期四 16:22」 |
+| 2 高度自适应、无内部滚动条 | **部分** | `04-hilog-probe5.txt` 的 `content height: 5→21→57→150→389→1011→2623 source=bridge`；`04-detail-light-layout.json` 的 `Web [0,916,1320,2562]`（= 外层 Scroll 视口，正文四段全可见）。**Web 的高度设置值本身没被断言**（layout 只给可视边界），见未验证项 2 |
+| 3 数学公式渲染 | **部分** | 行间 `$$…$$` 已由 KaTeX 排版（`04-detail-light-zh.png` 的 ∫ 公式）+ `04-hilog-mathaudit.txt` 的 `math=katexNodes:1`；**行内 `$E=mc^2$` 仍是字面量**，见未验证项 3 |
+| 4 链接与附件可点、行为明确 | **达成** | 外部打开：`04-link-external-open.png`（系统浏览器停在 `learn.tsinghua.edu.cn` —— 即 `onLoadIntercept → startAbility` 生效、且 `baseUrl` 让相对链接解析到 learn 站点）；附件：`04-detail-light-zh.png` 的附件行 + `04-hilog-probe6.txt` 的 `attachment tapped` |
+| 5 切换深浅色即时更新 | **未达成** | `04-detail-dark-zh.png` 顶部 `dark=true`（模板确实按 dark 重建了），但**正文仍旧浅色**；诊断线索见未验证项 1 |
+| 6 浅色 + 深色各一张截图 | 两张都有，但**深色与浅色无视觉差异** | `04-detail-light-zh.png`、`04-detail-dark-zh.png` |
+
+#### 2. 验收第 1 条与参考实现不符 —— 按参考实现做，请统筹确认
+
+详情页**不显示课程名**：参考实现 `NoticeDetail.tsx:84-92` 只有发布者 + 绝对时间，`courseName`
+仅作为附件跳 `FileDetail` 的参数（`:65`）。我按「移植完成定义 = 与参考实现行为一致」实现，
+**没有自己加课程名**。若产品上确需显示，请作为**新增增强**单独登记（并写替代验收标准）。
+
+#### 3. 有意差异与新增的怪癖台账条目（**已先改表再改码**）
+
+`docs/reference-quirks.md` 新增第 6/7/8 条（本次提交内含）：
+
+1. **第 6 条**：正文里的 `</script>` 转义。参考实现把 `content` 直接插进含内联 `<script>` 的模板
+   （`helpers/html.ts:108`），正文含字面量 `</script>` 会提前结束 script（注入路径）。本实现转义为
+   `<\/script`（渲染无差异）。单测 `escapes script end tags in the notice content` 守住。
+2. **第 7 条**：注入脚本的 `new URL()` 改成**等价手工解析**。`loadData` 的文档是 opaque origin，
+   `new URL()` 抛 TypeError（照抄会让所有链接更新失败）；但「只对 hostname 以 `tsinghua.edu.cn` 结尾的
+   链接追加 `_csrf`」这个条件**逐条保留**（含空 token 追加 `_csrf=`、非 http(s) 跳过、fragment 拼回）。
+3. **第 8 条**（平台事实，会误导移植者）：`runJavaScript` 返回值恒为 `null`（显式 `return` 也一样）→
+   测高只能走 `javaScriptProxy` 桥；而桥**只注入对象不执行脚本**，测高脚本必须另外经
+   `javaScriptOnDocumentStart` 放进页面；`file://` 指向应用沙箱会被 `ERR_ACCESS_DENIED` 拒绝。
+   三条都有失败日志留证（`04-hilog-detail.txt` / `04-hilog-probe4.txt` / `04-hilog-probe5.txt`）。
+
+#### 4. 附件与 FileDetail 的处理决定
+
+附件行**照参考实现接上真实导航**：点击 `push('FileDetail', …)`，参数逐项对齐
+`NoticeDetail.tsx:63-71`（`title: stripExtension(name)`、`fileType: getExtension(name) ?? ''`，
+另带 `id`/`courseName`/`courseTeacherName`/`downloadUrl`）。目标页 `FileDetailPlaceholderPage`
+**只把参数显示出来**并标注「文件详情属 ticket 07」——即**导航契约已交付、文件详情内容未交付**。
+
+#### 5. 取证夹具（提交态关闭）与模板复用的取舍
+
+- 参考实现 mock 的 7 条公告**既没有 KaTeX 公式、也没有 `<a>` 链接**，无法用它取「公式/链接」的证据。
+  我没有改 ticket 03 锁定的 mock 夹具，而是加了 `NoticeDetailEvidence.ets` 的一对开关
+  （`EVIDENCE_DETAIL_CONTENT`、`EVIDENCE_DARK_TOGGLE`，**提交态均为 false**，可用
+  `git show HEAD:…` 核对），取证时整段替换正文并在详情页顶部显示 `dark=` 控制条。
+- 因此**所有详情截图里都有一条 `dark=` + `toggle` 控制条**，以及状态栏时间戳；这是取证态的特征。
+- 模板资产按 ticket 要求**不内联**：`rawfile/webview/` 4 份（katex.min.js 276,705 B、auto-render.min.js 3,467 B、
+  katex.min.css 26,792 B（`url(fonts/` 已重写为 `https://fastly.jsdelivr.net/npm/katex@0.16.27/dist/fonts/`）、
+  darkreader.js 322,649 B）；运行期用 `getRawFileContentSync` 读出。**公式字体依赖外网 CDN**（离线退化）。
+
+#### 6. 未验证 / 未达成（请勿当成已通过）
+
+1. **深色正文没有变深**（验收 5 未达成、验收 6 的深色图无差异）。模板确实按 dark 重建（截图顶部 `dark=true`），
+   但正文仍浅色。下一步诊断（未执行）：在页面里跑 `DarkReader.isEnabled()` 与
+   `getComputedStyle(document.body).backgroundColor`，区分「DarkReader 没生效」与「模板 dark 分支没进去」。
+2. **Web 组件的高度设置值未被断言**：已确认的是行为（内容全可见、公式完整、外层 Scroll 起作用），不是 `height=2623` 这个属性值。
+3. **行内公式 `$…$` 未渲染**（页面里是字面量 `$E = mc^2$`），同页行间 `$$…$$` 正常；根因未定论。
+   **可能**是 KaTeX auto-render 的默认分隔符不含单个 `$`。
+4. **CSRF 追加的运行时行为未取证**：Mock 的 token 是空串，注入脚本运行时路径没有真实值；纯逻辑侧有模板断言。
+5. **返回列表后滚动位置是否保留未复测**（ticket 03 的结论在本次 Navigation 外壳改造后没有重跑）。
+6. **重试 `NoticeRecord` 增加可选 `attachment` 字段**（对齐参考实现 mock.ts:290-296）：真实数据源 ticket 09 落地时需填充它；
+   本 ticket 在 `MockNoticeRepository` 里逐字补了那一条附件（含 `downloadUrl`），单测断言「恰好一条带附件」。
+7. **全部证据来自模拟器**，无真机证据（按 AGENTS.md 归 ticket 18 前的一次性复验）。
+
+#### 7. 证据清单
+
+`.scratch/notices-detail/evidence/`（19 个文件 + `README.md`，含字节数与 SHA256 前 16 位，用 `git add -f` 只把 README 入库）；
+`revision.txt` 记 `git rev-parse HEAD`、`git status --porcelain` 的 SHA256（取证时工作区是脏的 → 过程证据）、
+设备上 `bm dump` 的 `versionCode=1000042 / versionName=1.1.0`。
