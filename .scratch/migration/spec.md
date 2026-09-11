@@ -34,6 +34,10 @@ entry/src/main/ets/
 
 依赖方向：`features → data → domain`；`core` 被 `data`/`features` 使用；**`domain` 不依赖任何上层**。单 `entry` 模块，暂不拆 HAR（体量不值得，见 ADR-0001 相关讨论）。
 
+**`core` 与 `domain` 之间的边界（ticket 03/05 期明确）**：默认 `core` **不得**依赖 `domain`——`core` 是平台封装层，`domain` 是策略层，基础设施依赖策略属于反向依赖。唯一的例外是**纯叶子工具**（无平台依赖、无领域实体、无业务规则，例如 `domain/parse/Utf8.ets` 的 UTF-8 编解码）：这类工具放在 `domain/` 下可获得 `scripts/check-domain-purity.mjs` 的**自动纯度保护**，而 `core` 允许引用它。这样定的理由是实测教训——平台 `util.TextDecoder.decodeWithStream` 在单测环境里返回 `undefined`，把「解析是否正确」与「平台 API 在这个环境是否可用」绑在了一起；把这类工具放进受保护的纯区，能让 host 与设备共用同一份实现。
+
+**这条边界检查器覆盖不到**：`check-domain-purity.mjs` 只扫描 `domain/**` 自身的 import，对 `core → domain` 这种反向引用**不会报错**。因此新增 `core` 文件若引用了 `domain`，必须自问是否属于上面的「纯叶子工具」例外；不属于就应当把纯的部分下沉到 `domain`，或让 `core` 自行实现。
+
 ## 3. 状态层
 
 - 领域 store 用 `@ObservedV2`/`@Trace` 建模，视图直接读，获得细粒度刷新。

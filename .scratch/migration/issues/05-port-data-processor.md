@@ -49,13 +49,19 @@ data.files       fetched courses=<n> items=<n> elapsedMs=<n> requests=<n> failur
 - [x] **公告正文 Base64 解码正确 + 异常输入容错** —— `domain.NoticeParser`
   `decodesBase64Content`（期望串由 Node `Buffer` 独立复算，见夹具 README）、
   `toleratesMalformedBase64`（空串 / 字符集非法 / 长度非 4 的倍数 / 缺 `ggnr` → 空正文且不抛异常）。
-- [x] **解析与排序函数有单测，使用真实响应样本作夹具** —— 44 条（domain.NoticeParser 13、
+- [x] **解析与排序函数有单测** —— 44 条（domain.NoticeParser 13、
   domain.AssignmentParser 9、domain.FileParser 4、data.Multipart 6、data.fetch 7、
   domain.Utf8 4、core.textChannels 1）。**夹具成色**：抓取 1 / 自带 0 / 反推 16（详见
   `entry/src/test/fixtures/README.md`）。唯一"抓取"是公开的 ID 登录页（14719 字节，
   开发机上 `Invoke-WebRequest` 取回），用作**反例**证明解析器不在真实站点 HTML 上误报。
   三域列表响应**没有真实样本**（需登录），16 份全部是反推——它们验的是"结构与字段映射"，
   **不验"站点今天真实返回什么"**。
+- [ ] **单测使用真实响应样本作夹具（本条未满足，验收时改判）** —— 三域列表响应需登录，因此
+  16 份夹具**全部为反推**、自带 0 份；唯一真实样本是公开的 ID 登录页（14719 字节），且只用作反例。
+  这不只是"样本少一点"的问题：反推夹具能证明「实现与我们对参考实现的理解一致」，**不能证明
+  「我们对参考实现的理解与站点今天真实返回的形状一致」**——后者只有验收第 1 条（带会话在设备上
+  真跑）才能证。所以在拿到真实响应之前，本 ticket 的解析结论只覆盖到"结构契约"这一层。
+  待用户手动登录后抓取真实响应回填夹具，再复核本条。
 - [x] **multipart 组装有单测（边界、字段顺序、文件名编码）** —— `data.Multipart` 6 条：
   字段顺序（文本字段插入序 → 文件 → 结束边界）、`fileupload` 字段名、CRLF、
   非 ASCII 文件名同时给 `filename` 与 RFC 5987 `filename*`、二进制字节逐字节保留、
@@ -108,3 +114,31 @@ data.files       fetched courses=<n> items=<n> elapsedMs=<n> requests=<n> failur
   `b.id.localeCompare(a.id)`"），对公告只是"同时间条目的稳定次序"。
 - **实体解码**：按 `docs/reference-quirks.md` 第 4 条**保持不解码**（曾一度加上解码，
   已回退并把夹具改成参考实现形状）。
+
+### 验收复核（统筹，2026-09-12，模拟器口径）
+
+**我独立复跑了全量单测**：删掉 `entry/.test` 后强制全量重跑（`--no-incremental`），
+避免命中 hvigor 的 up-to-date 缓存（第一次没删目录时 6 秒返回、其实没跑）。
+`UnitTestArkTS` → `GenerateUnitTestResult`（`.dsh/logs/accept05-test2.log`），
+`test_result.txt` 重新生成于 02:47:51：**15 个类，TOTAL=101 FAIL=0**，与申报一致。
+`check-domain-purity.mjs` 我另跑一次 → PASS / EXIT=0。
+
+**验收时改判一条**：原第 4 条申报为 `[x]`，但其区分性要求是「使用**真实响应样本**作夹具」——
+本 ticket 实际是抓取 1 / 自带 0 / **反推 16**，三域均无真实样本。已在上方拆成两条，
+「有单测」记 `[x]`、「真实响应样本」记 `[ ]` 并挂到手动登录之后。
+这不是"样本少一点"的程度问题：反推夹具与实现同源同误解，**无法证伪**「我们对站点返回
+形状的理解本身是否正确」，这一层只有验收第 1 条能覆盖。
+
+### 待办（验收发现，与设备复验一并处理，不必现在动手）
+
+1. `entry/src/test/TestHelpers.ets` 两处注释互相矛盾：文件头说「Base64 → 字节仍走平台
+   `util.Base64Helper`（这部分在本环境工作正常）」，第 74 行附近却说「本环境里 `@ohos.util`
+   不可用」。而本 ticket 的结论是 Base64Helper **也**返回空值。请按**实测到的具体 API** 分别写清
+   （哪个正常、哪个返回空/undefined、怎么观测的）——该文件会被当证据引用，含糊说法会误导后来人。
+2. `TestHelpers.deviceBase64Decoder` 已**无任何调用点**（全仓 grep 只在定义处出现），且其注释
+   声称「与生产一致」会误导。要么删除，要么改名为设备专用探针并注明只在设备上有效。
+3. `domain/parse/Utf8.ets` 属于 `spec.md` 第 2 节新增的「纯叶子工具」例外（默认 `core` 不得依赖
+   `domain`，纯叶子工具例外、放在 `domain/` 下以受纯度检查保护）。请在文件头注明它属于该例外，
+   并确认它无平台 import、无领域实体 import。
+4. **设备窗口可用时**：用一条 `data.fetch` 用例复验平台 `util.Base64Helper.decodeSync` 通道
+   （本地单测环境不可用）。这一条需要独占设备，先向统筹申请窗口。
