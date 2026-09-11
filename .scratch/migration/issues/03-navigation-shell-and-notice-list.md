@@ -4,7 +4,7 @@
 
 **Blocked by:** 01（工程分层 + 日志门面 + 主题令牌）、02（i18n 资源化）
 
-**Status:** ready-for-review
+**Status:** verified
 
 - [x] 五个 tab 可见，切换后各自保留浏览位置（证据来自**模拟器** Pura 90，见 Comments 第 1 节）
 - [x] 公告 tab 列出 Mock 公告，按发布时间倒序（7 条，09-25 → 08-17，含 id tiebreaker）
@@ -108,3 +108,45 @@
 **取证期临时值**：为稳定截到 refreshing 帧与首屏加载帧，本次验证把 `MOCK_LATENCY_MILLIS` 临时置 30000（5s 不够：`devecocli ui`/`hdc` 单次调用 15-35s，必然错过窗口）；已复原为 700，四个 `*_FOR_EVIDENCE` 开关均为 false（`git show HEAD:...` 可逐行核对）。
 **门禁重跑**：`devecocli build` exit 0；`hvigorw … test` 101 run / 0 failure；`check-domain-purity.mjs` PASS。
 **这不是有意偏离**：参考实现刷新时只有 RefreshControl 自己的指示器、列表照常可见，所以按缺陷修掉，未登记为 deviation。
+
+### 统筹验收（2026-09-12，模拟器口径）→ Status: verified
+
+**结论：6/6 通过。** 以下每一项都是我自己重跑或自己看图得出的，不采信转述。
+
+#### 我独立重跑的（在 `c4025df` 上）
+
+| 检查 | 命令 | 结果 |
+| --- | --- | --- |
+| 全量单测 | 删 `entry/.test` 后 `hvigorw … test --no-incremental` | 15 类 **TOTAL=101 FAIL=0**（`test_result.txt` 03:42:54 重新生成，`GenerateUnitTestResult` 有执行，**非 up-to-date 空跑**） |
+| 领域纯度 | `node scripts/check-domain-purity.mjs` | PASS / exit 0（9 个领域文件） |
+| i18n | `node scripts/check-i18n-keys.mjs` | RESULT: OK（211 键，missing=0 empty=0 extra=0，15 处源码引用全解析） |
+| 提交范围 | `git show --stat c4025df` | 4 个文件，且**未触碰** 05 在途的 `Utf8.ets`/`TestHelpers.ets`/`Utf8.test.ets` |
+| 开关复原 | `git show HEAD:…NoticeRepositoryProvider.ets` | MOCK_EMPTY / FORCE_DARK / FORCE_ENGLISH / SLOW_MOCK **全 false**，`MOCK_LATENCY_MILLIS=700` |
+
+> 注意第一行的方法论：第一次跑 `hvigorw test` 时未删 `entry/.test`，6 秒返回、日志里没有 `Tests run`——那是 hvigor 命中 up-to-date 缓存的**空跑**。删目录 + `--no-incremental` 才是真跑。**"命令退出码 0"不等于"测试执行了"。**
+
+#### 我自己看图的（不是采信描述）
+
+- `03-shell-tabs-zh.png`：五 tab、7 条、页头「未读 2」与 Mock 里 `hasRead=false` 的 2 条自洽。
+- **滚动保持**：`03-scroll-before/after-switch-zh.png` 两张的列表滚动位置**完全一致**（首条只剩尾部「…邮箱，以免丢失或延误)+杜春光 5年前」），只有状态栏时钟不同；两份 layout dump SHA256 相同（`5C434B9DD03919A0`）。
+  说明：我一开始怀疑 dump 里没有滚动偏移字段、"相同"证明不了什么，查了结构（只有 `type`/`bounds`/`children`）后确认——**正因 bounds 树覆盖列表项，逐字节相同恰恰是"位置未变"的正向证据**。D2 同理。
+- **刷新反馈**：`03-pull-refresh-refreshing-zh.png` 可见 Refresh spinner +「刷新」，三帧 SHA256 互不相同。
+- **空态**：中文 `03-empty-zh.png` / 英文+深色 `03-empty-en-dark.png`。
+- `03-final-zh.png`：开关复原后**重新构建安装**的界面仍是正常浅色中文列表。**这张是"开关真的复原了"的产物级证据**，比"我改回来了"这句声明有力。
+
+#### 我在验收中查出的缺陷（已修并复验）
+
+首次取证时 `03-pull-refresh-refreshing-zh.png` 里有**两个** spinner：顶部 Refresh 的，以及列表正中的紫色 `LoadingProgress`。根因是 `listBody()` 用 `isBusy()`（LOADING **或** REFRESHING）决定居中覆盖层。修法：新增 `isInitialLoading()` = `LOADING && items.length === 0`，并**保留** `isEmpty()` 里用 busy 抑制空态闪烁的逻辑。复验：刷新帧只剩一个指示器，且 `03-initial-loading-zh.png` 证明首屏加载反馈仍在。
+
+#### 留给下游的账（不阻塞本 ticket，均已落到具体 ticket）
+
+1. 卡片与参考实现的差异——标题/正文缺 `removeTags`（渲染层实体解码）、正文 2 行预览缺失、附件与重要图标缺失、「未读」文字为新增 → **已挂 ticket 09**。
+2. 「更新于 HH:mm:ss · 未读 N」页头为自造，参考实现的未读数在筛选条角标（`Filter.tsx:181-187`）→ **已挂 ticket 14** 对账，避免同一信息两处显示。
+3. `NoticeRepository` / `MockNoticeRepository` 暂寄 `features/notices/` → **已挂 ticket 09** 迁往 `data/notices/`。
+
+#### 口径与残留（交付方如实登记，我认可且不扣分）
+
+- 全部证据来自**模拟器** Pura 90（HarmonyOS 6.1.0(23)），**无真机证据**；真机（MatePad Air，API 24）按 AGENTS.md 归 ticket 18 前的最终一次性复验。
+- 其余四个 tab 是占位页、无可滚动内容，"在另一个 tab 滚动后切回"这一方向**无法验证**（已改为公告列表上两个独立方向 D1/D2）。
+- 深色/英文各只有一张（深色+英文+空态同屏），**无深色列表、无英文列表**截图。
+- ArkTS WARN 未清零（`getContext` deprecated 兜底、`RefreshStatus` may-throw），非 ERROR；本版本 `check lint`/`check arkts` 不可用。
