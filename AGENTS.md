@@ -43,6 +43,23 @@ learnOH —— HarmonyOS 原生（ArkTS / ArkUI）应用，是原 React Native f
 
  - **两个论断不能复用同一份证据**：同一张 PNG 同时充当"刷新反馈"与"刷新后"的证据，等于两个论断都没有证据。抓不到就如实写"未抓到"——重复文件比缺失更糟，因为它看起来像有证据。
 
+## 门禁（提交前都要真跑）
+
+ - **先设 `DEVECO_SDK_HOME`**，否则 hvigor 一旦重建守护进程就会失败、**一条测试都不跑**：
+   `$env:DEVECO_SDK_HOME='C:\Program Files\Huawei\DevEco Studio\sdk'`
+   症状：日志里只有 `00303217 Configuration Error: Invalid value of 'DEVECO_SDK_HOME' in the system environment path` 与 `BUILD FAILED`，**没有 `Tests run`**。实测过：不设它、且守护进程因 `isNodeEnvChanged` 被重建时必现（之前几次能跑，只是因为恰好还有一个带着正确环境的老守护进程活着）。
+
+ - 单测：`& 'C:/Program Files/Huawei/DevEco Studio/tools/hvigor/bin/hvigorw.bat' --mode module -p module=entry@default -p product=default test --no-incremental`。**先删 `entry/.test`**，否则命中 up-to-date 缓存 = 空跑。
+
+ - `devecocli build`（后台作业或重定向到 `.dsh/logs/`；构建以分钟计）。
+
+ - `node scripts/check-domain-purity.mjs` → PASS；`node scripts/check-import-graph.mjs` → PASS；`node scripts/check-i18n-keys.mjs` → `RESULT: OK`。
+
+ - **不要用作业退出码判断成败**：把命令写成 `cmd *> log; ('EXIT=' + $LASTEXITCODE) | Out-File ...` 时，进程退出码会变成 **0**（最后一条是 `Out-File`）。必须读日志/产物。
+
+ - **`check-import-graph.mjs` 为什么存在（实测）**：`data/upload/UploadForm.ets` 从 ticket 05 起就 import 了不存在的 `../../domain/parse/Multipart`（真身在 `data/upload/Multipart.ets`），而 ticket 05 的 `devecocli build` 与 116 条单测**全绿**。原因是 **ArkTS 的编译按入口可达性进行**：没有任何可达者 import 的模块**不会被编译**，其中的硬错误（含无法解析的 import）不会让任何门禁变红。直到 ticket 06 第一次 import 它才暴露。
+   因此：**新交付的模块必须至少被一条可达路径（应用入口或某个测试）import**，否则它的"编译通过"是没被验证过的。该脚本会 FAIL 掉不可解析的相对 import，并 WARN 列出**孤儿模块**（没有任何可达者 import 的 main 源文件）——入口文件出现在该列表属正常，**其余任何文件出现在那里，就意味着它从未被编译过**。
+
 ## 移植时的硬约束
 
  - **改参考实现的"怪癖"之前，先读 `docs/reference-quirks.md`**。那里登记的是`reference/learnOH-old/` 里**看起来像 bug、实为有意行为或能力缺口补丁**的点（下载补丁、重登触发条件、学期排序、正则不解码实体、CJK 搜索合并层），每条带源文件行号与"为什么别急着改"。**移植的完成定义是与参考实现行为一致**——顺手"修好"它会让行为偏离，并让验收失去可比对的基准。
