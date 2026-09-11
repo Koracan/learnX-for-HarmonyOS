@@ -11,6 +11,7 @@ import assignmentParserTest from './AssignmentParser.test';
 import fileParserTest from './FileParser.test';
 import multipartTest from './Multipart.test';
 import dataFetchTest from './DataFetch.test';
+import noticesTest from './Notices.test';
 import utf8Test from './Utf8.test';
 
 export default function testsuite() {
@@ -23,5 +24,6 @@ export default function testsuite() {
   fileParserTest();
   multipartTest();
   dataFetchTest();
+  noticesTest();
   utf8Test();
 }

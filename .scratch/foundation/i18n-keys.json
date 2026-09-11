@@ -1,8 +1,8 @@
 {
-  "total": 207,
+  "total": 211,
   "referenceCount": 180,
   "localCount": 3,
-  "uiCount": 24,
+  "uiCount": 28,
   "referenceKeys": [
     "back",
     "notices",
@@ -2061,6 +2061,46 @@
       "enValue": "Language",
       "zhPlaceholders": [],
       "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_tab_notices",
+      "name": "ui_tab_notices",
+      "zhValue": "公告",
+      "enValue": "Notices",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_tab_placeholder",
+      "name": "ui_tab_placeholder",
+      "zhValue": "该页面将在后续迭代中实现",
+      "enValue": "This page will be implemented in a later iteration",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_empty_notices",
+      "name": "ui_empty_notices",
+      "zhValue": "暂无公告",
+      "enValue": "No notices",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_refreshed_at",
+      "name": "ui_refreshed_at",
+      "zhValue": "更新于 %1$s",
+      "enValue": "Updated %1$s",
+      "zhPlaceholders": [
+        "{0}"
+      ],
+      "enPlaceholders": [
+        "{0}"
+      ],
       "origin": "ui"
     }
   ]

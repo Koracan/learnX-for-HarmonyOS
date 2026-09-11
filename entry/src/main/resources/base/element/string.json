@@ -839,6 +839,22 @@
     {
       "name": "ui_language",
       "value": "语言"
+    },
+    {
+      "name": "ui_tab_notices",
+      "value": "公告"
+    },
+    {
+      "name": "ui_tab_placeholder",
+      "value": "该页面将在后续迭代中实现"
+    },
+    {
+      "name": "ui_empty_notices",
+      "value": "暂无公告"
+    },
+    {
+      "name": "ui_refreshed_at",
+      "value": "更新于 %1$s"
     }
   ]
 }

@@ -28,10 +28,10 @@ import {
 const REFERENCE_KEY_COUNT: number = 180;
 /** 本工程新增：学期季节词 3 个（loh_ 命名空间）。 */
 const LOCAL_ADDITION_COUNT: number = 3;
-/** 本工程新增：原生重写 UI 文案 24 个（ui_ 命名空间）。 */
-const UI_STRING_COUNT: number = 24;
+/** 本工程新增：原生重写 UI 文案 28 个（ui_ 命名空间；ticket 03 加了 4 个 tab/空态/刷新文案）。 */
+const UI_STRING_COUNT: number = 28;
 /** 迁移后的资源键总数（也是 I18N_KEY_COUNT 的期望值）。 */
-const TOTAL_KEY_COUNT: number = 207;
+const TOTAL_KEY_COUNT: number = 211;
 
 const REFERENCE_SAMPLE: string[] = ['loh_back', 'loh_notices', 'loh_assignments', 'loh_files', 'loh_courses'];
 const LOCAL_ADDITIONS: string[] = ['loh_fall', 'loh_spring', 'loh_summer'];

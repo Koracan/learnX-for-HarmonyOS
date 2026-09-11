@@ -31,5 +31,10 @@ export const UI_STRINGS = [
   ['ui_relative_time_sample', '相对时间示例', 'Relative time sample'],
   ['ui_date_time_sample', '日期时间示例', 'Date/time sample'],
   ['ui_semester_sample', '学期文案示例', 'Semester text sample'],
-  ['ui_language', '语言', 'Language']
+  ['ui_language', '语言', 'Language'],
+  // --- ticket 03（导航骨架 + 公告列表）新增 ---
+  ['ui_tab_notices', '公告', 'Notices'],
+  ['ui_tab_placeholder', '该页面将在后续迭代中实现', 'This page will be implemented in a later iteration'],
+  ['ui_empty_notices', '暂无公告', 'No notices'],
+  ['ui_refreshed_at', '更新于 {0}', 'Updated {0}']
 ];

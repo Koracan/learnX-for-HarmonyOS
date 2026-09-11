@@ -827,6 +827,22 @@
     {
       "name": "ui_language",
       "value": "Language"
+    },
+    {
+      "name": "ui_tab_notices",
+      "value": "Notices"
+    },
+    {
+      "name": "ui_tab_placeholder",
+      "value": "This page will be implemented in a later iteration"
+    },
+    {
+      "name": "ui_empty_notices",
+      "value": "No notices"
+    },
+    {
+      "name": "ui_refreshed_at",
+      "value": "Updated %1$s"
     }
   ]
 }

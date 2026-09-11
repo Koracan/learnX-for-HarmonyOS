@@ -17,8 +17,8 @@
 | --- | --- | --- |
 | 参考实现迁入 | 180 | `loh_` |
 | 本工程新增（学期季节词） | 3 | `loh_` |
-| 本工程新增（原生重写 UI 文案） | 24 | `ui_` |
-| 合计 | 207 | |
+| 本工程新增（原生重写 UI 文案） | 28 | `ui_` |
+| 合计 | 211 | |
 
 ## 参考实现迁入键（180）
 
@@ -205,7 +205,7 @@
 | 179 | `avoidFrontCameraDescription` | `loh_avoid_front_camera_description` | - | 在上部留出空间以避让挖孔区域，需要重启应用 | Leave top space to avoid the front camera cutout. App restart required. |
 | 180 | `pleaseRestartAppToApplyImmersive` | `loh_please_restart_app_to_apply_immersive` | - | 请重启应用以应用沉浸式模式设置。 | Please restart the app to apply immersive mode setting. |
 
-## 本工程新增键（27）
+## 本工程新增键（31）
 
 | # | 类别 | 资源名 | 占位符 | 中文 | 英文 |
 | --- | --- | --- | --- | --- | --- |
@@ -236,4 +236,8 @@
 | 25 | ui | `ui_date_time_sample` | - | 日期时间示例 | Date/time sample |
 | 26 | ui | `ui_semester_sample` | - | 学期文案示例 | Semester text sample |
 | 27 | ui | `ui_language` | - | 语言 | Language |
+| 28 | ui | `ui_tab_notices` | - | 公告 | Notices |
+| 29 | ui | `ui_tab_placeholder` | - | 该页面将在后续迭代中实现 | This page will be implemented in a later iteration |
+| 30 | ui | `ui_empty_notices` | - | 暂无公告 | No notices |
+| 31 | ui | `ui_refreshed_at` | {0} | 更新于 %1$s | Updated %1$s |
 
