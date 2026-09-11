@@ -91,15 +91,17 @@ export default function fileParserTest() {
     });
 
     it('sortsByUploadTimeDescendingWithIdTieBreak', 0, () => {
-      const older: CourseFile = parseCourseFile({ kjxxid: 'a', wjid: 'a', scsj: '2019-10-10 09:12' }, 'c', COURSES);
-      const newer: CourseFile = parseCourseFile({ kjxxid: 'b', wjid: 'b', scsj: '2019-10-11 15:30' }, 'c', COURSES);
-      const tieB: CourseFile = parseCourseFile({ kjxxid: 'bb', wjid: 'bb', scsj: '2019-10-11 15:30' }, 'c', COURSES);
-      const tieA: CourseFile = parseCourseFile({ kjxxid: 'aa', wjid: 'aa', scsj: '2019-10-11 15:30' }, 'c', COURSES);
-      const sorted: CourseFile[] = sortCourseFiles([older, newer, tieA, tieB]);
-      expect(sorted[0].id).assertEqual('bb');
-      expect(sorted[1].id).assertEqual('aa');
-      expect(sorted[2].id).assertEqual('b');
-      expect(sorted[3].id).assertEqual('a');
+      // 同一条时间的三条用可比较的短 id，避免"前缀 id"（'a' 与 'aa'）让人读错次序：
+      // 码元倒序下 'zz' > 'new' > 'aa'，所以 15:30 的三条依次是 zz / new / aa。
+      const older: CourseFile = parseCourseFile({ kjxxid: 'old', wjid: 'old', scsj: '2019-10-10 09:12' }, 'c', COURSES);
+      const newer: CourseFile = parseCourseFile({ kjxxid: 'new', wjid: 'new', scsj: '2019-10-11 15:30' }, 'c', COURSES);
+      const tieHigh: CourseFile = parseCourseFile({ kjxxid: 'zz', wjid: 'zz', scsj: '2019-10-11 15:30' }, 'c', COURSES);
+      const tieLow: CourseFile = parseCourseFile({ kjxxid: 'aa', wjid: 'aa', scsj: '2019-10-11 15:30' }, 'c', COURSES);
+      const sorted: CourseFile[] = sortCourseFiles([older, tieLow, newer, tieHigh]);
+      expect(sorted[0].id).assertEqual('zz');
+      expect(sorted[1].id).assertEqual('new');
+      expect(sorted[2].id).assertEqual('aa');
+      expect(sorted[3].id).assertEqual('old');
       expect(parseCourseFile({ kjxxid: 'z', wjid: 'z' }, 'c', COURSES).courseName).assertEqual('Unknown Course');
     });
   });

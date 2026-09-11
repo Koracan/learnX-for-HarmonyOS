@@ -58,8 +58,23 @@ export const REAL_ID_LOGIN_HTML: string = `<!DOCTYPE html>
 export const NOTICE_DETAIL_ML10_HTML: string = `<div class="content">
   <div class="list fujian clearfix">
     <div class="fl">
-      <span class="ftitle"><a href="/b/wlxt/kj/wlkc_kjxxb/student/downloadFile?sfgk=0&amp;wjid=1998990181_GG_5f2c9a1b" class="ml-10">第一次大作业说明.pdf</a></span>
+      <span class="ftitle"><a class="ml-10" href="/b/wlxt/kj/wlkc_kjxxb/student/downloadFile?sfgk=0&wjid=1998990181_GG_5f2c9a1b">第一次大作业说明.pdf</a></span>
       <span class="color999">139.54KB</span>
+    </div>
+  </div>
+</div>`;
+
+/**
+ * [反推] 公告详情页：href 里是 HTML 实体 `&amp;`。
+ *
+ * 用于锁定参考实现的**锁定行为**：解析正则不解码实体（docs/reference-quirks.md 第 4 条）。
+ * ml-10 分支会重拼 downloadUrl，所以实体在这里不影响结果；实体原样保留的路径见
+ * NOTICE_DETAIL_GENERIC_AMP_HTML。
+ */
+export const NOTICE_DETAIL_ML10_AMP_HTML: string = `<div class="content">
+  <div class="list fujian clearfix">
+    <div class="fl">
+      <a class="ml-10" href="/b/wlxt/kj/wlkc_kjxxb/student/downloadFile?sfgk=0&amp;wjid=1998990182_GG_6a7b">课程大纲.pdf</a>
     </div>
   </div>
 </div>`;
@@ -69,6 +84,20 @@ export const NOTICE_DETAIL_PREVIEW_HTML: string = `<div class="content">
   <div class="list fujian clearfix">
     <div class="fl">
       <a href="/f/wlxt/kj/wlkc_kjxxb/student/openNewWindow?fileId=1996990181_GG_77aa&downloadUrl=%2Fb%2Fwlxt%2Fkj%2Fwlkc_kjxxb%2Fstudent%2FdownloadFile%3Fsfgk%3D0%26wjid%3D1996990181_GG_77aa">课程安排.pdf</a>
+    </div>
+  </div>
+</div>`;
+
+/**
+ * [反推] 公告详情页：**没有 ml-10**，只有一条通用下载链接，且 href 里是 `&amp;`。
+ *
+ * 这条用来锁定参考实现的锁定行为（docs/reference-quirks.md 第 4 条）：
+ * 正则不解码实体 ⇒ downloadUrl 里 `&amp;` **原样保留**，且通用回退分支不推导附件 id。
+ */
+export const NOTICE_DETAIL_GENERIC_AMP_HTML: string = `<div class="content">
+  <div class="list fujian clearfix">
+    <div class="fl">
+      <a href="/b/wlxt/kj/wlkc_kjxxb/student/downloadFile?fileId=1996990181_GG_88bb&amp;wjid=1996990181_GG_88bb">课件.pdf</a>
     </div>
   </div>
 </div>`;
@@ -117,7 +146,7 @@ export const NOTICE_LIST_RESULTS_LIST_JSON: string = `{
         "fbsjStr": "2020-09-22 15:52",
         "sfqd": "0",
         "sfyd": 1,
-        "ggnr": "PHA+6LCD6K++5o+Q6YaS77ya5ZGo5pel5LiK6K++44CCPC9wPg=="
+        "ggnr": "PHA+6K++56iL5o+Q6YaS77ya5ZGo5pel5LiK5Y2I6K++44CCPC9wPg=="
       }
     ]
   }
@@ -145,7 +174,7 @@ export const ASSIGNMENT_DETAIL_FOUR_BLOCKS_HTML: string = `<div class="boxbox">
   </div>
   <div class="list fujian clearfix">
     <div class="fl">
-      <a href="/f/wlxt/kczy/zy/student/openNewWindow?fileId=1298990184_ZY_7d4e&amp;downloadUrl=%2Fb%2Fwlxt%2Fkczy%2Fzy%2Fstudent%2FdownloadFile%3FfileId%3D1298990184_ZY_7d4e" title="批改结果.pdf">批改结果.pdf</a>
+      <a href="/f/wlxt/kczy/zy/student/openNewWindow?fileId=1298990184_ZY_7d4e&downloadUrl=%2Fb%2Fwlxt%2Fkczy%2Fzy%2Fstudent%2FdownloadFile%3FfileId%3D1298990184_ZY_7d4e" title="批改结果.pdf">批改结果.pdf</a>
       <span class="color999">33.30KB</span>
     </div>
   </div>

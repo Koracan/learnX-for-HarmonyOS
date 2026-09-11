@@ -128,8 +128,10 @@ export default function assignmentParserTest() {
       expect(detail.gradeAttachment !== undefined).assertTrue();
       expect(detail.attachment?.name).assertEqual('作业要求.pdf');
       expect(detail.attachment?.id).assertEqual('1298990181_ZY_4a1b');
+      // 参考实现不解码 HTML 实体（docs/reference-quirks.md 第 4 条）：
+      // href 里的 '&amp;' 原样留在 downloadUrl 里；id 仍能取到（字符类在 '&' 处停下）
       expect(detail.attachment?.downloadUrl).assertEqual(
-        'https://learn.tsinghua.edu.cn/b/wlxt/kczy/zy/student/downloadFile?fileId=1298990181_ZY_4a1b&wjid=1298990181_ZY_4a1b');
+        'https://learn.tsinghua.edu.cn/b/wlxt/kczy/zy/student/downloadFile?fileId=1298990181_ZY_4a1b&amp;wjid=1298990181_ZY_4a1b');
       expect(detail.answerAttachment?.name).assertEqual('参考答案.pdf');
       expect(detail.answerAttachment?.id).assertEqual('1298990182_ZY_5b2c');
       expect(detail.submittedAttachment?.name).assertEqual('我的提交.pdf');

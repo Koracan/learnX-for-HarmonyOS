@@ -19,9 +19,10 @@ import {
   noticeAttachmentName, isNoticeRead, sortNotices, noticeDetailUrl
 } from '../main/ets/domain/parse/NoticeParser';
 import { compareIdDesc, compareByTimeThenIdDesc, parseTimestamp, decodeHtmlEntities } from '../main/ets/domain/parse/Text';
-import { deviceBase64Decoder } from './TestHelpers';
+import { strictPureBase64Decoder } from './TestHelpers';
 import {
-  REAL_ID_LOGIN_HTML, NOTICE_DETAIL_ML10_HTML, NOTICE_DETAIL_PREVIEW_HTML,
+  REAL_ID_LOGIN_HTML, NOTICE_DETAIL_ML10_HTML, NOTICE_DETAIL_ML10_AMP_HTML,
+  NOTICE_DETAIL_GENERIC_AMP_HTML, NOTICE_DETAIL_PREVIEW_HTML,
   NOTICE_LIST_RESPONSE_JSON, RAW_NOTICE_WITH_BASE64
 } from './fixtures/ContentItemFixtures';
 
@@ -32,7 +33,7 @@ const COURSES: Record<string, CourseName> = {
 
 function noticeOf(id: string, publishTime: string): Notice {
   return parseNotice({ ggid: id, bt: 't' + id, fbrxm: 'p', fbsj: publishTime },
-    '2019-2020-1139283212', COURSES, deviceBase64Decoder);
+    '2019-2020-1139283212', COURSES, strictPureBase64Decoder);
 }
 
 /** 把夹具 JSON 里的 `aaData` 逐字段搬成 `RawNotice`（夹具是 JSON 文本，无法自动带类型）。 */
@@ -60,10 +61,12 @@ function rowsOf(listJson: string): RawNotice[] {
     if (record['sfyd'] !== undefined && record['sfyd'] !== null) {
       raw.sfyd = String(record['sfyd']);
     }
-    if (record['fjmc'] !== undefined && record['fjmc'] !== null) {
+    // 站点把"没有附件"下发成字符串 'null'（参考实现判定 `attachmentName !== 'null'`）；
+    // 这里按同一条规则还原，避免把 'null' 当成真的附件名。
+    if (record['fjmc'] !== undefined && record['fjmc'] !== null && String(record['fjmc']) !== 'null') {
       raw.fjmc = String(record['fjmc']);
     }
-    if (record['fjbt'] !== undefined && record['fjbt'] !== null) {
+    if (record['fjbt'] !== undefined && record['fjbt'] !== null && String(record['fjbt']) !== 'null') {
       raw.fjbt = String(record['fjbt']);
     }
     typed.push(raw);
@@ -74,22 +77,22 @@ function rowsOf(listJson: string): RawNotice[] {
 export default function noticeParserTest() {
   describe('domain.NoticeParser', () => {
     it('decodesBase64Content', 0, () => {
-      const decoded: string = deviceBase64Decoder(RAW_NOTICE_WITH_BASE64.ggnr as string);
+      const decoded: string = strictPureBase64Decoder(RAW_NOTICE_WITH_BASE64.ggnr as string);
       expect(decoded).assertEqual('<p>务必交作业，请不要交到理科楼。</p>');
-      const notice: Notice = parseNotice(RAW_NOTICE_WITH_BASE64, '2019-2020-1139283212', COURSES, deviceBase64Decoder);
+      const notice: Notice = parseNotice(RAW_NOTICE_WITH_BASE64, '2019-2020-1139283212', COURSES, strictPureBase64Decoder);
       expect(notice.content).assertEqual('<p>务必交作业，请不要交到理科楼。</p>');
     });
 
     it('toleratesMalformedBase64', 0, () => {
-      expect(deviceBase64Decoder('')).assertEqual('');
-      expect(deviceBase64Decoder('%%%not-base64%%%')).assertEqual('');
-      expect(deviceBase64Decoder('a')).assertEqual('');
-      expect(deviceBase64Decoder('PHA+5Yqh')).assertEqual('<p>务');
+      expect(strictPureBase64Decoder('')).assertEqual('');
+      expect(strictPureBase64Decoder('%%%not-base64%%%')).assertEqual('');
+      expect(strictPureBase64Decoder('a')).assertEqual('');
+      expect(strictPureBase64Decoder('PHA+5Yqh')).assertEqual('<p>务');
       const missingGgnr: Notice = parseNotice({ ggid: 'g0', bt: 't', fbrxm: 'p', fbsj: '2020-01-01 00:00' },
-        'c', COURSES, deviceBase64Decoder);
+        'c', COURSES, strictPureBase64Decoder);
       expect(missingGgnr.content).assertEqual('');
       const badGgnr: Notice = parseNotice({ ggid: 'g1', bt: 't', fbrxm: 'p', fbsj: '2020-01-01 00:00', ggnr: '!!!' },
-        'c', COURSES, deviceBase64Decoder);
+        'c', COURSES, strictPureBase64Decoder);
       expect(badGgnr.content).assertEqual('');
     });
 
@@ -101,7 +104,7 @@ export default function noticeParserTest() {
     });
 
     it('mapsNoticeFieldsFromRawRecord', 0, () => {
-      const notice: Notice = parseNotice(RAW_NOTICE_WITH_BASE64, '2019-2020-1139283212', COURSES, deviceBase64Decoder);
+      const notice: Notice = parseNotice(RAW_NOTICE_WITH_BASE64, '2019-2020-1139283212', COURSES, strictPureBase64Decoder);
       expect(notice.id).assertEqual('26ef84e86d60f069016dadb09dd673b2');
       expect(notice.title).assertEqual('请按照助教的安排交作业');
       expect(notice.publisher).assertEqual('杜春光');
@@ -116,7 +119,7 @@ export default function noticeParserTest() {
 
     it('treatsSfqdAndSfydVariantsLikeTheReference', 0, () => {
       const important: Notice = parseNotice({ ggid: 'g2', bt: 't', fbrxm: 'p', fbsj: '2020-01-01 00:00', sfqd: '1' },
-        'c', COURSES, deviceBase64Decoder);
+        'c', COURSES, strictPureBase64Decoder);
       expect(important.markedImportant).assertTrue();
       expect(isNoticeRead('1')).assertTrue();
       expect(isNoticeRead(1)).assertTrue();
@@ -132,7 +135,7 @@ export default function noticeParserTest() {
       expect(rows.length).assertEqual(2);
       const notices: Notice[] = [];
       for (let i = 0; i < rows.length; i++) {
-        notices.push(parseNotice(rows[i], '2019-2020-1139283212', COURSES, deviceBase64Decoder));
+        notices.push(parseNotice(rows[i], '2019-2020-1139283212', COURSES, strictPureBase64Decoder));
       }
       const sorted: Notice[] = sortNotices(notices);
       expect(sorted.length).assertEqual(2);
@@ -180,18 +183,35 @@ export default function noticeParserTest() {
       expect(new Date(withSeconds).getSeconds()).assertEqual(30);
       // 不可解析的时间排在最后
       const noTime: RawNotice = { ggid: 'z', bt: 't', fbrxm: 'p' };
-      const d: Notice = parseNotice(noTime, 'c', COURSES, deviceBase64Decoder);
+      const d: Notice = parseNotice(noTime, 'c', COURSES, strictPureBase64Decoder);
       const e: Notice = noticeOf('aa', '2020-09-25 07:21');
       expect(sortNotices([d, e])[1].id).assertEqual('z');
     });
 
     it('extractsNoticeAttachmentFromMl10Branch', 0, () => {
+      // 有 ml-10 时**重拼** downloadUrl（noticeDownloadUrl），因此 href 里是裸 '&' 还是
+      // '&amp;' 都不影响结果——这正是参考实现的行为（ml-10 分支只从 href 里取 wjid）。
       const attachment = parseNoticeAttachment(NOTICE_DETAIL_ML10_HTML, '第一次大作业说明.pdf');
       expect(attachment !== undefined).assertTrue();
       expect(attachment?.name).assertEqual('第一次大作业说明.pdf');
       expect(attachment?.id).assertEqual('1998990181_GG_5f2c9a1b');
       expect(attachment?.downloadUrl).assertEqual(
         'https://learn.tsinghua.edu.cn/b/wlxt/kj/wlkc_kjxxb/student/downloadFile?sfgk=0&wjid=1998990181_GG_5f2c9a1b');
+      const ampFixture = parseNoticeAttachment(NOTICE_DETAIL_ML10_AMP_HTML, '课程大纲.pdf');
+      expect(ampFixture?.id).assertEqual('1998990182_GG_6a7b');
+      expect(ampFixture?.downloadUrl).assertEqual(
+        'https://learn.tsinghua.edu.cn/b/wlxt/kj/wlkc_kjxxb/student/downloadFile?sfgk=0&wjid=1998990182_GG_6a7b');
+    });
+
+    it('keepsHtmlEntitiesVerbatimOnTheGenericFallback', 0, () => {
+      // 参考实现锁定行为：正则不解码 HTML 实体（docs/reference-quirks.md 第 4 条）。
+      // 通用回退分支直接用 href 原文 ⇒ '&amp;' 原样保留；该分支也不推导附件 id。
+      const attachment = parseNoticeAttachment(NOTICE_DETAIL_GENERIC_AMP_HTML, '课件.pdf');
+      expect(attachment !== undefined).assertTrue();
+      expect(attachment?.name).assertEqual('课件.pdf');
+      expect(attachment?.downloadUrl).assertEqual(
+        'https://learn.tsinghua.edu.cn/b/wlxt/kj/wlkc_kjxxb/student/downloadFile?fileId=1996990181_GG_88bb&amp;wjid=1996990181_GG_88bb');
+      expect(attachment?.id === undefined).assertTrue();
     });
 
     it('fallsBackToGenericDownloadLinkAndUnwrapsPreview', 0, () => {
@@ -206,6 +226,8 @@ export default function noticeParserTest() {
       const generic: string = '<div class="x"><a class="a1" href="/b/wlxt/kj/wlkc_kjxxb/student/downloadFile?fileId=abc123">x.pdf</a></div>';
       const fallback = parseNoticeAttachment(generic, 'x.pdf');
       expect(fallback?.downloadUrl).assertEqual('https://learn.tsinghua.edu.cn/b/wlxt/kj/wlkc_kjxxb/student/downloadFile?fileId=abc123');
+      // 参考实现的通用回退分支不推导附件 id
+      expect(fallback?.id === undefined).assertTrue();
       expect(parseNoticeAttachment('', 'x.pdf') === undefined).assertTrue();
       expect(parseNoticeAttachment('<div>no link</div>', 'x.pdf') === undefined).assertTrue();
     });
@@ -218,10 +240,12 @@ export default function noticeParserTest() {
 
     it('parseNoticeListSortsAndAssignsCourse', 0, () => {
       const notices: Notice[] = parseNoticeList(
-        rowsOf(NOTICE_LIST_RESPONSE_JSON), '2019-2020-1139283212', COURSES, deviceBase64Decoder);
+        rowsOf(NOTICE_LIST_RESPONSE_JSON), '2019-2020-1139283212', COURSES, strictPureBase64Decoder);
       expect(notices.length).assertEqual(2);
       expect(notices[0].courseName).assertEqual('通信与网络');
-      expect(noticeOf('aa', '2020-01-01 00:00').courseName).assertEqual('Unknown Course');
+      const unknownCourse: RawNotice = { ggid: 'aa', bt: 't', fbrxm: 'p', fbsj: '2020-01-01 00:00' };
+      expect(parseNotice(unknownCourse, 'no-such-course', COURSES, strictPureBase64Decoder).courseName)
+        .assertEqual('Unknown Course');
     });
   });
 }

@@ -135,7 +135,10 @@ export default function multipartTest() {
       const assembled: MultipartBody = buildMultipartBody(BOUNDARY, quoted, undefined, deviceUtf8Encoder);
       const text: string = decodeUtf8(assembled.body);
       expect(text.includes('name="we\\"ird"')).assertTrue();
-      expect(text.includes('line1%0D%0Aline2')).assertTrue();
+      // 字段**值**按参考实现原样写出（不转义）：换行原样进入 body。
+      // `escapeFormValue` 只用于字段名与文件名，避免破坏提交值的语义。
+      expect(text.includes('line1\r\nline2')).assertTrue();
+      expect(text.includes('line1%0D%0Aline2')).assertFalse();
     });
 
     it('generatesStableBoundaryShape', 0, () => {

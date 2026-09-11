@@ -19,7 +19,7 @@ import { NoticesFetcher, NOTICES_LOG_DOMAIN, extractNoticeRows } from '../main/e
 import { AssignmentsFetcher, ASSIGNMENTS_LOG_DOMAIN, extractAssignmentRows, extractAssignmentDescription } from
   '../main/ets/data/remote/AssignmentsFetcher';
 import { FilesFetcher, FILES_LOG_DOMAIN, extractCourseFileRows } from '../main/ets/data/remote/FilesFetcher';
-import { deviceBase64Decoder } from './TestHelpers';
+import { strictPureBase64Decoder } from './TestHelpers';
 import {
   NOTICE_LIST_RESPONSE_JSON, NOTICE_LIST_RESULTS_LIST_JSON, NOTICE_DETAIL_ML10_HTML,
   ASSIGNMENT_LIST_RESPONSE_JSON, ASSIGNMENT_DESCRIPTION_RESPONSE_JSON,
@@ -145,8 +145,9 @@ export default function dataFetchTest() {
       expect(extractAssignmentRows(ASSIGNMENT_LIST_RESPONSE_JSON).length).assertEqual(2);
       expect(extractAssignmentDescription('').length).assertEqual(0);
       expect(extractAssignmentDescription('nope').length).assertEqual(0);
+      // 描述接口的 msg 与参考实现一样做实体解码（decodeHTML(descJson.msg)）
       expect(extractAssignmentDescription(ASSIGNMENT_DESCRIPTION_RESPONSE_JSON))
-        .assertEqual('<p>要求见课件&amp;讲义</p>');
+        .assertEqual('<p>要求见课件&讲义</p>');
       expect(extractCourseFileRows('').length).assertEqual(0);
       expect(extractCourseFileRows('[]').length).assertEqual(0);
       expect(extractCourseFileRows(FILE_LIST_RESPONSE_JSON).length).assertEqual(2);
@@ -158,27 +159,38 @@ export default function dataFetchTest() {
         .routePost('pageListXsbyYgq', NOTICE_LIST_RESULTS_LIST_JSON)
         .routeGetSeq('beforeViewXs', [NOTICE_DETAIL_ML10_HTML]);
       const fetcher: NoticesFetcher = new NoticesFetcher(
-        new Logger(NOTICES_LOG_DOMAIN), port, SESSION, COURSES, deviceBase64Decoder);
+        new Logger(NOTICES_LOG_DOMAIN), port, SESSION, COURSES, strictPureBase64Decoder);
       const notices: Notice[] = await fetcher.fetch(['c1', 'c2']);
-      expect(notices.length).assertEqual(4);
+      // 每个课程都拿到两份夹具：Wgq（2 条）+ Ygq（1 条）= 3 条 → 2 课程 = 6 条
+      expect(notices.length).assertEqual(6);
+      // 列表请求 = 2 课程 × 2 接口 = 4；详情请求 = 每课程 1 条带附件名的记录 = 2
       expect(port.postUrls.length).assertEqual(4);
       expect(port.getUrls.length).assertEqual(2);
       expect(port.postUrls[0].includes('_csrf=csrf-fixture')).assertTrue();
       expect(port.postUrls[0].includes('pageListXsbyWgq')).assertTrue();
       expect(notices[0].publishTime).assertEqual('2020-09-25 07:21');
-      expect(notices[3].publishTime).assertEqual('2020-08-17 17:50');
+      expect(notices[5].publishTime).assertEqual('2020-08-17 17:50');
       const first: Notice = noticeById(notices, '26ef84e86d60f069016dadb09dd673b2');
       expect(first.courseId).assertEqual('c1');
       expect(first.courseName).assertEqual('通信与网络');
       expect(first.courseTeacherName).assertEqual('周世东');
-      expect(first.hasRead).assertFalse();
+      // 这条记录的 sfyd 是 '已读'（夹具里三种写法各一：'0' / '已读' / 1）
+      expect(first.hasRead).assertTrue();
+      const unread: Notice = noticeById(notices, '26ef84e76cc258ed016d3ea25a95157d');
+      expect(unread.hasRead).assertFalse();
+      // Ygq 夹具的那条记录两个课程各一份：第一份属于 c1，且两份的课程名不同
       const second: Notice = noticeById(notices, 'aa11bb22cc33dd44');
-      expect(second.courseName).assertEqual('量子与统计');
+      expect(second.courseId).assertEqual('c1');
+      expect(second.courseName).assertEqual('通信与网络');
       expect(second.hasRead).assertTrue();
+      const secondCopies: Notice[] = notices.filter((item: Notice): boolean => item.id === 'aa11bb22cc33dd44');
+      expect(secondCopies.length).assertEqual(2);
+      expect(secondCopies[0].courseName).assertEqual('通信与网络');
+      expect(secondCopies[1].courseName).assertEqual('量子与统计');
       const withAttachment: Notice[] = notices.filter((item: Notice): boolean => item.attachment !== undefined);
       expect(withAttachment.length).assertEqual(2);
       expect(withAttachment[0].attachment?.id).assertEqual('1998990181_GG_5f2c9a1b');
-      assertHasItemsAndElapsed(latestLog(NOTICES_LOG_DOMAIN, 'fetched'), 4);
+      assertHasItemsAndElapsed(latestLog(NOTICES_LOG_DOMAIN, 'fetched'), 6);
     });
 
     it('assignmentsFetchParsesFourAttachmentsAndLogs', 0, async () => {
@@ -190,9 +202,12 @@ export default function dataFetchTest() {
         new Logger(ASSIGNMENTS_LOG_DOMAIN), port, SESSION, COURSES);
       const assignments: Assignment[] = await fetcher.fetch(['c1']);
       expect(assignments.length).assertEqual(2);
-      // 列表 3 次；每条 2 次（描述 + 详情）→ post 3 + 2 = 5 次，get 2 × 2 = 4 次
-      expect(port.postUrls.length).assertEqual(5);
-      expect(port.getUrls.length).assertEqual(4);
+      // 三个列表接口各返回同 2 条 → 3 次列表 post；每条记录都会先补详情再按 id 合并
+      // （参考实现也是先去重后合并，所以是 2 条 × 3 来源 = 6 次补详情），
+      // 每次补详情 = 1 次描述 post + 1 次详情 get：
+      //   post = 3 + 6 = 9，get = 6
+      expect(port.postUrls.length).assertEqual(9);
+      expect(port.getUrls.length).assertEqual(6);
       const first: Assignment = assignments[0];
       expect(first.title).assertEqual('大作业1');
       expect(first.attachment?.name).assertEqual('作业要求.pdf');
@@ -228,7 +243,7 @@ export default function dataFetchTest() {
         .routeGetSeq('beforeViewXs', [NOTICE_DETAIL_ML10_HTML])
         .failOn('pageListXsbyYgq');
       const fetcher: NoticesFetcher = new NoticesFetcher(
-        new Logger(NOTICES_LOG_DOMAIN), port, SESSION, COURSES, deviceBase64Decoder);
+        new Logger(NOTICES_LOG_DOMAIN), port, SESSION, COURSES, strictPureBase64Decoder);
       const notices: Notice[] = await fetcher.fetch(['c1']);
       expect(notices.length).assertEqual(2);
       const message: string = latestLog(NOTICES_LOG_DOMAIN, 'fetched');
@@ -242,7 +257,7 @@ export default function dataFetchTest() {
         .routePost('pageListXsbyWgq', SESSION_EXPIRED_JSON)
         .routePost('pageListXsbyYgq', SESSION_EXPIRED_JSON);
       const notices: Notice[] = await new NoticesFetcher(
-        new Logger(NOTICES_LOG_DOMAIN), port, SESSION, COURSES, deviceBase64Decoder).fetch(['c1']);
+        new Logger(NOTICES_LOG_DOMAIN), port, SESSION, COURSES, strictPureBase64Decoder).fetch(['c1']);
       expect(notices.length).assertEqual(0);
       assertHasItemsAndElapsed(latestLog(NOTICES_LOG_DOMAIN, 'fetched'), 0);
       const files: CourseFile[] = await new FilesFetcher(
@@ -258,7 +273,7 @@ export default function dataFetchTest() {
     it('returnsEmptyImmediatelyForNoCourses', 0, async () => {
       const port: ScriptedFetchPort = new ScriptedFetchPort();
       const notices: Notice[] = await new NoticesFetcher(
-        new Logger(NOTICES_LOG_DOMAIN), port, SESSION, COURSES, deviceBase64Decoder).fetch([]);
+        new Logger(NOTICES_LOG_DOMAIN), port, SESSION, COURSES, strictPureBase64Decoder).fetch([]);
       expect(notices.length).assertEqual(0);
       expect(port.postUrls.length).assertEqual(0);
       expect(port.getUrls.length).assertEqual(0);

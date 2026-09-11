@@ -16,6 +16,7 @@
 import { Logger } from '../../core/log/Logger';
 import { Assignment } from '../../domain/model/ContentItem';
 import { CourseName } from '../../domain/parse/CourseName';
+import { decodeHtmlEntities } from '../../domain/parse/Text';
 import {
   AssignmentDetail, RawAssignment, assignmentDetailUrl,
   mergeAssignmentDetail, parseAssignment, parseAssignmentDetail, compareAssignmentsByUpcoming
@@ -61,7 +62,12 @@ export function extractAssignmentRows(body: string): RawAssignment[] {
   return box['aaData'] === undefined || box['aaData'] === null ? [] : box['aaData'] as RawAssignment[];
 }
 
-/** 描述接口响应 → 描述 HTML 字符串（`result: success` 时取 `msg`）。 */
+/**
+ * 描述接口响应 → 描述 HTML 字符串（`result: success` 时取 `msg`）。
+ *
+ * 参考实现在这里做 `decodeHTML(descJson.msg || '')`，因此实体解码必须在这一步完成
+ * （详情页 HTML 里的字段走另一条路径，各自解码）。
+ */
 export function extractAssignmentDescription(body: string): string {
   if (body.length === 0) {
     return '';
@@ -77,7 +83,7 @@ export function extractAssignmentDescription(body: string): string {
     return '';
   }
   const msg: Object | undefined = root['msg'] as Object | undefined;
-  return msg === undefined || msg === null ? '' : String(msg);
+  return msg === undefined || msg === null ? '' : decodeHtmlEntities(String(msg));
 }
 
 /** 合并同一作业的两份结果：详情字段取非空，提交/评分标记取"或"。 */

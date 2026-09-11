@@ -108,20 +108,30 @@ export function sortNotices(notices: Notice[]): Notice[] {
   return sorted;
 }
 
-/** 公告附件：优先 `class="ml-10"` 的链接，取到 `wjid` 后重拼标准下载地址。 */
+/**
+ * 公告附件：优先 `class="ml-10"` 的链接，取到 `wjid` 后重拼标准下载地址。
+ *
+ * **照参考实现不解码 HTML 实体**（docs/reference-quirks.md 第 4 条）：正则直接匹配原始字节，
+ * 所以 href 写成 `a&amp;b` 时，`wjid` 仍能取到（字符类 `[^"&]+` 在 `&` 处停下），
+ * 但 downloadUrl 里保留 `&amp;` 原样。
+ * 正则也保持参考实现的属性顺序要求（`class` 在 `href` 之前）。
+ */
 export function parseNoticeAttachment(detailHtml: string, attachmentName: string): Attachment | undefined {
   if (!detailHtml) {
     return undefined;
   }
-  const ml10: RegExpMatchArray | null = detailHtml.match(/<a[^>]*class\s*=\s*["'][^"']*ml-10[^"']*["'][^>]*href\s*=\s*["']([^"']+)["']/i);
+  const ml10: RegExpMatchArray | null =
+    detailHtml.match(/<a[^>]*class\s*=\s*["'][^"']*ml-10[^"']*["'][^>]*href\s*=\s*["']([^"']+)["']/i);
   if (ml10 !== null) {
     const fileId: string | undefined = extractFileId(ml10[1]);
     if (fileId !== undefined) {
       return { name: decodeHtmlEntities(attachmentName), downloadUrl: noticeDownloadUrl(fileId), id: fileId };
     }
   }
-  const generic: RegExpMatchArray | null = detailHtml.match(/href\s*=\s*["']([^"']*(?:downloadFile|openNewWindow|fileId=)[^"']*)["']/i);
+  const generic: RegExpMatchArray | null =
+    detailHtml.match(/href\s*=\s*["']([^"']*(?:downloadFile|openNewWindow|fileId=)[^"']*)["']/i);
   if (generic !== null) {
+    // 通用回退分支照参考实现只给 name + downloadUrl（不推导 id）
     return {
       name: decodeHtmlEntities(attachmentName),
       downloadUrl: unwrapDownloadUrl(absoluteLearnUrl(generic[1]))
