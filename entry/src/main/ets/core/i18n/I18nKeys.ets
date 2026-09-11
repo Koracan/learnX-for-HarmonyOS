@@ -20,7 +20,7 @@
  * Regenerate:  node scripts/generate-i18n-resources.mjs && node scripts/gen-i18n-keys.mjs
  * Verify:      node scripts/check-i18n-keys.mjs
  *
- * 211 keys; project-local additions: 3.
+ * 231 keys; project-local additions: 3.
  */
 export type I18nKey = 'loh_back'
   | 'loh_notices'
@@ -232,7 +232,27 @@ export type I18nKey = 'loh_back'
   | 'ui_tab_notices'
   | 'ui_tab_placeholder'
   | 'ui_empty_notices'
-  | 'ui_refreshed_at';
+  | 'ui_refreshed_at'
+  | 'ui_notice_publish_time'
+  | 'ui_weekday_sunday'
+  | 'ui_weekday_monday'
+  | 'ui_weekday_tuesday'
+  | 'ui_weekday_wednesday'
+  | 'ui_weekday_thursday'
+  | 'ui_weekday_friday'
+  | 'ui_weekday_saturday'
+  | 'ui_month_jan'
+  | 'ui_month_feb'
+  | 'ui_month_mar'
+  | 'ui_month_apr'
+  | 'ui_month_may'
+  | 'ui_month_jun'
+  | 'ui_month_jul'
+  | 'ui_month_aug'
+  | 'ui_month_sep'
+  | 'ui_month_oct'
+  | 'ui_month_nov'
+  | 'ui_month_dec';
 
 const ALL_KEYS: string[] = [
   'loh_back',
@@ -446,6 +466,26 @@ const ALL_KEYS: string[] = [
   'ui_tab_placeholder',
   'ui_empty_notices',
   'ui_refreshed_at',
+  'ui_notice_publish_time',
+  'ui_weekday_sunday',
+  'ui_weekday_monday',
+  'ui_weekday_tuesday',
+  'ui_weekday_wednesday',
+  'ui_weekday_thursday',
+  'ui_weekday_friday',
+  'ui_weekday_saturday',
+  'ui_month_jan',
+  'ui_month_feb',
+  'ui_month_mar',
+  'ui_month_apr',
+  'ui_month_may',
+  'ui_month_jun',
+  'ui_month_jul',
+  'ui_month_aug',
+  'ui_month_sep',
+  'ui_month_oct',
+  'ui_month_nov',
+  'ui_month_dec',
 ];
 
 const KEY_SET: Set<string> = new Set<string>(ALL_KEYS);
@@ -456,4 +496,4 @@ export function isI18nKey(value: string): boolean {
 }
 
 /** Total number of known keys; scripts/check-i18n-keys.mjs asserts this. */
-export const I18N_KEY_COUNT: number = 211;
+export const I18N_KEY_COUNT: number = 231;

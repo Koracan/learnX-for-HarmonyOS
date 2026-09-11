@@ -14,6 +14,7 @@
  * 让下拉刷新的动效可见。
  */
 import { Logger } from '../../../core/log/Logger';
+import { Attachment } from '../../../domain/model/ContentItem';
 import { parseNoticeTime, sortNoticesDesc } from '../NoticeOrder';
 import {
   NOTICE_SNAPSHOT_SCHEMA_VERSION, NoticeRecord, NoticeRepository, NoticeSnapshot
@@ -34,6 +35,8 @@ interface MockNoticeSeed {
   hasRead: boolean;
   markedImportant: boolean;
   url: string;
+  /** 参考实现 mock.ts 里只有"第一次大作业"这条带 attachment（:290-296）。 */
+  attachment?: Attachment;
 }
 
 /** 参考实现 mock.ts 的 7 条公告，内容一字未改，**顺序被打乱**（见文件头注释）。 */
@@ -101,7 +104,13 @@ const MOCK_NOTICE_SEEDS: MockNoticeSeed[] = [
     publishTime: '2020-09-10 16:22',
     hasRead: true,
     markedImportant: false,
-    url: 'https://www.example.com'
+    url: 'https://www.example.com',
+    // 逐字取自参考实现 mock.ts:290-296（含 downloadUrl / previewUrl 两个地址）。
+    attachment: {
+      id: '1998990181_ZY_1604316692859411626215e-c233-4663-a567-a932bf4d4962',
+      name: '附件附件附件附件附件附件附件附件附件附件附件附件附件附件附件附件.pdf',
+      downloadUrl: 'https://www.apple.com/environment/pdf/Apple_Environmental_Responsibility_Report_2018.pdf'
+    }
   },
   {
     id: '26ef84e76d60efc1016d71b8f4c63bc1',
@@ -146,7 +155,9 @@ export function mockNoticeRecords(): NoticeRecord[] {
       publishTimeMillis: parseNoticeTime(seed.publishTime),
       hasRead: seed.hasRead,
       markedImportant: seed.markedImportant,
-      url: seed.url
+      url: seed.url,
+      // 显式写成"有则赋值、无则保持 undefined"，避免把 undefined 塞进可选字段。
+      attachment: seed.attachment
     };
     records.push(record);
   }

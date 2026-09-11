@@ -17,8 +17,8 @@
 | --- | --- | --- |
 | 参考实现迁入 | 180 | `loh_` |
 | 本工程新增（学期季节词） | 3 | `loh_` |
-| 本工程新增（原生重写 UI 文案） | 28 | `ui_` |
-| 合计 | 211 | |
+| 本工程新增（原生重写 UI 文案） | 48 | `ui_` |
+| 合计 | 231 | |
 
 ## 参考实现迁入键（180）
 
@@ -205,7 +205,7 @@
 | 179 | `avoidFrontCameraDescription` | `loh_avoid_front_camera_description` | - | 在上部留出空间以避让挖孔区域，需要重启应用 | Leave top space to avoid the front camera cutout. App restart required. |
 | 180 | `pleaseRestartAppToApplyImmersive` | `loh_please_restart_app_to_apply_immersive` | - | 请重启应用以应用沉浸式模式设置。 | Please restart the app to apply immersive mode setting. |
 
-## 本工程新增键（31）
+## 本工程新增键（51）
 
 | # | 类别 | 资源名 | 占位符 | 中文 | 英文 |
 | --- | --- | --- | --- | --- | --- |
@@ -240,4 +240,24 @@
 | 29 | ui | `ui_tab_placeholder` | - | 该页面将在后续迭代中实现 | This page will be implemented in a later iteration |
 | 30 | ui | `ui_empty_notices` | - | 暂无公告 | No notices |
 | 31 | ui | `ui_refreshed_at` | {0} | 更新于 %1$s | Updated %1$s |
+| 32 | ui | `ui_notice_publish_time` | - | YYYY 年 M 月 D 日 dddd HH:mm | MMM D, YYYY HH:mm |
+| 33 | ui | `ui_weekday_sunday` | - | 星期日 | Sun |
+| 34 | ui | `ui_weekday_monday` | - | 星期一 | Mon |
+| 35 | ui | `ui_weekday_tuesday` | - | 星期二 | Tue |
+| 36 | ui | `ui_weekday_wednesday` | - | 星期三 | Wed |
+| 37 | ui | `ui_weekday_thursday` | - | 星期四 | Thu |
+| 38 | ui | `ui_weekday_friday` | - | 星期五 | Fri |
+| 39 | ui | `ui_weekday_saturday` | - | 星期六 | Sat |
+| 40 | ui | `ui_month_jan` | - | 1 月 | Jan |
+| 41 | ui | `ui_month_feb` | - | 2 月 | Feb |
+| 42 | ui | `ui_month_mar` | - | 3 月 | Mar |
+| 43 | ui | `ui_month_apr` | - | 4 月 | Apr |
+| 44 | ui | `ui_month_may` | - | 5 月 | May |
+| 45 | ui | `ui_month_jun` | - | 6 月 | Jun |
+| 46 | ui | `ui_month_jul` | - | 7 月 | Jul |
+| 47 | ui | `ui_month_aug` | - | 8 月 | Aug |
+| 48 | ui | `ui_month_sep` | - | 9 月 | Sep |
+| 49 | ui | `ui_month_oct` | - | 10 月 | Oct |
+| 50 | ui | `ui_month_nov` | - | 11 月 | Nov |
+| 51 | ui | `ui_month_dec` | - | 12 月 | Dec |
 

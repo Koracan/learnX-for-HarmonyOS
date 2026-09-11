@@ -1,8 +1,8 @@
 {
-  "total": 211,
+  "total": 231,
   "referenceCount": 180,
   "localCount": 3,
-  "uiCount": 28,
+  "uiCount": 48,
   "referenceKeys": [
     "back",
     "notices",
@@ -2101,6 +2101,186 @@
       "enPlaceholders": [
         "{0}"
       ],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_notice_publish_time",
+      "name": "ui_notice_publish_time",
+      "zhValue": "YYYY 年 M 月 D 日 dddd HH:mm",
+      "enValue": "MMM D, YYYY HH:mm",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_weekday_sunday",
+      "name": "ui_weekday_sunday",
+      "zhValue": "星期日",
+      "enValue": "Sun",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_weekday_monday",
+      "name": "ui_weekday_monday",
+      "zhValue": "星期一",
+      "enValue": "Mon",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_weekday_tuesday",
+      "name": "ui_weekday_tuesday",
+      "zhValue": "星期二",
+      "enValue": "Tue",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_weekday_wednesday",
+      "name": "ui_weekday_wednesday",
+      "zhValue": "星期三",
+      "enValue": "Wed",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_weekday_thursday",
+      "name": "ui_weekday_thursday",
+      "zhValue": "星期四",
+      "enValue": "Thu",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_weekday_friday",
+      "name": "ui_weekday_friday",
+      "zhValue": "星期五",
+      "enValue": "Fri",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_weekday_saturday",
+      "name": "ui_weekday_saturday",
+      "zhValue": "星期六",
+      "enValue": "Sat",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_month_jan",
+      "name": "ui_month_jan",
+      "zhValue": "1 月",
+      "enValue": "Jan",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_month_feb",
+      "name": "ui_month_feb",
+      "zhValue": "2 月",
+      "enValue": "Feb",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_month_mar",
+      "name": "ui_month_mar",
+      "zhValue": "3 月",
+      "enValue": "Mar",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_month_apr",
+      "name": "ui_month_apr",
+      "zhValue": "4 月",
+      "enValue": "Apr",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_month_may",
+      "name": "ui_month_may",
+      "zhValue": "5 月",
+      "enValue": "May",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_month_jun",
+      "name": "ui_month_jun",
+      "zhValue": "6 月",
+      "enValue": "Jun",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_month_jul",
+      "name": "ui_month_jul",
+      "zhValue": "7 月",
+      "enValue": "Jul",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_month_aug",
+      "name": "ui_month_aug",
+      "zhValue": "8 月",
+      "enValue": "Aug",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_month_sep",
+      "name": "ui_month_sep",
+      "zhValue": "9 月",
+      "enValue": "Sep",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_month_oct",
+      "name": "ui_month_oct",
+      "zhValue": "10 月",
+      "enValue": "Oct",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_month_nov",
+      "name": "ui_month_nov",
+      "zhValue": "11 月",
+      "enValue": "Nov",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_month_dec",
+      "name": "ui_month_dec",
+      "zhValue": "12 月",
+      "enValue": "Dec",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
       "origin": "ui"
     }
   ]

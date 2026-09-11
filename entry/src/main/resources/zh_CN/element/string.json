@@ -843,6 +843,86 @@
     {
       "name": "ui_refreshed_at",
       "value": "更新于 %1$s"
+    },
+    {
+      "name": "ui_notice_publish_time",
+      "value": "YYYY 年 M 月 D 日 dddd HH:mm"
+    },
+    {
+      "name": "ui_weekday_sunday",
+      "value": "星期日"
+    },
+    {
+      "name": "ui_weekday_monday",
+      "value": "星期一"
+    },
+    {
+      "name": "ui_weekday_tuesday",
+      "value": "星期二"
+    },
+    {
+      "name": "ui_weekday_wednesday",
+      "value": "星期三"
+    },
+    {
+      "name": "ui_weekday_thursday",
+      "value": "星期四"
+    },
+    {
+      "name": "ui_weekday_friday",
+      "value": "星期五"
+    },
+    {
+      "name": "ui_weekday_saturday",
+      "value": "星期六"
+    },
+    {
+      "name": "ui_month_jan",
+      "value": "1 月"
+    },
+    {
+      "name": "ui_month_feb",
+      "value": "2 月"
+    },
+    {
+      "name": "ui_month_mar",
+      "value": "3 月"
+    },
+    {
+      "name": "ui_month_apr",
+      "value": "4 月"
+    },
+    {
+      "name": "ui_month_may",
+      "value": "5 月"
+    },
+    {
+      "name": "ui_month_jun",
+      "value": "6 月"
+    },
+    {
+      "name": "ui_month_jul",
+      "value": "7 月"
+    },
+    {
+      "name": "ui_month_aug",
+      "value": "8 月"
+    },
+    {
+      "name": "ui_month_sep",
+      "value": "9 月"
+    },
+    {
+      "name": "ui_month_oct",
+      "value": "10 月"
+    },
+    {
+      "name": "ui_month_nov",
+      "value": "11 月"
+    },
+    {
+      "name": "ui_month_dec",
+      "value": "12 月"
     }
   ]
 }

@@ -1,11 +1,17 @@
 /*
- * 公告（Notice）tab：Mock/真实数据源之上的列表页。
+ * 公告（Notice）tab：Mock/真实数据源之上的列表页 + 详情栈的根（ticket 03/04）。
  *
  * 分工：
  *   - 数据与阶段在 NoticeListStore（@ObservedV2/@Trace），本组件只读；
  *   - 取色一律 resolveTheme()，文案一律走资源；
  *   - 时间用 core/i18n 的 formatRelativeTo（与参考实现 NoticeCard 的
  *     dayjs(publishTime).fromNow() 对齐），拿不到 ICU 措辞时退回绝对时间。
+ *
+ * 导航（ticket 04，接 ticket 03 的选型「每个 tab 一个 NavPathStack」）：
+ *   本组件的 `Navigation` 就是这个 tab 的栈：列表是**根内容**，公告详情是
+ *   `NavDestination`。这样切到别的 tab 再切回来时，栈（含正打开的详情页）原样保留，
+ *   与参考实现"每 tab 一个 stack"一致。详情页只读列表项本身，不做二次取数
+ *   （对应参考实现 `navigation.push('NoticeDetail', notice)`）。
  *
  * 界面只依赖 NoticeRepository 接口（经 createNoticeRepository() 注入），
  * ticket 09 换真实数据源时这里不动。
@@ -19,10 +25,14 @@ import {
 import { Logger } from '../../core/log/Logger';
 import { COLOR_MODE_KEY, LOCALE_VERSION_KEY } from '../../entryability/EntryAbility';
 import { EmptyState } from '../../ui/components/EmptyState';
+import { SessionHeaderProvider, createSessionHeaderProvider, logSessionHeaderState } from '../../core/web/SessionHeaderProvider';
 import { isUnread } from './NoticeOrder';
 import { NoticeListStore } from './NoticeListStore';
 import { NoticeRecord } from './repository/NoticeRepository';
 import { createNoticeRepository } from './repository/NoticeRepositoryProvider';
+import { FileDetailPlaceholderPage } from './FileDetailPlaceholderPage';
+import { FileDetailRouteParams, ROUTE_FILE_DETAIL, ROUTE_NOTICE_DETAIL } from './NoticeRoutes';
+import { NoticeDetailPage } from './NoticeDetailPage';
 
 const logger: Logger = new Logger('features.notices');
 
@@ -45,9 +55,15 @@ export struct NoticesPage {
 
   private store: NoticeListStore = new NoticeListStore(createNoticeRepository());
   private listScroller: Scroller = new Scroller();
+  /** 公告 tab 自己的导航栈（ticket 04）。 */
+  private stack: NavPathStack = new NavPathStack();
+  /** Web 容器的会话注入端口（Mock 阶段是空实现，见 core/web/SessionHeaderProvider.ets）。 */
+  private session: SessionHeaderProvider = createSessionHeaderProvider();
 
   aboutToAppear(): void {
     this.store.loadOnce();
+    // 把会话端口的**实际生效值**打进 hilog：取证时"没抓到"与"端口没接上"必须能区分。
+    logSessionHeaderState(this.session);
     logger.info('notices page appear: source=mock, phase=' + this.store.phase);
   }
 
@@ -95,6 +111,12 @@ export struct NoticesPage {
     this.refreshing = true;
     await this.store.refresh();
     this.refreshing = false;
+  }
+
+  /** 点一行 → 把整个公告压进本 tab 的详情栈（对齐参考实现 navigation.push）。 */
+  private openDetail(notice: NoticeRecord): void {
+    logger.info('notice tapped: id=' + notice.id + ' title=' + notice.title);
+    this.stack.pushPath({ name: ROUTE_NOTICE_DETAIL, param: notice });
   }
 
   @Builder
@@ -177,6 +199,9 @@ export struct NoticesPage {
       bottom: spec.theme.sizes.space3
     })
     .backgroundColor(spec.theme.colors.surface)
+    .onClick(() => {
+      this.openDetail(spec.notice);
+    })
   }
 
   @Builder
@@ -226,25 +251,52 @@ export struct NoticesPage {
     .height('100%')
   }
 
-  build() {
-    Column() {
-      this.header()
-      Refresh({ refreshing: $$this.refreshing, promptText: this.s($r('app.string.loh_refresh')) }) {
-        this.listBody()
+  /** 详情栈的出栈目标：公告详情 / 文件详情占位（见 FileDetailPlaceholderPage 注释）。 */
+  @Builder
+  destinationBuilder(name: string, param: object) {
+    if (name === ROUTE_NOTICE_DETAIL) {
+      NavDestination() {
+        NoticeDetailPage({
+          notice: param as NoticeRecord,
+          stack: this.stack,
+          session: this.session
+        })
       }
-      .layoutWeight(1)
-      .width('100%')
-      .onRefreshing(() => {
-        this.handlePullRefresh();
-      })
-      // 把 Refresh 的状态机打进 hilog：Inactive/Drag/OverDrag/Refresh/Done。
-      // 这是"下拉刷新确实被触发并进入刷新态"的确定性证据（截图只能尽力抓时机）。
-      .onStateChange((state: RefreshStatus) => {
-        logger.info('pull refresh state: ' + state.toString());
-      })
+      .hideTitleBar(true)
+    } else if (name === ROUTE_FILE_DETAIL) {
+      NavDestination() {
+        FileDetailPlaceholderPage({ params: param as FileDetailRouteParams })
+      }
+      .hideTitleBar(true)
     }
+  }
+
+  build() {
+    Navigation(this.stack) {
+      Column() {
+        this.header()
+        Refresh({ refreshing: $$this.refreshing, promptText: this.s($r('app.string.loh_refresh')) }) {
+          this.listBody()
+        }
+        .layoutWeight(1)
+        .width('100%')
+        .onRefreshing(() => {
+          this.handlePullRefresh();
+        })
+        // 把 Refresh 的状态机打进 hilog：Inactive/Drag/OverDrag/Refresh/Done。
+        // 这是"下拉刷新确实被触发并进入刷新态"的确定性证据（截图只能尽力抓时机）。
+        .onStateChange((state: RefreshStatus) => {
+          logger.info('pull refresh state: ' + state.toString());
+        })
+      }
+      .width('100%')
+      .height('100%')
+      .backgroundColor(this.theme().colors.background)
+    }
+    .navDestination(this.destinationBuilder)
+    .hideTitleBar(true)
+    .mode(NavigationMode.Stack)
     .width('100%')
     .height('100%')
-    .backgroundColor(this.theme().colors.background)
   }
 }

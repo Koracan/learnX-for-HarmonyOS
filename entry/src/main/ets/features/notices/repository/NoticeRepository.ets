@@ -17,6 +17,7 @@
  *   - 排序不依赖数据源：契约要求 items 按发布时间倒序，UI 侧仍会再排一次
  *     （见 NoticeOrder.sortNoticesDesc）以对齐参考实现 data/actions/notices.ts。
  */
+import { Attachment } from '../../../domain/model/ContentItem';
 
 /** 快照结构版本；ticket 09 结构变化时 +1。 */
 export const NOTICE_SNAPSHOT_SCHEMA_VERSION: number = 1;
@@ -27,6 +28,11 @@ export interface NoticeRecord {
   title: string;
   /** 正文（HTML）。列表不用，公告详情（ticket 04）用。 */
   content: string;
+  /**
+   * 附件（可选；参考实现 mock.ts:290-296 只有"第一次大作业"那条有）。
+   * 公告详情在正文**上方**独立一行显示它（NoticeDetail.tsx:95-109），点击跳 FileDetail。
+   */
+  attachment?: Attachment;
   publisher: string;
   courseId: string;
   courseName: string;

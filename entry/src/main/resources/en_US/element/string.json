@@ -843,6 +843,86 @@
     {
       "name": "ui_refreshed_at",
       "value": "Updated %1$s"
+    },
+    {
+      "name": "ui_notice_publish_time",
+      "value": "MMM D, YYYY HH:mm"
+    },
+    {
+      "name": "ui_weekday_sunday",
+      "value": "Sun"
+    },
+    {
+      "name": "ui_weekday_monday",
+      "value": "Mon"
+    },
+    {
+      "name": "ui_weekday_tuesday",
+      "value": "Tue"
+    },
+    {
+      "name": "ui_weekday_wednesday",
+      "value": "Wed"
+    },
+    {
+      "name": "ui_weekday_thursday",
+      "value": "Thu"
+    },
+    {
+      "name": "ui_weekday_friday",
+      "value": "Fri"
+    },
+    {
+      "name": "ui_weekday_saturday",
+      "value": "Sat"
+    },
+    {
+      "name": "ui_month_jan",
+      "value": "Jan"
+    },
+    {
+      "name": "ui_month_feb",
+      "value": "Feb"
+    },
+    {
+      "name": "ui_month_mar",
+      "value": "Mar"
+    },
+    {
+      "name": "ui_month_apr",
+      "value": "Apr"
+    },
+    {
+      "name": "ui_month_may",
+      "value": "May"
+    },
+    {
+      "name": "ui_month_jun",
+      "value": "Jun"
+    },
+    {
+      "name": "ui_month_jul",
+      "value": "Jul"
+    },
+    {
+      "name": "ui_month_aug",
+      "value": "Aug"
+    },
+    {
+      "name": "ui_month_sep",
+      "value": "Sep"
+    },
+    {
+      "name": "ui_month_oct",
+      "value": "Oct"
+    },
+    {
+      "name": "ui_month_nov",
+      "value": "Nov"
+    },
+    {
+      "name": "ui_month_dec",
+      "value": "Dec"
     }
   ]
 }

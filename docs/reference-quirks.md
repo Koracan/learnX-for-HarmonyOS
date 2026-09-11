@@ -122,6 +122,74 @@ const sorted = semesters?.sort().reverse();
 
 ---
 
+## 6. 模板内联 <script> 与正文里的 </script> —— ticket 04 新增（已加固）
+
+**参考实现行为**：`helpers/html.ts:32-118` 的 `getWebViewTemplate` 把正文 `content` 直接拼进
+模板（`:108`），而模板里有若干内联 `<script>`（CSRF 注入、DarkReader、KaTeX、数学调用）。
+正文里若出现字面量 `</script>`，HTML 解析器会**提前结束**那个 script 元素，其后的正文被当成
+裸 JS 执行。
+
+**为什么别急着照抄**：这与本项目已经在登录页注入面上采取的加固原则冲突（`spec.md` 第 5 节
+把 Enrollment 的注入面缩小而不是扩大）。危害面取决于上游正文——目前 Mock 是硬编码字面量
+（无风险），但 ticket 09 会换成真实抓取的正文。
+
+**新实现做法**：`domain/render/WebViewTemplate.ets` 的 `escapeScriptEndTags` 把正文里的
+`</script` 转义成 `<\/script`（对渲染无影响：HTML 里 `<\/script` 不是有效标签，按文本显示）。
+**只在正文含该字面量时才有差异**，单测 `escapes script end tags in the notice content` 守住。
+
+**取证**：`reference/learnOH-old/src/helpers/html.ts:108`（`${content}` 直接插值）；
+`entry/src/main/ets/domain/render/WebViewTemplate.ets` 的 `escapeScriptEndTags`；
+`entry/src/test/NoticeDetail.test.ets`。
+
+---
+
+## 7. 模板注入脚本里的 new URL() —— ticket 04 新增（改成等价的手工解析）
+
+**参考实现行为**：`helpers/html.ts:60-66` 的注入脚本用 `new URL(url)` 取 hostname，只对
+**hostname 以 `tsinghua.edu.cn` 结尾**的 `href`/`src` 追加 `_csrf`。
+
+**为什么别急着改**：这不是 bug，它依赖注入脚本跑在一个有来源的文档里。移植到 ArkWeb 时这个
+前提变了（文档由 `loadData` 生成，是 opaque origin，`new URL()` 抛 TypeError），照抄会让全部链接
+更新失败。但**改法必须是等价的手工解析**，不能把只对 tsinghua 追加这个条件去掉——那会变成对
+所有链接都追加 `_csrf`，是行为偏离。
+
+**新实现做法（逐条对齐，只有解析方式不同）**：
+
+| 条件 | 参考实现 | 新实现 |
+| --- | --- | --- |
+| hostname 以 `tsinghua.edu.cn` 结尾（含其子域） | `hostname.endsWith(...)` | 手工切出 hostname 后做同一判断 |
+| 追加方式 | `searchParams.set('_csrf', token)` | 有 `?` 用 `&`、无则 `?` 拼上 |
+| 空 token | 追加 `_csrf=`（`set` 的语义） | 同样追加 `_csrf=` |
+| 非 http(s) 的 href（`mailto:` / `#anchor`） | `new URL()` 抛异常 → 跳过该链接 | 同样跳过 |
+| 末尾 `#fragment` | `toString()` 保留 | 手工拼回（与参考实现一致） |
+| 端口 | `hostname` 不含端口 | 手工剥离 `:port` 后再比较 |
+
+**取证**：`reference/learnOH-old/src/helpers/html.ts:60-66`；
+`entry/src/main/ets/domain/render/WebViewTemplate.ets` 的 `buildCsrfScript`；
+`entry/src/test/NoticeDetail.test.ets`（`injects the csrf token into the link rewriter`、
+`escapes a hostile csrf token instead of breaking out of the literal`）。
+
+---
+
+## 8. ArkWeb 的两条平台事实（不是参考实现的怪癖，但会误导移植者）—— ticket 04 新增
+
+设备实测（模拟器 Pura 90，HarmonyOS 6.1.0(23)），两条都写进了
+`entry/src/main/ets/ui/components/HtmlWebView.ets` 的注释与 ticket 04 的取证记录：
+
+1. **`WebviewController.runJavaScript` 的返回值恒为 `null`**（即使脚本里写了显式 `return`）。
+   所以用返回值把高度量回原生这条路走不通——参考实现的 `postMessage` 端口在 ArkWeb 上
+   的等价物只能是 `javaScriptProxy` 注入的桥。
+2. **`javaScriptProxy` 只注入对象，不会执行任何脚本**。测高脚本必须另外经
+   `javaScriptOnDocumentStart`（等价于参考实现的 `injectedJavaScriptBeforeContentLoaded`，
+   `AutoHeightWebView.tsx:76`）放进页面；否则出现桥是好的、但没人调用它的静默失败。
+   另：`file://` 指向应用沙箱（`cacheDir`）会被 ArkWeb 以 `ERR_ACCESS_DENIED` 拒绝，
+   所以正文只能走 `loadData(html, 'text/html', 'UTF-8', baseUrl, baseUrl)`。
+
+**取证**：`.scratch/notices-detail/evidence/04-hilog-probe4.txt`（`ERR_ACCESS_DENIED`）、
+`04-hilog-probe5.txt`（`page log: bridge=object keys=log,onExternalLink,onHeight`）、
+`04-hilog-detail.txt`（`loadData issued` + `no content height`）。
+---
+
 ## 待查
 
 （暂无。发现新的怪癖时追加，格式同上：参考实现行为／为什么别急着改／新实现做法／取证。）
