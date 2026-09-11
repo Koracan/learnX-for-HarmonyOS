@@ -69,7 +69,7 @@ _注入面已缩小_：旧实现必须用**猴补丁**（`jQuery.fn.submit` + XH
 | `fingerPrint` | **我们生成的**（应用侧 UUID） | **必须权威**：页面写完之后**盖掉表单字段**，并在 `saveFinger` 的 XHR 里注入同一个值；两处都要，缺一即不一致 |
 | `fingerGenPrint` | 页面的（`localstorageUtil.getFinger3FromLocal()`） | 读 DOM 后写进 `#fingerGenPrint`，**持久化**，重登原样回放 |
 | `fingerGenPrint3` | **服务端下发**、缓存在 localStorage（`getFinger3FromRemoteAndSave`） | 读 DOM 并持久化，重登原样回放 |
-| `singleLogin` | 页面的（默认勾选"信任浏览器"） | 不动 |
+| `singleLogin` | **页面会把它显式置为未勾选**（全新 profile 上 `getSingleLoginKey()` 无兜底地返回 `null`，走 `else` 分支） | **必须幂等勾上**，且要能对抗页面 promise 晚到的重置（参考实现 `sso.js:69-74` 是在提交时 `click()`；我们用幂等勾选 + 轮询/持续重 assert 达到同一效果） |
 
 **为什么 `fingerPrint` 必须是我们的值**：纯 HTTP 重登（下一节）会把 `fingerPrint`/`fingerGenPrint`/`fingerGenPrint3` 一起作为表单字段发给 ID 侧（`thu-learn-lib/lib/module/index.js:119-125`），而服务端判定"同一浏览器"就建立在设备指纹上。因此**服务端登记的必须是将来重登要出示的同一个值**。页面那个值是 fingerprintjs2 的 canvas/webgl 指纹（17 项），我们**无法复算**，只能当不透明串存下来回放——那样凭据有效性就取决于服务端页面脚本保持不变，不受我们控制。我们自己的 UUID 是唯一**确定可复现**的值，所以它在**表单与 `saveFinger` 两处都必须权威**；只覆盖一处会导致两处不一致，服务端绑哪个变未知，验收第 2 条（服务端登记值 == 保存的凭据指纹）无法成立。这条同时是参考实现的行为：`sso.js` 的 `jQuery.fn.submit` 猴补丁在提交时把 `fingerPrint` 写进表单，`saveFinger` 的 XHR 也被注入同一个值（见 `idp-login-flow.md` 第 2 节）。
 

@@ -23,9 +23,9 @@
 - **`/res/selfservice/finger3.js`（全文 976 字节，已读）**：
   ```js
   localstorageUtil.getFinger3FromLocal().then(f => { if (f) $("#fingerGenPrint3").val(f); else localstorageUtil.getFinger3FromRemoteAndSave().then(f => $("#fingerGenPrint3").val(f)); });
-  localstorageUtil.getSingleLoginKey().then(res => $('input[name="singleLogin"]').prop("checked", res === "yes"));  // 注释：默认是 yes
+  localstorageUtil.getSingleLoginKey().then(res => $('input[name="singleLogin"]').prop("checked", res === "yes"));  // 源码里紧邻的注释写着"默认是 yes"，但**注释与实现不一致**（见下方 2026-09-12 更正）
   ```
-  ⇒ `fingerGenPrint3` 与 `singleLogin`（**信任浏览器/统一登录，默认勾选**）在**加载时**就已确定。
+  ⇒ `fingerGenPrint3` 在**加载时**就已确定。`singleLogin` 在加载时也被**确定**，但**全新 profile 上确定的结果是"未勾选"**（见下方 2026-09-12 更正）。
 - 有图形验证码通道（`/captcha.jpg`、`#c_code`、`refreshCaptcha()`，条件显示）与"国家网络身份认证"扫码登录（`smrzQ.js`）。**是否/何时触发，客户端不可知。**
 - 相关脚本：`fingerprintUtil.js`(35KB)、`sm2Util.js`(43KB)、`localstorageUtil.js`(35KB)、`userAgentUtil.js`(2.6KB)，均已下载到 `idp-js/`。`saveFinger` **不在初始 HTML 中**，位于打包脚本内部（未进一步拆解 webpack）。
 - 成功标志：跳到 `https://learn.tsinghua.edu.cn/f/j_spring_security_thauth_roaming_entry`。
@@ -50,7 +50,9 @@
 
 ## 4. 信任生命周期（用户提供的事实，2026-09-11）
 
-- 登录页有"信任该浏览器"选项（页面默认勾选，见 `finger3.js` 的 `getSingleLoginKey()`，注释"默认是yes"）。
+- 登录页有"信任该浏览器"选项（就是 `singleLogin` 复选框）。
+  **更正（2026-09-12，设备实测 + 源码复核）：它并非"默认勾选"。** `finger3.js` 的逻辑是 `if (res === "yes") checked = true else checked = false`，而 `getSingleLoginKey()` 就是 `localforage.getItem("singleLoginKey")`、**没有兜底**，全新 profile 返回 `null` ⇒ 走 `else` ⇒ **显式置为未勾选**。源码里那句 `//默认是yes` 的注释**与实现不一致**（本文件早先照抄了该注释，现已更正）。
+  参考实现 `sso.js:69-74` 因此在**提交时**主动 `click()` 把它勾上。**新实现必须自己做这件事**：否则 ID 侧不把该浏览器记为可信，180 天信任不成立，ADR-0004 的纯 HTTP 重登路线失效。
 - **信任有效期 180 天**：信任期内，同一浏览器（= 同一设备指纹）重新认证**不需要**二次验证。
 - **二次验证 = 账号 + 密码 + 短信验证码**，仅在**未被信任的浏览器**上要求。
 - 服务端识别"同一浏览器"依据的就是 `fingerPrint / fingerGenPrint / fingerGenPrint3` —— **信任绑定在设备指纹上**。这就是旧 `sso.js` 必须把**自己的** `fingerPrint` 注入 `saveFinger` XHR 与登录表单的原因：服务端登记的必须是将来 HTTP 重登要出示的同一个值。
