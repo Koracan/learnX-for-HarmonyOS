@@ -4,11 +4,11 @@
 
 **Blocked by:** None（可立即开始）
 
-**Status:** in-review
+**Status:** verified
 
 - [x] 参考实现中英两份文案的全部键都存在于资源中，中英各一份，无遗漏（实测 **180** 键，不是“约 400”；zh/en 键集一致）
 - [x] 已存在的界面无硬编码文案（含提示、弹窗、Toast）——页面展示文案全部走资源；剩余中文字面量均为**日志/异常消息**，见 Comments 第 8 节
-- [ ] 系统语言为中文/英文时，真机界面分别为中文/英文，无需重启应用——**移交统筹 + 01 合并取证**（机制已实现并叠在 `EntryAbility`/`Index`，见 Comments 第 5 节）
+- [x] 系统语言为中文/英文时，界面分别为中文/英文，无需重启应用——**统筹已合并取证**：同进程切中↔英，PID 不变（见 Comments 第 5 节）
 - [x] 日期与相对时间随语言本地化（`@ohos.intl` + 可注入 formatter 接缝，24 条单测；修复后中文布局未再复验，见 Comments 第 5 节）
 - [x] 有一条检查能列出资源中缺失的键，供后续切片使用（`node scripts/check-i18n-keys.mjs`，负例套件全过）
 
@@ -162,6 +162,42 @@ NEGATIVE SUITE: ALL PASS
 4. **生成文件不要手改**：`I18nKeys.ets`、三份 `string.json`、`i18n-key-map.md`、`i18n-keys.json` 都由脚本生成；改文案请改 `scripts/i18n-ui-strings.mjs`（UI 文案）或资源生成器后重跑：`node scripts/generate-i18n-resources.mjs && node scripts/gen-i18n-keys.mjs`。
 5. **加键后必跑** `node scripts/check-i18n-keys.mjs`；新增键会同时改变 `I18N_KEY_COUNT`，`I18n.test.ets` 里的常量断言会失败并提醒同步。
 6. **顺手发现的 ticket 01 缺陷（未处理，留给他们）**：截图 `evidence/02-zh.png` 里系统为深色、卡片是深色，但页面最外层底色是白的——深色 `theme.colors.background` 没有作用到最外层容器；另外 `@Builder` 按值传参导致切主题时卡片不刷新（01 已自述在修）。
+
+#### 12. 验收（统筹复核，2026-09-12）—— **通过**
+
+结论：5/5 验收项达成。第 3 项由统筹补取证，其余为统筹**自己重跑**的结果。
+
+**① 键完整性——独立重数，不采信脚本自报**
+我自己解析参考实现两份字典：`zh.ts` 180 键 / `en.ts` 180 键。再自己跑检查器：
+```
+manifest keys : 207   reference declared : 180   reference dictionary : 180
+[base ] entries=210 missing=0 empty=0 extra=0 untranslated=0
+[zh_CN] entries=207 missing=0 empty=0 extra=0 untranslated=0
+[en_US] entries=207 missing=0 empty=0 extra=0 untranslated=1   (ui_app_name, 品牌名中英一致，属预期)
+source key references : 28 distinct keys, all resolved
+RESULT: OK
+```
+⇒ **180/180 迁移，0 缺失**。ticket 原文"约 400 键"确系笔误，已按实测改为 180。
+
+**② 界面无硬编码文案**：`Index.ets`/页面文案全走资源；残留中文字面量仅在 `logger.*` 与异常消息中（非界面展示）。
+
+**③ 中英切换无需重启——统筹实测（这是本 ticket 移交前唯一未取证项）**
+在模拟器上点页面内的「切到英文」按钮，**不冷启动**，然后 dump 无障碍树：
+```
+系统配色=浅色 / 颜色令牌=LIGHT_COLORS
+Native HarmonyOS rewrite · foundation / 01 layering + logging + theme tokens
+Self-check / Relative time sample: 3 days ago / 09/12/2026, 01:03 / Fall 2025-2026
+PID before: 29654   PID after: 29654   PID UNCHANGED: True
+```
+再点「切到中文」→ 全部回到中文，`相对时间示例 = 3天前`、`日期时间示例 = 2026/09/12 01:03`。
+**PID 跨切换不变** ⇒ 同进程重建，无重启。截图 `.scratch/foundation/evidence/01-index-en.png`，layout dump `.dsh/logs/lang-{en3,zh3}.json`。
+注：`ResourceManager.getLocales()` 在模拟器返回 `en-US` 而系统实际 `zh-Hans`，当时由此产生的 `in 56 years` / 英文日期布局缺陷已修；上表的中文 `3天前` 即修复后的复验结果（原先"修复后未复验"的缺口闭合）。
+
+**④ 日期与相对时间本地化**：`3天前` / `3 days ago`、中文 `2026/09/12 01:03` / 英文 `09/12/2026, 01:03`，两种语言均实测。
+
+**⑤ 缺失键检查可复用**：`node scripts/check-i18n-keys.mjs` exit 0；负例套件注入 4 类缺陷全部检出。
+
+**局限**：证据来自**模拟器** Pura 90（HarmonyOS 6.1.0(23)），非真机 API 24。系统级语言切换（改系统设置）在模拟器上受 shell 身份限制（`param set persist.global.language` → errNum 1001），故实际验证走的是应用内 `setLanguage()` 这条同样触发 configuration 更新的链路。
 
 #### 11. 本 ticket 明确**未完成 / 未验证**的项
 

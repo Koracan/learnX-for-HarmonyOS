@@ -4,7 +4,7 @@
 
 **Blocked by:** None（可立即开始）
 
-**Status:** ready-for-agent
+**Status:** verified
 
 - [x] 目录分层就位，并有一条自动检查（lint 规则或单测）证明 domain 不依赖平台与应用层
 - [x] 日志分 debug/info/warn/error 四级，带模块标签；可在应用内导出为文本文件
@@ -77,6 +77,41 @@
 - 真机 `3FYBB25407201890`（MatePad Air，API 24）**未连接**，全部证据来自模拟器 `127.0.0.1:5555`（Pura 90，HarmonyOS 6.1.0(23)）。ticket 里写的"真机截图"实际是模拟器截图。
 - 系统深色模式没有 CLI 开关（`hdc shell param set persist.global.colorMode` 被 shell 身份拒绝，errNum 1001），只能走「设置」应用 UI 点击，故切换过程依赖 UI 自动化，非脚本化的一键复现。
 - 同仓库曾有 02 号 subagent 并发写 `Index.ets`/`EntryAbility.ets`（现已冻结）；过程中一度出现编译错误（`common.Context` 无 `config`），由 02 自行修掉，非本 ticket 改动。
+
+### 验收（统筹复核，2026-09-12）—— **通过**
+
+结论：5/5 验收项达成。以下每条都是统筹**自己重跑/自己看图**得出的，不采信报告转述。
+
+| 验收项 | 统筹的独立动作 | 结果 |
+| --- | --- | --- |
+| domain 纯度自动检查 | 自己跑 `node scripts/check-domain-purity.mjs` | `PASS` / exit 0，重跑一致 |
+| 四级日志 + 导出 | 核对 `LogFormat`/`LogBuffer`/`Logger` 三级分工；导出实文件 663 B 已 recv | 达成 |
+| 令牌取自参考实现 | 逐条比对 `Colors.ts`（7 plain 色）与 `App.tsx:202-289`（MD3 30+ 令牌），抽查 `rgb(255,214,254)`→`#FFD6FE`、`rgb(123,0,143)`→`#7B008F`、`rgb(250,240,251)`→`#FAF0FB` 三次换算 | 逐条相符，**非手写** |
+| 无硬编码色值 | 全 `entry/src/main/ets` 扫描 `#RRGGBB` | 仅 `Tokens.ets` 命中；`pages/` 剩余中文只在 `logger.*` 调用里 |
+| 深浅色即时生效 | 看图 `01-index-dark-final.png` + 读 `01-hilog-live-switch.txt` | 见下 |
+
+**深色渲染（此前唯一的缺口）已闭合**：`01-index-dark-final.png` 里**最外层底色**呈深色（不只卡片），状态栏深色，页面自报 `系统配色=深色 / DARK_COLORS`。
+**热切换是协议级铁证**（不是"看起来变了"）：
+```
+09-12 01:32:04.687  16244 16244  Ability onCreate: colorMode=1 ...      ← 冷启动浅色
+09-12 01:32:05.236  16244 16244  Ability onWindowStageCreate
+09-12 01:40:24.445  16244 16244  configuration updated: colorMode=0      ← 切深色
+09-12 01:40:24.548  16244 16244  Ability onForeground
+```
+同一 PID `16244` 跨越两个时刻，且**没有第二次 `onCreate`/`onWindowStageCreate`** ⇒ 确实同进程热切换。
+
+**对统筹此前误判的更正（值得留档）**：我先前把那张混合态截图（系统深色 + 卡片深色 + 外层白）判为"新旧截图时机问题"。01 指出真实原因是两个代码缺陷，且都修了：
+1. `@Builder infoCard(theme, title, rows)` **按值传参** → 切主题后卡片整块保持旧主题；
+2. `ForEach` 键取 `row.label`①，而 `label` 在切主题时**不变** → ArkUI 复用旧子节点，表现为"卡片底色变了、行文案仍写 `DARK_COLORS`"。键改为 `label|value`。
+我的时机解释是错的；对方的解释可复现且已修。
+
+**我另行复核的两项**：
+- Hypium **我自己重跑**：`hvigorw ... test` → `Tests run: 42, Failure: 0, Error: 0, Pass: 42`（读 `entry/.test/.../test_result.txt`，逐条 42 个 `result=Success`）。
+- 插曲回退**零残留**：`ThemeMode|ui_theme|theme_mode` 全仓源码 **0 命中**；资源键数 `base=210 / zh_CN=207 / en_US=207`；工作树干净。
+
+**保留的两点局限（不构成验收阻碍，但后续切片需知）**：
+- 证据全部来自**模拟器** Pura 90（HarmonyOS 6.1.0(23)），真机 API 24 未连接 ⇒ 见 spec §11 #7。
+- ArkTS 编译 **WARN 未清零**（`LogBuffer.ets` 的 fs 调用、`Semester.ets:145` may-throw），非 ERROR；本版本 `check lint`/`check arkts` 均不可用，静态门禁这一路无证据。
 
 ### 主要交付文件
 `entry/src/main/ets/core/log/{Logger,LogBuffer,LogFormat}.ets`、`entry/src/main/ets/ui/theme/Tokens.ets`、`entry/src/main/ets/domain/model/Semester.ets`、`entry/src/main/ets/pages/Index.ets`、`entry/src/main/ets/entryability/EntryAbility.ets`、`scripts/check-domain-purity.mjs`、`entry/src/test/{List,Semester,Tokens,LogFormat}.test.ets`。
