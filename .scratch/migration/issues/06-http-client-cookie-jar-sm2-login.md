@@ -14,6 +14,64 @@
 
 ## Comments
 
+### 派单前的参考实现核查（统筹，逐行取证，2026-09-12）
+
+**结论先说**：登录是 7 步、全部可纯 HTTP 完成；SM2 那一半已在上文验证完毕。真正的风险不在密码学，而在三个**容易漏掉却会改变服务端行为**的细节：UA 伪装、登录前清 cookie、CSRF 正则的贪婪语义。
+
+#### 1. 确切登录序列（`node_modules/thu-learn-lib/lib/module/index.js`）
+
+`getRoamingTicket()` `:101-141`
+1. 先在 ID 域清 JSESSIONID：`setCookie("JSESSIONID=; path=/; HttpOnly", ID_PREFIX)`（`:108`）。`:99-106` 的注释写明必须清掉 id 域 cookie，否则换用户登录会被残留 cookie 影响。
+2. GET 登录表单 `ID_LOGIN()`。
+3. 用 cheerio **XML 模式**（`CHEERIO_CONFIG = { xml: true }`，`:15-20`）取 `#sm2publicKey` 的 text 并 trim（`:118`）。
+4. POST `ID_LOGIN_CHECK()`，**FormData** 字段（`:119-130`）：
+
+   | 字段 | 值 |
+   | --- | --- |
+   | `i_user` | 用户名 |
+   | `i_pass` | `'04' + sm2.doEncrypt(password, sm2publicKey)` |
+   | `singleLogin` | `'on'`（= 信任该浏览器） |
+   | `fingerPrint` | 我们生成并持久化的指纹 |
+   | `fingerGenPrint` | 同，空则 `''` |
+   | `fingerGenPrint3` | 同，空则 `''` |
+   | `i_captcha` | **恒为空串**（`:126`）——参考实现总是带这个字段 |
+
+5. 解析响应 HTML 取**第一个 `<a>`** 的 `href`，`ticket = href.split('=').slice(-1)[0]`（`:131-133`）。
+
+`login()` `:144-183`
+6. GET `LEARN_AUTH_ROAM(ticket)`，`ok !== true` → `ERROR_ROAMING`（`:164-169`）。
+7. GET 学生课程列表页 `LEARN_STUDENT_COURSE_LIST_PAGE()`，用 `/^.*&_csrf=(\S*)".*$/gm` 提取 CSRF → `matchAll(...)[0][1]`（`:171-179`）；提取不到 → `INVALID_RESPONSE`。同时用 `/<script src="\/f\/wlxt\/common\/languagejs\?lang=(zh|en)"><\/script>/g` 取 lang（`:180-182`）。
+
+**两个必须逐字保真的正则**（它们决定登录成不成）：
+- CSRF 那条里 `.*` 是**贪婪**的，所以每行取到的是**最后一个** `&_csrf=`；且必须有 `&` 前缀（不是行首直接 `_csrf=`）。夹具要覆盖"一行内有多个 `&_csrf=`"，断言取到最后一个。
+- lang 那条是整串标签精确匹配，含 `src="/f/wlxt/..."` 的前导斜杠。
+这两条都适合当纯函数夹具测，不必上设备。
+
+#### 2. 凭据来源与调用边界
+
+- `login(username, password, fingerPrint, fingerGenPrint, fingerGenPrint3)` **接收参数**；只有参数缺失时才回落到注入的 `provider()`（`:145-160`）。
+- 参考实现在组合点 `src/data/source.ts:48-71` 把 provider 接到 store 上。**新实现里 provider 应由 07/08 提供（读凭据库），登录客户端自己不读盘**——与 ticket 07 Comments 里已写下的接口约定一致。
+- `FailReason` 值得照搬成可诊断分类：`NO_CREDENTIAL` / `ERROR_SETTING_COOKIES` / `ERROR_FETCH_FROM_ID` / `ERROR_ROAMING` / `INVALID_RESPONSE` / `NOT_LOGGED_IN` / `UNEXPECTED_STATUS`。
+
+#### 3. 三个容易漏掉、但会改变服务端行为的事实
+
+1. **必须伪装桌面 Chrome UA**：`src/data/source.ts:55-57` 的自定义 fetch 强制
+   `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36`。
+   这不只是"像浏览器"：页面自己的 `userAgentUtil.getUserAgentName()` 会把它写进 `deviceName`，而服务端把信任绑在设备指纹上。发原生 HarmonyOS UA 可能直接改变服务端行为（例如弹验证码）。**必须复刻同一 UA，并在证据里写明用的是它。**
+2. **登录前清空 cookie**：`loginWithFingerPrint`（`source.ts:30-46`）先 `clearLoginCookies()`（`:11-28`：`clearAll(true)` + 把 id 域 `JSESSIONID` 置空），注释原文 "HarmonyOS cookies may persist unexpectedly"——又一处平台能力缺口补丁，与怪癖第 1 条同类。我们的 jar 在内存（ADR-0004），等价行为是**每次登录前显式重置内存 jar**，别依赖"反正是空的"。
+3. **`i_captcha` 恒发空串**（`:126`）。若服务端此时要求验证码，POST 拿不到那个 `<a>`，失败会由"取不到 ticket"暴露而不是静默成功。这正是 `idp-login-flow.md` 第 4 节待验证第 3 项（无交互 re-auth 是否弹验证码）的判定出口——**一旦碰到，保留原始响应并提请复审 ADR-0004**（本 ticket 验收第 5 条要求）。
+
+#### 4. 重登：见 `docs/reference-quirks.md` 第 2 条（刚更正）
+
+参考实现有**两条**重登路径、两个触发条件：原生处理器路径用 `result === '[]'`（`source.ts:104`，并有单飞 `reAuthPromise` 防并发重复登录，`:111-121`）；thu-learn-lib 路径用 `noLogin(res)` = URL 含 `login_timeout` 或 `status == 403`（`index.js:21`、`:46-71`）。**新实现取两者并集，且只重试一次。**
+
+- 并发那条 `reAuthPromise` 单飞值得照搬，并且**可以纯单测**（并发 N 个请求只触发一次登录）。
+- `getCSRFToken()` 在登录/重登后即失效（`index.js:87-90` 注释），而 `#myFetchWithToken` 在 token 为空时会先自动登录（`:37-40`）——cookie jar 与 token 的生命周期要一起设计。
+
+#### 5. 与 05 已交付的衔接
+
+`data/remote/Port.ets`（`FetchPort`：`postForm`/`get`/`upload` + `UploadProgress`）、`HttpClient.ets`（`@ohos.net.http`，失败折算 outcome 不抛）、`HttpFetchPort.ets` 已就绪。**扩展而不是重写**：把 cookie jar、SM2、登录流通过 `Session` 与自定义 `FetchPort` 注入即可，三域仓储无需改动。
+
 ### 2026-09-12 技术验证：SM2 变换字符串与密文排列（spec 第 11 节第 1 项，判定：**已验证通过**）
 
 **结论：可以。** `cryptoFramework` 能产出与 `'04' + sm2.doEncrypt(...)` 同构、服务端可解的密文，纯 ArkTS（零 WebView）Re-auth 路线成立，**ADR-0004 不需要推翻**。
