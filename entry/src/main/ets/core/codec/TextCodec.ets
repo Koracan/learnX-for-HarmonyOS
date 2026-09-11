@@ -3,9 +3,17 @@
  *
  * 参考实现直接在 DataProcessorModule.ts 里 `new util.Base64Helper()` 与
  * `util.TextDecoder()`；移植后：
- *   - Base64 → 字节仍走平台 `util.Base64Helper`（这部分在本环境工作正常）；
- *   - 字节 → 文本改用 domain 的纯 UTF-8 解码（平台 `decodeWithStream` 在单测环境里
- *     返回 undefined，且生产与测试不该用两套解码）。
+ *   - **Base64 → 字节仍走平台 `util.Base64Helper`**：设备上已复验正常
+ *     （2026-09-12 模拟器 Pura 90 的 D4 探针：`input=PHA+5Yqh platform="<p>务" match=true`，
+ *     见 .scratch/migration/issues/05-port-data-processor.md 的「D4 设备复验」）。
+ *     local 单测环境里 `decodeSync` 解不出字节（返回空 / 抛异常），那是该环境对 `@ohos.util`
+ *     的桩实现所致，不是生产代码的问题（逐 API 实测表见 entry/src/test/TestHelpers.ets 文件头）。
+ *   - **字节 → 文本改用 domain/parse/Utf8 的纯实现**：生产与测试共用同一份代码，避免
+ *     "解析是否正确"依赖"平台 API 在当前环境是否可用"。
+ *     关于平台 `TextDecoder`：早前"其 `decodeWithStream` 在单测环境返回 undefined"的说法是
+ *     **推断、未单独实测**（早期失败用例完全可由"上游 TextEncoder 返回空数组"解释），故不作为
+ *     这里的依据；且 `TextDecoder`/`TextEncoder` 现已不在任何生产路径上（本文件只用 `Base64Helper`）。
+ *     若将来有人把"字节 → 文本"改回平台实现，必须重新打开 D4 那一项复验。
  */
 
 import util from '@ohos.util';
