@@ -4,7 +4,7 @@
 
 **Blocked by:** 01（工程分层 + 日志门面 + 主题令牌）
 
-**Status:** ready-for-agent
+**Status:** verified-partial — 2 条确证、3 条凭据门控未验证（见 Comments 末尾「统筹验收」）
 
 - [ ] 真机上用真实账号完成纯 HTTP 登录，日志显示成功取得会话 cookie 与请求令牌 —— **未验证（凭据门控）**；`AuthProbe` + 脚本已就绪，见 Comments
 - [x] 全程不启动任何 Web 容器 —— 登录路径四个目录内零 Web 引用，只用 `@ohos.net.http`（见 Comments）
@@ -298,3 +298,48 @@ sm2.doDecrypt(该 wire, sk, 1) = ""   (不兼容)
 - 凭据：`LoginClient.login(credentials?)` 或注入 `provider: () => Promise<Credentials>`；**本模块不读盘**（凭据库归 07）。
 - 会话：`LoginResult.session`（`{cookie, csrfToken}` 快照）+ `LoginClient.getJar()` / `sessionForLearn(csrf)`（cookie 会随响应轮换，随用随组）。
 - 抓取：`NoticesFetcher/AssignmentsFetcher/FilesFetcher` 接收 `Session`；重登用 `SessionGate.run(task)` 包一层即可，`ReAuthCoordinator` 保证并发只登录一次。
+
+### 统筹验收（2026-09-12，模拟器口径）→ Status: verified-partial
+
+**结论：5 条里 2 条确证、3 条凭据门控未验证。因此不是 `verified`。**
+
+#### 我独立重跑的（在 `2ce69fe` 上）
+
+**先说我自己踩到的环境坑**：第一次跑 `hvigorw` 时以 `00303217 Configuration Error: Invalid value of DEVECO_SDK_HOME` 失败，**一条测试都没跑**。根因不在代码：这个 shell 里没有 `DEVECO_SDK_HOME`，此前几次能跑只是恰好还有一个带正确环境的老守护进程活着；这次守护进程因 `isNodeEnvChanged` 被重建，问题才暴露。设上 `DEVECO_SDK_HOME=C:\Program Files\Huawei\DevEco Studio\sdk` 后：
+
+- 24 类 **TOTAL=159 FAIL=0**（`test_result.txt` 05:47:52 重新生成）；你名下 43 条（CookieJar 8 / LoginParsers 7 / Sm2Cipher 6 / LoginClient 13 / ReAuth 9）逐类全绿。
+- 纯度 PASS（12 个领域文件）；i18n OK（231 键，本轮无新增文案，已核对）。
+- hap 产物 `entry-default-signed.hap` 1,282,920 B @ 05:08:41，与你报的一致。**你用产物时间戳而非退出码判定这一点处理得对**：那个 job 没自行退出，你按"日志 BUILD SUCCESSFUL + 产物时间戳已变"判定并释放锁，是正确用法。
+- 仓库里没有任何凭据文件（`git ls-files` 查过）；`AuthProbe` 在源码树之外（`.scratch/auth/tools/`）。
+
+#### 验收 2（不启动 Web 容器）—— 我复核了
+
+登录路径四个目录内 grep `webview|@ohos.web|@kit.ArkWeb`，唯一命中是 `CookieJar.ets:5` 的一行**注释**（说明我们丢掉了参考实现那层 WebView cookie 存储），不是 import。判定成立。
+
+#### 验收 4（cookie jar）—— 我复核了测试清单并通过
+
+8 条覆盖：多 cookie 拆分（**含 Expires 里的逗号**，最容易写错的一处）、learn 的 cookie 不发往 id、`.tsinghua.edu.cn` 两者都发、头顺序、同名覆盖、`Max-Age=0` 与 1970 Expires 删除、`resetIdDomainSession`、以及 `describe()` **不泄漏值**。最后那条是安全属性，值得单独点出。
+
+#### 你替我抓到的东西，比"修个路径"重要得多
+
+你如实登记了 `UploadForm.ets` 的 import 路径错误（ticket 05 遗留）。我查证后确认它引出的问题更大：
+
+- 父提交 `96367ea` 的 `UploadForm.ets` 确实 import 了不存在的 `../../domain/parse/Multipart`，而当时 `domain/parse/` 下**没有** `Multipart.ets`（真身在 `data/upload/`）。
+- 但 ticket 05 的 `devecocli build` 与 **116 条单测全绿**。原因是 **ArkTS 的编译按入口可达性进行**：`HttpFetchPort.ets`（唯一 import `UploadForm` 的人）本身没有任何可达者 import，于是这两个模块都没进编译图，硬错误不会让任何门禁变红。**你"该模块此前不可达而未暴露"的解释是对的**，而且比我原先的猜测更准确。
+- 影响面：这不只是一个路径写错——它说明**此前所有 ticket 的"编译通过"证据只覆盖了可达文件**。对"数据层先交付、UI 随后才用"的移植节奏，这正是系统性盲区。
+
+处置（已提交 `51d5e98`）：
+1. 新增门禁 `scripts/check-import-graph.mjs`：FAIL 不可解析的相对 import；WARN 列出**孤儿模块**（没有任何可达者 import 的 main 源文件）。首跑即报出 `data/remote/HttpFetchPort.ets` 至今无任何可达者 import——那正是设备侧 `@ohos.net.http` 适配器、关键路径上的模块。
+2. `AGENTS.md` 补「门禁」一节：新交付模块必须至少被一条可达路径 import；并写明 `DEVECO_SDK_HOME` 那个坑与"不要用作业退出码判断成败"。
+
+关于 `HttpFetchPort`：你的临时探针 `AuthProbe` import 了它且 `PROBE_COMPILE_EXIT=0`，所以它的编译在本轮**被覆盖过**。但此后没有常设门禁覆盖它——**在你把它接进真实路径（07/09）之前，请把它当作"编译未受常设门禁保护"的模块**。
+
+#### 未验证项（我认可，不阻塞）
+
+1. 验收 1（真实账号纯 HTTP 登录）与验收 3（SM2 服务端接受度）：凭据门控；关闭方式已写明（填 `AuthProbe` 三常量 → `pwsh -File .scratch/auth/tools/run-auth-probe.ps1`）。
+2. **这条要单独强调**：本轮代码的 `cryptoFramework` 加密链**没有执行过**——只有纯组装被单测覆盖，加密链只在探针里过了编译，而设备上验过的是 `sm2-verify` 那次**另一个探针**的代码。这不是你的疏漏，但必须写清楚：**在本工程里"SM2 已验证"指的是"格式与变换字符串已验证"，不是"本轮这段函数跑通过"。** 混淆这两者会让 07 的验收误判。
+3. 服务端是否弹验证码（`idp-login-flow.md` 第 4 节待验证第 3 项）；真实 403/`login_timeout` 下的重登行为。
+
+#### 与参考实现的有意差异
+
+你登记的五条我认可。两条值得留档：`noLogin` 判据**补上"响应体含 login_timeout"后取并集**（平台不暴露重定向后的最终 URL，这是能力缺口下的等价补偿，不是放宽）；`CookieJar` 域参数同时接受 URL 与 host。`FailReason.NO_TICKET_IN_RESPONSE` 是验收第 5 条唯一可判读的出口，新增合理。
