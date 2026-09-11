@@ -4,13 +4,14 @@
 
 **Blocked by:** 01（工程分层 + 日志门面 + 主题令牌）
 
-**Status:** ready-for-agent
+**Status:** verified-partial — 2 项凭据门控未关闭（见 Comments 末尾「未关闭项」）
 
-- [ ] 公告 / 作业 / 文件三个域的批量抓取与解析在真机跑通，日志给出每域条目数与耗时
-- [ ] 作业详情的四类附件（附件 / 答案 / 已提交 / 成绩）解析正确
-- [ ] 公告正文的 Base64 解码正确，含异常输入的容错
-- [ ] 解析与排序函数有单测，使用真实响应样本作夹具
-- [ ] 上传用的 multipart 组装有单测（边界、字段顺序、文件名编码）
+- [ ] 公告 / 作业 / 文件三个域的批量抓取与解析在设备上跑通，日志给出每域条目数与耗时 —— **未关闭**：需真实会话（ticket 06）+ 触发入口，且需用户手动登记一次
+- [x] 作业详情的四类附件（附件 / 答案 / 已提交 / 成绩）解析正确
+- [x] 公告正文的 Base64 解码正确，含异常输入的容错 —— **含设备侧复验**（生产通道 `Base64Helper.decodeSync` 在模拟器上 `platform == expected`）
+- [x] 解析与排序函数有单测
+- [ ] 单测使用**真实响应样本**作夹具 —— **未关闭**：16 份夹具全为反推，三域无真实样本
+- [x] 上传用的 multipart 组装有单测（边界、字段顺序、文件名编码）
 
 ## Comments
 
@@ -187,3 +188,44 @@ domain.Semester 9 / ui.theme.Tokens 5 / core.LogFormat 4 / core.i18n 10 / core.i
 domain.NoticeParser 13 / domain.AssignmentParser 9 / domain.FileParser 4 / data.Multipart 6 /
 data.fetch 7 / features.notices.NoticeOrder 8 / NoticeRepository 3 / NoticeListStore 4 /
 domain.Utf8 4 / core.textChannels 1。
+
+### 统筹验收（2026-09-12，模拟器口径）→ Status: verified-partial
+
+**结论：实现与本地证据部分通过；2 项凭据门控未关闭，因此【不】标 `verified`。**
+
+#### 我独立重跑的（在 `558bdca` 上）
+
+| 检查 | 命令 | 结果 |
+| --- | --- | --- |
+| 全量单测 | 删 `entry/.test` 后 `hvigorw … test --no-incremental` | 15 类 **TOTAL=101 FAIL=0**（`test_result.txt` 03:49:08 重新生成） |
+| 探针残留 | `git ls-files` / `git grep TEMP-EVIDENCE HEAD` / `git show HEAD:EntryAbility.ets` | 三项均无命中；`deviceBase64Decoder` 在 `entry/` 下零出现 |
+| 提交范围 | `git show --stat 558bdca` | 4 个文件（3 源文件 + ticket），无探针、无 EntryAbility |
+| 工作区 | `git status --porcelain` | 空 |
+| 领域纯度 | `check-domain-purity.mjs` | PASS / exit 0 |
+
+#### D4 设备复验：我核对了**原始 hilog**，不采信转述
+
+我自己读 `.dsh/logs/ticket05-evidence-hilog.log`，两行原文：
+```
+09-12 03:45:48.486 … A04c4f/evidence.textcodec: … PROBE-SWITCH switch=on
+09-12 03:45:48.487 … A04c4f/evidence.textcodec: … PROBE base64 input=PHA+5Yqh platform="<p>务" expected="<p>务" match=true threw=false
+```
+- `switch=on` 是**自证生效**，排除"改了但没生效"（该要求源自 03 那轮踩到的坑，见 AGENTS.md「取证要点」）。
+- `platform == expected`，expected 由 Node `Buffer` 独立算出 ⇒ **平台 Base64 通道在设备上正常**；local 解不出字节确系该环境对 `@ohos.util` 的桩实现。
+- 这条**关闭**了原待办 4，并把"生产路径依赖平台 `Base64Helper`"这个设计决策从**未验证假设**变成**已验证**——这是本轮最实质的收获。
+
+#### 我另外核了 `TextDecoder` 是否还需占窗口：**不需要**，同意 05 判断
+
+`entry/src/main/ets` 全量搜索：生产代码里的平台编解码只剩 `TextCodec.ets:21` 的 `util.Base64Helper`；**`util.TextDecoder` 与 `util.TextEncoder` 已不在任何生产路径上**（`TextEncoderFn` 只是注入式编码器的类型别名，实现是纯函数）。所以平台 `TextDecoder` 的行为不再影响生产，为它再占一次设备窗口不值得。**此判定记录在案**：若将来有人把"字节 → 文本"改回平台实现，必须重新打开这一项。
+
+#### 未关闭项（**不要把本 ticket 当成全绿**）
+
+1. 验收第 1 条「三域批量抓取在设备上跑通 + 每域条目数与耗时日志」——需 ticket 06 的真实会话与触发入口，且需用户手动登记一次。能力与日志埋点已就绪（`data.fetch` 7 条断言了 `items=`/`elapsedMs=` 日志文本）。
+2. 「使用**真实响应样本**作夹具」——抓取 1（公开 ID 登录页，仅作反例）/ 自带 0 / **反推 16**。反推夹具与实现同源同误解，只能证"结构契约"，**不能证**站点今天真实返回的形状。
+
+> 这两项都由**账号**门控，不是实现缺陷。用户手动登录后回填即可关闭。
+
+#### 一处遗留的误导性注释（已请 05 修）
+
+`core/codec/TextCodec.ets:6-8` 仍写着「Base64 → 字节仍走平台 `util.Base64Helper`（**这部分在本环境工作正常**）」，并称「平台 `decodeWithStream` 在单测环境里返回 undefined」。
+前者与本次设备复验结论**相反**（设备正常、local 不正常），后者是 05 自己已撤回的**推断**。同一类错误我已要求在 `TestHelpers.ets` 修过，这里漏了——**同源错误要一次修干净**，否则下一个读这份文件的人会得出相反结论。
