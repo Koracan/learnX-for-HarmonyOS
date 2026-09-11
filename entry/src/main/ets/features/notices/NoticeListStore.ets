@@ -45,6 +45,17 @@ export class NoticeListStore {
     return this.phase === NoticeLoadPhase.LOADING || this.phase === NoticeLoadPhase.REFRESHING;
   }
 
+  /**
+   * 是否应当显示「居中加载指示器」：只在首次加载且还没有任何数据时。
+   *
+   * 下拉刷新（phase=REFRESHING）不能再叠一个居中 spinner：参考实现刷新时只有
+   * RefreshControl 自己的指示器、列表照常可见，两个指示器同转会像卡了个浮层。
+   * 这个缺陷在验收时被抓到（见 ticket Comments「验收后修复」）。
+   */
+  isInitialLoading(): boolean {
+    return this.phase === NoticeLoadPhase.LOADING && this.items.length === 0;
+  }
+
   /** 空态：没有数据且不在取数（见 NoticeOrder.isNoticeListEmpty）。 */
   isEmpty(): boolean {
     return isNoticeListEmpty(this.items, this.isBusy());

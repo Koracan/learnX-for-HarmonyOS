@@ -204,7 +204,8 @@ export struct NoticesPage {
         endMargin: this.theme().sizes.contentPadding
       })
 
-      if (this.store.isBusy()) {
+      // 只有「首次加载且无数据」才盖居中指示器；下拉刷新只用 Refresh 自己的指示器（避免两个 spinner 同转）
+      if (this.store.isInitialLoading()) {
         Column() {
           LoadingProgress()
             .width(this.theme().sizes.iconLarge)

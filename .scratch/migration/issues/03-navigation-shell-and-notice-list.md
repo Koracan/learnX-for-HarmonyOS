@@ -88,3 +88,23 @@
 #### 8. 主要交付文件
 
 `entry/src/main/ets/pages/Index.ets`（换成壳）、`features/shell/{ShellTabs,PlaceholderTab}.ets`、`features/notices/{NoticesPage,NoticeListStore,NoticeOrder}.ets`、`features/notices/repository/{NoticeRepository,MockNoticeRepository,NoticeRepositoryProvider}.ets`、`ui/components/EmptyState.ets`、`entry/src/test/Notices.test.ets`（+ `List.test.ets` 追加一行注册）、`entry/src/main/resources/{base,zh_CN,en_US}/element/string.json`（+4 键）、`scripts/i18n-ui-strings.mjs`。
+
+#### 9. 验收后修复（统筹复核发现：下拉刷新出现两个指示器）—— 已修
+
+**缺陷**：`03-pull-refresh-refreshing-zh.png` 里除了 Refresh 自己的 spinner + promptText「刷新」，列表正中还叠了一个居中 LoadingProgress，两个指示器同转。
+**根因**：`NoticesPage.listBody()` 用 `store.isBusy()`（= LOADING **或** REFRESHING）决定是否盖居中指示器；下拉刷新（REFRESHING）因此也叠了一层。
+**修法**（`NoticeListStore` + `NoticesPage` 各一处）：
+
+- 新增 `isInitialLoading()` = `phase === LOADING && items.length === 0`，居中指示器只用它；
+- `isEmpty()` 里用 `isBusy()` 抑制空态闪烁的逻辑保持原样（那是独立且正确的）。
+
+**修复后的证据**（设备：模拟器 Pura 90）：
+
+- `03-pull-refresh-refreshing-zh.png` / `-2-zh.png`：下拉刷新进行中**只有一个**指示器（Refresh 的 spinner +「刷新」），列表照常可见；`03-pull-refresh-done-zh.png` 为完成帧；
+- `03-initial-loading-zh.png`：冷启动**首次加载**的居中 spinner 仍在（证明改条件没有把首屏加载反馈一起去掉）；
+- `03-final-zh.png`：四个开关翻回 false、`MOCK_LATENCY_MILLIS=700` 后重新构建安装的界面；
+- `03-hilog-refresh-30s.txt`：30s 延迟会话的 hilog（首次加载 30s + `pull refresh state: 1→2→3→4`）。
+
+**取证期临时值**：为稳定截到 refreshing 帧与首屏加载帧，本次验证把 `MOCK_LATENCY_MILLIS` 临时置 30000（5s 不够：`devecocli ui`/`hdc` 单次调用 15-35s，必然错过窗口）；已复原为 700，四个 `*_FOR_EVIDENCE` 开关均为 false（`git show HEAD:...` 可逐行核对）。
+**门禁重跑**：`devecocli build` exit 0；`hvigorw … test` 101 run / 0 failure；`check-domain-purity.mjs` PASS。
+**这不是有意偏离**：参考实现刷新时只有 RefreshControl 自己的指示器、列表照常可见，所以按缺陷修掉，未登记为 deviation。
