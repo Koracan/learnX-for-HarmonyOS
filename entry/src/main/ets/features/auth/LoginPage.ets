@@ -43,8 +43,19 @@ export struct LoginPage {
     return i18nService.tKey(resource);
   }
 
-  /** 登记失败后回到本页时的提示（由 AuthStore.failure 决定）。 */
+  /**
+   * 回到本页时的提示（由 AuthStore.failure 决定）。
+   *
+   * ticket 08 验收第 3 条要求"说明需要重新验证"，所以静默重登失败（REAUTH）与断网（OFFLINE）
+   * 各有**自己的**文案，不能笼统地说"登录失败"——用户需要知道该做什么（重新验证 / 检查网络）。
+   */
   private failureHint(): string {
+    if (this.store.failure === AuthFailure.REAUTH) {
+      return this.s($r('app.string.loh_session_expired'));
+    }
+    if (this.store.failure === AuthFailure.OFFLINE) {
+      return this.s($r('app.string.loh_network_unavailable'));
+    }
     if (this.store.failure === AuthFailure.SESSION || this.store.failure === AuthFailure.PERSIST) {
       return this.s($r('app.string.loh_login_failed'));
     }
@@ -52,6 +63,32 @@ export struct LoginPage {
       return this.s($r('app.string.loh_sso_failed'));
     }
     return '';
+  }
+
+  /**
+   * 是否有"重试静默重登"这一入口：只有"有持久化凭据但这次没登上"（REAUTH / OFFLINE）才显示。
+   * 首次安装（无凭据）没有可重试的东西。
+   */
+  private canRetryRestore(): boolean {
+    return this.store.failure === AuthFailure.REAUTH || this.store.failure === AuthFailure.OFFLINE;
+  }
+
+  /** 提示区文本：重试进行中 > 本地校验提示 > 失败提示。 */
+  private messageText(): string {
+    if (this.store.isRestoring()) {
+      return this.s($r('app.string.loh_logging_in'));
+    }
+    if (this.hint.length > 0) {
+      return this.hint;
+    }
+    return this.failureHint();
+  }
+
+  /** 用户点"重试"：只触发**一次**重登，不做静默循环（spec 第 5 节 / Q25）。 */
+  private handleRetryTap(): void {
+    this.hint = '';
+    logger.info('login: user tapped retry for the silent re-auth');
+    this.store.retryRestore();
   }
 
   private handleLoginTap(): void {
@@ -121,14 +158,26 @@ export struct LoginPage {
 
       Button(this.s($r('app.string.loh_login')))
         .width('100%')
+        .enabled(!this.store.isRestoring())
         .backgroundColor(this.theme().colors.primary)
         .fontColor(this.theme().colors.onPrimary)
         .onClick(() => {
           this.handleLoginTap();
         })
 
-      if (this.hint.length > 0 || this.failureHint().length > 0) {
-        Text(this.hint.length > 0 ? this.hint : this.failureHint())
+      if (this.canRetryRestore()) {
+        Button(this.s($r('app.string.loh_retry')))
+          .width('100%')
+          .backgroundColor(this.theme().colors.secondaryContainer)
+          .fontColor(this.theme().colors.onSecondaryContainer)
+          .margin({ top: this.theme().sizes.space2 })
+          .onClick(() => {
+            this.handleRetryTap();
+          })
+      }
+
+      if (this.messageText().length > 0) {
+        Text(this.messageText())
           .fontSize(this.theme().typography.labelMedium.fontSize)
           .fontColor(this.theme().colors.error)
           .margin({ top: this.theme().sizes.space3 })

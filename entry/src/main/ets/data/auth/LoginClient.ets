@@ -25,7 +25,9 @@ import { newBoundary } from '../upload/UploadForm';
 import { encodeUtf8 } from '../../core/codec/TextCodec';
 import { HttpMethod, Session, USER_AGENT } from '../remote/Requests';
 import { RawFetchPort, RawRequest, RawResponse } from '../remote/Port';
-import { Credentials, CredentialProvider, CredentialEncryptor, FailReason, LoginResult } from './AuthTypes';
+import {
+  Credentials, CredentialProvider, CredentialEncryptor, FailReason, LoginResult, isNetworkFailure
+} from './AuthTypes';
 import {
   extractCsrfToken, extractLanguage, extractSm2PublicKey, extractTicket, looksLikeIdLoginPage
 } from './LoginParsers';
@@ -117,6 +119,12 @@ export class LoginClient {
     // 2) 取登录表单与公钥
     const formResponse: RawResponse = await this.fetchIdLoginForm();
     this.absorbCookies(formResponse);
+    if (isNetworkFailure(formResponse.status, formResponse.ok)) {
+      // 验收第 2 条：断网要说"没网"，不能被下一行误判成"登录页改版"
+      return LoginResult.failure(FailReason.NETWORK_UNREACHABLE,
+        'id login form unreachable'
+          + (formResponse.error === undefined ? '' : ' error=' + formResponse.error));
+    }
     const publicKey: string = extractSm2PublicKey(formResponse.body);
     if (publicKey.length === 0) {
       return LoginResult.failure(FailReason.ERROR_FETCH_FROM_ID,
@@ -137,6 +145,11 @@ export class LoginClient {
 
     // 4) POST 登录检查（multipart；i_pass 已经是 '04'+密文）
     const checkResponse: RawResponse = await this.postLoginCheck(resolved, encrypted.cipherText);
+    if (isNetworkFailure(checkResponse.status, checkResponse.ok)) {
+      return LoginResult.failure(FailReason.NETWORK_UNREACHABLE,
+        'login check unreachable'
+          + (checkResponse.error === undefined ? '' : ' error=' + checkResponse.error));
+    }
     const ticket: string = extractTicket(checkResponse.body);
     if (ticket.length === 0) {
       return LoginResult.failure(FailReason.NO_TICKET_IN_RESPONSE,
@@ -154,6 +167,11 @@ export class LoginClient {
       headers: headersFor(LEARN_ORIGIN, this.jar)
     });
     this.absorbCookies(roamResponse);
+    if (isNetworkFailure(roamResponse.status, roamResponse.ok)) {
+      return LoginResult.failure(FailReason.NETWORK_UNREACHABLE,
+        'roam unreachable'
+          + (roamResponse.error === undefined ? '' : ' error=' + roamResponse.error));
+    }
     if (!roamResponse.ok || roamResponse.status < 200 || roamResponse.status >= 300) {
       return LoginResult.failure(FailReason.ERROR_ROAMING,
         'roam status=' + roamResponse.status.toString()
@@ -169,6 +187,11 @@ export class LoginClient {
       headers: headersFor(LEARN_STUDENT_COURSE_LIST_URL, this.jar)
     });
     this.absorbCookies(pageResponse);
+    if (isNetworkFailure(pageResponse.status, pageResponse.ok)) {
+      return LoginResult.failure(FailReason.NETWORK_UNREACHABLE,
+        'course list unreachable'
+          + (pageResponse.error === undefined ? '' : ' error=' + pageResponse.error));
+    }
     const csrfToken: string = extractCsrfToken(pageResponse.body);
     if (csrfToken.length === 0) {
       return LoginResult.failure(FailReason.INVALID_RESPONSE,

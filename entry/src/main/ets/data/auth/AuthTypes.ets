@@ -22,7 +22,25 @@ export enum FailReason {
   ERROR_ROAMING = 'could not roam to learn.tsinghua.edu.cn',
   INVALID_RESPONSE = 'invalid response',
   NOT_LOGGED_IN = 'not logged in or login timeout',
-  UNEXPECTED_STATUS = 'unexpected status'
+  UNEXPECTED_STATUS = 'unexpected status',
+  /**
+   * 新增（ticket 08）：**网络层根本没拿到响应**（平台失败时 status=0）。
+   *
+   * 为什么单独一类：验收第 2 条要求"断网启动给可理解的提示、网络恢复后重试能成功"。
+   * 若把它并进 ERROR_FETCH_FROM_ID / NO_TICKET_IN_RESPONSE，日志与界面都会把"没网"
+   * 说成"登录页改版/被拒"，用户拿不到可行动的提示。**它不是服务端给的错误码**，
+   * 因此与 UNEXPECTED_STATUS（拿到响应但状态码非预期）刻意分开。
+   */
+  NETWORK_UNREACHABLE = 'network unreachable'
+}
+
+/**
+ * 网络失败判据：**平台没拿到任何响应**时为 true（status=0，即 HttpClient 的
+ * `HttpResponse.failure`）。服务端给了 4xx/5xx 时 status>0，不算网络失败——
+ * 那种情况走 UNEXPECTED_STATUS / ERROR_ROAMING 等分类，语义不同。
+ */
+export function isNetworkFailure(status: number, ok: boolean): boolean {
+  return !ok && status === 0;
 }
 
 /** 登录所需凭据（由 07 的凭据库或调用方提供；本模块不读盘）。 */

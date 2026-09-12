@@ -4,4 +4,5 @@ shell/evidence
 notices-detail/evidence
 auth/evidence
 enrollment/evidence
+session/evidence
 auth/tools/credentials.local.txt
