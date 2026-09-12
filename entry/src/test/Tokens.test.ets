@@ -1,5 +1,7 @@
 /*
- * 主题令牌单测：深浅两套都必须取到值、无 undefined，且与参考实现的字面量一致。
+ * 主题令牌单测：深浅两套都必须取到值、无 undefined；**语义强调色**与参考实现的字面量一致，
+ * 而**底色家族 / 中性家族**自 ticket 11.5 起是**有意偏离**（全部 R=G=B，见
+ * docs/accepted-deviations.md 第 25 条），因此这里多了一条"中性化 + elevation 阶梯"的断言。
  */
 
 import { describe, it, expect } from '@ohos/hypium';
@@ -107,6 +109,34 @@ function sizePairs(): SizePair[] {
   ];
 }
 
+/** `#RRGGBB` / `#AARRGGBB` → [R, G, B]（ticket 11.5 的"中性化"判据用）。 */
+function channelsOf(value: string): number[] {
+  const hex: string = value.length === 9 ? value.substring(3) : value.substring(1);
+  const out: number[] = [];
+  for (let i = 0; i + 1 < hex.length; i += 2) {
+    out.push(Number.parseInt(hex.substring(i, i + 2), 16));
+  }
+  return out;
+}
+
+/** 名字 → 值（在 colorPairs 的结果里查）。 */
+function valueOf(colors: ColorTokens, name: string): string {
+  const pairs: ColorPair[] = colorPairs(colors);
+  for (let i = 0; i < pairs.length; i++) {
+    if (pairs[i].name === name) {
+      return pairs[i].value;
+    }
+  }
+  return '';
+}
+
+/** ticket 11.5：中性家族与底色家族必须 R=G=B。 */
+const NEUTRAL_NAMES: string[] = [
+  'background', 'onBackground', 'surface', 'onSurface', 'surfaceVariant', 'onSurfaceVariant',
+  'outline', 'outlineVariant', 'inverseSurface', 'inverseOnSurface', 'backdrop',
+  'surfaceDisabled', 'onSurfaceDisabled', 'card'
+];
+
 function assertAllColors(themeName: string, colors: ColorTokens): void {
   const pairs: ColorPair[] = colorPairs(colors);
   expect(pairs.length).assertEqual(33);
@@ -165,7 +195,7 @@ export default function tokensTest() {
       expect(DARK_COLORS.elevation.level0).assertEqual(LIGHT_COLORS.elevation.level0);
     });
 
-    it('takes colours from the reference implementation verbatim', 0, () => {
+    it('keeps the semantic colours from the reference implementation verbatim', 0, () => {
       const palette: PlainPalette = PLAIN_PALETTE;
       expect(palette.plainTheme).assertEqual('#9A25AE');
       expect(palette.red500).assertEqual('#f44336');
@@ -175,11 +205,69 @@ export default function tokensTest() {
       expect(palette.yellow500).assertEqual('#ffeb3b');
       expect(palette.grey500).assertEqual('#9e9e9e');
 
+      // 品牌与语义强调色：逐值取自参考实现，**一字未动**（ticket 11.5 只动了底色/中性家族）。
       expect(LIGHT_COLORS.primary).assertEqual('#9A25AE');
       expect(LIGHT_COLORS.primary).assertEqual(palette.plainTheme);
-      expect(LIGHT_COLORS.surface).assertEqual('#FFFBFF');
-      expect(DARK_COLORS.surface).assertEqual('#1E1A1D');
+      expect(LIGHT_COLORS.primaryContainer).assertEqual('#FFD6FE');
+      expect(LIGHT_COLORS.secondary).assertEqual('#6B586B');
+      expect(LIGHT_COLORS.error).assertEqual('#BA1A1A');
+      expect(LIGHT_COLORS.inversePrimary).assertEqual('#F9ABFF');
       expect(DARK_COLORS.primary).assertEqual('#F9ABFF');
+      expect(DARK_COLORS.primaryContainer).assertEqual('#7B008F');
+      expect(DARK_COLORS.error).assertEqual('#FFB4AB');
+      expect(DARK_COLORS.inversePrimary).assertEqual('#9A25AE');
+    });
+
+    it('neutralises the background and neutral families (ticket 11.5)', 0, () => {
+      // 浅色底色 = 纯白（设备截图取色判据 R=G=B 且 ≥254 的源码侧对应物）。
+      expect(LIGHT_COLORS.background).assertEqual('#FFFFFF');
+      expect(LIGHT_COLORS.surface).assertEqual('#FFFFFF');
+      expect(LIGHT_COLORS.card).assertEqual('#FFFFFF');
+      // 深色底色 = 中性深灰（判据 R=G=B 且每通道 < 60）。
+      expect(DARK_COLORS.background).assertEqual('#1C1C1C');
+      expect(DARK_COLORS.surface).assertEqual('#1C1C1C');
+      expect(DARK_COLORS.card).assertEqual('#1C1C1C');
+
+      // 深浅两套的中性家族全部 R=G=B（"灰就是灰"）。
+      for (let i = 0; i < NEUTRAL_NAMES.length; i++) {
+        const name: string = NEUTRAL_NAMES[i];
+        const light: string = valueOf(LIGHT_COLORS, name);
+        const dark: string = valueOf(DARK_COLORS, name);
+        const lightRgb: number[] = channelsOf(light);
+        const darkRgb: number[] = channelsOf(dark);
+        expect(lightRgb.length).assertEqual(3);
+        expect(darkRgb.length).assertEqual(3);
+        expect(lightRgb[0]).assertEqual(lightRgb[1]);
+        expect(lightRgb[1]).assertEqual(lightRgb[2]);
+        expect(darkRgb[0]).assertEqual(darkRgb[1]);
+        expect(darkRgb[1]).assertEqual(darkRgb[2]);
+      }
+
+      // elevation 的明度阶梯必须保留，且方向与改前一致：
+      // 浅色 level1 最浅 → level5 最深；深色 level1 最深 → level5 最浅（MD3 深色"越高越亮"）。
+      const lightSteps: string[] = [
+        LIGHT_COLORS.elevation.level1, LIGHT_COLORS.elevation.level2, LIGHT_COLORS.elevation.level3,
+        LIGHT_COLORS.elevation.level4, LIGHT_COLORS.elevation.level5
+      ];
+      const darkSteps: string[] = [
+        DARK_COLORS.elevation.level1, DARK_COLORS.elevation.level2, DARK_COLORS.elevation.level3,
+        DARK_COLORS.elevation.level4, DARK_COLORS.elevation.level5
+      ];
+      for (let i = 0; i < lightSteps.length; i++) {
+        const lightRgb: number[] = channelsOf(lightSteps[i]);
+        const darkRgb: number[] = channelsOf(darkSteps[i]);
+        expect(lightRgb[0]).assertEqual(lightRgb[2]);
+        expect(darkRgb[0]).assertEqual(darkRgb[2]);
+        if (i > 0) {
+          expect(channelsOf(lightSteps[i - 1])[0] > lightRgb[0]).assertTrue();
+          expect(channelsOf(darkSteps[i - 1])[0] < darkRgb[0]).assertTrue();
+        }
+      }
+      expect(LIGHT_COLORS.elevation.level0).assertEqual('transparent');
+      expect(DARK_COLORS.elevation.level0).assertEqual('transparent');
+      // backdrop 也一并中性化（原来是 #66362E35，紫调）。
+      expect(LIGHT_COLORS.backdrop).assertEqual('#66000000');
+      expect(DARK_COLORS.backdrop).assertEqual('#66000000');
     });
 
     it('exposes a complete MD3 typescale', 0, () => {

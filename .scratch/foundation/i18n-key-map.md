@@ -17,8 +17,8 @@
 | --- | --- | --- |
 | 参考实现迁入 | 180 | `loh_` |
 | 本工程新增（学期季节词） | 6 | `loh_` |
-| 本工程新增（原生重写 UI 文案） | 111 | `ui_` |
-| 合计 | 297 | |
+| 本工程新增（原生重写 UI 文案） | 115 | `ui_` |
+| 合计 | 301 | |
 
 ## 参考实现迁入键（180）
 
@@ -205,7 +205,7 @@
 | 179 | `avoidFrontCameraDescription` | `loh_avoid_front_camera_description` | - | 在上部留出空间以避让挖孔区域，需要重启应用 | Leave top space to avoid the front camera cutout. App restart required. |
 | 180 | `pleaseRestartAppToApplyImmersive` | `loh_please_restart_app_to_apply_immersive` | - | 请重启应用以应用沉浸式模式设置。 | Please restart the app to apply immersive mode setting. |
 
-## 本工程新增键（117）
+## 本工程新增键（121）
 
 | # | 类别 | 资源名 | 占位符 | 中文 | 英文 |
 | --- | --- | --- | --- | --- | --- |
@@ -326,4 +326,8 @@
 | 115 | ui | `ui_file_next_page` | - | 下一页 | Next page |
 | 116 | ui | `ui_file_page_of` | {0},{1} | 第 %1$s / %2$s 页 | Page %1$s of %2$s |
 | 117 | ui | `ui_file_cache_already_empty` | - | 缓存目录已为空 | The cache folder is already empty |
+| 118 | ui | `ui_updated_just_now` | - | 刚刚更新 | Updated just now |
+| 119 | ui | `ui_updated_minutes_ago` | {0} | %1$s 分钟前更新 | Updated %1$s min ago |
+| 120 | ui | `ui_updated_hours_ago` | {0} | %1$s 小时前更新 | Updated %1$s h ago |
+| 121 | ui | `ui_updated_days_ago` | {0} | %1$s 天前更新 | Updated %1$s d ago |
 

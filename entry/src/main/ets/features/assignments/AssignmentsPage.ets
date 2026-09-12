@@ -26,7 +26,7 @@
  * | 项 | 参考实现 | 这里 |
  * | --- | --- | --- |
  * | 课程名 / 标题（removeTags）/ 描述预览（2 行） | :43-48, :94-98 | 同 |
- * | 状态标记 | 五个 MaterialCommunityIcons：附件(橙) / 已提交(绿勾) / 已评分(红) / 答案(蓝) | 同序同色，用 emoji + accessibilityText（理由见 docs/reference-quirks.md 第 16 条） |
+ * | 状态标记 | 五个图标：附件(橙 MCI) / 已提交(绿勾 MCI) / 已评分(MaterialIcons grade) / 答案(蓝 MCI) / 优秀(MCI medal) | 同序同色，用**同一份字体的同一批码位**（ticket 11.5，见 docs/accepted-deviations.md 第 16 条改判） |
  * | 截止时间那句 | `dayjs().isAfter(deadline) ? fromNow()+'截止' : '还剩 '+to(deadline,true)`（:103-108） | **绝对时间**（站点原文 `YYYY-MM-DD HH:mm`）+ 状态标记"未到期 / 已截止" |
  * | 过滤 | FilterList 下拉（all / unfinished / finished / fav / archived / hidden） | 三个筛选片（全部 / 未完成 / 已完成）；收藏/归档/屏蔽归 ticket 14 |
  *
@@ -38,14 +38,14 @@
 import { ConfigurationConstant } from '@kit.AbilityKit';
 import { PLAIN_PALETTE, ThemeTokens, resolveTheme } from '../../ui/theme/Tokens';
 import { i18nService } from '../../core/i18n/I18n';
-import {
-  DateTimeFormatOptions, PlatformDateTimeFormatter, formatDateTimeUsing, getSemesterTextFromId
-} from '../../core/i18n/DateTimeUtil';
+import { updatedTimeText } from '../../ui/components/UpdatedTime';
 import { COLOR_MODE_KEY, LOCALE_VERSION_KEY } from '../../entryability/EntryAbility';
 import { Logger } from '../../core/log/Logger';
 import { Assignment } from '../../domain/model/ContentItem';
 import { removeTags } from '../../domain/render/WebViewTemplate';
 import { EmptyState } from '../../ui/components/EmptyState';
+import { AppIcon } from '../../ui/icons/IconCatalog';
+import { IconGlyph } from '../../ui/icons/IconGlyph';
 import { SessionHeaderProvider, createSessionHeaderProvider } from '../../core/web/SessionHeaderProvider';
 import { CourseListStore } from '../courses/CourseListStore';
 import { createCourseRepository } from '../courses/repository/CourseRepositoryProvider';
@@ -158,24 +158,14 @@ export struct AssignmentsPage {
       + ' pastDue=' + countPastDue(items, nowMillis).toString());
   }
 
-  private semesterText(): string {
-    const semesterId: string = this.store.semesterId;
-    if (semesterId.length === 0) {
-      return '';
-    }
-    return getSemesterTextFromId(semesterId, i18nService.locale(), i18nService);
-  }
-
+  /**
+   * 页头那一行"相对更新时间"（ticket 11.5 Part B）：`刚刚更新` / `N 分钟前更新` / …。
+   * 数据源仍是快照的 `fetchedAtMillis`（不新增取数）；四档边界在 `ui/components/UpdatedTime.ets`。
+   *
+   * 原 `semesterText()` 已删除：学期只在**课程页头**显示（账号所有者点名，见台账第 24 条）。
+   */
   private updatedText(): string {
-    if (this.store.fetchedAtMillis <= 0) {
-      return '';
-    }
-    const options: DateTimeFormatOptions = {
-      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
-    };
-    const stamp: string = formatDateTimeUsing(this.store.fetchedAtMillis,
-      new PlatformDateTimeFormatter(i18nService.locale(), options));
-    return i18nService.t('ui_refreshed_at', stamp);
+    return updatedTimeText(this.store.fetchedAtMillis, Date.now());
   }
 
   private errorText(): string {
@@ -209,45 +199,34 @@ export struct AssignmentsPage {
     this.stack.pushPath({ name: ROUTE_ASSIGNMENT_DETAIL, param: assignment });
   }
 
+  /**
+   * 页头（ticket 11.5 Part B，账号所有者点名）：**只剩「标题 + 相对更新时间」一行**。
+   *
+   * 移除的三项与理由：
+   *   - `当前学期 <学期>`：学期**只在课程页**显示（这正是参考实现的做法，见 `screens/Courses.tsx:48-50`）；
+   *   - `取证覆盖生效` 徽标：对用户无意义（覆盖生效的机制证据在 hilog 的消费点行）；
+   *   - `未完成 n`：筛选片里已有同一个数字，重复。
+   * 有意偏离与替代验收标准见 docs/accepted-deviations.md 第 24 条。
+   * **注意**：这里删掉的只是**界面元素**，取数与筛选行为一行未动。
+   */
   @Builder
   header() {
     Column() {
-      Text(this.s($r('app.string.loh_assignments')))
-        .fontSize(this.theme().typography.headlineSmall.fontSize)
-        .lineHeight(this.theme().typography.headlineSmall.lineHeight)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(this.theme().colors.onSurface)
       Row() {
-        Text(this.s($r('app.string.ui_courses_semester_label')))
-          .fontSize(this.theme().typography.labelSmall.fontSize)
-          .fontColor(this.theme().colors.onSurfaceVariant)
-        Text(this.semesterText())
-          .fontSize(this.theme().typography.labelMedium.fontSize)
-          .fontColor(this.theme().colors.primary)
-          .margin({ left: this.theme().sizes.space1 })
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-        Blank()
-        if (this.store.semesterSource === 'override') {
-          Text(this.s($r('app.string.ui_courses_override_badge')))
-            .fontSize(this.theme().typography.labelSmall.fontSize)
-            .fontColor(this.theme().colors.error)
-        }
-      }
-      .width('100%')
-      .margin({ top: this.theme().sizes.space1 })
-      Row() {
+        Text(this.s($r('app.string.loh_assignments')))
+          .fontSize(this.theme().typography.headlineSmall.fontSize)
+          .lineHeight(this.theme().typography.headlineSmall.lineHeight)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(this.theme().colors.onSurface)
         Text(this.updatedText())
           .fontSize(this.theme().typography.labelSmall.fontSize)
           .fontColor(this.theme().colors.onSurfaceVariant)
-          .layoutWeight(1)
-        Text(this.s($r('app.string.loh_unfinished')) + ' '
-          + countAssignments(this.sourceAssignments(), AssignmentFilter.UNFINISHED).toString())
-          .fontSize(this.theme().typography.labelSmall.fontSize)
-          .fontColor(this.theme().colors.primary)
+          .margin({ left: this.theme().sizes.space2 })
+          .maxLines(1)
+        Blank()
       }
       .width('100%')
-      .margin({ top: this.theme().sizes.space1 })
+      .alignItems(VerticalAlign.Bottom)
     }
     .alignItems(HorizontalAlign.Start)
     .width('100%')
@@ -312,48 +291,49 @@ export struct AssignmentsPage {
 
   /**
    * 卡片右上角的状态标记 —— 逐项对齐参考实现 `AssignmentCard.tsx:52-92`：
-   *   附件（📎 orange500）→ 已提交（✓ green500）→ 已评分（🎓 red500）→ 有答案（🔑 blue500）。
-   * 为什么用 emoji：MaterialCommunityIcons 在 ArkUI 没有可移植的等价符号
-   * （docs/reference-quirks.md 第 16 条对公告图标已有同一判断）。
+   *   附件（MCI `attachment` orange500）→ 已提交（MCI `check` green500）→
+   *   已评分（MaterialIcons `grade` red500）→ 有答案（MCI `key-variant` blue500）→
+   *   优秀作业（MCI `medal` yellow500）。
+   * ticket 11.5：与参考实现**同一份字体、同一批码位**（台账第 16 条的改判），不再是 emoji。
    */
   @Builder
   statusIcons(spec: AssignmentRowSpec) {
     Row() {
       if (spec.assignment.attachment !== undefined) {
-        Text('📎')
-          .fontSize(spec.theme.sizes.iconSmall)
-          .fontColor(PLAIN_PALETTE.orange500)
-          .margin({ left: spec.theme.sizes.space1 })
-          .accessibilityText(spec.attachmentLabel)
+        IconGlyph({
+          icon: AppIcon.ATTACHMENT, glyphSize: spec.theme.sizes.iconSmall,
+          color: PLAIN_PALETTE.orange500, label: spec.attachmentLabel,
+          marginLeft: spec.theme.sizes.space1
+        })
       }
       if (spec.assignment.submitted) {
-        Text('✓')
-          .fontSize(spec.theme.sizes.iconSmall)
-          .fontColor(PLAIN_PALETTE.green500)
-          .margin({ left: spec.theme.sizes.space1 })
-          .accessibilityText(spec.submittedLabel)
+        IconGlyph({
+          icon: AppIcon.CHECK, glyphSize: spec.theme.sizes.iconSmall,
+          color: PLAIN_PALETTE.green500, label: spec.submittedLabel,
+          marginLeft: spec.theme.sizes.space1
+        })
       }
       if (spec.assignment.graded) {
-        Text('🎓')
-          .fontSize(spec.theme.sizes.iconSmall)
-          .fontColor(PLAIN_PALETTE.red500)
-          .margin({ left: spec.theme.sizes.space1 })
-          .accessibilityText(spec.gradedLabel)
+        IconGlyph({
+          icon: AppIcon.GRADE, glyphSize: spec.theme.sizes.iconSmall,
+          color: PLAIN_PALETTE.red500, label: spec.gradedLabel,
+          marginLeft: spec.theme.sizes.space1
+        })
       }
       if (hasAnswer(spec.assignment)) {
-        Text('🔑')
-          .fontSize(spec.theme.sizes.iconSmall)
-          .fontColor(PLAIN_PALETTE.blue500)
-          .margin({ left: spec.theme.sizes.space1 })
-          .accessibilityText(spec.answerLabel)
+        IconGlyph({
+          icon: AppIcon.KEY_VARIANT, glyphSize: spec.theme.sizes.iconSmall,
+          color: PLAIN_PALETTE.blue500, label: spec.answerLabel,
+          marginLeft: spec.theme.sizes.space1
+        })
       }
       // 优秀作业（ticket 10 补做）：参考实现 AssignmentCard.tsx:84-91 的黄色 medal。
       if (hasExcellentHomework(spec.assignment)) {
-        Text('🏅')
-          .fontSize(spec.theme.sizes.iconSmall)
-          .fontColor(PLAIN_PALETTE.yellow500)
-          .margin({ left: spec.theme.sizes.space1 })
-          .accessibilityText(spec.excellentLabel)
+        IconGlyph({
+          icon: AppIcon.MEDAL, glyphSize: spec.theme.sizes.iconSmall,
+          color: PLAIN_PALETTE.yellow500, label: spec.excellentLabel,
+          marginLeft: spec.theme.sizes.space1
+        })
       }
     }
     .alignItems(VerticalAlign.Center)

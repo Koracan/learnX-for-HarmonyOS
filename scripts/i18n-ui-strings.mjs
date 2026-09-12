@@ -183,5 +183,14 @@ export const UI_STRINGS = [
   ['ui_file_prev_page', '上一页', 'Previous page'],
   ['ui_file_next_page', '下一页', 'Next page'],
   ['ui_file_page_of', '第 {0} / {1} 页', 'Page {0} of {1}'],
-  ['ui_file_cache_already_empty', '缓存目录已为空', 'The cache folder is already empty']
+  ['ui_file_cache_already_empty', '缓存目录已为空', 'The cache folder is already empty'],
+  // --- ticket 11.5（图标保真 + 页头信息架构）新增 ---
+  // 页头的"相对更新时间"四档（数据源 = 快照的 fetchedAtMillis；**不**每秒重算）。
+  // 分档是纯函数（ui/components/UpdatedTime.ets 的 updatedTimeParts），单测钉边界：
+  //   <60s → just now；1–59 分钟；1–23 小时；≥24 小时（天）。
+  // 英文用 min / h / d 缩写，避免 "1 minutes ago" 这种单复数别扭。
+  ['ui_updated_just_now', '刚刚更新', 'Updated just now'],
+  ['ui_updated_minutes_ago', '{0} 分钟前更新', 'Updated {0} min ago'],
+  ['ui_updated_hours_ago', '{0} 小时前更新', 'Updated {0} h ago'],
+  ['ui_updated_days_ago', '{0} 天前更新', 'Updated {0} d ago']
 ];

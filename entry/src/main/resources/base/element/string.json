@@ -1199,6 +1199,22 @@
     {
       "name": "ui_file_cache_already_empty",
       "value": "缓存目录已为空"
+    },
+    {
+      "name": "ui_updated_just_now",
+      "value": "刚刚更新"
+    },
+    {
+      "name": "ui_updated_minutes_ago",
+      "value": "%1$s 分钟前更新"
+    },
+    {
+      "name": "ui_updated_hours_ago",
+      "value": "%1$s 小时前更新"
+    },
+    {
+      "name": "ui_updated_days_ago",
+      "value": "%1$s 天前更新"
     }
   ]
 }

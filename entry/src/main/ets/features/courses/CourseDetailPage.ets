@@ -32,6 +32,8 @@ import { Assignment, CourseFile } from '../../domain/model/ContentItem';
 import { removeTags } from '../../domain/render/WebViewTemplate';
 import { NoticeRecord } from '../../data/notices/NoticeRepository';
 import { EmptyState } from '../../ui/components/EmptyState';
+import { AppIcon } from '../../ui/icons/IconCatalog';
+import { IconGlyph } from '../../ui/icons/IconGlyph';
 import { CourseListStore } from './CourseListStore';
 import {
   CourseDetailRouteParams, CourseFileDetailRouteParams, ROUTE_COURSE_FILE_DETAIL
@@ -237,10 +239,16 @@ export struct CourseDetailPage {
         Text(spec.assignment.deadline)
           .fontSize(spec.theme.typography.labelSmall.fontSize)
           .fontColor(spec.theme.colors.onSurfaceVariant)
-        Text(spec.assignment.submitted ? '✓' : '')
-          .fontSize(spec.theme.typography.labelSmall.fontSize)
-          .fontColor(spec.theme.colors.primary)
-          .margin({ left: spec.theme.sizes.space2 })
+        if (spec.assignment.submitted) {
+          // 参考实现这条走的是 AssignmentCard（已提交 = MCI `check`）。
+          // 字形不再自带可读文字，所以必须给 accessibilityText（原来是 U+2713 字符本身被读出来）。
+          IconGlyph({
+            icon: AppIcon.CHECK, glyphSize: spec.theme.sizes.iconSmall,
+            color: spec.theme.colors.primary,
+            label: this.s($r('app.string.ui_assignment_submitted_mark_label')),
+            marginLeft: spec.theme.sizes.space2
+          })
+        }
         Blank()
       }
       .width('100%')
@@ -279,11 +287,12 @@ export struct CourseDetailPage {
           .margin({ left: spec.theme.sizes.space2 })
         Blank()
         if (spec.file.isNew) {
-          Column()
-            .width(spec.theme.sizes.space2)
-            .height(spec.theme.sizes.space2)
-            .borderRadius(spec.theme.sizes.space2 / 2)
-            .backgroundColor(PLAIN_PALETTE.blue500)
+          // 参考实现 FileCard.tsx:55-62：MCI `checkbox-blank-circle`（blue500）。
+          IconGlyph({
+            icon: AppIcon.CHECKBOX_BLANK_CIRCLE, glyphSize: spec.theme.sizes.iconSmall,
+            color: PLAIN_PALETTE.blue500,
+            label: this.s($r('app.string.ui_course_new_files_label'))
+          })
         }
       }
       .width('100%')

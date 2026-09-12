@@ -6,7 +6,7 @@
  * | 项 | 参考实现 | 这里 |
  * | --- | --- | --- |
  * | 卡片内容 | 教师名（Subheading）在上、课程名（Title）在下，右下三个计数（通知/事件/文件夹） | 同（顺序与位置照抄） |
- * | 计数 | `selectCoursesWithCounts`（未读公告 / 未完成作业 / 新文件） | `domain/courses/CourseCounts`（逐条对齐） |
+ * | 计数 | `selectCoursesWithCounts`（未读公告 / 未完成作业 / 新文件），图标 MaterialIcons notifications/event/folder | `domain/courses/CourseCounts`（逐条对齐），图标为同一份字体的同一批码位（ticket 11.5） |
  * | 头部副标题 | `getSemesterTextFromId(currentSemesterId)`（:49） | 同，且**可点**进学期切换（见下） |
  * | 点击卡片 | `navigate('CourseDetail', item)`（:34-43） | 同（推入本 tab 的 NavPathStack） |
  * | 下拉刷新 | `getCoursesForSemester(currentSemesterId)` | `store.refresh()`（一次刷新含三域，计数才与列表同源） |
@@ -23,15 +23,15 @@
 import { ConfigurationConstant } from '@kit.AbilityKit';
 import { ThemeTokens, resolveTheme } from '../../ui/theme/Tokens';
 import { i18nService } from '../../core/i18n/I18n';
-import {
-  DateTimeFormatOptions, PlatformDateTimeFormatter, formatDateTimeUsing, formatRelativeTo
-} from '../../core/i18n/DateTimeUtil';
 import { getSemesterTextFromId } from '../../core/i18n/DateTimeUtil';
 import { COLOR_MODE_KEY, LOCALE_VERSION_KEY } from '../../entryability/EntryAbility';
 import { Logger } from '../../core/log/Logger';
 import { Assignment } from '../../domain/model/ContentItem';
 import { CourseRecord } from '../../data/courses/CourseRepository';
 import { EmptyState } from '../../ui/components/EmptyState';
+import { updatedTimeText } from '../../ui/components/UpdatedTime';
+import { AppIcon } from '../../ui/icons/IconCatalog';
+import { IconGlyph } from '../../ui/icons/IconGlyph';
 import { SessionHeaderProvider, createSessionHeaderProvider } from '../../core/web/SessionHeaderProvider';
 import { NoticeRecord } from '../../data/notices/NoticeRepository';
 import { NoticeDetailPage } from '../notices/NoticeDetailPage';
@@ -68,7 +68,8 @@ interface CourseRowSpec {
 /** 一个计数单元的渲染参数。 */
 interface CountSpec {
   theme: ThemeTokens;
-  symbol: string;
+  /** 参考实现用的是 MaterialIcons 的三个图标（见 countGroup 的说明）。 */
+  icon: AppIcon;
   count: number;
   label: string;
 }
@@ -109,21 +110,9 @@ export struct CoursesPage {
     return getSemesterTextFromId(semesterId, i18nService.locale(), i18nService);
   }
 
+  /** 页头那一行"相对更新时间"（ticket 11.5 Part B）：`刚刚更新` / `N 分钟前更新` / …。 */
   private updatedText(): string {
-    if (this.store.fetchedAtMillis <= 0) {
-      return '';
-    }
-    const options: DateTimeFormatOptions = {
-      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
-    };
-    const stamp: string = formatDateTimeUsing(this.store.fetchedAtMillis,
-      new PlatformDateTimeFormatter(i18nService.locale(), options));
-    const updated: string = i18nService.t('ui_refreshed_at', stamp);
-    const ago: string = formatRelativeTo(this.store.fetchedAtMillis, Date.now(), i18nService.locale());
-    if (ago.length === 0) {
-      return updated;
-    }
-    return updated + ' · ' + ago;
+    return updatedTimeText(this.store.fetchedAtMillis, Date.now());
   }
 
   private errorText(): string {
@@ -157,50 +146,46 @@ export struct CoursesPage {
     this.stack.pushPath({ name: ROUTE_SEMESTER_SELECTION, param: params });
   }
 
+  /**
+   * 页头（ticket 11.5 Part B，账号所有者点名）：**「标题 + 学期 + 相对更新时间」压在一行**。
+   *
+   * 与参考实现的关系：参考实现**只有课程页**给页头传学期副标题（`screens/Courses.tsx:48-50`），
+   * 这一条我们照做；而"更新时间"是参考实现没有的元素（有意偏离，见台账第 24 条）。
+   *
+   * 移除的两项：`当前学期` 前缀（三个字占位但没有信息量）、课程条数那个**裸数字**
+   * （没有标签，且列表就在下方），以及 `取证覆盖生效` 徽标（对用户无意义）。
+   * **学期文本仍然可点** → 学期切换页（ticket 12 的行为一字未改）。
+   */
   @Builder
   header() {
-    Column() {
+    Row() {
       Text(this.s($r('app.string.loh_courses')))
         .fontSize(this.theme().typography.headlineSmall.fontSize)
         .lineHeight(this.theme().typography.headlineSmall.lineHeight)
         .fontWeight(FontWeight.Bold)
         .fontColor(this.theme().colors.onSurface)
-      Row() {
-        Text(this.s($r('app.string.ui_courses_semester_label')))
-          .fontSize(this.theme().typography.labelSmall.fontSize)
-          .fontColor(this.theme().colors.onSurfaceVariant)
+      Column() {
+        // 实际生效的学期（覆盖/界面选择/站点当前学期三者的结果）——ticket 12 的界面信号只剩这一处。
         Text(this.semesterText())
           .fontSize(this.theme().typography.labelMedium.fontSize)
           .fontColor(this.theme().colors.primary)
-          .margin({ left: this.theme().sizes.space1 })
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
-        Blank()
-        if (this.store.semesterSource === 'override') {
-          Text(this.s($r('app.string.ui_courses_override_badge')))
-            .fontSize(this.theme().typography.labelSmall.fontSize)
-            .fontColor(this.theme().colors.error)
-        }
-      }
-      .width('100%')
-      .margin({ top: this.theme().sizes.space1 })
-      .onClick(() => {
-        this.openSemesterSelection();
-      })
-      Row() {
         Text(this.updatedText())
           .fontSize(this.theme().typography.labelSmall.fontSize)
           .fontColor(this.theme().colors.onSurfaceVariant)
-          .layoutWeight(1)
-        Text(this.store.courses.length.toString())
-          .fontSize(this.theme().typography.labelSmall.fontSize)
-          .fontColor(this.theme().colors.primary)
+          .maxLines(1)
+          .margin({ top: this.theme().sizes.space1 })
       }
-      .width('100%')
-      .margin({ top: this.theme().sizes.space1 })
+      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(1)
+      .margin({ left: this.theme().sizes.space3 })
+      .onClick(() => {
+        this.openSemesterSelection();
+      })
     }
-    .alignItems(HorizontalAlign.Start)
     .width('100%')
+    .alignItems(VerticalAlign.Center)
     .padding({
       left: this.theme().sizes.contentPadding,
       right: this.theme().sizes.contentPadding,
@@ -210,17 +195,17 @@ export struct CoursesPage {
   }
 
   /**
-   * 一个计数单元：符号 + 数字（参考实现是 MaterialIcons 的
+   * 一个计数单元：图标 + 数字（参考实现是 MaterialIcons 的
    * notifications / event / folder，颜色取 `theme.colors.outline`）。
-   * 参考实现那三个图标名在 ArkUI 里不可移植（见台账第 16 条对公告图标的同一判断），
-   * 这里用 emoji + accessibilityText：语义文字进无障碍树，数字仍然逐字可见。
+   * ticket 11.5：改用**与参考实现同源的字体图标**（同一份 TTF、同一批码位），不再是 emoji；
+   * 语义文字仍进无障碍树（`accessibilityText`），数字仍然逐字可见。
    */
   @Builder
   countGroup(spec: CountSpec) {
     Row() {
-      Text(spec.symbol)
-        .fontSize(spec.theme.sizes.iconSmall)
-        .fontColor(spec.theme.colors.outline)
+      IconGlyph({
+        icon: spec.icon, glyphSize: spec.theme.sizes.iconSmall, color: spec.theme.colors.outline
+      })
       Text(spec.count.toString())
         .fontSize(spec.theme.typography.labelMedium.fontSize)
         .fontColor(spec.theme.colors.outline)
@@ -251,14 +236,16 @@ export struct CoursesPage {
           .textOverflow({ overflow: TextOverflow.Ellipsis })
           .layoutWeight(1)
         this.countGroup({
-          theme: spec.theme, symbol: '🔔', count: spec.course.unreadNoticeCount, label: spec.noticesLabel
+          theme: spec.theme, icon: AppIcon.NOTIFICATIONS, count: spec.course.unreadNoticeCount,
+          label: spec.noticesLabel
         })
         this.countGroup({
-          theme: spec.theme, symbol: '📅', count: spec.course.unfinishedAssignmentCount,
+          theme: spec.theme, icon: AppIcon.EVENT, count: spec.course.unfinishedAssignmentCount,
           label: spec.assignmentsLabel
         })
         this.countGroup({
-          theme: spec.theme, symbol: '📁', count: spec.course.unreadFileCount, label: spec.filesLabel
+          theme: spec.theme, icon: AppIcon.FOLDER, count: spec.course.unreadFileCount,
+          label: spec.filesLabel
         })
       }
       .width('100%')

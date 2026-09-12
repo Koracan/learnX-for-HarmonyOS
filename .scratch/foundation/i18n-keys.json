@@ -1,8 +1,8 @@
 {
-  "total": 297,
+  "total": 301,
   "referenceCount": 180,
   "localCount": 6,
-  "uiCount": 111,
+  "uiCount": 115,
   "referenceKeys": [
     "back",
     "notices",
@@ -2945,6 +2945,54 @@
       "enValue": "The cache folder is already empty",
       "zhPlaceholders": [],
       "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_updated_just_now",
+      "name": "ui_updated_just_now",
+      "zhValue": "刚刚更新",
+      "enValue": "Updated just now",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_updated_minutes_ago",
+      "name": "ui_updated_minutes_ago",
+      "zhValue": "%1$s 分钟前更新",
+      "enValue": "Updated %1$s min ago",
+      "zhPlaceholders": [
+        "{0}"
+      ],
+      "enPlaceholders": [
+        "{0}"
+      ],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_updated_hours_ago",
+      "name": "ui_updated_hours_ago",
+      "zhValue": "%1$s 小时前更新",
+      "enValue": "Updated %1$s h ago",
+      "zhPlaceholders": [
+        "{0}"
+      ],
+      "enPlaceholders": [
+        "{0}"
+      ],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_updated_days_ago",
+      "name": "ui_updated_days_ago",
+      "zhValue": "%1$s 天前更新",
+      "enValue": "Updated %1$s d ago",
+      "zhPlaceholders": [
+        "{0}"
+      ],
+      "enPlaceholders": [
+        "{0}"
+      ],
       "origin": "ui"
     }
   ]

@@ -20,7 +20,7 @@
  * Regenerate:  node scripts/generate-i18n-resources.mjs && node scripts/gen-i18n-keys.mjs
  * Verify:      node scripts/check-i18n-keys.mjs
  *
- * 297 keys; project-local additions: 6.
+ * 301 keys; project-local additions: 6.
  */
 export type I18nKey = 'loh_back'
   | 'loh_notices'
@@ -318,7 +318,11 @@ export type I18nKey = 'loh_back'
   | 'ui_file_prev_page'
   | 'ui_file_next_page'
   | 'ui_file_page_of'
-  | 'ui_file_cache_already_empty';
+  | 'ui_file_cache_already_empty'
+  | 'ui_updated_just_now'
+  | 'ui_updated_minutes_ago'
+  | 'ui_updated_hours_ago'
+  | 'ui_updated_days_ago';
 
 const ALL_KEYS: string[] = [
   'loh_back',
@@ -618,6 +622,10 @@ const ALL_KEYS: string[] = [
   'ui_file_next_page',
   'ui_file_page_of',
   'ui_file_cache_already_empty',
+  'ui_updated_just_now',
+  'ui_updated_minutes_ago',
+  'ui_updated_hours_ago',
+  'ui_updated_days_ago',
 ];
 
 const KEY_SET: Set<string> = new Set<string>(ALL_KEYS);
@@ -628,4 +636,4 @@ export function isI18nKey(value: string): boolean {
 }
 
 /** Total number of known keys; scripts/check-i18n-keys.mjs asserts this. */
-export const I18N_KEY_COUNT: number = 297;
+export const I18N_KEY_COUNT: number = 301;

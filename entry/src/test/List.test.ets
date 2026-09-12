@@ -31,6 +31,8 @@ import courseDataTest from './CourseData.test';
 import assignmentListTest from './AssignmentList.test';
 import excellentHomeworkTest from './ExcellentHomework.test';
 import fileDownloadTest from './FileDownload.test';
+import updatedTimeTest from './UpdatedTime.test';
+import iconCatalogTest from './IconCatalog.test';
 
 export default function testsuite() {
   semesterTest();
@@ -62,4 +64,6 @@ export default function testsuite() {
   assignmentListTest();
   excellentHomeworkTest();
   fileDownloadTest();
+  updatedTimeTest();
+  iconCatalogTest();
 }

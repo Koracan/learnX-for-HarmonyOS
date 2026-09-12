@@ -41,6 +41,8 @@ import { formatNoticeDate, NoticeDateText } from '../../domain/render/NoticeDate
 import { getExtension, stripExtension } from '../../domain/render/FileNames';
 import { Attachment } from '../../domain/model/ContentItem';
 import { HtmlWebView } from '../../ui/components/HtmlWebView';
+import { AppIcon } from '../../ui/icons/IconCatalog';
+import { IconGlyph } from '../../ui/icons/IconGlyph';
 import { SessionHeaderProvider } from '../../core/web/SessionHeaderProvider';
 import { FileDetailRouteParams, ROUTE_FILE_DETAIL } from './NoticeRoutes';
 import { NoticeRecord } from '../../data/notices/NoticeRepository';
@@ -211,18 +213,21 @@ export struct NoticeDetailPage {
   @Builder
   headerRow() {
     Row() {
-      Text('‹')
-        .fontSize(this.theme().typography.headlineSmall.fontSize)
-        .fontColor(this.theme().colors.primary)
-        .width(this.theme().sizes.controlHeight)
-        .height(this.theme().sizes.controlHeight)
-        .textAlign(TextAlign.Center)
-        .onClick(() => {
-          if (this.stack !== null) {
-            this.stack.pop();
-          }
+      // 返回：参考实现的详情页是导航栈默认的 MaterialIcons `arrow-back`（ticket 11.5 前这里是
+      // 一个近似形状的字符 U+2039）。外层 Stack 保持**原有的 40×40 点击目标**，布局尺寸不变。
+      Stack() {
+        IconGlyph({
+          icon: AppIcon.ARROW_BACK, glyphSize: this.theme().sizes.iconMedium,
+          color: this.theme().colors.primary, label: this.s($r('app.string.loh_back'))
         })
-        .accessibilityText(this.s($r('app.string.loh_back')))
+      }
+      .width(this.theme().sizes.controlHeight)
+      .height(this.theme().sizes.controlHeight)
+      .onClick(() => {
+        if (this.stack !== null) {
+          this.stack.pop();
+        }
+      })
       Text(this.s($r('app.string.ui_tab_notices')))
         .fontSize(this.theme().typography.titleMedium.fontSize)
         .fontColor(this.theme().colors.onSurfaceVariant)
@@ -262,9 +267,11 @@ export struct NoticeDetailPage {
   @Builder
   attachmentRow(attachment: Attachment) {
     Row() {
-      Text('📄')
-        .fontSize(this.theme().sizes.iconMedium)
-        .fontColor(PLAIN_PALETTE.orange500)
+      // 参考实现 NoticeDetail.tsx:100-107：MaterialIcons `insert-drive-file`（橙色）。
+      IconGlyph({
+        icon: AppIcon.INSERT_DRIVE_FILE, glyphSize: this.theme().sizes.iconMedium,
+        color: PLAIN_PALETTE.orange500, label: this.s($r('app.string.ui_attachment_label'))
+      })
       Text(attachment.name)
         .fontSize(this.theme().typography.bodyLarge.fontSize)
         .fontColor(this.theme().colors.onSurface)

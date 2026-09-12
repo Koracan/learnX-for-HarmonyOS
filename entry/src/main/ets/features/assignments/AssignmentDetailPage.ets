@@ -9,11 +9,11 @@
  * | 标题 = `removeTags(title)` | :163 | 同 |
  * | 截止时间（绝对 + 相对） | :164-181 | 绝对时间用站点原文；相对时间用 `formatRelativeTo` |
  * | 补交截止 | :182-190 | 同 |
- * | 附件（四类之一） | :193-211 | 同（📄 + 文件名，**可点**） |
+ * | 附件（四类之一） | :193-211 | 同（MCI `attachment` 图标 + 文件名，**可点**） |
  * | 已提交（附件 + 正文 + 提交时间） | :212-252 | 同 |
  * | 已评分（等级/分数 + 附件 + 评语 + 批改人与时间） | :253-298 | 同（等级本地化见 AssignmentText.gradeText） |
  * | 答案（附件 + 正文） | :299-326 | 同 |
- * | **优秀作业**（medal + `gradeAttachment \|\| submittedAttachment` + "X的优秀作业"） | :327-363 | 同（🏅 + 附件行可点 → FileDetail；匿名用 `loh_anonymous`） |
+ * | **优秀作业**（medal + `gradeAttachment \|\| submittedAttachment` + "X的优秀作业"） | :327-363 | 同（MCI `medal` + 附件行可点 → FileDetail；匿名用 `loh_anonymous`） |
  * | 描述（Web 容器渲染，含 KaTeX） | :122-130, :364-374 | 同：`ui/components/HtmlWebView` + `buildNoticeContent` |
  * | 附件点击 → `push('FileDetail')` | :132-145 | 同路由（`ROUTE_FILE_DETAIL`），参数逐项对齐 |
  *
@@ -53,13 +53,15 @@ import { excellentDisplayAttachment } from '../../domain/parse/AssignmentParser'
 import { buildNoticeContent, removeTags } from '../../domain/render/WebViewTemplate';
 import { getExtension, stripExtension } from '../../domain/render/FileNames';
 import { HtmlWebView } from '../../ui/components/HtmlWebView';
+import { AppIcon } from '../../ui/icons/IconCatalog';
+import { IconGlyph } from '../../ui/icons/IconGlyph';
 import { SessionHeaderProvider } from '../../core/web/SessionHeaderProvider';
 import { FileDetailRouteParams, ROUTE_FILE_DETAIL } from '../notices/NoticeRoutes';
 import { completionText, deadlineText, dueStatusText, gradeText, submissionText } from './AssignmentText';
 
 const logger: Logger = new Logger('features.assignments.detail');
 
-/** 一行附件（📄 + 文件名）。 */
+/** 一行附件（MCI `attachment` 图标 + 文件名）。 */
 interface AttachmentSpec {
   theme: ThemeTokens;
   attachment: Attachment;
@@ -204,18 +206,21 @@ export struct AssignmentDetailPage {
   @Builder
   headerRow() {
     Row() {
-      Text('‹')
-        .fontSize(this.theme().typography.headlineSmall.fontSize)
-        .fontColor(this.theme().colors.primary)
-        .width(this.theme().sizes.controlHeight)
-        .height(this.theme().sizes.controlHeight)
-        .textAlign(TextAlign.Center)
-        .onClick(() => {
-          if (this.stack !== null) {
-            this.stack.pop();
-          }
+      // 返回：参考实现的详情页是导航栈默认的 MaterialIcons `arrow-back`（ticket 11.5 前这里是
+      // 一个近似形状的字符 U+2039）。外层 Stack 保持**原有的 40×40 点击目标**，布局尺寸不变。
+      Stack() {
+        IconGlyph({
+          icon: AppIcon.ARROW_BACK, glyphSize: this.theme().sizes.iconMedium,
+          color: this.theme().colors.primary, label: this.s($r('app.string.loh_back'))
         })
-        .accessibilityText(this.s($r('app.string.loh_back')))
+      }
+      .width(this.theme().sizes.controlHeight)
+      .height(this.theme().sizes.controlHeight)
+      .onClick(() => {
+        if (this.stack !== null) {
+          this.stack.pop();
+        }
+      })
       Text(this.s($r('app.string.loh_assignments')))
         .fontSize(this.theme().typography.titleMedium.fontSize)
         .fontColor(this.theme().colors.onSurfaceVariant)
@@ -314,14 +319,16 @@ export struct AssignmentDetailPage {
     .padding(this.theme().sizes.contentPadding)
   }
 
-  /** 一行附件（📄 + 文件名 + 说明标签），整行可点。 */
+  /** 一行附件（MCI `attachment` 图标 + 文件名 + 说明标签），整行可点。 */
   @Builder
   attachmentRow(spec: AttachmentSpec) {
     Column() {
       Row() {
-        Text('📄')
-          .fontSize(this.theme().sizes.iconMedium)
-          .fontColor(PLAIN_PALETTE.orange500)
+        // 参考实现 AssignmentDetail.tsx:196-201：MCI `attachment`。
+        IconGlyph({
+          icon: AppIcon.ATTACHMENT, glyphSize: this.theme().sizes.iconMedium,
+          color: PLAIN_PALETTE.orange500, label: spec.label
+        })
         Text(spec.attachment.name)
           .fontSize(this.theme().typography.bodyLarge.fontSize)
           .fontColor(this.theme().colors.primary)
@@ -385,7 +392,7 @@ export struct AssignmentDetailPage {
   /** 已提交段（参考实现 :212-252）。 */
   @Builder
   submittedSection() {
-    this.sectionTitle('✓', this.s($r('app.string.loh_submitted')))
+    this.sectionTitle(AppIcon.CHECK, this.s($r('app.string.loh_submitted')))
     if (this.assignment.submittedAttachment !== undefined) {
       this.attachmentRow({
         theme: this.theme(), attachment: this.assignment.submittedAttachment,
@@ -403,7 +410,7 @@ export struct AssignmentDetailPage {
   /** 已评分段（参考实现 :253-298）：等级优先、否则数字成绩。 */
   @Builder
   gradedSection() {
-    this.sectionTitle('🎓', this.s($r('app.string.ui_assignment_grade')))
+    this.sectionTitle(AppIcon.GRADE, this.s($r('app.string.ui_assignment_grade')))
     this.bodyText(gradeText(this.assignment))
     if (this.assignment.gradeAttachment !== undefined) {
       this.attachmentRow({
@@ -422,7 +429,7 @@ export struct AssignmentDetailPage {
   /** 答案段（参考实现 :299-326）。 */
   @Builder
   answerSection() {
-    this.sectionTitle('🔑', this.s($r('app.string.ui_assignment_answer')))
+    this.sectionTitle(AppIcon.KEY_VARIANT, this.s($r('app.string.ui_assignment_answer')))
     if (this.assignment.answerAttachment !== undefined) {
       this.attachmentRow({
         theme: this.theme(), attachment: this.assignment.answerAttachment,
@@ -467,16 +474,18 @@ export struct AssignmentDetailPage {
 
   /**
    * 一条优秀作业（参考实现 AssignmentDetail.tsx:327-363 的一段 Fragment）：
-   * 黄色 medal（这里用 🏅，理由同公告图标，见 docs/reference-quirks.md 第 16 条）
+   * MCI `medal`（黄色；ticket 11.5 前这里是 emoji，理由见台账第 16 条的改判）
    * + 附件名（可点 → FileDetail）+ "X的优秀作业"。
    */
   @Builder
   excellentRow(entry: ExcellentHomework) {
     Column() {
       Row() {
-        Text('🏅')
-          .fontSize(this.theme().sizes.iconSmall)
-          .fontColor(PLAIN_PALETTE.yellow500)
+        // 参考实现 AssignmentDetail.tsx:338-343：MCI `medal`（这里仍取卡片用的黄色令牌）。
+        IconGlyph({
+          icon: AppIcon.MEDAL, glyphSize: this.theme().sizes.iconSmall,
+          color: PLAIN_PALETTE.yellow500, label: this.excellentCaption(entry)
+        })
         Text(this.excellentName(entry))
           .fontSize(this.theme().typography.bodyLarge.fontSize)
           .fontColor(this.theme().colors.primary)
@@ -506,17 +515,41 @@ export struct AssignmentDetailPage {
     })
   }
 
-  /** 段标题（符号 + 语义文字）。 */
+  /**
+   * 段标题（图标 + 语义文字）。图标与参考实现逐段对应：
+   * 已提交 = MCI `check`（:215-220）、已评分 = MaterialIcons `grade`（:256-261）、
+   * 答案 = MCI `key-variant`（:302-307）、优秀作业 = MCI `medal`（:338-343）。
+   */
   @Builder
-  sectionTitle(symbol: string, title: string) {
+  sectionTitle(icon: AppIcon, title: string) {
     Row() {
-      Text(symbol)
-        .fontSize(this.theme().sizes.iconSmall)
-        .fontColor(this.theme().colors.primary)
+      IconGlyph({ icon: icon, glyphSize: this.theme().sizes.iconSmall, color: this.theme().colors.primary })
       Text(title)
         .fontSize(this.theme().typography.labelMedium.fontSize)
         .fontColor(this.theme().colors.primary)
         .margin({ left: this.theme().sizes.space2 })
+      Blank()
+    }
+    .width('100%')
+    .padding({
+      left: this.theme().sizes.contentPadding,
+      right: this.theme().sizes.contentPadding,
+      top: this.theme().sizes.space3
+    })
+  }
+
+  /**
+   * 只有文字的段标题（"作业内容"）。参考实现这一段**没有图标**：
+   * 描述直接交给 `AutoHeightWebView`（AssignmentDetail.tsx:364-374），没有段标题。
+   * 我们保留自己的段标题文字（ticket 10 的信息层级），但不给它配图标——
+   * 这比"随便挑一个参考实现没用过的图标"更忠实。
+   */
+  @Builder
+  sectionTitleText(title: string) {
+    Row() {
+      Text(title)
+        .fontSize(this.theme().typography.labelMedium.fontSize)
+        .fontColor(this.theme().colors.primary)
       Blank()
     }
     .width('100%')
@@ -558,7 +591,7 @@ export struct AssignmentDetailPage {
           }
           // 优秀作业（参考实现 :327-363，位于答案段之后、描述之前）。
           if (this.excellentList().length > 0) {
-            this.sectionTitle('🏅', this.s($r('app.string.ui_assignment_excellent')))
+            this.sectionTitle(AppIcon.MEDAL, this.s($r('app.string.ui_assignment_excellent')))
             ForEach(this.excellentList(), (entry: ExcellentHomework) => {
               this.excellentRow(entry)
             }, (entry: ExcellentHomework) => 'excellent|' + entry.id)
@@ -567,7 +600,7 @@ export struct AssignmentDetailPage {
               .color(this.theme().colors.outlineVariant)
           }
           // 描述（含公式）交 Web 容器渲染（参考实现 :122-130, :364-374）。
-          this.sectionTitle('📝', this.s($r('app.string.ui_assignment_description')))
+          this.sectionTitleText(this.s($r('app.string.ui_assignment_description')))
           HtmlWebView({
             content: this.preparedDescription(),
             emptyText: this.s($r('app.string.loh_no_assignment_description')),

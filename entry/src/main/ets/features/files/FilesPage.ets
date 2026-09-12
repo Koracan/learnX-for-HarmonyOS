@@ -17,7 +17,7 @@
 import { ConfigurationConstant } from '@kit.AbilityKit';
 import { ThemeTokens, resolveTheme } from '../../ui/theme/Tokens';
 import { i18nService } from '../../core/i18n/I18n';
-import { getSemesterTextFromId, formatRelativeTo } from '../../core/i18n/DateTimeUtil';
+import { formatRelativeTo } from '../../core/i18n/DateTimeUtil';
 import { COLOR_MODE_KEY, LOCALE_VERSION_KEY } from '../../entryability/EntryAbility';
 import { Logger } from '../../core/log/Logger';
 import { parseTimestamp } from '../../domain/parse/Text';
@@ -25,6 +25,9 @@ import { CourseFile } from '../../domain/model/ContentItem';
 import { fileMetaLine } from '../../domain/files/FilePath';
 import { removeTags } from '../../domain/render/WebViewTemplate';
 import { EmptyState } from '../../ui/components/EmptyState';
+import { updatedTimeText } from '../../ui/components/UpdatedTime';
+import { AppIcon } from '../../ui/icons/IconCatalog';
+import { IconGlyph } from '../../ui/icons/IconGlyph';
 import { FileListStore } from './FileListStore';
 import { fileRepository } from './repository/FileRepositoryProvider';
 import { FileDetailPage } from './FileDetailPage';
@@ -75,21 +78,16 @@ export struct FilesPage {
     return i18nService.tKey(resource);
   }
 
-  private semesterText(): string {
-    const store: FileListStore | null = this.store;
-    if (store === null || store.semesterId.length === 0) {
-      return '';
-    }
-    return getSemesterTextFromId(store.semesterId, i18nService.locale(), i18nService);
-  }
-
+  /**
+   * 页头那一行"相对更新时间"（ticket 11.5 Part B）：`刚刚更新` / `N 分钟前更新` / …。
+   * 原来是 ICU 的裸相对措辞（"5分钟前"），现在统一成同一套页头文案。
+   */
   private updatedText(): string {
     const store: FileListStore | null = this.store;
-    if (store === null || store.fetchedAtMillis <= 0) {
+    if (store === null) {
       return '';
     }
-    const relative: string = formatRelativeTo(store.fetchedAtMillis, Date.now(), i18nService.locale());
-    return relative.length > 0 ? relative : '';
+    return updatedTimeText(store.fetchedAtMillis, Date.now());
   }
 
   private errorText(): string {
@@ -149,6 +147,13 @@ export struct FilesPage {
     this.refreshing = false;
   }
 
+  /**
+   * 页头（ticket 11.5 Part B，账号所有者点名）：**「标题 + 相对更新时间」同一行**。
+   *
+   * 移除 `当前学期 <学期>` 那一行：学期**只在课程页**显示；文件列表每行本来就带课程名，
+   * 这里再写一遍学期是冗余。**保留**文件条数与"文件设置"入口（有信息量 / 有入口价值，
+   * 按账号所有者"别为了统一而删信息"的要求）。
+   */
   @Builder
   header() {
     Column() {
@@ -157,7 +162,16 @@ export struct FilesPage {
           .fontSize(this.theme().typography.headlineSmall.fontSize)
           .fontWeight(FontWeight.Bold)
           .fontColor(this.theme().colors.onSurface)
-          .layoutWeight(1)
+        Text(this.updatedText())
+          .fontSize(this.theme().typography.labelSmall.fontSize)
+          .fontColor(this.theme().colors.onSurfaceVariant)
+          .margin({ left: this.theme().sizes.space2 })
+          .maxLines(1)
+        Blank()
+        Text(this.store === null ? '0' : this.store.files.length.toString())
+          .fontSize(this.theme().typography.labelSmall.fontSize)
+          .fontColor(this.theme().colors.primary)
+          .margin({ right: this.theme().sizes.space3 })
         // 文件设置入口（**本页自己的入口**；全局设置页的入口/外观归 ticket 17）。
         Text(this.s($r('app.string.ui_file_settings_open')))
           .fontSize(this.theme().typography.labelLarge.fontSize)
@@ -167,32 +181,7 @@ export struct FilesPage {
           })
       }
       .width('100%')
-
-      Row() {
-        Text(this.s($r('app.string.ui_courses_semester_label')))
-          .fontSize(this.theme().typography.labelSmall.fontSize)
-          .fontColor(this.theme().colors.onSurfaceVariant)
-        Text(this.semesterText())
-          .fontSize(this.theme().typography.labelMedium.fontSize)
-          .fontColor(this.theme().colors.primary)
-          .margin({ left: this.theme().sizes.space1 })
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-      }
-      .width('100%')
-      .margin({ top: this.theme().sizes.space1 })
-
-      Row() {
-        Text(this.updatedText())
-          .fontSize(this.theme().typography.labelSmall.fontSize)
-          .fontColor(this.theme().colors.onSurfaceVariant)
-          .layoutWeight(1)
-        Text(this.store === null ? '0' : this.store.files.length.toString())
-          .fontSize(this.theme().typography.labelSmall.fontSize)
-          .fontColor(this.theme().colors.primary)
-      }
-      .width('100%')
-      .margin({ top: this.theme().sizes.space1 })
+      .alignItems(VerticalAlign.Bottom)
     }
     .alignItems(HorizontalAlign.Start)
     .width('100%')
@@ -215,10 +204,12 @@ export struct FilesPage {
           .textOverflow({ overflow: TextOverflow.Ellipsis })
           .layoutWeight(1)
         if (spec.isNew) {
-          Text('●')
-            .fontSize(spec.theme.sizes.iconSmall)
-            .fontColor(spec.theme.colors.primary)
-            .accessibilityText(spec.newLabel)
+          // 参考实现 FileCard.tsx:55-62：MCI `checkbox-blank-circle`（blue500）。
+          // 颜色这里仍取既有令牌 primary（Part A 只改形状与来源，不动配色）。
+          IconGlyph({
+            icon: AppIcon.CHECKBOX_BLANK_CIRCLE, glyphSize: spec.theme.sizes.iconSmall,
+            color: spec.theme.colors.primary, label: spec.newLabel
+          })
         }
       }
       .width('100%')

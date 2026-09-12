@@ -1,6 +1,6 @@
 /*
  * 学期切换页（ticket 12）—— 对齐参考实现 `screens/SemesterSelection.tsx`：
- * 列出可选学期（最新在前，台账第 3 条的排序），当前学期带勾选标记，点一条即切换。
+ * 列出可选学期（最新在前，台账第 3 条的排序），当前学期带**与参考实现同源的** check 图标，点一条即切换。
  *
  * 与参考实现的两处差异（都在 ticket Comments 里写明）：
  *   1. **位置**：参考实现把它放在"设置"栈里（`SettingsStackParams.SemesterSelection`），
@@ -20,6 +20,8 @@ import { getSemesterTextFromId } from '../../core/i18n/DateTimeUtil';
 import { COLOR_MODE_KEY, LOCALE_VERSION_KEY } from '../../entryability/EntryAbility';
 import { Logger } from '../../core/log/Logger';
 import { CourseListStore } from './CourseListStore';
+import { AppIcon } from '../../ui/icons/IconCatalog';
+import { IconGlyph } from '../../ui/icons/IconGlyph';
 
 const logger: Logger = new Logger('features.courses.semesters');
 
@@ -131,17 +133,20 @@ export struct SemesterSelectionPage {
         .fontColor(this.theme().colors.onSurface)
         .layoutWeight(1)
       if (semesterId === this.activeSemesterId()) {
-        Text('✓')
-          .fontSize(this.theme().typography.titleMedium.fontSize)
-          .fontColor(this.theme().colors.primary)
+        // 参考实现 SemesterSelection.tsx:60,69：选中项 `iconName='check'`（MCI `check`）。
+        // 语义挪进图标的 accessibilityText，行本身的无障碍文本不再拼 U+2713 字符。
+        IconGlyph({
+          icon: AppIcon.CHECK, glyphSize: this.theme().sizes.iconSmall,
+          color: this.theme().colors.primary,
+          label: this.s($r('app.string.ui_courses_semester_label'))
+        })
       }
     }
     .width('100%')
     .height(this.theme().sizes.listItemMinHeight)
     .padding({ left: this.theme().sizes.contentPadding, right: this.theme().sizes.contentPadding })
     .backgroundColor(this.theme().colors.surface)
-    .accessibilityText(this.semesterText(semesterId)
-      + (semesterId === this.activeSemesterId() ? ' ✓' : ''))
+    .accessibilityText(this.semesterText(semesterId))
     .onClick(() => {
       this.select(semesterId);
     })

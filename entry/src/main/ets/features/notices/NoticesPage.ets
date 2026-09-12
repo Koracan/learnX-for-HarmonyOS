@@ -23,12 +23,13 @@
 import { ConfigurationConstant } from '@kit.AbilityKit';
 import { PLAIN_PALETTE, ThemeTokens, resolveTheme } from '../../ui/theme/Tokens';
 import { i18nService } from '../../core/i18n/I18n';
-import {
-  DateTimeFormatOptions, PlatformDateTimeFormatter, formatDateTimeUsing, formatDateTimeShort, formatRelativeTo
-} from '../../core/i18n/DateTimeUtil';
+import { formatDateTimeShort, formatRelativeTo } from '../../core/i18n/DateTimeUtil';
 import { Logger } from '../../core/log/Logger';
 import { COLOR_MODE_KEY, LOCALE_VERSION_KEY } from '../../entryability/EntryAbility';
 import { EmptyState } from '../../ui/components/EmptyState';
+import { AppIcon } from '../../ui/icons/IconCatalog';
+import { IconGlyph } from '../../ui/icons/IconGlyph';
+import { updatedTimeText } from '../../ui/components/UpdatedTime';
 import { SessionHeaderProvider, createSessionHeaderProvider, logSessionHeaderState } from '../../core/web/SessionHeaderProvider';
 import { isUnread } from './NoticeOrder';
 import { removeTags } from '../../domain/render/WebViewTemplate';
@@ -50,7 +51,7 @@ interface NoticeRowSpec {
   titleText: string;
   /** 已经过 removeTags 的正文预览；空串表示没有正文。 */
   contentText: string;
-  /** 两个状态图标的无障碍文案（参考实现在 Icon 上有 name，本工程用 emoji + 这行文案）。 */
+  /** 状态图标的无障碍文案（参考实现在图标上有 name，本工程的矢量图标同样需要它）。 */
   attachmentLabel: string;
   importantLabel: string;
 }
@@ -101,25 +102,13 @@ export struct NoticesPage {
     return formatDateTimeShort(notice.publishTimeMillis, locale);
   }
 
+  /**
+   * 页头那一行"相对更新时间"（ticket 11.5 Part B）：`刚刚更新` / `N 分钟前更新` / …。
+   * 原来的"更新于 HH:mm:ss · N 分钟前"是**绝对时间 + ICU 相对措辞**两段拼接；
+   * 账号所有者裁定只保留相对措辞，四档边界在 `ui/components/UpdatedTime.ets`（有单测）。
+   */
   private updatedText(): string {
-    if (this.store.fetchedAtMillis <= 0) {
-      return '';
-    }
-    // 精确到秒：下拉刷新后这一行会变，是"刷新有可见反馈"的确定性证据。
-    const options: DateTimeFormatOptions = {
-      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
-    };
-    const stamp: string = formatDateTimeUsing(this.store.fetchedAtMillis,
-      new PlatformDateTimeFormatter(i18nService.locale(), options));
-    const updated: string = i18nService.t('ui_refreshed_at', stamp);
-    // 陈旧程度（验收第 7 条）：相对时间由 core/i18n 的 formatRelativeTo 给出
-    // （与卡片上的发布时间同一套相对时间词表），拿不到 ICU 措辞时**不显示**第二段——
-    // 绝不退化成写死的 "N minutes ago"（那会在中文界面上出现英文）。
-    const ago: string = formatRelativeTo(this.store.fetchedAtMillis, Date.now(), i18nService.locale());
-    if (ago.length === 0) {
-      return updated;
-    }
-    return updated + ' · ' + ago;
+    return updatedTimeText(this.store.fetchedAtMillis, Date.now());
   }
 
   private unreadText(): string {
@@ -138,25 +127,35 @@ export struct NoticesPage {
     this.stack.pushPath({ name: ROUTE_NOTICE_DETAIL, param: notice });
   }
 
+  /**
+   * 页头（ticket 11.5 Part B，账号所有者点名）：**标题 + 相对更新时间同一行**。
+   *
+   * 参考实现的页头是居中的 `HeaderTitle(title, subtitle)` 且**没有**更新时间元素
+   * （有意偏离，见 docs/accepted-deviations.md 第 24 条）。
+   * 公告页的 `未读 n` 是**有信息量**的计数（不是"未完成 n"那种与筛选片重复的），
+   * 按账号所有者"别为了统一而删信息"的要求**保留**，放在同一行右端。
+   */
   @Builder
   header() {
     Column() {
-      Text(this.s($r('app.string.ui_tab_notices')))
-        .fontSize(this.theme().typography.headlineSmall.fontSize)
-        .lineHeight(this.theme().typography.headlineSmall.lineHeight)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(this.theme().colors.onSurface)
       Row() {
+        Text(this.s($r('app.string.ui_tab_notices')))
+          .fontSize(this.theme().typography.headlineSmall.fontSize)
+          .lineHeight(this.theme().typography.headlineSmall.lineHeight)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(this.theme().colors.onSurface)
         Text(this.updatedText())
           .fontSize(this.theme().typography.labelSmall.fontSize)
           .fontColor(this.theme().colors.onSurfaceVariant)
-          .layoutWeight(1)
+          .margin({ left: this.theme().sizes.space2 })
+          .maxLines(1)
+        Blank()
         Text(this.unreadText())
           .fontSize(this.theme().typography.labelSmall.fontSize)
           .fontColor(this.theme().colors.primary)
       }
       .width('100%')
-      .margin({ top: this.theme().sizes.space1 })
+      .alignItems(VerticalAlign.Bottom)
     }
     .alignItems(HorizontalAlign.Start)
     .width('100%')
@@ -170,38 +169,40 @@ export struct NoticesPage {
 
   /**
    * 卡片右上角的三个状态标记 —— 逐项对齐参考实现 `NoticeCard.tsx:45-69`：
-   *   附件（📎，`Colors.orange500`）→ 重要（🚩，`Colors.red500`）→ 未读（纯圆点，`Colors.blue500`）。
+   *   附件（MCI `attachment`，`Colors.orange500`）→ 重要（MCI `flag`，`Colors.red500`）→
+   *   未读（MCI `checkbox-blank-circle`，`Colors.blue500`）。
    *
-   * 为什么用 emoji 而不是 @ohos.arkui 的 SymbolGlyph：参考实现用的是
-   * MaterialCommunityIcons 的 `attachment` / `flag` / `checkbox-blank-circle` 三个图标，
-   * 而 SymbolGlyph 的可用符号集由系统字体决定，取不到同名符号时要靠 id 猜测、不可移植。
-   * emoji 在本模拟器上可稳定渲染，且**颜色语义（橙/红/蓝）由令牌给出**，与参考实现一致。
-   * 图标本身不带文字，故每个都带 accessibilityText（提交前会核对键已声明）。
+   * ticket 11.5 起这三个标记是**与参考实现同源**的字体图标（内嵌同一份 MCI TTF，同一批码位），
+   * 不再是 emoji / 自绘圆点；仍不用 SymbolGlyph（理由见台账第 16 条的改判）。
+   * 图标本身不带文字，故每个都带 accessibilityText（键已声明）。
    */
   @Builder
   statusIcons(spec: NoticeRowSpec) {
     Row() {
       if (spec.notice.attachment !== undefined) {
-        Text('📎')
-          .fontSize(spec.theme.sizes.iconSmall)
-          .fontColor(PLAIN_PALETTE.orange500)
-          .margin({ left: spec.theme.sizes.space1 })
-          .accessibilityText(spec.attachmentLabel)
+        IconGlyph({
+          icon: AppIcon.ATTACHMENT, glyphSize: spec.theme.sizes.iconSmall,
+          color: PLAIN_PALETTE.orange500, label: spec.attachmentLabel,
+          marginLeft: spec.theme.sizes.space1
+        })
       }
       if (spec.notice.markedImportant) {
-        Text('🚩')
-          .fontSize(spec.theme.sizes.iconSmall)
-          .fontColor(PLAIN_PALETTE.red500)
-          .margin({ left: spec.theme.sizes.space1 })
-          .accessibilityText(spec.importantLabel)
+        IconGlyph({
+          icon: AppIcon.FLAG, glyphSize: spec.theme.sizes.iconSmall,
+          color: PLAIN_PALETTE.red500, label: spec.importantLabel,
+          marginLeft: spec.theme.sizes.space1
+        })
       }
       if (isUnread(spec.notice)) {
-        Column()
-          .width(spec.theme.sizes.space2)
-          .height(spec.theme.sizes.space2)
-          .borderRadius(spec.theme.sizes.space2 / 2)
-          .backgroundColor(PLAIN_PALETTE.blue500)
-          .margin({ left: spec.theme.sizes.space1 })
+        // 参考实现：MCI checkbox-blank-circle（蓝色）。ticket 11.5 起不再是"画出来的圆点"，
+        // 而是同一个字形的字体图标（形状判据升级，见台账第 16 条的改判）。
+        // 与改动前一致：未读圆点**没有** accessibilityText（原来是自绘 Column），
+        // 不新增无障碍节点属性；回退态下它显示目录里的短名 '[new]'。
+        IconGlyph({
+          icon: AppIcon.CHECKBOX_BLANK_CIRCLE, glyphSize: spec.theme.sizes.iconSmall,
+          color: PLAIN_PALETTE.blue500, label: '',
+          marginLeft: spec.theme.sizes.space1
+        })
       }
     }
     .alignItems(VerticalAlign.Center)

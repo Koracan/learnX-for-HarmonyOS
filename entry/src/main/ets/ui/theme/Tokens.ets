@@ -1,11 +1,20 @@
 /*
  * learnOH 主题令牌：颜色 / 排版 / 尺寸。
  *
- * 颜色来源（逐值取自参考实现，未凭印象编造）：
+ * 颜色来源：
  *   - reference/learnOH-old/src/constants/Colors.ts            —— plainTheme 与 500 系调色板
  *   - reference/learnOH-old/src/App.tsx  lightThemeColors      —— MD3 浅色主题实际用色
  *   - reference/learnOH-old/src/App.tsx  darkThemeColors       —— MD3 深色主题实际用色
  *   参考实现用 `rgb()/rgba()` 书写，此处逐值转成 ArkUI 的 `#RRGGBB` / `#AARRGGBB`(ARGB)。
+ *
+ * **一处已登记的偏离（ticket 11.5，账号所有者裁定）**：`background` / `surface` / `card` /
+ * `elevation.level1..5` 与**中性家族**（`onBackground` / `onSurface` / `surfaceVariant` /
+ * `onSurfaceVariant` / `outline` / `outlineVariant` / `inverseSurface` / `inverseOnSurface` /
+ * `backdrop` / `surfaceDisabled` / `onSurfaceDisabled`）**不再等于参考实现**：全部改成
+ * `R=G=B` 中性色（浅色底 = `#FFFFFF`，深色底 = `#1C1C1C`），但**保留 elevation 的明度阶梯**。
+ * 品牌与语义强调色（`primary*` / `secondary*` / `tertiary*` / `error*` / `inversePrimary` /
+ * `shadow` / `scrim`）**一字未动**。理由、逐令牌"改前 → 改后"与替代验收标准见
+ * `docs/accepted-deviations.md` 第 25 条。
  *
  * 排版来源：react-native-paper 5.15.0 的 MD3 typescale
  *   reference/learnOH-old/node_modules/react-native-paper/src/styles/themes/v3/tokens.tsx
@@ -158,30 +167,34 @@ export const LIGHT_COLORS: ColorTokens = {
   onError: '#FFFFFF',
   errorContainer: '#FFDAD6',
   onErrorContainer: '#410002',
-  background: '#FFFBFF',
-  onBackground: '#1E1A1D',
-  surface: '#FFFBFF',
-  onSurface: '#1E1A1D',
-  surfaceVariant: '#ECDFE8',
-  onSurfaceVariant: '#4D444C',
-  outline: '#7F747D',
-  outlineVariant: '#D0C3CC',
+  // --- 底色家族：ticket 11.5 起为纯白（参考实现是 rgb(255,251,255)）---
+  background: '#FFFFFF',
+  // --- 中性家族：ticket 11.5 起 R=G=B（参考实现带紫调）---
+  onBackground: '#1C1C1C',
+  surface: '#FFFFFF',
+  onSurface: '#1C1C1C',
+  surfaceVariant: '#E0E0E0',
+  onSurfaceVariant: '#4A4A4A',
+  outline: '#7A7A7A',
+  outlineVariant: '#C7C7C7',
   shadow: '#000000',
   scrim: '#000000',
-  inverseSurface: '#332F32',
-  inverseOnSurface: '#F7EEF3',
+  inverseSurface: '#313131',
+  inverseOnSurface: '#F2F2F2',
+  // --- 语义强调色：一字未动 ---
   inversePrimary: '#F9ABFF',
-  backdrop: '#66362E35',
-  card: '#FFFBFF',
-  surfaceDisabled: '#1F1E1A1D',
-  onSurfaceDisabled: '#611E1A1D',
+  backdrop: '#66000000',
+  card: '#FFFFFF',
+  surfaceDisabled: '#1F1C1C1C',
+  onSurfaceDisabled: '#611C1C1C',
+  // elevation：中性阶梯，方向与改前一致（level1 最浅 → level5 最深）。
   elevation: {
     level0: 'transparent',
-    level1: '#FAF0FB',
-    level2: '#F7EAF9',
-    level3: '#F4E4F6',
-    level4: '#F3E1F5',
-    level5: '#F1DDF4',
+    level1: '#FAFAFA',
+    level2: '#F5F5F5',
+    level3: '#F0F0F0',
+    level4: '#EDEDED',
+    level5: '#EAEAEA',
   }
 };
 
@@ -203,30 +216,34 @@ export const DARK_COLORS: ColorTokens = {
   onError: '#690005',
   errorContainer: '#93000A',
   onErrorContainer: '#FFB4AB',
-  background: '#1E1A1D',
-  onBackground: '#E9E0E4',
-  surface: '#1E1A1D',
-  onSurface: '#E9E0E4',
-  surfaceVariant: '#4D444C',
-  onSurfaceVariant: '#D0C3CC',
-  outline: '#998D96',
-  outlineVariant: '#4D444C',
+  // --- 底色家族：ticket 11.5 起为中性深灰（参考实现是 rgb(30,26,29)）---
+  background: '#1C1C1C',
+  // --- 中性家族：ticket 11.5 起 R=G=B（参考实现带紫调）---
+  onBackground: '#E6E6E6',
+  surface: '#1C1C1C',
+  onSurface: '#E6E6E6',
+  surfaceVariant: '#474747',
+  onSurfaceVariant: '#C7C7C7',
+  outline: '#949494',
+  outlineVariant: '#474747',
   shadow: '#000000',
   scrim: '#000000',
-  inverseSurface: '#E9E0E4',
-  inverseOnSurface: '#332F32',
+  inverseSurface: '#E6E6E6',
+  inverseOnSurface: '#313131',
+  // --- 语义强调色：一字未动 ---
   inversePrimary: '#9A25AE',
-  backdrop: '#66362E35',
-  card: '#1E1A1D',
-  surfaceDisabled: '#1FE9E0E4',
-  onSurfaceDisabled: '#61E9E0E4',
+  backdrop: '#66000000',
+  card: '#1C1C1C',
+  surfaceDisabled: '#1FE6E6E6',
+  onSurfaceDisabled: '#61E6E6E6',
+  // elevation：中性阶梯，方向与改前一致（level1 最深 → level5 最浅，MD3 深色是"越高越亮"）。
   elevation: {
     level0: 'transparent',
-    level1: '#292128',
-    level2: '#30262F',
-    level3: '#362A36',
-    level4: '#382B38',
-    level5: '#3D2E3D',
+    level1: '#262626',
+    level2: '#2C2C2C',
+    level3: '#323232',
+    level4: '#343434',
+    level5: '#3A3A3A',
   }
 };
 

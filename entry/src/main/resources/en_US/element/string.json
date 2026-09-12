@@ -1187,6 +1187,22 @@
     {
       "name": "ui_file_cache_already_empty",
       "value": "The cache folder is already empty"
+    },
+    {
+      "name": "ui_updated_just_now",
+      "value": "Updated just now"
+    },
+    {
+      "name": "ui_updated_minutes_ago",
+      "value": "Updated %1$s min ago"
+    },
+    {
+      "name": "ui_updated_hours_ago",
+      "value": "Updated %1$s h ago"
+    },
+    {
+      "name": "ui_updated_days_ago",
+      "value": "Updated %1$s d ago"
     }
   ]
 }

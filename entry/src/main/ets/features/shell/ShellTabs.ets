@@ -30,6 +30,8 @@ import {
   FORCE_DARK_FOR_EVIDENCE, FORCE_ENGLISH_FOR_EVIDENCE, logEvidenceSwitchState
 } from '../notices/repository/NoticeRepositoryProvider';
 import { PlaceholderTab } from './PlaceholderTab';
+import { AppIcon } from '../../ui/icons/IconCatalog';
+import { IconGlyph } from '../../ui/icons/IconGlyph';
 
 const logger: Logger = new Logger('features.shell');
 
@@ -45,10 +47,17 @@ export enum ShellTab {
   SETTINGS = 4
 }
 
-/** 底栏单个 tab 按钮。@Prop 是基本类型，切 tab / 切主题 / 切语言都会刷新。 */
+/**
+ * 底栏单个 tab 按钮。@Prop 是基本类型，切 tab / 切主题 / 切语言都会刷新。
+ *
+ * ticket 11.5：图标从"自绘的圆形色点"换成**参考实现 tabBarIcon 用的同一批图标**
+ * （`App.tsx:617-631` 的 MaterialIcons `notifications` / `event` / `folder` / `apps` / `settings`），
+ * 颜色仍按选中态取 `primary` / `outline`（参考实现是 primary / gray）。尺寸令牌与间距**未动**。
+ */
 @Component
 struct ShellTabBarItem {
   @Prop label: string = '';
+  @Prop icon: AppIcon = AppIcon.NOTIFICATIONS;
   @Prop active: boolean = false;
   @Prop isDark: boolean = false;
   onTap: () => void = () => {
@@ -60,11 +69,12 @@ struct ShellTabBarItem {
 
   build() {
     Column() {
-      Column()
-        .width(this.theme().sizes.space2)
-        .height(this.theme().sizes.space2)
-        .borderRadius(this.theme().sizes.space2 / 2)
-        .backgroundColor(this.active ? this.theme().colors.primary : this.theme().colors.outline)
+      IconGlyph({
+        icon: this.icon,
+        glyphSize: this.theme().sizes.iconMedium,
+        color: this.active ? this.theme().colors.primary : this.theme().colors.outline,
+        label: this.label
+      })
       Text(this.label)
         .fontSize(this.theme().typography.labelMedium.fontSize)
         .fontColor(this.active ? this.theme().colors.primary : this.theme().colors.onSurfaceVariant)
@@ -169,6 +179,7 @@ export struct ShellTabs {
     Row() {
       ShellTabBarItem({
         label: this.s($r('app.string.ui_tab_notices')),
+        icon: AppIcon.NOTIFICATIONS,
         active: this.activeIndex === ShellTab.NOTICES,
         isDark: this.isDark(),
         onTap: () => {
@@ -177,6 +188,7 @@ export struct ShellTabs {
       })
       ShellTabBarItem({
         label: this.s($r('app.string.loh_assignments')),
+        icon: AppIcon.EVENT,
         active: this.activeIndex === ShellTab.ASSIGNMENTS,
         isDark: this.isDark(),
         onTap: () => {
@@ -185,6 +197,7 @@ export struct ShellTabs {
       })
       ShellTabBarItem({
         label: this.s($r('app.string.loh_files')),
+        icon: AppIcon.FOLDER,
         active: this.activeIndex === ShellTab.FILES,
         isDark: this.isDark(),
         onTap: () => {
@@ -193,6 +206,7 @@ export struct ShellTabs {
       })
       ShellTabBarItem({
         label: this.s($r('app.string.loh_courses')),
+        icon: AppIcon.APPS,
         active: this.activeIndex === ShellTab.COURSES,
         isDark: this.isDark(),
         onTap: () => {
@@ -201,6 +215,7 @@ export struct ShellTabs {
       })
       ShellTabBarItem({
         label: this.s($r('app.string.loh_settings')),
+        icon: AppIcon.SETTINGS,
         active: this.activeIndex === ShellTab.SETTINGS,
         isDark: this.isDark(),
         onTap: () => {

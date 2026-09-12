@@ -1,11 +1,13 @@
 /*
  * 通用空态组件（spec.md 第 2 节：ui/ 放通用组件）。
  *
- * 参考实现 components/Empty.tsx 用 MaterialIcons 的 check-circle；图标字体
- * （MCI TTF）要到后续切片才打包，这里用一个纯主题令牌画的中性圆环代替，
- * 视觉效果一致（居中、outline 取色），且不引入任何硬编码色值。
+ * 参考实现 components/Empty.tsx:13-18 用 MaterialIcons 的 check-circle（outline 取色）。
+ * ticket 11.5 起图标字体已随包内嵌，这里直接用**同一个字形**（`AppIcon.CHECK_CIRCLE`），
+ * 不再画替代圆环。尺寸仍取既有令牌 `sizes.iconLarge`（参考实现是硬编码 56）。
  */
 import { ThemeTokens, resolveTheme } from '../theme/Tokens';
+import { AppIcon } from '../icons/IconCatalog';
+import { IconGlyph } from '../icons/IconGlyph';
 
 @Component
 export struct EmptyState {
@@ -19,11 +21,11 @@ export struct EmptyState {
 
   build() {
     Column() {
-      Column()
-        .width(this.theme().sizes.iconLarge)
-        .height(this.theme().sizes.iconLarge)
-        .borderRadius(this.theme().sizes.iconLarge / 2)
-        .border({ width: this.theme().sizes.borderWidth * 2, color: this.theme().colors.outline })
+      IconGlyph({
+        icon: AppIcon.CHECK_CIRCLE,
+        glyphSize: this.theme().sizes.iconLarge,
+        color: this.theme().colors.outline
+      })
       Text(this.message)
         .fontSize(this.theme().typography.bodyLarge.fontSize)
         .lineHeight(this.theme().typography.bodyLarge.lineHeight)
