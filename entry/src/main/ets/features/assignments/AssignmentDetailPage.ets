@@ -19,10 +19,12 @@
  *
  * ## 三处必须说明的判断
  *
- * 1. **没有提交入口（硬红线）**：参考实现在 headerRight 放了一个"上传"按钮
- *    （:105-120），点它进 `AssignmentSubmission`。本工程把**提交**归 ticket 13
- *    （真实账号、不可逆写入），本 ticket **全程只读**：页面上不渲染任何提交按钮，
- *    也不构造提交请求。`Assignment.submitUrl` 只随列表项带过来、不在此页使用。
+ * 1. **提交入口的边界**（ticket 10 建页、ticket 13 接上）：参考实现在 headerRight 放了一个
+ *    上传按钮（:105-120），点它进 `AssignmentSubmission`。ticket 10 全程只读、不渲染该入口；
+ *    ticket 13 把它接上：`submissionType !== OFFLINE` 时渲染 MaterialIcons `file-upload`，
+ *    点击先判截止（已过 ⇒ 只提示 `loh_assignment_past_deadline`），否则把整个 `Assignment`
+ *    推给 `ROUTE_ASSIGNMENT_SUBMISSION`。**本页仍然只读**：不构造提交请求、不落任何表单字段；
+ *    真正的写操作在提交页里由用户二次确认后发出。
  *
  * 2. **优秀作业已交付**（ticket 10 补做）：数据来自参考实现那条**独立接口**
  *    `/b/wlxt/kczy/zy/student/yxzylist`（每门课一次 POST）+ 每条一次
@@ -57,7 +59,12 @@ import { AppIcon } from '../../ui/icons/IconCatalog';
 import { IconGlyph } from '../../ui/icons/IconGlyph';
 import { SessionHeaderProvider } from '../../core/web/SessionHeaderProvider';
 import { FileDetailRouteParams, ROUTE_FILE_DETAIL } from '../notices/NoticeRoutes';
-import { completionText, deadlineText, dueStatusText, gradeText, submissionText } from './AssignmentText';
+import { CourseListStore } from '../courses/CourseListStore';
+import { ROUTE_ASSIGNMENT_SUBMISSION } from './AssignmentRoutes';
+import { isPastDeadline } from './AssignmentFilter';
+import {
+  completionText, deadlineText, dueStatusText, gradeText, isOfflineSubmission, submissionText
+} from './AssignmentText';
 
 const logger: Logger = new Logger('features.assignments.detail');
 
@@ -82,6 +89,8 @@ export struct AssignmentDetailPage {
   };
   stack: NavPathStack | null = null;
   session: SessionHeaderProvider | null = null;
+  /** 提交成功后要重新取数的课程状态（由作业列表页传入；为 null 时提交页只 toast）。 */
+  store: CourseListStore | null = null;
 
   aboutToAppear(): void {
     // 站点原文进 hilog：完成方式 / 提交方式的**实际取值**决定 AssignmentText 的映射
@@ -203,6 +212,41 @@ export struct AssignmentDetailPage {
     this.stack.pushPath({ name: ROUTE_FILE_DETAIL, param: params });
   }
 
+  private toast(message: string): void {
+    try {
+      this.getUIContext().getPromptAction().showToast({ message: message, duration: 2000 });
+    } catch (error) {
+      logger.warn('toast failed: ' + (error as Error).message);
+    }
+  }
+
+  /**
+   * 进提交页（参考实现 AssignmentDetail.tsx:82-101 的 handleSubmit）。
+   *
+   * 两件事逐条照做：
+   *   1. **已过截止时间就只提示、不进入**（`dayjs().isAfter(deadline)` ⇒ `assignmentPastDeadline`）；
+   *   2. 否则把**整个 Assignment**（含 `studentHomeworkId`、`submittedContent`、
+   *      `submittedAttachment`、`submitTime`）推给提交页 —— 参考实现也是 `...route.params`。
+   *
+   * 注意：这里**只推路由，不发任何请求**；真正的写操作要用户在提交页再点一次「提交」并确认。
+   */
+  private openSubmission(): void {
+    if (isPastDeadline(this.assignment.deadline, Date.now())) {
+      logger.info('submission entry blocked: past deadline=' + this.assignment.deadline);
+      this.toast(this.s($r('app.string.loh_assignment_past_deadline')));
+      return;
+    }
+    if (this.stack === null) {
+      logger.error('submission entry tapped but no NavPathStack');
+      return;
+    }
+    logger.info('submission entry tapped: id=' + this.assignment.id
+      + ' xszyid=' + (this.assignment.studentHomeworkId === undefined
+        ? 'none' : this.assignment.studentHomeworkId)
+      + ' deadline=' + this.assignment.deadline);
+    this.stack.pushPath({ name: ROUTE_ASSIGNMENT_SUBMISSION, param: this.assignment });
+  }
+
   @Builder
   headerRow() {
     Row() {
@@ -224,6 +268,22 @@ export struct AssignmentDetailPage {
       Text(this.s($r('app.string.loh_assignments')))
         .fontSize(this.theme().typography.titleMedium.fontSize)
         .fontColor(this.theme().colors.onSurfaceVariant)
+      Blank()
+      // 提交入口（ticket 13）：参考实现只在 `submissionType !== OFFLINE` 时渲染
+      // headerRight 的那枚 MaterialIcons `file-upload`（AssignmentDetail.tsx:99-120）。
+      if (!isOfflineSubmission(this.assignment.submissionType)) {
+        Stack() {
+          IconGlyph({
+            icon: AppIcon.FILE_UPLOAD, glyphSize: this.theme().sizes.iconMedium,
+            color: this.theme().colors.primary, label: this.s($r('app.string.loh_submit_assignment'))
+          })
+        }
+        .width(this.theme().sizes.controlHeight)
+        .height(this.theme().sizes.controlHeight)
+        .onClick(() => {
+          this.openSubmission();
+        })
+      }
     }
     .width('100%')
     .alignItems(VerticalAlign.Center)

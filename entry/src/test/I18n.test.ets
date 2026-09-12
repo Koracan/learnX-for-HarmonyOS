@@ -42,9 +42,9 @@ const LOCAL_ADDITION_COUNT: number = 6;
  * ticket 11 24 个（文件列表/详情/下载进度/预览/分享/文件设置）；
  * ticket 11.5 4 个（页头的相对更新时间四档 —— 见 scripts/i18n-ui-strings.mjs）。
  */
-const UI_STRING_COUNT: number = 115;
+const UI_STRING_COUNT: number = 116;
 /** 迁移后的资源键总数（也是 I18N_KEY_COUNT 的期望值）。 */
-const TOTAL_KEY_COUNT: number = 301;
+const TOTAL_KEY_COUNT: number = 302;
 
 const REFERENCE_SAMPLE: string[] = ['loh_back', 'loh_notices', 'loh_assignments', 'loh_files', 'loh_courses'];
 const LOCAL_ADDITIONS: string[] = ['loh_fall', 'loh_spring', 'loh_summer'];

@@ -35,13 +35,14 @@ const EXPECTED: ExpectedGlyph[] = [
   { icon: AppIcon.GRADE, name: 'grade', family: IconFamily.MATERIAL, code: 0xE885 },
   { icon: AppIcon.INSERT_DRIVE_FILE, name: 'insert-drive-file', family: IconFamily.MATERIAL, code: 0xE24D },
   { icon: AppIcon.CHECK_CIRCLE, name: 'check-circle', family: IconFamily.MATERIAL, code: 0xE86C },
-  { icon: AppIcon.ARROW_BACK, name: 'arrow-back', family: IconFamily.MATERIAL, code: 0xE5C4 }
+  { icon: AppIcon.ARROW_BACK, name: 'arrow-back', family: IconFamily.MATERIAL, code: 0xE5C4 },
+  { icon: AppIcon.FILE_UPLOAD, name: 'file-upload', family: IconFamily.MATERIAL, code: 0xE2C6 }
 ];
 
 export default function iconCatalogTest() {
   describe('ui.icons.IconCatalog', () => {
     it('maps every icon to the reference glyphmap code point and family', 0, () => {
-      expect(EXPECTED.length).assertEqual(15);
+      expect(EXPECTED.length).assertEqual(16);
       for (let i = 0; i < EXPECTED.length; i++) {
         const expected: ExpectedGlyph = EXPECTED[i];
         const spec: IconSpec = iconSpec(expected.icon);

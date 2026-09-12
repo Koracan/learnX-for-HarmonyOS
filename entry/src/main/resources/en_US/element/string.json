@@ -1203,6 +1203,10 @@
     {
       "name": "ui_updated_days_ago",
       "value": "Updated %1$s d ago"
+    },
+    {
+      "name": "ui_assignment_submission_time",
+      "value": "[last submitted at] HH:mm, MMM D, YYYY"
     }
   ]
 }

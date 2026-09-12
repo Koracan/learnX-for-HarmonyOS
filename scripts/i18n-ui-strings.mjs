@@ -192,5 +192,13 @@ export const UI_STRINGS = [
   ['ui_updated_just_now', '刚刚更新', 'Updated just now'],
   ['ui_updated_minutes_ago', '{0} 分钟前更新', 'Updated {0} min ago'],
   ['ui_updated_hours_ago', '{0} 小时前更新', 'Updated {0} h ago'],
-  ['ui_updated_days_ago', '{0} 天前更新', 'Updated {0} d ago']
+  ['ui_updated_days_ago', '{0} 天前更新', 'Updated {0} d ago'],
+  // --- ticket 13（作业提交）新增 ---
+  // 提交页底部那句「上次提交于 …」。参考实现在 AssignmentSubmission.tsx:445-453 把两种语言的
+  // dayjs 模式**硬编码在屏幕里**（中文 '上次提交于 YYYY 年 M 月 D 日 dddd HH:mm'、
+  // 英文 '[last submitted at] HH:mm, MMM D, YYYY'）。这里把整条模式（含前缀）变成资源，
+  // 由 domain/render/NoticeDateText 的 formatNoticeDate 渲染 —— 与公告发布时间同一套机制。
+  ['ui_assignment_submission_time',
+    '上次提交于 YYYY 年 M 月 D 日 dddd HH:mm',
+    '[last submitted at] HH:mm, MMM D, YYYY']
 ];

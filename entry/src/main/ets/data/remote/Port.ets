@@ -11,6 +11,7 @@
  */
 
 import { HttpMethod, HttpOutcome, Session } from './Requests';
+import { UploadFile } from '../upload/Multipart';
 
 export { Session } from './Requests';
 
@@ -40,19 +41,35 @@ export interface GetSpec {
   url: string;
 }
 
-/** multipart 的文本字段（照参考实现提交接口的两个字段）。 */
+/**
+ * multipart 的文本字段：**作业提交接口**的三个字段。
+ *
+ * 逐字对齐参考实现 `src/data/source.ts:175-179` 的 `params`：
+ *   - `xszyid` = 学生作业 id；
+ *   - `zynr` = 正文（无正文时空串）；
+ *   - `isDeleted` = 移除附件时 `'1'`，否则 `'0'`。
+ *
+ * **没有 `id`**：`id` 是**作业描述接口**的字段（见下面的 `PostFormSpec.id`，发 `id=<zyid>`），
+ * ticket 05 曾把两个接口揉在一起。参考实现的提交不发 `id`（ticket 13 的字段对照表）。
+ * 字段顺序有意义：multipart 的文本部分按本对象的构造顺序写出。
+ */
 export interface UploadFormParams {
-  id: string;
   xszyid: string;
+  zynr: string;
+  isDeleted: string;
 }
 
-/** 一次 multipart 上传。 */
+/**
+ * 一次 multipart 上传。
+ *
+ * `file` 为 `undefined` 时**不写文件部分** —— 只提交正文（或"移除附件"）时参考实现同样
+ * 不产生任何文件段（`source.ts:168-205` 里 `filePath` 未定义就不写文件）。
+ */
 export interface UploadSpec {
   url: string;
   params: UploadFormParams;
-  fileName: string;
-  contentType: string;
-  data: Uint8Array;
+  /** 文件部分；字段名固定 `fileupload`（无附件时为 `undefined`）。 */
+  file?: UploadFile;
   requestId?: string;
 }
 

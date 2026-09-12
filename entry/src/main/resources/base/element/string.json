@@ -1215,6 +1215,10 @@
     {
       "name": "ui_updated_days_ago",
       "value": "%1$s 天前更新"
+    },
+    {
+      "name": "ui_assignment_submission_time",
+      "value": "上次提交于 YYYY 年 M 月 D 日 dddd HH:mm"
     }
   ]
 }

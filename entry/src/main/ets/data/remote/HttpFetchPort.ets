@@ -104,18 +104,16 @@ export class HttpFetchPort implements FetchPort, RawFetchPort {
   }
 
   async upload(session: Session, spec: UploadSpec, onProgress?: UploadProgressSink): Promise<HttpOutcome> {
+    // 字段顺序 = 参考实现提交接口的对象插入序：xszyid → zynr → isDeleted。
+    // **没有 id**（那是作业描述接口 PostFormSpec.id 的字段，见 Port.ets 的说明）。
     const params: Record<string, string> = {};
-    params['id'] = spec.params.id;
     params['xszyid'] = spec.params.xszyid;
+    params['zynr'] = spec.params.zynr;
+    params['isDeleted'] = spec.params.isDeleted;
     const assembled: UploadRequest = buildUploadRequest(
       spec.url,
       params,
-      {
-        fieldName: 'fileupload',
-        fileName: spec.fileName,
-        contentType: spec.contentType,
-        data: spec.data
-      },
+      spec.file,
       encodeUtf8,
       session.cookie,
       newBoundary()

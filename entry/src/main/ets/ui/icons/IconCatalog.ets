@@ -77,7 +77,9 @@ export enum AppIcon {
   /** MaterialIcons `check-circle`：空态（参考实现 `components/Empty.tsx:15`，size 56）。 */
   CHECK_CIRCLE = 'check-circle',
   /** MaterialIcons `arrow-back`：详情页左上角的返回（参考实现是导航栈默认返回箭头）。 */
-  ARROW_BACK = 'arrow-back'
+  ARROW_BACK = 'arrow-back',
+  /** MaterialIcons `file-upload`：作业详情页页头右侧的「提交」入口（参考实现 AssignmentDetail.tsx:105-120）。 */
+  FILE_UPLOAD = 'file-upload'
 }
 
 /** 闭集 → 资源。没有 default 分支的"兜底语义"：未知枚举值按 attachment 渲染并保持可读。 */
@@ -113,6 +115,10 @@ export function iconSpec(icon: AppIcon): IconSpec {
       return { family: IconFamily.MATERIAL, code: 0xE86C, fallback: '[ok]' };
     case AppIcon.ARROW_BACK:
       return { family: IconFamily.MATERIAL, code: 0xE5C4, fallback: '[<]' };
+    case AppIcon.FILE_UPLOAD:
+      // 码位 58054 (0xE2C6) 抄自 react-native-vector-icons@10.2.0 的
+      // glyphmaps/MaterialIcons.json 的 file-upload。
+      return { family: IconFamily.MATERIAL, code: 0xE2C6, fallback: '[up]' };
     default:
       return { family: IconFamily.MATERIAL_COMMUNITY, code: 0xF0066, fallback: '[icon]' };
   }

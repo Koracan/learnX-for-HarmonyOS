@@ -1,8 +1,8 @@
 {
-  "total": 301,
+  "total": 302,
   "referenceCount": 180,
   "localCount": 6,
-  "uiCount": 115,
+  "uiCount": 116,
   "referenceKeys": [
     "back",
     "notices",
@@ -2993,6 +2993,15 @@
       "enPlaceholders": [
         "{0}"
       ],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_assignment_submission_time",
+      "name": "ui_assignment_submission_time",
+      "zhValue": "上次提交于 YYYY 年 M 月 D 日 dddd HH:mm",
+      "enValue": "[last submitted at] HH:mm, MMM D, YYYY",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
       "origin": "ui"
     }
   ]

@@ -22,3 +22,14 @@
  * 扁平的 10 个字段不够）。课程详情页与本 tab 都推这一条路由、渲染同一个页面。
  */
 export const ROUTE_ASSIGNMENT_DETAIL: string = 'AssignmentDetail';
+
+/**
+ * 作业提交页路由名（ticket 13）。
+ *
+ * 参考实现把提交页挂在**自己的**一个 stack 上（`App.tsx:381-395` 的 `AssignmentSubmissionStack`，
+ * 由作业详情页用 `StackActions.push('AssignmentSubmission', route.params)` 推入），参数就是
+ * `Assignment` 本身。本工程沿用「每个 tab 一个 NavPathStack」的既有做法（见文件头），
+ * 把它作为作业栈里作业详情之上的一层 —— 参数同样是完整 `Assignment`。
+ */
+export const ROUTE_ASSIGNMENT_SUBMISSION: string = 'AssignmentSubmission';
+

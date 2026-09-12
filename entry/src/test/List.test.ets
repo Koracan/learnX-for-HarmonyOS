@@ -30,6 +30,7 @@ import courseCountsTest from './CourseCounts.test';
 import courseDataTest from './CourseData.test';
 import assignmentListTest from './AssignmentList.test';
 import excellentHomeworkTest from './ExcellentHomework.test';
+import assignmentSubmissionTest from './AssignmentSubmission.test';
 import fileDownloadTest from './FileDownload.test';
 import updatedTimeTest from './UpdatedTime.test';
 import iconCatalogTest from './IconCatalog.test';
@@ -63,6 +64,7 @@ export default function testsuite() {
   courseDataTest();
   assignmentListTest();
   excellentHomeworkTest();
+  assignmentSubmissionTest();
   fileDownloadTest();
   updatedTimeTest();
   iconCatalogTest();

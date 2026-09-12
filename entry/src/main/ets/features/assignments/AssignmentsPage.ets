@@ -52,7 +52,8 @@ import { createCourseRepository } from '../courses/repository/CourseRepositoryPr
 import { FileDetailPage } from '../files/FileDetailPage';
 import { FileDetailRouteParams, ROUTE_FILE_DETAIL } from '../notices/NoticeRoutes';
 import { AssignmentDetailPage } from './AssignmentDetailPage';
-import { ROUTE_ASSIGNMENT_DETAIL } from './AssignmentRoutes';
+import { AssignmentSubmissionPage } from './AssignmentSubmissionPage';
+import { ROUTE_ASSIGNMENT_DETAIL, ROUTE_ASSIGNMENT_SUBMISSION } from './AssignmentRoutes';
 import {
   AssignmentFilter, countAssignments, countPastDue, filterAssignments, hasAnswer,
   hasExcellentHomework, isAssignmentListEmpty, isPastDeadline
@@ -479,7 +480,19 @@ export struct AssignmentsPage {
         AssignmentDetailPage({
           assignment: param as Assignment,
           stack: this.stack,
-          session: this.session
+          session: this.session,
+          // 提交成功后要重新取数：把**同一个** CourseListStore 实例传下去，
+          // 不新建一份取数路径（见 AssignmentsPage 文件头「复用课程线的同一次抓取」）。
+          store: this.store
+        })
+      }
+      .hideTitleBar(true)
+    } else if (name === ROUTE_ASSIGNMENT_SUBMISSION) {
+      NavDestination() {
+        AssignmentSubmissionPage({
+          assignment: param as Assignment,
+          stack: this.stack,
+          store: this.store
         })
       }
       .hideTitleBar(true)
