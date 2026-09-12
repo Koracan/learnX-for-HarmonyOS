@@ -269,12 +269,21 @@ UUID 兜底。同一个生效值用于三处：表单字段、`saveFinger` 的 X
 那个值（回读值）**：权威顺序 = `saveFingerXhr` > `formFieldDom` > `generatedFallback`
 （`domain/auth/EnrollmentScript.ets` 的 `resolveEnrollmentFingerPrint`，唯一一处定义）。
 
+**硬约束（2026-09-12 第 4 次真实登记后升级为硬约束）**：**登记值与出示值必须逐字一致**。落地为两条：
+① `saveFinger` 的 XHR patch **绝不覆盖页面已给的非空 `fingerprint`**；② 落盘/重登回放用的是**同一处解析结果**
+（`resolveEnrollmentFingerPrint`，权威顺序 `saveFingerXhr` > `formFieldDom` > `generatedFallback`）。
+理由不是洁癖：服务端记录的是**它当时收到的那一个字符串**，而重登出示的是**凭据里那一个**——两者不一致就等于
+"登记了一个永远不会被出示的值"。离线机制证据：单测 `neverOverwritesTheFingerprintThePageAlreadyPutInTheSaveFingerBody` /
+`prefersTheSaveFingerValueOverTheDomValueAndTheFallback`；
+设备侧的正验证：第 4 次登记 `enrollment fingerprint effective: value=8983…(32) source=formFieldDom pageDomSource=page usingFallback=false`
+并且 `formFieldDom=746a15a2 persistedReadBack=746a15a2 formEqualsPersisted=true`。
+
 **替代验收标准（本表"已复审"档要求写明的那一条）**：**提交报文里的 `fingerPrint` 必须等于页面
 fingerprintjs2 的值；页面没给出值时才用我们生成的 UUID 兜底；且三处同值**（三点脱敏等式
 `formFieldDom` = `saveFingerXhr` = `persistedReadBack`，判据本身不变），
 不再要求它等于"我们生成的 UUID"。
 
-**附注 1（2026-09-12 已推翻并更正）**：原文写"`/b/doubleAuth/personal/saveFinger` 在登录页加载的
+**附注 1（2026-09-12 已推翻并更正；同日第 4 次真实登记后**升级为「已确证」**，见本节末）**：原文写"`/b/doubleAuth/personal/saveFinger` 在登录页加载的
 任何脚本里都不存在 ⇒ 信任登记不走这个端点"——**这条推测是错的，已被 2026-09-12 10:57 那次真实登记的
 设备日志推翻**（原文保留在此以免有人以为它从未出现过）：
 
@@ -289,6 +298,27 @@ fingerprintjs2 的值；页面没给出值时才用我们生成的 UUID 兜底�
 - **取证**：`.scratch/enrollment/evidence/experiment-1057/experiment-1057-full.txt`（应用域 `A04c4f`）。
 - **对本条实现的影响**：saveFinger 的 XHR patch 是**有效且必要**的注入点；随之而来的 D1 缺陷
   （我们覆盖了页面自己放好的指纹）见 `EnrollmentScript.ets` 的 `patchSaveFinger` 注释。
+
+**升级为「已确证」（2026-09-12 第 4 次真实登记，免短信）**：本条不再只是"端点被调用过"。两个正向观测合起来足以把它定为
+**站点的信任登记步**：
+
+1. `saveFinger` 在**二次验证页**（就是渲染「信任该浏览器」单选项的那一页）上被调用，服务端回
+   `result=success msgs=[msg=已增加]`——"**已增加**"是**新增登记**的语义（10:57:08.555 / 08.600，见上）。
+2. 此后同一账号、同一浏览器再次登录时，`/login/check` **不再渲染二次验证页**（脚本集从 `doubleAuth.bundle.js` 换成
+   `genprint.js`），表单提交到漫游**只用了 1.62 秒**；`doubleAuth/login` / `saveFingerRequest` / `radioVal` /
+   `验证码` / `captcha` / `短信` **全部 0 命中** ⇒ 站点**直接信任、未要求任何短信**（12:01 那次
+   `enrollment session established: via=browser-cookie-adopt`）。
+
+⇒ **"`saveFinger` = 信任登记"：已确证。** 取证：`.scratch/enrollment/evidence/experiment-success/`（3 个 `.gz` 原件 + 应用域抽取）。
+
+**边界（必须与上面那句分开读）**：第 4 次登记时 **`saveFinger` 根本没有被调用**（`saveFingerObserved=false`），
+也就是说那次免短信**不是"这次登记成功"的结果**，而是"**站点在更早的某次已把该浏览器记为可信**"。更早那次（10:57）恰在
+**D1 缺陷**下发出登记值 = **36 字符兜底 UUID**（`fingerprintChars=36 fingerprintSource=fallback`），而第 4 次出示的是
+**32 字符页面值**（`source=formFieldDom`）。若服务端严格按"出示值 == 登记值"命中，那次登记**不应生效**。
+⇒ **"信任以 `fingerPrint` 为键（严格逐字命中）"这一点仍未验证**：可能键不是它本身，也可能判据更宽松。
+判定它只能靠 **ticket 08 的"无短信纯 HTTP 重登成功"**——而 2026-09-12 实测**失败**（`no ticket anchor in id login check response`），
+所以这条**至今没有正面证据**。**不要**拿"免短信"去替代它（两个论断不能复用同一份证据）。
+
 
 **附注 2（另一处已知偏离，本次实验**不动**）**：`deviceName` 参考是
 `HarmonyOS,learnOH/{packageJson.version}`（`SSO.tsx:52`），本工程是
@@ -373,6 +403,63 @@ saveFinger / singleLogin）**在它之外**。**参考实现在这台模拟器�
 `experiment-0918-full.txt`（用户会话：三次 `/b/doubleAuth/login` 全部 `result=success`、无 `saveFingerRequest`、无 roaming）。
 
 ---
+
+---
+
+## 13. 【待判】已信任分支的 `/login/check` 可能是 JS 驱动页 —— 票据锚点可能不在 HTTP 响应里（ticket 07/08，**未定案**）
+
+**观察到的事实**（2026-09-12 第 4 次真实登记 + 同日冷启动复验）：
+- 已信任（免短信）那次，`/do/off/ui/auth/login/check` 之后加载的是**一张 genprint 页**：
+  `scriptCount=3 inlineScripts=1 formAction=none scripts=[/res/ui/jquery.min.js /v2/dist/doubleauth/localstorageUtil.js /res/selfservice/genprint.js]`，
+  接着 `POST /b/doubleAuth/personal/getFinger3`（`result=error`），再跳 `j_spring_security_thauth_roaming_entry`。
+  未信任那次（10:57）同一路径加载的是 **`doubleAuth.bundle.js`**（二次验证页），并多一跳 `redirect2Jsp`。
+- 纯 HTTP 重登拿到的那张页是 `status=200 bytes=1280 idLoginPage=false doubleAuthMentions=0`，**没有 `<a>` 锚点**
+  ⇒ 我们那套**与参考实现逐字一致**的取票据方式（首个 `<a href>` → 最后一个 `=` 之后；
+  `data/auth/LoginParsers.ets:41-61` ↔ `reference/learnOH-old/tmp/bundle.harmony.js` @2044751 的 `getRoamingTicket`）
+  取不到票据 ⇒ `NO_TICKET_IN_RESPONSE`（冷启动因此没能重建会话，降级到登录页——降级本身是正确的）。
+
+**已排除的静态候选**（2026-09-12 直接抓站点静态资源读，**不需要登录、不需要用户动手机**）：
+- `/res/selfservice/genprint.js`（106 B，5 行）：只调 `localstorageUtil.getFinger3FromRemoteAndSave()`，**无任何跳转**；
+- `/v2/dist/doubleauth/localstorageUtil.js`（35 KB bundle）：`roaming` / `redirect2Jsp` / `location.href` / `ticket` **0 命中**；
+  `getFinger3FromRemoteAndSave` = `$.post("/b/doubleAuth/personal/getFinger3", {}, cb)`，**不做跳转**；
+- `/res/selfservice/finger3.js`（登录**表单**页的辅助脚本）：管 `#fingerGenPrint3` 与 `singleLogin` 复选框，**不跳转**
+  （顺带独立确认了第 7 节那条"页面会显式把 `singleLogin` 置为未勾选"）。
+⇒ 跳转指令**只可能在那张 1280 字节页自身的 inline script / meta refresh 里**（该页 `inlineScripts=1`）。**这是排除法，不是直接证据。**
+
+**两种世界（**先判别再改码**）**：
+- **W1**：票据/漫游 URL **就在 HTTP 响应正文里**（只是不再是 `<a href>`）⇒ 纯 HTTP 路线成立，我们只差一步解析（或一步跳转）；
+- **W2**：票据由站点 JS 在执行期生成 ⇒ 纯 HTTP 做不到 ⇒ **要改 ADR-0004**（它第 7 行否决过"隐藏 WebView 静默重登"），
+  属**决策变更**（需用户签字），不是改代码。
+
+**判别计划（只读探针；明确：不需用户动手机、不走登记、不发短信）**：把那张 1280 字节页的**正文**（或结构：所有 `<script src>`、
+inline script 正文、form action、`location.href` 赋值、`ticket` / `getFinger3` / `redirect2Jsp` / `roaming` 的出现处）打出来。
+**计数不足以判 W1/W2**；探针开关的**实际生效值**要打进 hilog；**一轮只打一次登录**（`singleLogin='on'` 可能踢掉既有会话，
+连续重试还可能触发风控）。
+
+**为什么别急着改**：放宽 `extractTicket`（例如也认 `location.href=`）在 W2 下**不会**让它工作，却会让"取不到票据"这个
+**正确的失败信号**消失。**先取证再改。**
+
+**取证**：`.scratch/enrollment/evidence/experiment-success/`；ticket 07 Comments「第 4 次真实登记」第 8 节；ticket 08 Comments 末节；
+静态资源副本 `.dsh/logs/genprint.js.txt` / `.dsh/logs/static-1.js` / `.dsh/logs/static-2.js`。
+
+---
+
+## 14. 【未证·强线索】`adopt()` 在 10:57 失败于"收割时机偏早"（ticket 07）
+
+**事实**：10:57 那次登记漫游到了、也收割到了（`entries=2 names=[JSESSIONID,XSRF-TOKEN] chars=102`），但随后的纯 HTTP 会话采纳
+（`EnrollmentSession.adopt()`）拿到 `status=200 bytes=1657`、CSRF 抽取为空 ⇒ `NOT_LOGGED_IN`。
+**armed 探针（2026-09-12 第 4 次登记，5 行全在）排除了四个候选里的三个**：四个变体
+（`stage=body` / `stage=jsessionidRetry`（URL 重写）/ `stage=uaRetry ua=webview(Chrome/132…)` / `stage=uaRetry ua=pinned(Chrome/120…)`）
+返回**字节级相同**的 `status=200 bytes=116093 csrfEqOccurrences=3 csrfParsedChars=36 loginTimeoutInBody=false idLoginPage=false`
+⇒ **不是 CSRF 正则失配、不是 UA 绑定、不是 `;jsessionid` URL 重写**。
+**剩下的差别**：本轮收割集合是 `entries=3 names=[JSESSIONID,XSRF-TOKEN,!Proxy!PHPSESSID] chars=147`（多了 `!Proxy!PHPSESSID`），
+且收割发生在页面走完 `roam.php` / `zhjw…j_acegi_login.do` **之后**（12:01:10.318）；10:57 则是在课程页刚 load 完就收割。
+⇒ **强线索：10:57 的失败是"收割时机偏早"**——会话就位所需的那颗 cookie 还没下发。
+
+**为什么是未证**：两轮之间还差一个变量（免短信 vs 二次验证成功后的跳转链不同），现有日志分不开"收割时机"与"跳转链差异"；
+要分开需要"逐次 `enrollment cookies` 记录 + 收割时刻的 cookie 全集"。
+**为什么别急着改**：`adopt` 本身就是我们对 ADR-0004 的偏离（ADR 要的是纯 HTTP 重登），所以"修 `adopt` 的时机"
+**不是** ticket 08 的解法，最多算 ticket 07 的稳健性改进；在 W1/W2 判清之前动它属于改错地方。
 
 ## 待查
 

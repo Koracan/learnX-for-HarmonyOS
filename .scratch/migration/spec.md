@@ -62,7 +62,16 @@ entry/src/main/ets/
 
 **设备登记 Enrollment**（仅首次安装、信任过期后）
 ArkWeb 加载 ID 登录页 → 注入脚本做三件事：预填账号密码（readonly）、**确保表单里的设备指纹可用**（以页面自己算出的值为准，页面值缺失时才用我们生成的 UUID 兜底）、把 localStorage 里的 `fingerGenPrint` 写进 DOM → 用户完成短信验证 → `onLoadIntercept` 检测到 roaming URL 即成功 → 提取 cookie 同步给 HTTP jar → 持久化凭据。
-_注入面已缩小_：旧实现必须用**猴补丁**（`jQuery.fn.submit` + XHR 拦截）才拿得到这些值；新实现不需要猴补丁——页面会在加载时自己写好它们，用有限次轮询读/写 DOM 即可。**但"手段简化"不等于"语义改变"**：三个指纹字段的归属必须按下表分清，否则会踩到 2026-09-12 那次歧义（曾把"不需要猴补丁"误读成"表单别动"）。
+_注入面已缩小_：旧实现必须用**猴补丁**（`jQuery.fn.submit` + XHR 拦截）才拿得到这些值；新实现**不需要 `jQuery.fn.submit` 猴补丁**——页面会在加载时自己写好它们，用有限次轮询读/写 DOM 即可。**但"手段简化"不等于"语义改变"**：三个指纹字段的归属必须按下表分清，否则会踩到 2026-09-12 那次歧义（曾把"不需要猴补丁"误读成"表单别动"）。
+
+> **2026-09-12 更正（本次，写明推翻）**：上一句曾写作"新实现**不需要猴补丁**（`jQuery.fn.submit` + XHR 拦截）"——
+> 那句话把 **XHR 拦截**也一起否掉了，是**错的**。**`saveFinger` 的 XHR 拦截是必须保留的唯一注入点**：
+> 站点确实调用 `POST /b/doubleAuth/personal/saveFinger`（10:57:08.553 `[xhr] req` → 08.600 `res status=200 result=success msgs=[msg=已增加]`，
+> 页面自己打印 `save local finger success`），设备日志里每一页都有 `[saveFinger] patchInstalled=1`。
+> 与之一并推翻的是更早那句"**`saveFinger` 在登录页任何脚本里都不存在 ⇒ 信任登记不走这个端点**"——
+> 起因是当时只在**登录页**加载的脚本里搜过，而调用点在 `login/check` **之后**的二次验证页 bundle（`doubleAuth.bundle.js`）里；
+> **"没搜到"不等于"不存在"**。完整更正与"已确证"证据见 `docs/reference-quirks.md` 第 10 条及其附注 1。
+> **本实现真正不做的**只有 `jQuery.fn.submit` 猴补丁（旧实现用它把 FormData 经 `postMessage` 回传 RN；我们不需要那条通道）。
 
 | 字段 | 谁的值 | 处理 |
 | --- | --- | --- |

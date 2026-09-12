@@ -4,9 +4,10 @@
 
 **Blocked by:** 05（移植数据处理器 + 解析单测）、07（设备登记 Enrollment）
 
-**Status:** ready-for-agent
+**Status:** in-progress —— 2026-09-12 冷启动复验**未通过**（提交态复现），正在跑 W1/W2 判别探针轮；见 Comments 末节「统筹：状态改为 in-progress」
 
-- [ ] 杀掉应用重启后无需输入即进入主界面，日志证明会话由纯 HTTP 重建
+- [ ] 杀掉应用重启后无需输入即进入主界面，日志证明会话由纯 HTTP 重建 —— **2026-09-12 用真实凭据实测：未通过**（`no ticket anchor in id login check response`；见 Comments 末节）
+
 - [ ] 断网启动不卡在加载态，给出可理解提示；网络恢复后重试能成功
 - [ ] 会话失效或信任过期时显式回到登录页并说明需要重新验证，不出现空列表
 - [ ] 并发请求只触发一次重登，不重复登录
@@ -136,3 +137,51 @@ seed（**合成**凭据，日志自证 `syntheticCredentials=1 (NOT a real accou
 - 本 ticket 提交后，08 的 18 条测试随代码一起入库，后续任何人再跑门禁都会得到 232 —— 数字巧合一致，
   但**口径**已经变了（从此 232 = 期望值，且产物内容级核对证明 08 的模块在产物里）。
 
+### 2026-09-12 冷启动复验（**真实凭据**，模拟器）：验收第 1 条 **未通过** —— 失败在"票据解析"，不在信任
+
+**这一节是 ticket 07 第 4 次真实登记（免短信成功）之后，用**真实**凭据做的冷启动复验。**
+完整归因见 `.scratch/migration/issues/07-device-enrollment.md` 的 Comments「第 4 次真实登记」第 8 节；此处只记结论与复现。
+
+**复现命令（设备窗口，模拟器 Pura 90 / `127.0.0.1:5555`）**
+
+```powershell
+# 前置：用户已完成一次真实登记（ticket 07），凭据已落 asset store
+hdc -t 127.0.0.1:5555 shell "hilog -w start -f learnoh_cold2 -l 8M -n 20"
+hdc -t 127.0.0.1:5555 shell "aa force-stop com.koracan.learnOH"
+hdc -t 127.0.0.1:5555 shell "aa start -a EntryAbility -b com.koracan.learnOH"
+Start-Sleep -Seconds 35
+hdc -t 127.0.0.1:5555 shell "hilog -x -D 0x4C4F" | Select-String 'restore|reauth|re-auth|startup'
+```
+
+**实测结果（提交态产物，PID 3802 @12:13:31；armed 构建 @12:11:50 逐字相同）**
+
+```
+12:13:31.629 W [features.auth.services] re-auth session NOT adopted: reason=no ticket anchor in id login check response diag=no ticket anchor: status=200 bytes=1280 idLoginPage=false doubleAuthMentions=0
+12:13:31.630 W [features.auth.store] startup(startup): session NOT rebuilt kind=rejected reason=no ticket anchor in id login check response offline=false -> login page (re-verification required)
+```
+
+界面：登录页 + 红字「登录状态已失效，需要重新验证。」（截图 `07-coldstart-commit.png`，SHA256 `EBBA49EE…`，在
+`.scratch/enrollment/evidence/experiment-success/`）。**没有**出现短信页、**没有**空列表（降级本身是**对的**，符合本 ticket 验收第 3 条）。
+
+**判定**
+- **验收第 1 条未通过**：`restore: session rebuilt via pure HTTP (no webview)` 从未出现。**不要勾选。**
+- 失败点在 `LoginClient` 第 4 步 `extractTicket`（`data/auth/LoginParsers.ets:41-61`）——取不到票据 ⇒ `NO_TICKET_IN_RESPONSE`。
+  解析器与参考实现**逐字一致**（`bundle.harmony.js` @2044751 的 `getRoamingTicket`：首个 `<a href>` → 最后一个 `=` 之后）。
+- **站点这次没有要求短信**（`doubleAuthMentions=0`、`idLoginPage=false`），所以 `singleLogin='on'` 的信任**看起来**是生效的；
+  但"纯 HTTP 能否在信任期内重登"这件事**目前不成立**。
+- 这条**打在 ADR-0004 的前提上**：`docs/adr/0004-browser-enrollment-plus-http-reauth.md:5` 写「站点信任机制以设备指纹为键，因此信任期内可以纯 HTTP 重登」——
+  现在证据显示已信任分支的 `/login/check` 返回的是一张**由站点 JS 驱动的页**（`scripts=[jquery.min.js, localstorageUtil.js, genprint.js]`、`formAction=none`、无 `<a>` 锚点）。
+  该 ADR 第 7 行同时**否决过**"隐藏 WebView 静默重登"。⇒ **先分清 W1/W2（票据是否仍在 HTTP 响应里）再决定改代码还是改 ADR**，判别计划见 ticket 07 的 Comments。
+- **保留本 ticket 的一条改判**：「与参考实现的有意差异」第 3 条（`ENROLLED` 收紧为"会话已建立"）**本身没问题**，
+  它把"凭据在、会话不在"变成**可复现的登录页**——正是本轮观察到的状态，应当保留。
+
+**边界（AGENTS.md「改动一条已被已验收 ticket 依赖的前提时，必须在两边都留下边界说明」）**：
+本 ticket 验收第 3 条（显式降级）的证据在本轮由**真实凭据**强化（不再是注入式）——降级动作正确；
+但第 1 条的证据是**反向**的：一次真实冷启动实测失败。请统筹按此重排本 ticket 的状态。
+
+### 统筹：状态改为 in-progress（2026-09-12，W1/W2 探针轮）
+
+- 验收第 1 条**未通过**已确认（我复核了 `.dsh/logs/cold-commit-appdomain.txt:39-42`：提交态产物复现、与 armed 构建逐字同因，**不是**探针污染）⇒ 本 ticket **不再是** `ready-for-agent`，而是**重新进入取证/实现**。
+- 正在跑**只读探针轮**：把 `/login/check` 那张 1280 字节响应的正文（含 inline script）落进 hilog，并跟一跳，用来判别 **W1**（跳转信息在 HTTP 正文里 ⇒ 纯 HTTP 路线成立，补解析即可）还是 **W2**（票据由站点 JS 运行时生成 ⇒ 必须改 ADR-0004，属决策变更，需用户签字）。
+- **W1/W2 判清之前不许改 `extractTicket()`**：在 W2 下放宽解析不会让它工作，却会让"取不到票据"这个**正确的失败信号**消失。
+- 触发方式：装探针构建后**冷启动一次** —— 应用自己的 `SessionRestorer` 会发出**唯一一次**登录 POST，那就是探针；不需用户动手机、不走登记、不发短信。

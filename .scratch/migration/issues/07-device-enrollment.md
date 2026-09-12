@@ -4,10 +4,10 @@
 
 **Blocked by:** 03（导航骨架 + 公告列表）、06（HTTP 客户端 + cookie jar + SM2 登录）
 
-**Status:** verified-partial —— 统筹验收：2 条达成、1 条机制已证（合成凭据）、1 条部分闭环、1 条待用户操作；见 Comments 末尾「统筹验收」
+**Status:** verified（模拟器口径；统筹第二轮验收 2026-09-12）—— 5 条达成（其中第 2 条按**等价判据**），4 项**转出**见 Comments 末尾「统筹验收（第二轮）」
 
-- [ ] 真机完成一次完整登记（含短信验证），回到应用后处于已登录可用状态 —— **待用户操作**（短信门控）；短信之前的环节已在模拟器自测通过。口径：本轮只有模拟器证据，真机复验欠（归 ticket 18 前）
-- [ ] 服务端登记的设备指纹与我们保存的凭据指纹是同一个值 —— **部分闭环**：三点脱敏等式的第①点已证（`formFieldDom=d4314739`），②③ 待用户提交后闭合
+- [x] 完成一次完整登记（含短信验证），回到应用后处于已登录可用状态 —— **模拟器口径达成**：含短信验证的那几次登录本身都成功（被拒的是"信任授予"，不是登录）；2026-09-12 第 4 次登记**免短信**完成并进主壳（`via=browser-cookie-adopt`）。**转出两项**：真机（API 24）复验 → ticket 18 前一次性；「冷启动能否重建会话」不属本判据 → ticket 08 验收第 1 条（当前未通过）。
+- [x] 服务端登记的设备指纹与我们保存的凭据指纹是同一个值 —— **① = ③ 已闭合**（`formFieldDom=746a15a2 persistedReadBack=746a15a2 formEqualsPersisted=true`）；**② 结构上不可再观测**（设备已被信任 ⇒ 站点不再渲染二次验证页 ⇒ `saveFinger` 永不再被调用，`saveFingerObserved=false`）。**统筹裁决**：判据改为**等价判据** = ①=③ 实测闭合 ＋ D1 硬约束（`saveFinger` patch 绝不覆盖页面已给的非空值）＋ 两条对应单测；② 的**实测**转出为「新设备 / 全新 profile 首次登记时必须观测」。理由见 Comments 末节。
 - [x] 凭据加密落盘；重启应用后仍处于已登记状态 —— **机制已证**：合成凭据走真实 asset 通道，杀进程重启后仍 `enrolled`（`07-probe-restart-enrolled.txt`）；真实账号的落盘随验收 1
 - [x] 用户中途放弃或验证失败时回到登录页，且不残留半登记状态 —— 取消 + 重启两条独立证据（`07-final-cancel.txt` / `07-final-restart-after-cancel.txt`）
 - [x] 指纹相关字段在日志中可诊断（脱敏），便于排查登记失败 —— 长度/布尔/前缀 + SHA256 前 8 位；日志里 UUID 形状与合成指纹字面量均 0 命中
@@ -418,6 +418,31 @@ ID 登录页 → /do/off/ui/auth/login/check → /do/off/ui/auth/login/redirect2
 **起点**：`git checkout --` 还原后 HEAD = `3920408`，`git diff -- entry/` 为空；
 还原前把诊断补丁备份为 `.dsh/logs/diagnostics.patch.keep`（16,706 B / `433FFEE4…BB98876`，
 `git apply --check --reverse` 通过）。
+
+### 统筹验收（第二轮，2026-09-12，模拟器口径）→ Status: verified
+
+**结论：本 ticket 的目标已在模拟器上端到端达成** —— 真实账号完成登记、**服务端未再要求短信**、会话建立、进入主壳、凭据落盘；取消/失败路径回到登录页且无残留。**判为 verified（模拟器口径）**。
+
+#### 我独立复核过的（不是转述）
+
+- 冷启动失败的两条日志：`.dsh/logs/cold-commit-appdomain.txt:39-42`（PID 3802 @12:13:31，**提交态产物**）与 `cold-armed-appdomain.txt:64-67`（PID 30248 @12:11:50）逐字同因 —— 我亲自读过，**失败成立**，且不是探针污染。
+- 站点静态资源**不由被截断的读取下结论**：我用 pwsh `Get-Content -Raw` 重新抓 `/v2/dist/doubleauth/localstorageUtil.js`（34,992 字符，SHA256 `71EF8A5C…E897CD`）与 `/res/selfservice/genprint.js`（106 字节，SHA256 `00C3008D…5F118F`），确认 `location` / `href` / `ticket` / `roaming` / `j_spring` **真的 0 命中**。⇒ 「跳转指令只可能在 1280 字节响应自身的 inline script / meta refresh 里」这条**排除法成立**（`reference-quirks` 第 13 条）。
+
+#### 两项裁决
+
+1. **验收第 2 条的 ②（`saveFingerXhr`）改为等价判据。** 设备一旦被信任，站点**不再渲染二次验证页**，`saveFinger` 因此**永不再被调用**——②不是"这轮没抓到"，而是**结构上不可再观测**。等价判据 = ①=③ 的实测闭合 ＋ D1 硬约束 ＋ 两条对应单测；② 的实测转出为「新设备 / 全新 profile 首次登记时必须观测」，不阻塞本 ticket。
+2. **「信任严格以 `fingerPrint` 为键」不做断言，也不由本 ticket 承担。** 反证已记录：10:57 那次的登记值恰是 **36 字符兜底 UUID**（D1 缺陷下的值），而第 4 次出示的是 **32 字符页面值**；若严格逐字命中，那次登记不该生效，但这次是免短信的。⇒ 服务端判据比"逐字相等"更宽（或键不是它）。**这是对 ADR-0004 第 5 行那句理由的一个反例**，已写进 `docs/reference-quirks.md` 第 10 条。它**不**推翻架构（架构只需要"登记一次之后不再要短信"），但**不许**再把它当已证事实引用。
+
+#### 转出清单（本 ticket 不再背）
+
+| 项 | 转到 |
+| --- | --- |
+| 真机（API 24）跑一次完整登记 + 冷启动 | ticket 18 前一次性复验（AGENTS.md 验收口径） |
+| ② `saveFingerXhr` 的实测观测 | 新设备 / 全新 profile 首次登记时 |
+| 「冷启动能否纯 HTTP 重建会话」 | **ticket 08 验收第 1 条（当前未通过）** |
+| 业务数据层（真实公告 / 课程取数） | ticket 09 |
+
+> 与 ticket 08 的边界：本 ticket 证明的是**登记链路**；08 证明的是**登记之后的 180 天里能不能不再麻烦用户**。第 4 次登记免短信**不能**用来勾 08 —— 两个论断不能复用同一份证据。
 **注意（给下一位）**：上一轮的 10:57 定因分析（本文档末尾那 66 行）在本轮开始时**是未提交的工作区改动**，
 它不是诊断件——本轮把它保留下来并随本次提交一起入库，没有 `git checkout` 掉。
 
@@ -555,5 +580,341 @@ armed 补丁的符号在 `modules.abc` 里命中，且该补丁把 `ENROLLMENT_D
 `EnrollmentSession.ets` 里 `ADOPT_PROBE`/`adopt probe` **0 命中**。
 **设备状态**：模拟器上装的是 armed 构建，应用停在登录页；持久化任务 `learnoh_armed`（jobid 1）**仍在运行**，
 第 4 次登记前**不要重复** `hilog -w start`（会把任务重启、丢掉已经抓到的正样本段）。
+
+### 2026-09-12 第 4 次真实登记：**免短信成功** + 冷启动复验**失败** + adopt 探针定因（取证轮）
+
+**取证出处**：`.scratch/enrollment/evidence/experiment-success/`（3 个 `.gz` 原件保留在本地，设备侧文件未删）。
+**源码版本**：HEAD `204d097`（**行为代码**提交点 `b2fa79e`；设备上装的是 "armed = 204d097 + `.dsh/logs/ticket07-armed-probe.patch`"）。
+**设备**：模拟器 Pura 90 `127.0.0.1:5555`，HarmonyOS 6.1.0(23)。**本轮全部证据出自模拟器**，真机复验仍欠（归 ticket 18 前）。
+
+#### 0. 原始件与可归因性
+
+| 文件 | 字节 | SHA256 |
+| --- | --- | --- |
+| `learnoh_armed.000.20260912-113053.gz` | 717,890 | `C06F69FABE55EBAA5EC139A68E0CDE5F11E5CA2AEDE42279F4836CE9605D56FE` |
+| `learnoh_armed.001.20260912-114616.gz` | 752,588 | `42EFBED5AC2195565C989B13AB9CD34A6DD7E805A1BE3127D5BBBE55A1DC713A` |
+| `learnoh_armed.002.20260912-120103.gz` | 291,286 | `23C10FB2E2733A75FF222C61CCB4B789EA20F565DD21DE7B63C0C55DFE268EAE` |
+| `experiment-success-full.txt`（三件 gunzip 合并，165,420 行） | 19,561,859 | `D154F2F29083CAE88B4DF0BA99FBA18E0C4DF5E3713331B59291D718C6634B27` |
+| `experiment-success-app.txt`（应用域 `A04c4f` 抽取，308 行） | 81,876 | `39C8F7A7221400535A618C0030FD0D10494AA8DD4F498D2DB6BA885E2CBFA722` |
+| `07-coldstart-armed.png`（armed 冷启动落在登录页） | 140,891 | `9F651899F6EF8B27ED7B632FE25D04D3F400F92BAB6B82627CBE4EBD99753C83` |
+| `07-coldstart-armed-app.txt`（armed 冷启动应用域） | 26,356 | `62E97968C3F029CE1B03391FC978FC1615C66C5C278B65F4F3CC925EECDEFD3E` |
+| `07-coldstart-commit.png`（**提交态**冷启动同样落在登录页） | 141,283 | `EBBA49EE8DB9D459F69FAE784BC6B1AD6F1730CB8862BB445243DB1BC55372E1` |
+
+**时间窗**：11:30:53 – 12:03（用户登记动作在 **12:01:04–12:01:11**，全程 7 秒）。
+**抓取**：`hilog -w start -f learnoh_armed -l 8M -n 20`（jobid 1，**已 stop**，设备侧 `.gz` 未删）。
+
+**可归因性（这次成功能不能算提交态代码的）——能，依据是补丁的 diff 本身**：armed 补丁只做三件事：
+① `EnrollmentSession.adopt()` 加 `ADOPT_PROBE` 探针（**只读**：不吸收 Set-Cookie、不动 jar、不改判定与返回值，补丁注释自证）；
+② `ENROLLMENT_DIAGNOSTICS_FOR_EVIDENCE` `false→true`（纯日志）+ 新增 `pageUserAgent` 桥值；
+③ `AuthStore` 把 `dom.pageUserAgent` 传给 `adopt()`，**只被 uaRetry 探针使用**。
+⇒ **主 adopt 路径（`stage=body`，12:01:10.381）与全部指纹解析逻辑都是提交态**；四行 retry 探针在它**之后**才发。
+**运行期开关自证（前任交接单点名要的那一行）拿到了**：
+`12:01:04.607 enrollment webview starting: … injectedChars=32758 diagnostics=true`。
+
+#### 1. 成功走的是哪条路 —— `via=browser-cookie-adopt`
+
+```
+12:01:10.434 I [features.auth.store] enrollment session established: via=browser-cookie-adopt diag=harvested=3 csrfChars=36
+12:01:10.434 I [data.auth.enrollment] enrollment session: ok csrfChars=36 cookieChars=147 language=zh cookies=3 domains=[learn.tsinghua.edu.cn] names=[JSESSIONID,XSRF-TOKEN,!Proxy!PHPSESSID] valueChars=104
+12:01:10.491 I [features.auth.store] enrollment complete: language=zh via=browser-cookie-adopt diag=harvested=3 csrfChars=36 session=cookies=3 …
+```
+
+⇒ **主线保留 adopt**。`b2fa79e` 新增的纯 HTTP 回落**本轮没有被行使**（见第 2 条），所以那条回落路径**至今仍是未验证代码**。
+
+#### 2. HTTP 登录那一行：**日志中不存在**
+
+全量搜 `enrollment http login`（armed 构建里确实含这个符号，产物级已核对）⇒ **0 命中**。原因：`adopt()` 成功，回落分支没有执行。
+**用户"没有要任何短信"如何用日志印证（三条相互独立的证据）**：
+
+1. **时间**：`12:01:07.192 enrollment navigate: …/login/check` → `12:01:08.814 roaming reached`，**1.62 秒**。人类不可能在这段时间里完成短信。
+2. **页面**：`/login/check` 加载的脚本集与 10:57 那次**完全不同**——
+   - 本轮：`12:01:07.312 [pageScripts] phase=load url=id.tsinghua.edu.cn/do/off/ui/auth/login/check scriptCount=3 inlineScripts=1 formAction=none scripts=[/res/ui/jquery.min.js /v2/dist/doubleauth/localstorageUtil.js /res/selfservice/genprint.js]`（**genprint 页**）
+   - 10:57：`scriptCount=3 … scripts=[/v2/res/common/jquery.min.js /common/public/all-messages.js /v2/dist/doubleauth/doubleAuth.bundle.js]`（**二次验证页**）
+   ⇒ 站点这次返回的**不是**二次验证页。
+3. **XHR / 文案**：`doubleAuth/login` **0 命中**（10:57 有 3 次 `result=success`）、`saveFingerRequest` **0 命中**、`radioVal`（「信任」单选）**从未出现**；全文 `验证码` / `captcha` / `短信` **0 命中**。本轮唯一的 doubleAuth 请求是
+   `12:01:07.303 [xhr] req method=POST path=/b/doubleAuth/personal/getFinger3 n=1` → `12:01:07.345 [xhr] res path=…/getFinger3 status=200 chars=59 result=error objectChars=0 keys=[result,msg,object]`（站点对未登录会话的固有行为，与 `reference-quirks` 第 10 条一致）。
+
+⇒ **登录检查这一步被服务端直接信任**：提交后一跳即漫游，没有任何二次验证/验证码环节。
+
+#### 3. adopt 的 5 行探针（原文）与判读 —— 上一轮失败根因的定音锤
+
+```
+12:01:10.381 [data.auth.enrollment] adopt probe armed=1 stage=body urlPath=learn.tsinghua.edu.cn/f/wlxt/index/course/student/ status=200 bytes=116093 csrfEqOccurrences=3 csrfParsedChars=36 loginTimeoutInBody=false loginTimeoutByParsers=false idLoginPage=false csrfAtLineStart=0 hasScriptTag=true contentType=text/html;charset=UTF-8 contentLengthHeader=absent locationPath=absent headerNames=[content-encoding,content-language,content-type,date]
+12:01:10.382 [data.auth.enrollment] adopt probe armed=1 stage=sent cookieNames=[JSESSIONID,XSRF-TOKEN,!Proxy!PHPSESSID] cookieHeaderChars=147 pinnedUa=Chrome/120.0.0.0 webviewUa=Chrome/132.0.0.0
+12:01:10.398 [data.auth.enrollment] adopt probe armed=1 stage=jsessionidRetry jsessionidChars=42 status=200 bytes=116093 csrfEqOccurrences=3 csrfParsedChars=36 loginTimeoutInBody=false loginTimeoutByParsers=false idLoginPage=false
+12:01:10.416 [data.auth.enrollment] adopt probe armed=1 stage=uaRetry ua=webview(Chrome/132.0.0.0) status=200 bytes=116093 csrfEqOccurrences=3 csrfParsedChars=36 loginTimeoutInBody=false loginTimeoutByParsers=false idLoginPage=false
+12:01:10.432 [data.auth.enrollment] adopt probe armed=1 stage=uaRetry ua=pinned(Chrome/120.0.0.0) status=200 bytes=116093 csrfEqOccurrences=3 csrfParsedChars=36 loginTimeoutInBody=false loginTimeoutByParsers=false idLoginPage=false
+```
+
+| 假设 | 本轮探针读数 | 判定 |
+| --- | --- | --- |
+| 根因 2：CSRF 正则失配（站点改版） | `csrfEqOccurrences=3` **且** `csrfParsedChars=36`（正则解出来了） | **排除**。我们那条逐字照 `thu-learn-lib` 的正则\`/^.*&_csrf=(\S*)"\`在真实课程页上正常工作 |
+| 根因 1(b)：会话与 User-Agent 绑定 | `uaRetry ua=webview(Chrome/132…)` 与 `uaRetry ua=pinned(Chrome/120…)` **字节级相同**（200 / 116093 / 3 / 36） | **排除**（至少本轮不是它） |
+| 根因 1(c)：会话靠 URL 重写（`;jsessionid=`） | `jsessionidRetry`（42 字符的 jsessionid 写进 URL）与 `stage=body` **字节级相同** | **排除** |
+| 根因 1(a)：收割来的 cookie 没被服务端当成有效会话 | 只剩它。两轮最直接的差别在**收割集合**：本轮 `entries=3 names=[JSESSIONID,XSRF-TOKEN,!Proxy!PHPSESSID] chars=147`，10:57 是 `entries=2 names=[JSESSIONID,XSRF-TOKEN] chars=102` | **最可能** |
+| （顺带）响应不是登录页、也没有 login_timeout | `idLoginPage=false`、`loginTimeoutInBody=false`、`hasScriptTag=true`、`contentType=text/html;charset=UTF-8`、无 `location` 头 | 那次 1657 B 的响应**既不是 ID 登录页也不是超时页** |
+
+**判读（含未证部分）**：上一轮失败**不是**正则、不是 UA、不是 URL 重写，而是**收割到的那份 cookie 本身不足以代表已登录会话**。
+本轮多出来的那一颗 **`!Proxy!PHPSESSID`** 是关键差异，而它的出现时机很可疑：本轮收割发生在 `12:01:10.318`，
+**在漫游后的页面又把 `roam.php` 与 `zhjw.cic.tsinghua.edu.cn/j_acegi_login.do` 走完之后**（`12:01:09.863–12:01:10.16`）；
+10:57 那次则是在课程页刚 load 完就收割（`10:57:11.719`）。
+⇒ **强假设：10:57 的失败是"收割时机偏早"**——会话真正就位所需的那颗 cookie 还没下发。
+**边界（勿越读）**：这是**由对照推出的假设，不是已证结论**；两轮之间还差一个变量（免短信 vs 二次验证成功后的跳转链不同），
+无法用现有日志把"收割时机"与"跳转链差异"分开。要分开需要再取一次 `enrollment cookies` 的逐次记录 + 收割时刻的 cookie 全集。
+
+#### 4. 三点等式（验收第 2 条）：① = ③ **闭合**，② **不可观测**
+
+| 点 | 原文 | 脱敏摘要 |
+| --- | --- | --- |
+| ① 表单 `#fingerPrint`（页面 fingerprintjs2 值） | `12:01:05.909 [enrollment fingerprint digest] point=formFieldDom value=746a15a2` | `746a15a2`（值形 `8983…(32)`） |
+| ② `saveFinger` 实际发出的 `fingerprint` | `12:01:10.491 [enrollment fingerprint digest equation] … saveFingerXhr=empty … saveFingerObserved=false` | **empty（从未发出）** |
+| ③ 落盘后回读 | 同一行的 `persistedReadBack=746a15a2` | `746a15a2` |
+
+```
+12:01:10.318 [features.auth.store] enrollment fingerprint effective: value=8983…(32) source=formFieldDom pageDomSource=page usingFallback=false generatorValue=4ce9…(36) saveFingerPatched=true
+12:01:10.486 [data.auth.credentials] credentials saved: ok=true schema=1 usernameChars=10 passwordChars=10 fingerPrint=8983…(32) fingerGenPrint=b323…(32) fingerGenPrint3=b323…(32)
+12:01:10.491 [data.auth.credentials] credentials loaded: schema=1 usernameChars=10 passwordChars=10 fingerPrint=8983…(32) fingerGenPrint=b323…(32) fingerGenPrint3=b323…(32)
+12:01:10.491 [features.auth.store] enrollment fingerprint digest equation: formFieldDom=746a15a2 saveFingerXhr=empty persistedReadBack=746a15a2 formEqualsPersisted=true xhrEqualsPersisted=false saveFingerObserved=false
+```
+
+**结论**：
+- **① 与 ③ 逐字相等（`formEqualsPersisted=true`）—— D1 修复点的正验证成立**：生效指纹取的是**页面值**
+  （`source=formFieldDom pageDomSource=page usingFallback=false`），我们生成的 UUID（`generatorValue=4ce9…(36)`）**只作兜底且未被使用**；
+  落盘与回读都是同一个值（`8983…(32)`，摘要 `746a15a2`）。
+- **② 本轮不可观测**：本次成功路径**根本没有渲染二次验证页**，`saveFinger` 从未被调用 ⇒ `xhrEqualsPersisted=false` 是"**判不了**"，**不是失败**。
+- ⚠️ **对验收第 2 条的直接影响（需统筹裁决，本轮不改判据）**：设备**现在已被信任** ⇒ 再走一次登记大概率也不会出现"信任确认"页
+  ⇒ **② 可能永远不会再被观测到**。原判据"三点相同才算成立"因此**在可预见的将来不可闭合**。
+  两个出路（二选一，勿默认）：(a) 把 ② 的判据改为"在**会触发 `saveFinger` 的分支**上验"，机制证据用单测
+  `neverOverwritesTheFingerprintThePageAlreadyPutInTheSaveFingerBody` + armed 探针；(b) 明确写成"不可复现观测"并降级为机制证据。
+  **不要**用 ①③ 相等去替代 ② 的判据（那正是本 ticket 明令禁止的"两个论断复用同一份证据"）。
+- **重登出示值**：冷启动时 `credentials loaded: … fingerPrint=8983…(32)`（与落盘同前缀同长度）。
+  **口径**：这一条只打**前 4 字符 + 长度**，不是摘要 ⇒ "出示值 == 落盘值"在日志层面只能算**同形证据**，不是逐字证明。
+
+#### 5. 信任层面
+
+**cookie 前后对比（本轮 6 次记录，逐次）**
+
+| 时刻 | 页面 | id 域 | learn 域 |
+| --- | --- | --- | --- |
+| 12:01:05.997 | 登录表单 | `JSESSIONID`（`httpOnly=true,session=true,expires=no`） | 无 |
+| 12:01:07.331 | `/login/check` | 同上，**仍是 1 个** | 无 |
+| 12:01:09.586 | learn 课程页 | 同上 | `JSESSIONID` + `XSRF-TOKEN`（`learnChars=102`）；`nativeFetchCookie: idNames=[JSESSIONID] learnNames=[JSESSIONID,XSRF-TOKEN]` |
+| 12:01:09.588 | 同上（结构化） | `tsinghuaCount=3 allCount=3 entries=[JSESSIONID@id…{session=true,expires=no} JSESSIONID@learn…{session=true,expires=no} XSRF-TOKEN@learn…{session=false,expires=yes}]` | |
+
+- **本轮唯一带 `expires` 的持久 cookie 仍然是 `XSRF-TOKEN`（CSRF 用）**，与 10:57 的结论**完全一致**；
+  ⇒ **"信任凭证"依然没有在 cookie 层面留下可观察物**。
+- `jsCookieNames`：id 域**恒为 `[]`**（`cookieChars=0`，httpOnly）；到 learn 域才出现 `[XSRF-TOKEN] cookieChars=47`。
+- `absorbed=` **不存在**（adopt 的响应没有 `Set-Cookie`；探针也刻意不吸收）。
+- `web cookies cleared` **2 行**：`when=before-enrollment`（12:01:04.606）与 `when=on-disappear`（12:01:10.512，**在会话建立与落盘之后**，没有误清）。
+
+**`singleLogin` 是否被强制勾上 —— 是**：`12:01:05.902 [singleLogin] forced=1 pageLeftItUnchecked=1`（一行同时自证"页面原本没勾 + 我们勾了"），此后状态行 `singleLogin=1` 恒为 1。
+
+**roaming / harvest 计数**：`roaming reached` **2 行**（1 条事件 + 1 条完成时的状态回声）、`enrollment harvest:` **1 行**（`attempt=0 entries=3`）。
+
+**"信任是否真的落地"——正面证据有，但必须写清口径**
+
+- **正面**：用户**没有被要求任何短信**，而且日志独立证实了这一点（第 2 条的 3 条证据链 + 第 1 条的 `via=browser-cookie-adopt`）。
+- **口径 1（构建）**：这**是在 armed 构建上观察到的**。armed 只加日志与只读探针，行为代码在 `b2fa79e`，所以可归因；但严格说，"免短信"这一次观测的产物**不是**提交态 hap。
+  （本轮提交态 hap 的独立证据是冷启动那两次，见第 8 节。）
+- **口径 2（可观察物）**：本轮**依旧没有任何"信任凭证"落到 cookie**。
+- **口径 3（机制仍未闭环，重要）**：本轮 `saveFinger` **没有被调用** ⇒ 这次成功**不是**"我们这次登记上了"，而是"**站点在更早的某次已把本浏览器记为可信**"。
+  而 10:57 那次 `saveFinger` 在 **D1 缺陷**下发的是 **36 字符兜底 UUID**（`fingerprintChars=36 fingerprintSource=fallback`），
+  本轮出示的是 **32 字符页面值**（`source=formFieldDom`）。若服务端严格按"出示值 == 登记值"命中，10:57 那次登记**不应生效**。
+  它显然生效了（否则不会免短信）⇒ **"信任就是按 `fingerPrint` 登记"这一机制在本轮证据下仍不是闭环**：
+  可能键不是 `fingerPrint` 本身（例如账号+设备记录），也可能命中的判据更宽松。
+  **这只能由 ticket 08 的"无短信纯 HTTP 重登成功"回答 —— 而它本轮恰恰失败了（第 8 节）。**
+  ⇒ **因此本轮只把"免短信观察"记为正面证据，不勾 ticket 08 的任何验收条。**
+
+#### 6. 完整时间线（登录页 → … → 主壳）与上一轮的差异
+
+```
+12:01:04.389 device fingerprint generated: 4ce9…(36)          ← 我们生成的兜底值
+12:01:04.391 enrollment started: usernameChars=10 fingerprint=4ce9…(36) deviceName=HarmonyOS,learnOH/1.1.0 (emulator) saveFingerPath=/b/doubleAuth/personal/saveFinger
+12:01:04.606 web cookies cleared: when=before-enrollment
+12:01:04.607 enrollment webview starting: … injectedChars=32758 diagnostics=true      ← 运行期开关自证
+12:01:04.680 enrollment navigate: id.tsinghua.edu.cn/do/off/ui/auth/login/form/bb5df85…/0
+12:01:05.902 page report [singleLogin] forced=1 pageLeftItUnchecked=1
+12:01:05.909 dom values: fingerPrintChars=32 … fpSource=page       ← 页面 fingerprintjs2 值就位（摘要 746a15a2）
+12:01:06.001 dom values: fgChars=32 fg3Chars=32                    ← 两个 finger3 字段也被页面填上了
+12:01:07.175 page report [submitGate] allowed=1 reason=finger3Ready ← 自检放行（非 firstEnrollmentEmptyFinger3）
+12:01:07.192 enrollment navigate: id.tsinghua.edu.cn/do/off/ui/auth/login/check      ← 用户点提交
+12:01:07.303 [xhr] req POST /b/doubleAuth/personal/getFinger3 n=1   ← 站点自己的请求
+12:01:07.312 [pageScripts] phase=load …/login/check scriptCount=3 scripts=[jquery.min.js, localstorageUtil.js, genprint.js]   ← genprint 页（≠10:57 的 doubleAuth 页）
+12:01:07.345 [xhr] res …/getFinger3 status=200 chars=59 result=error
+12:01:08.814 enrollment roaming reached: learn.tsinghua.edu.cn/f/j_spring_security_thauth_roaming_entry -> allow navigation, harvest afterwards   ← 免短信直达
+12:01:08.866 enrollment navigate: learn.tsinghua.edu.cn/f/wlxt/index/course/student/;jsessionid=69E5…wlxt20181
+12:01:09.586/09.588 enrollment cookies … idNames=[JSESSIONID] idChars=52 learnNames=[JSESSIONID,XSRF-TOKEN] learnChars=102 / tsinghuaCount=3
+12:01:09.863–10.16 站点自身：roam.php ×2、zhjw.cic.tsinghua.edu.cn/j_acegi_login.do、CalDAV PROPFIND/REPORT ×5
+12:01:10.318 enrollment harvest: attempt=0 entries=3 names=[JSESSIONID,XSRF-TOKEN,!Proxy!PHPSESSID] chars=147   ← 3 个 / 147（10:57 是 2 个 / 102）
+12:01:10.381–10.432 adopt 5 行探针（4 次 GET，全部 200 / 116093 / csrfParsedChars=36）
+12:01:10.434 enrollment session established: via=browser-cookie-adopt diag=harvested=3 csrfChars=36
+12:01:10.486 credentials saved: ok=true … 
+12:01:10.491 fingerprint digest equation / web session header: cookieEntries=3 cookieBytes=147 csrfTokenPresent=true
+12:01:10.512 web cookies cleared: when=on-disappear
+12:01:10.514 shell ready: tabs=notices,assignments,files,courses,settings locale=zh-Hans
+12:01:11.249 notices.mock] mock notices refreshed: count=7 emptyMode=false / [notices.store] refresh done: count=7 unread=2
+```
+
+**与 10:57 那一轮的差异（逐条）**
+
+1. **免短信**：10:57 是 `/login/check`（二次验证页）→ 用户确认「信任」→ `saveFinger`（`msg=已增加`）→ `redirect2Jsp` → roaming；本轮是 `/login/check`（genprint 页）→ **直接 roaming**，`saveFinger` **未被调用**。
+2. **收割集合 2→3**：多了 `!Proxy!PHPSESSID`（`chars` 102→147）——上一轮失败根因的最强线索（第 3 条）。
+3. **收割时机**：10:57 在课程页 load 之后立刻收割；本轮在 `roam.php`/`zhjw` 都走完之后（晚约 0.9 s）才收割。
+4. **adopt 结果**：10:57 `status=200 bytes=1657 csrf 抽取为空 → NOT_LOGGED_IN`；本轮 `200 / 116093 / csrfChars=36 → ok`。
+5. **导航条数**：10:57 共 5 条（含 `redirect2Jsp`）；本轮 6 条（含 `zhjw.cic.tSinghua…j_acegi_login.do`）。
+6. `injectedChars` 31,714 → **32,758**（armed 的诊断脚本变大；非行为差异）。
+
+#### 7. `lastReport=` 在成功时刻的值
+
+- 成功时刻（`12:01:10.434` 会话建立）**之前最后一条状态行** = `12:01:10.318 enrollment status: lastReport=harvest-ok diag=1 gate=0 fpSource=page … roaming=1`。
+- 全量**最后一条**状态行 = `12:01:11.035 … lastReport=diag:idb …`（WebView 关闭前的收尾上报）。
+- 提醒（前任交接单）：它装的是"**最后一次桥上报的 kind**"，**不是站点流程阶段**（诊断构建下会被 `diag:*` 覆写）。
+
+#### 8. 冷启动复验（ticket 08 验收第 1 条）：**未通过**（提交态复现）
+
+登记成功后做 force-stop + 重启，**两次**（第一次用设备上原装的 armed 构建，第二次用**删 `entry/build` 全量重建的提交态产物**）：
+
+| 次 | 构建 | 新 PID | 结果 |
+| --- | --- | --- | --- |
+| 1 | armed `204d097+patch` | 30248 @12:11:50 | `restore: NOT rebuilt kind=rejected reason=no ticket anchor in id login check response` |
+| 2 | **提交态** `204d097`（hap 1,565,958 B @12:10:23，SHA256 `48F398FDDE712F583647D493FE5827A55CA4E2B2CCDE4ABA81FDC79DECFA28FB`） | 3802 @12:13:31 | **同一行，逐字相同** |
+
+提交态那次的原文：
+
+```
+12:13:31.398 I [features.auth.store] startup: restoring session from persisted credentials (pure HTTP, no webview)
+12:13:31.424 I [core.asset] asset read ok: aliasChars=19 valueChars=221
+12:13:31.424 I [data.auth.credentials] credentials loaded: schema=1 usernameChars=10 passwordChars=10 fingerPrint=8983…(32) fingerGenPrint=b323…(32) fingerGenPrint3=b323…(32)
+12:13:31.425 I [data.auth.restore] restore: silent re-auth #1 starting (pure HTTP, no webview)
+12:13:31.446 I [data.auth.credentials] credentials loaded: …（同上）
+12:13:31.447 I [data.auth.login] login: jar reset -> cookies=1 domains=[id.tsinghua.edu.cn] names=[JSESSIONID] valueChars=0
+12:13:31.604 I [data.auth.login] login: id form ok status=200 publicKeyChars=130 jar=cookies=1 domains=[id.tsinghua.edu.cn] names=[JSESSIONID] valueChars=0
+12:13:31.629 W [features.auth.services] re-auth session NOT adopted: reason=no ticket anchor in id login check response diag=no ticket anchor: status=200 bytes=1280 idLoginPage=false doubleAuthMentions=0
+12:13:31.629 W [data.auth.reauth] reAuth: login failed reason=no ticket anchor in id login check response diag=no ticket anchor: status=200 bytes=1280 idLoginPage=false doubleAuthMentions=0
+12:13:31.630 W [data.auth.restore] restore: NOT rebuilt kind=rejected requiresEnrollment=true offline=false reason=no ticket anchor in id login check response diag=no ticket anchor: status=200 bytes=1280 idLoginPage=false doubleAuthMentions=0
+12:13:31.630 W [features.auth.store] startup(startup): session NOT rebuilt kind=rejected reason=no ticket anchor in id login check response offline=false -> login page (re-verification required) diag=…
+```
+
+截图 `07-coldstart-commit.png`（`EBBA49EE…`）：登录页 + 红字「登录状态已失效，需要重新验证。」+ 「重试」按钮；
+armed 那张 `07-coldstart-armed.png`（`9F651899…`）几乎逐像素相同。
+
+**判读（别读过头）**：
+
+1. **没有出现登录页→短信**：`doubleAuthMentions=0`、`idLoginPage=false`，且**没有**导航到任何二次验证页
+   ⇒ 站点**没有**要求重新短信验证。`doubleAuthMentions` 这个计数正是 `b2fa79e` 为区分这两件事而加的，本轮第一次派上用场。
+2. **失败在"票据解析"，不在"信任"，也不在"会话被拒"**：登录检查 `status=200` 被接受，只是我们**没从那 1280 字节里找到票据锚点**
+   （`AuthTypes.ets:21 NO_TICKET_IN_RESPONSE`；触发点 `LoginClient.ets:153-163` 的 `extractTicket` 返回空）。
+3. **`extractTicket` 与参考实现逐字一致，不是抄错**：`data/auth/LoginParsers.ets:41-61` 取首个 `<a href>` 再取最后一个 `=` 之后；
+   参考实现 `reference/learnOH-old/tmp/bundle.harmony.js` @2044751 的 `getRoamingTicket` 就是
+   `…postLoginCheck…` 之后 `E(yield u.text())('a').attr('href').split('=').slice(-1)[0]`——
+   **我们与它一致**（连"登录前先清 ID 域 JSESSIONID"也一样，日志形如 `login: jar reset -> cookies=1 …`）。
+   ⇒ 结论是：**当前站点在"已信任"这条路上返回的页面里没有 `<a>` 锚点**。
+4. **与 12:01 WebView 成功那次的对照支持上一条**：`/login/check` 之后站点给的是**一张 genprint 页**
+   （`scriptCount=3 scripts=[jquery.min.js, localstorageUtil.js, genprint.js] formAction=none`，先 POST `getFinger3` 再 **JS 跳**漫游），
+   **它本来就没有 `<a>`**；而 10:57（未信任）那条路上确实多一跳 `redirect2Jsp`。
+   ⇒ **强假设：票据锚点只存在于"需要二次验证"那条分支；"已信任"分支改成了 JS 跳转。**
+   **未验证**——我们只记了 `bytes=1280` 与计数，**没有落正文**。
+5. **下一步（未实施，交统筹）**：先补一条**只读探针**把这 1280 字节的形态打出来
+   （含不含 `ticket=` / `location.href` / `window.location` / `<a ` / `redirect2Jsp` / `genprint` / `roaming`），
+   **不需要用户再动短信**。**在此之前改解析器都是猜**——不要先放宽正则。
+6. **无副作用**：全程没有提交表单、没有走登记、没有消耗短信；凭据仍在（两次冷启动都 `credentials loaded`）。
+   顺带证明：`hdc install -r` **保留**了 asset store 里的凭据（两次读回值相同）。
+   当前设备状态：应用停在**登录页**（未登记态≠凭据丢失；点「登录」会重新打开登记 WebView）。
+   **但"点登录会不会又要短信"本轮没有验证**——只能说 `doubleAuthMentions=0` 支持"不会再要"，**那是推断**。
+
+#### 9. mock 澄清（业务数据层，本轮零证据）
+
+- **"公告页出现"≠"数据链路跑通"**。列表来自
+  `features/notices/repository/NoticeRepositoryProvider.ets:37-40` 的 `createNoticeRepository()`——**无条件**返回 `MockNoticeRepository`；
+  全仓唯一实现是 `MockNoticeRepository.ets:182`，**没有**真实实现、也**没有**"取数失败静默回落 mock"的分支。
+  自证日志：`12:01:10.546 [features.notices] notices page appear: source=mock, phase=loading` →
+  `12:01:11.249 [features.notices.mock] mock notices refreshed: count=7 emptyMode=false` → `refresh done: count=7 unread=2`。
+  这是 **ticket 09 的既定计划**（`NoticeRepositoryProvider.ets:5,37` 的注释：「ticket 09 换成真实实现」），**不是缺陷**。
+- **应用自身进入主壳之后，一次真实公告/课程取数都没有发**：应用 pid 17852 的 NETSTACK 记录**只有 4 条**（就是 adopt 的 4 次 GET，
+  `12:01:10.378/396/415/430`，全部 `RespCode:200`）；`12:01:10.514 shell ready` 之后**零**新请求。
+  日志里 `/b/wlxt/gg/gg_xxb/querynotetop3 chars=26350`、`queryzltop3 chars=4109` 那些是**WebView 里站点自己的页面 XHR**
+  （被 `EnrollmentWebView` 的 XHR 观测打到），**不是我们的数据链路**。
+- ⇒ **"成功"必须分两层说**：
+  **(a) 认证/会话层 = 真成功**（登记 → 免短信 → 漫游 → 收割 3 cookie → adopt 成功 → 会话建立 → 凭据落盘 → 进主壳）；
+  **(b) 业务数据层 = 本轮零证据，归 ticket 09**。
+- **撤回一句越读**：我先前说那张公告截图"证明数据链路真跑通"——**不成立**，现予撤回。
+- **用户 12:01 截图的观察（只记录，未修）**：
+  1. 列表底部 5 个 tab、头部「更新于 12:01:11」——与日志 `12:01:11.249` 的刷新时刻吻合。
+  2. 「未读 2」与列表里恰好 2 个「未读」标记**自洽**——但这份自洽是**mock 夹具**的自洽（`refresh done: count=7 unread=2`），
+     所以它**只能**作为 ticket 03/04 的 UI 层观察，**不能**作为数据层证据。
+  3. 列表第 2–4 行之间的"斜向连线 + 两个圆"：**非缺陷** —— 用户确认那是**鸿蒙模拟器的叠加显示层**（按 Ctrl 出现），与应用无关，**不列为待查**。
+     （该截图**不在工作区**，无法独立复核；本节按统筹转述登记。）
+
+#### 10. 归还提交态：还原 / 重建 / 产物检索 / 门禁
+
+- **还原**：本轮开始时工作区**已经是提交态**（`git status --porcelain` 为空、`git diff` 为空——
+  空 diff 的 SHA256 = `E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855`），HEAD = `204d097`。
+  armed 补丁**不是**工作区改动，只存在于 `.dsh/logs/ticket07-armed-probe.patch`（已另存 `.keep` 备份，31,110 B）。
+- **全量重建**：删 `entry/build` → `devecocli build` → `BUILD SUCCESSFUL in 3 min 47 s`；
+  产物 `entry-default-signed.hap` **1,565,958 B @ 2026-09-12 12:10:23**，SHA256
+  `48F398FDDE712F583647D493FE5827A55CA4E2B2CCDE4ABA81FDC79DECFA28FB`。
+- **产物级检索**（解包 hap → 对 `ets/modules.abc`（486,844 B）做字节检索，**不是**对 hap 直接搜）：
+  应消失的 armed 符号 `adopt probe armed` / `pageUserAgent` / `stage=sent` / `stage=jsessionidRetry` / `stage=uaRetry` / `ADOPT_PROBE` **全部 0 命中**；
+  应存在的提交态符号 `resolveEnrollmentFingerPrint` / `pageProvidedFingerprint` / `lastReport=` / `enrollment http login` /
+  `secondAuthOrCaptcha` / `browser-cookie-adopt` / `pure-http-login` / `digest equation` **全部命中**；
+  `EnrollmentProbe` / `TEMP-EVIDENCE` **0 命中**。
+- **装机**：`hdc -t 127.0.0.1:5555 install -r` → `install bundle successfully`；装后冷启动**未崩**（应用域日志正常出现），
+  并且**凭据仍在**（见第 8 节）。
+- **门禁**：见本节末「门禁实测」。
+- **`diag=0` 同屏截图：本轮**没有**拿到（**如实记录，不造替代品**）**。原因：提交态下应用已是 ENROLLED，
+  `EnrollmentWebView` 不再挂载 ⇒ 那条状态行（`diag`/`fpSource`）**不再存在于任何界面**；
+  要让它出现只能**清掉真实凭据**回到未登记态，而那会冒"重新登记/再要短信"的风险 —— 按本轮纪律**不做**。
+  可用的替代证据是：产物级检索（armed 的 `diagnostics` 相关符号已在产物中消失/提交态符号在）+ 第 8 节冷启动的应用域日志（**`diag:` 报告 0 条**）。
+  上一轮那张 `07-commit-state-diag0-fpSourcePage.png`（10:22 那次提交态）仍然有效，**但它对应的是旧产物**，不能用来为本次产物背书。
+
+#### 11. 门禁实测（本次，2026-09-12 12:17）
+
+- 单测：先删 `entry/.test` + `--no-incremental`（`DEVECO_SDK_HOME` 已设）→
+  **`test_result.txt` @12:17:17：`class=` 30 / `test=` 235 / `result=Success` 235 / `Failure` 0 / `Error` 0**，SHA256 `C8C689E01F575BBB8549AD4CE4477CCC0DAD035F8F502B9608442AF204542EA7`。
+  **口径**：条数取自 `entry/.test/default/intermediates/test/coverage_data/test_result.txt`（日志里**没有** `Tests run` 行）；
+  `GenerateUnitTestResult` 确实执行（`BUILD SUCCESSFUL in 34 s`）⇒ 不是 up-to-date 空跑。
+  **第一次运行失败**（`Error: kill ESRCH` —— hvigor 守护进程因 `isNodeEnvChanged` 换代时杀旧进程失败），**原样重跑即通过**；
+  两次日志：`.dsh/logs/ticket07-restore-test.log` / `ticket07-restore-test2.log`。
+- `node scripts/check-domain-purity.mjs` → `PASS`（16 个领域源文件）。
+- `node scripts/check-import-graph.mjs` → `PASS`（99 个源文件；WARN 只有 `pages/Index.ets` 与 `EntryBackupAbility.ets` 两个入口）。
+- `node scripts/check-i18n-keys.mjs` → `RESULT: OK`（manifest 235 键；en_US 有 1 条 `untranslated=1`，是品牌串 `ui_app_name`，脚本判为预期）。
+- `node scripts/check-generated-fresh.mjs` → `PASS`（6 个生成物与生成器输入一致；跑完 `git status` 只有本 ticket 与 ticket 08 的**文档**改动）。
+- **本轮没有改任何源码**（`entry/` 零改动），只改文档。
+
+#### 12. 决策备忘：W1/W2 判别（给统筹；**先判别，不要先改代码**）
+
+**为什么必须先判**：`docs/adr/0004-browser-enrollment-plus-http-reauth.md:5` 的前提是"**站点信任机制以设备指纹为键，因此信任期内可以纯 HTTP 重登**"，
+而第 7 行又**否决过**"隐藏 WebView 静默重登"。2026-09-12 的冷启动实测说明这个前提**当前不成立**（至少对我们的实现而言）。
+两条路：
+
+| | **W1：票据仍在 HTTP 响应里** | **W2：票据由站点 JS 运行期生成** |
+| --- | --- | --- |
+| 判据 | 那 1280 字节页的正文里能找到 URL / token（哪怕形态是 `location.href='…'`、meta refresh、或某个 `<input value=…>`） | 正文里没有任何 URL/token；跳转必须**执行 JS** 才产生 |
+| 代价 | **小**：解析器多认一种形态（或"先 GET 中间跳转页再解析"），仍走纯 HTTP；ADR 与实现都保留 | **大**：纯 HTTP 不可行 ⇒ 要么改 ADR 允许"隐藏 WebView 静默重登"，要么把"信任期内免登录"降级为"仍需点一次登录" |
+| 需要谁批 | 不需要（实现细节） | **需要用户/统筹签字**（改 ADR 的前提＝产品行为变更） |
+
+**判别步骤（只读探针：一轮**只打一次**登录；**不需要用户动手机、不走登记、不发短信**）**
+1. 在 `LoginClient` 第 4 步的失败分支把**那 1280 字节正文原样落 hilog**——只有 1280 B，整体落最省事；
+   若正文含身份信息则落**结构**（所有 `<script src>`、inline script 正文、`form action`、每个 `location.href` 赋值、
+   `ticket` / `getFinger3` / `redirect2Jsp` / `roaming` 的出现位置与前后 80 字符）。
+2. **同一个探针里**要暴露"**下一跳**"：若正文里拿到 URL，就 GET 它并落 `status / bytes / location / Set-Cookie 名字`。
+   只判"正文里有没有 ticket"**不足以**分 W1/W2——W1 也可能是"先拿到一个中间跳转 URL，再一跳才出票据"。
+3. 探针**自证生效值**（沿用 armed 的做法：把开关实际值打进 hilog）；**一轮只打一次登录**
+   （`singleLogin='on'` 可能踢掉既有会话；连续重试还可能触发风控）。
+4. 若判 **W2**：候选方案与代价——(a) 改 ADR 允许"隐藏 WebView 静默重登"（**推翻第 7 行**，需签字；且与"会话 cookie 不落盘"的既有约束要对齐）；
+   (b) 降级为"信任期内仍需点一次登录"（改 ADR 与 spec 第 5 节，产品行为变更）；(c) 若正文/下一跳里发现可用 token，则回到 W1。
+   **三选一都不要在没有第 1、2 步证据时拍板。**
+
+**已经排除的（不要重复劳动）**：站点三个静态资源 `/res/selfservice/genprint.js`、`/v2/dist/doubleauth/localstorageUtil.js`、
+`/res/selfservice/finger3.js` 都**不含跳转逻辑**（`roaming` / `redirect2Jsp` / `location.href` / `ticket` **0 命中**；
+`getFinger3FromRemoteAndSave` 只是 `$.post("/b/doubleAuth/personal/getFinger3", {}, cb)`）。
+⇒ "跳转指令在哪"只剩那张页自身的 **inline script / meta refresh**（该页 `inlineScripts=1`）。**这是排除法，不是直接证据。**
+副本：`.dsh/logs/genprint.js.txt` / `.dsh/logs/static-1.js` / `.dsh/logs/static-2.js`。
+
+**已在手、不需要新登录的证据**：12:01 那次 `[xhr] res path=/b/doubleAuth/personal/getFinger3 status=200 chars=59 result=error objectChars=0 keys=[result,msg,object]`
+⇒ **那次 `getFinger3` 返回的是 error、没有票据**。所以"信任期的漫游 URL 来自 `getFinger3` 的响应"这条**被这一条排除**
+（除非它在别的时刻会返回 success——**这是假设，不是结论**）。
+
+
 
 

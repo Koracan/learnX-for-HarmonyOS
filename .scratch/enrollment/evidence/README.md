@@ -185,3 +185,52 @@ enrollment page report [diag:env] … jsCookieNames=[] cookieChars=0 …
 
 **用户那次要 grep 的关键词**：`enrollment cookies`（前后对比）、`saveFingerRequest`、`[xhr] res`（含 `keys=`/`msgs=`）、
 `[pageScripts]`（失败落在哪个页面）、`[diag:incognito]`、`submitGate`/`preSubmitGate`、`roaming`/`harvest`、`credentials saved`。
+
+## 【第 4 次真实登记：免短信成功】+【冷启动复验：失败】（2026-09-12 12:01–12:13，模拟器）
+
+**取证版本**：HEAD `204d097`，工作区**干净**（`git status --porcelain` 空，`git diff` 空；
+空 diff 的 SHA256 = `E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855`）。
+设备上装的是 **armed 构建** = `204d097` + `.dsh/logs/ticket07-armed-probe.patch`
+（31,110 B / SHA256 `2C0A32DF7EFEFCB860CA5E0BCA0B3D34FD1C2EA1F4B0234A70905C5E3F9662C3`；backup `.patch.keep`）。
+**补丁只加日志与只读探针**（adopt 探针不改判定/不吸收 Set-Cookie；`AuthStore` 传 UA 只被 uaRetry 用），因此这次成功**可归因到提交态行为代码**（`b2fa79e`）。
+
+**本目录原始件（设备侧 `/data/log/hilog/` 的 `.gz` 原件，**未删设备文件**）**
+
+| 文件 | 字节 | SHA256 |
+| --- | --- | --- |
+| `learnoh_armed.000.20260912-113053.gz` | 717,890 | `C06F69FABE55EBAA5EC139A68E0CDE5F11E5CA2AEDE42279F4836CE9605D56FE` |
+| `learnoh_armed.001.20260912-114616.gz` | 752,588 | `42EFBED5AC2195565C989B13AB9CD34A6DD7E805A1BE3127D5BBBE55A1DC713A` |
+| `learnoh_armed.002.20260912-120103.gz` | 291,286 | `23C10FB2E2733A75FF222C61CCB4B789EA20F565DD21DE7B63C0C55DFE268EAE` |
+| `learnoh_cold.000.20260912-121142.gz`（冷启动 #1，armed） | 214,235 | `B3C575E19553F1B9687BD9AF4C9F6E63C156A9DFC470861EB39398D023B80200` |
+| `learnoh_cold2.000.20260912-121326.gz`（冷启动 #2，**提交态**） | 427,308 | `9644424D4A8CD6629D47062636FF1D7E1D8EADA201E66D20FCC150AD17EA4BE3` |
+
+**派生件（gunzip 合并 / 应用域 `A04c4f` 抽取）**
+
+| 文件 | 字节 | SHA256 | 承载的论断 |
+| --- | --- | --- | --- |
+| `experiment-success-full.txt`（3 件合并，165,420 行） | 19,561,859 | `D154F2F29083CAE88B4DF0BA99FBA18E0C4DF5E3713331B59291D718C6634B27` | 全量原始文本（登记那 7 秒） |
+| `experiment-success-app.txt`（应用域，308 行） | 81,876 | `39C8F7A7221400535A618C0030FD0D10494AA8DD4F498D2DB6BA885E2CBFA722` | 登记成功全链路（§1–§7） |
+| `07-coldstart-armed-full.txt`（17,181 行） | 2,103,642 | `47ACCB826F6EDDA7AAD367D735626941ED64E2A742429AFD946C958044CE8020` | 冷启动 #1 原始 |
+| `07-coldstart-armed-app.txt`（应用域，117 行） | 26,356 | `62E97968C3F029CE1B03391FC978FC1615C66C5C278B65F4F3CC925EECDEFD3E` | 冷启动 #1：`no ticket anchor` |
+| `07-coldstart-commit-full.txt`（35,847 行） | 4,281,887 | `A5160EA8B3B9D90552FF16B33FA62018774F90608BB211E819BD52BCB08B794A` | 冷启动 #2 原始 |
+| `07-coldstart-commit-app.txt`（应用域，42 行） | 8,205 | `8EDF865EFAD18B583ECEC6BBB3C9975739B33C4F6740F21F83A267D463F98DDC` | 冷启动 #2：**同因同文** |
+| `07-coldstart-armed.png` | 140,891 | `9F651899F6EF8B27ED7B632FE25D04D3F400F92BAB6B82627CBE4EBD99753C83` | 冷启动 #1 落在登录页 |
+| `07-coldstart-commit.png` | 141,283 | `EBBA49EE8DB9D459F69FAE784BC6B1AD6F1730CB8862BB445243DB1BC55372E1` | 冷启动 #2（**提交态**）落在登录页 |
+
+（中间版本 `07-coldstart-armed-app.txt` 在只拉回半份日志时生成过一次，已用最终 `.gz` 重抽，上表是最终值。）
+
+**这批证据能证明什么 / 不能证明什么**
+
+1. **能**：提交态行为代码可以完成一次**免短信**登记（12:01：`via=browser-cookie-adopt`、会话建立、凭据落盘、进主壳）；
+   adopt 的 5 行探针排除了"CSRF 正则失配 / UA 绑定 / URL 重写"三种假设（四变体字节级相同）。
+2. **能**：**冷启动纯 HTTP 重登失败**（armed 与提交态逐字相同，`no ticket anchor in id login check response`），
+   且**失败点不是"被要求短信"**（`doubleAuthMentions=0`）——降级到登录页的动作本身是正确的。
+3. **不能**：**业务数据层**。公告列表来自 `MockNoticeRepository`（`source=mock`、`refresh done: count=7 unread=2`），
+   应用自身在进主壳后**零真实取数**（pid 17852 的 NETSTACK 只有 adopt 那 4 次 GET）。归 ticket 09。
+4. **不能**：`diag=0` 与 `fpSource=page` **同屏**（提交态下应用已 ENROLLED，那条状态行不再有任何界面承载；
+   让它出现需要清掉真实凭据 → 有触发重新登记/短信的风险，本轮按纪律不做）。替代证据见 ticket Comments 第 10 节。
+5. **不能**：`saveFinger` 得到验证（本轮它**从未被调用**）⇒ 三点等式的第②点**不可观测**，不是失败。
+
+**复现**：`hilog -w start -f <name> -l 8M -n 20` → 用户操作 → `hilog -w stop` → `hdc file recv` → `.dsh/logs/merge-success.js`（合并）。
+冷启动：`aa force-stop` → `aa start -a EntryAbility -b com.koracan.learnOH` → `hilog -x -D 0x4C4F`。
+
