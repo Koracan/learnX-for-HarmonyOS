@@ -733,6 +733,18 @@
       "value": "Summer"
     },
     {
+      "name": "loh_session_expired",
+      "value": "Your session has expired. Please sign in again to verify."
+    },
+    {
+      "name": "loh_network_unavailable",
+      "value": "Network unavailable. Check your connection and try again."
+    },
+    {
+      "name": "loh_retry",
+      "value": "Retry"
+    },
+    {
       "name": "ui_app_name",
       "value": "learnOH"
     },
@@ -923,6 +935,10 @@
     {
       "name": "ui_month_dec",
       "value": "Dec"
+    },
+    {
+      "name": "ui_enrollment_fingerprint_not_ready",
+      "value": "The browser fingerprint is not ready yet, so signing in now would not register this browser as trusted (the server would report a private/anonymous browser). Wait a few seconds and tap sign in again; if it keeps happening, close this page and sign in again."
     }
   ]
 }

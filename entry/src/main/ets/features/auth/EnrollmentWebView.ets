@@ -28,8 +28,8 @@ import { LEARN_URL } from '../../core/web/SessionHeaderProvider';
 import { ThemeTokens, resolveTheme } from '../../ui/theme/Tokens';
 import { COLOR_MODE_KEY, LOCALE_VERSION_KEY } from '../../entryability/EntryAbility';
 import {
-  EnrollmentDomValues, SAVE_FINGER_PATH, buildEnrollmentScript, describeEnrollmentDomValues,
-  emptyDomValues, mergeDomValues, parseEnrollmentValues
+  ENROLLMENT_DIAGNOSTICS_FOR_EVIDENCE, EnrollmentDomValues, SAVE_FINGER_PATH, buildEnrollmentScript,
+  describeEnrollmentDomValues, emptyDomValues, mergeDomValues, parseEnrollmentValues
 } from '../../domain/auth/EnrollmentScript';
 import { redactSecret } from '../../domain/auth/DeviceIdentity';
 import { fingerprintDigest } from '../../domain/auth/FingerprintDigest';
@@ -51,6 +51,9 @@ const FIRST_HARVEST_DELAY_MILLIS: number = 1500;
 /** 收割重试次数与间隔（cookie 可能比 onLoadIntercept 晚一点才可见）。 */
 const HARVEST_MAX_ATTEMPTS: number = 6;
 const HARVEST_INTERVAL_MILLIS: number = 500;
+
+/** 页面 console 转发的上限（每条再截断 240 字符）。 */
+const CONSOLE_LINE_LIMIT: number = 80;
 
 /** host + path（丢掉查询串）：日志里绝不出现票据。 */
 export function pathOf(url: string): string {
@@ -113,6 +116,8 @@ export struct EnrollmentWebView {
   @StorageLink(LOCALE_VERSION_KEY) localeVersion: number = 0;
 
   @State statusText: string = 'loading';
+  /** 页面 console 的转发上限（每挂载一次计数）。 */
+  private consoleLines: number = 0;
   private controller: webview.WebviewController = new webview.WebviewController();
   private scripts: ScriptItem[] = [];
   private dom: EnrollmentDomValues = emptyDomValues();
@@ -135,7 +140,9 @@ export struct EnrollmentWebView {
         password: this.password,
         fingerPrint: this.fingerPrint,
         deviceName: this.deviceName,
-        bridgeName: ENROLLMENT_BRIDGE_NAME
+        bridgeName: ENROLLMENT_BRIDGE_NAME,
+        // 文案由应用侧提供（i18n），不写死在注入脚本里。
+        gateNoticeText: i18nService.t('ui_enrollment_fingerprint_not_ready')
       }),
       scriptRules: ['*']
     }];
@@ -146,7 +153,9 @@ export struct EnrollmentWebView {
       + ' fingerprint=' + redactSecret(this.fingerPrint)
       + ' deviceName=' + this.deviceName
       + ' saveFingerPath=' + SAVE_FINGER_PATH
-      + ' injectedChars=' + this.scripts[0].script.length.toString());
+      + ' injectedChars=' + this.scripts[0].script.length.toString()
+      // 取证开关必须自证生效（AGENTS.md）：这一行是"诊断到底开没开"的唯一判据。
+      + ' diagnostics=' + ENROLLMENT_DIAGNOSTICS_FOR_EVIDENCE.toString());
   }
 
   aboutToDisappear(): void {
@@ -178,6 +187,12 @@ export struct EnrollmentWebView {
     logger.info('enrollment page report [' + first + '] ' + second);
     if (first === 'saveFingerResponse') {
       this.publishStatus('saveFingerResponse ' + second);
+    } else if (first === 'preSubmitGate') {
+      // 提交被自检拦下：界面与日志都要能看出"这一次没有发出去"。
+      this.publishStatus('gate-blocked');
+    } else if (first === 'diag:getFinger3' || first === 'diag:lf' || first === 'diag:lfrt'
+      || first === 'diag:idb' || first === 'diag:env' || first === 'diag:console') {
+      this.publishStatus(first);
     }
   }
 
@@ -192,7 +207,11 @@ export struct EnrollmentWebView {
       + ' fg3Chars=' + this.dom.fingerGenPrint3.length.toString()
       + ' prefill=' + (this.dom.userPrefilled ? '1' : '0') + (this.dom.passPrefilled ? '1' : '0')
       + ' saveFinger=' + (this.dom.saveFingerPatched ? '1' : '0')
+      + ' fpSource=' + (this.dom.fingerPrintSource.length > 0 ? this.dom.fingerPrintSource : 'none')
+      + ' f3Remote=' + this.dom.finger3RemoteOk.toString()
       + ' singleLogin=' + (this.dom.singleLoginChecked ? '1' : '0')
+      + ' gate=' + (this.dom.gateBlocked ? '1' : '0')
+      + ' diag=' + (ENROLLMENT_DIAGNOSTICS_FOR_EVIDENCE ? '1' : '0')
       + ' roaming=' + (this.roamingSeen ? '1' : '0');
     this.statusText = text;
     this.onStatus(text);
@@ -314,6 +333,19 @@ export struct EnrollmentWebView {
         })
         .onPageEnd((event: OnPageEndEvent) => {
           logger.info('enrollment page end: ' + pathOf(event.url));
+        })
+        // 页面自己的 console（例如 finger3.js 的 console.log('getFinger3 error')）转进我们的 hilog。
+        // 真实登记失败时正是这句话没留下任何痕迹；上限 80 条、每条截断，避免刷屏。
+        .onConsole((event: OnConsoleEvent) => {
+          if (this.consoleLines >= CONSOLE_LINE_LIMIT) {
+            return false;
+          }
+          this.consoleLines++;
+          const text: string = event.message.getMessage();
+          logger.info('enrollment page console [' + event.message.getMessageLevel().toString()
+            + '] ' + pathOf(event.message.getSourceId()) + ':' + event.message.getLineNumber().toString()
+            + ' ' + (text.length > 240 ? text.substring(0, 240) : text));
+          return false;
         })
         .onErrorReceive((event: OnErrorReceiveEvent) => {
           logger.error('enrollment load error: ' + event.error.getErrorInfo()

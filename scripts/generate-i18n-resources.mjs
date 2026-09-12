@@ -54,10 +54,16 @@ function buildReferenceRows() {
 
 // Semester season words: the reference hard-coded them inside helpers/parse.ts,
 // so porting that function needs them as resources.
+//
+// ticket 08 追加三条：参考实现没有对应字符串（它的失败处理是静默的），但验收第 3 条要求
+// "显式回到登录页并说明需要重新验证"、验收第 2 条要求断网给出可理解的提示，所以必须新增文案。
 const LOCAL_ADDITIONS = [
   ['loh_fall', '秋季学期', 'Fall'],
   ['loh_spring', '春季学期', 'Spring'],
-  ['loh_summer', '夏季学期', 'Summer']
+  ['loh_summer', '夏季学期', 'Summer'],
+  ['loh_session_expired', '登录状态已失效，需要重新验证。', 'Your session has expired. Please sign in again to verify.'],
+  ['loh_network_unavailable', '网络不可用，请检查网络后重试。', 'Network unavailable. Check your connection and try again.'],
+  ['loh_retry', '重试', 'Retry']
 ];
 
 function buildLocalRows() {

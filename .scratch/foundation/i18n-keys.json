@@ -1,8 +1,8 @@
 {
-  "total": 231,
+  "total": 235,
   "referenceCount": 180,
-  "localCount": 3,
-  "uiCount": 48,
+  "localCount": 6,
+  "uiCount": 49,
   "referenceKeys": [
     "back",
     "notices",
@@ -1834,6 +1834,33 @@
       "origin": "local"
     },
     {
+      "key": "__loh_session_expired",
+      "name": "loh_session_expired",
+      "zhValue": "登录状态已失效，需要重新验证。",
+      "enValue": "Your session has expired. Please sign in again to verify.",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "local"
+    },
+    {
+      "key": "__loh_network_unavailable",
+      "name": "loh_network_unavailable",
+      "zhValue": "网络不可用，请检查网络后重试。",
+      "enValue": "Network unavailable. Check your connection and try again.",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "local"
+    },
+    {
+      "key": "__loh_retry",
+      "name": "loh_retry",
+      "zhValue": "重试",
+      "enValue": "Retry",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "local"
+    },
+    {
       "key": "__ui_app_name",
       "name": "ui_app_name",
       "zhValue": "learnOH",
@@ -2279,6 +2306,15 @@
       "name": "ui_month_dec",
       "zhValue": "12 月",
       "enValue": "Dec",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_enrollment_fingerprint_not_ready",
+      "name": "ui_enrollment_fingerprint_not_ready",
+      "zhValue": "浏览器指纹尚未就绪，此刻提交不会把该浏览器记为可信（服务端会提示\"隐私或匿名模式\"）。请稍等几秒后再次点击登录；若反复出现，请关闭本页重新登录。",
+      "enValue": "The browser fingerprint is not ready yet, so signing in now would not register this browser as trusted (the server would report a private/anonymous browser). Wait a few seconds and tap sign in again; if it keeps happening, close this page and sign in again.",
       "zhPlaceholders": [],
       "enPlaceholders": [],
       "origin": "ui"

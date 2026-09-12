@@ -1,3 +1,12 @@
+# ⚠️ 已废弃（DEPRECATED，2026-09-12，ticket 08）—— **不要运行**。
+#
+# 原因与替代物见同目录 EnrollmentProbe.ets 顶部的说明（以及 ticket 08 的 Comments）：
+#   1. 认证门已收紧为"有凭据**且会话建起来** = 已登记"，本探针要观察的
+#      `startup: enrolled -> main shell (credentials from asset store)` 不再可复现
+#      （合成凭据现在会真发一次纯 HTTP 重登，失败后显式回登录页）；
+#   2. 它注入的 `AuthStore.loadPersisted()` 已更名为 `start()`，运行会编译失败。
+#
+# 替代：pwsh -File .scratch/session/tools/run-session-probe.ps1
 # ticket 07 · 探针：凭据落盘 + 重启后仍处于已登记状态（**合成凭据，不是真实登记**）
 #
 # 为什么需要：验收第 3 条要求"凭据加密落盘；重启应用后仍处于已登记状态"，而"完整登记"必须由用户

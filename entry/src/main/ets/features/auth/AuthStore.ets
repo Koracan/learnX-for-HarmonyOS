@@ -154,26 +154,23 @@ export class AuthStore {
    */
   async completeEnrollment(dom: EnrollmentDomValues, browserCookieHeader: string): Promise<boolean> {
     logger.info('enrollment roaming reached: ' + describeEnrollmentDomValues(dom));
-    const agrees: boolean = sameSecret(this.fingerPrint, dom.fingerPrint);
-    logger.info('enrollment fingerprint agreement: injected=' + redactSecret(this.fingerPrint)
-      + ' observedInDom=' + redactSecret(dom.fingerPrint)
-      + ' agree=' + agrees.toString()
+    // **方案 A（2026-09-12 设备取证后改定）**：生效指纹以**页面自己算出的**值为权威，
+    // 只有页面没给出值时才是我们生成的 UUID 兜底（见 ticket Comments「方案 A」）。
+    // 三处仍同值：saveFinger 上报的就是这里算出的生效值，保存与重登出示也是它。
+    const effectiveFingerPrint: string = dom.fingerPrint.length > 0 ? dom.fingerPrint : this.fingerPrint;
+    logger.info('enrollment fingerprint effective: value=' + redactSecret(effectiveFingerPrint)
+      + ' source=' + (dom.fingerPrintSource.length > 0 ? dom.fingerPrintSource : 'unknown')
+      + ' usingFallback=' + sameSecret(effectiveFingerPrint, this.fingerPrint).toString()
+      + ' generatorValue=' + redactSecret(this.fingerPrint)
       + ' saveFingerPatched=' + dom.saveFingerPatched.toString());
 
-    if (dom.fingerPrint.length === 0) {
-      // 页面上从头到尾没见过 #fingerPrint：注入没跑起来（页面改版/字段改名），
-      // 此时"服务端登记的指纹"无法证明是哪一个 —— 显式失败，不猜。
-      logger.error('enrollment aborted: #fingerPrint was never observed in the page');
+    if (effectiveFingerPrint.length === 0) {
+      // 页面没给出值、我们也没有兜底值：无法确定"服务端登记的是哪一个" —— 显式失败，不猜。
+      logger.error('enrollment aborted: no fingerprint available (page empty and no fallback)');
       this.failure = AuthFailure.INJECTION;
       this.forgetEnrollmentInputs();
       this.phase = AuthPhase.UNENROLLED;
       return false;
-    }
-    if (!agrees) {
-      // 观测到但与我们注入的不同：saveFinger 仍上报我们的值（那是信任登记的落点），
-      // 但表单里的值不是我们的 —— 必须留下**可诊断**的记录，而不是静默继续。
-      logger.error('enrollment fingerprint mismatch: the page kept its own fingerprint;'
-        + ' saveFinger report still uses the injected one');
     }
 
     const outcome: EnrollmentSessionResult = await this.services.enrollment.adopt(browserCookieHeader);
@@ -186,7 +183,7 @@ export class AuthStore {
       return false;
     }
 
-    const record: CredentialRecord = credentialRecordFor(this.username, this.password, this.fingerPrint, dom);
+    const record: CredentialRecord = credentialRecordFor(this.username, this.password, effectiveFingerPrint, dom);
     const saved: boolean = await this.services.credentials.save(record);
     // 第三点：**从存储读回**再算摘要（不是拿内存里的对象算）——这样"落盘值"才是真的落盘值。
     const readBack: CredentialRecord | undefined = await this.services.credentials.load();

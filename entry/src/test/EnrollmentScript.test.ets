@@ -13,8 +13,9 @@
 
 import { describe, it, expect } from '@ohos/hypium';
 import {
-  EnrollmentDomValues, SAVE_FINGER_PATH, buildEnrollmentScript, credentialRecordFor,
-  describeEnrollmentDomValues, emptyDomValues, jsStringLiteral, mergeDomValues, parseEnrollmentValues
+  ENROLLMENT_DIAGNOSTICS_FOR_EVIDENCE, EnrollmentDomValues, SAVE_FINGER_PATH, buildEnrollmentScript,
+  credentialRecordFor, describeEnrollmentDomValues, emptyDomValues, jsStringLiteral, mergeDomValues,
+  parseEnrollmentValues
 } from '../main/ets/domain/auth/EnrollmentScript';
 import {
   SYNTHETIC_FINGERPRINT, SYNTHETIC_PASSWORD, SYNTHETIC_USERNAME
@@ -22,13 +23,17 @@ import {
 
 const DEVICE_NAME: string = 'HarmonyOS,learnOH/1.1.0 (PURA 90)';
 
+/** 提交前自检横幅的文案（真实文案由 features 层从 i18n 传入，这里只要可辨识）。 */
+const GATE_NOTICE: string = 'fingerprint-not-ready';
+
 function build(username: string = SYNTHETIC_USERNAME, password: string = SYNTHETIC_PASSWORD): string {
   return buildEnrollmentScript({
     username: username,
     password: password,
     fingerPrint: SYNTHETIC_FINGERPRINT,
     deviceName: DEVICE_NAME,
-    bridgeName: 'learnOHEnrollmentBridge'
+    bridgeName: 'learnOHEnrollmentBridge',
+    gateNoticeText: GATE_NOTICE
   });
 }
 
@@ -48,14 +53,17 @@ export default function enrollmentScriptTest() {
       const script: string = build();
       // 页面在解析末尾会写自己的 fingerprintjs2 指纹，所以必须是我们盖回去（见文件头注释）
       expect(script.indexOf("field('fingerPrint')") >= 0).assertTrue();
-      expect(script.indexOf('if (el.value !== FP) { el.value = FP; }') >= 0).assertTrue();
+      // **方案 A**：生效值 = 页面值；我们的 UUID 只作兜底，仍然出现在脚本里（var FP = …）
+      expect(script.indexOf('var want = effectiveFingerPrint();') >= 0).assertTrue();
       expect(script.indexOf(SYNTHETIC_FINGERPRINT) >= 0).assertTrue();
     });
 
-    it('patchesSaveFingerWithOurFingerprintAndDeviceName', 0, () => {
+    it('patchesSaveFingerWithTheEffectiveFingerprintAndDeviceName', 0, () => {
       const script: string = build();
       expect(script.indexOf(SAVE_FINGER_PATH) >= 0).assertTrue();
-      expect(script.indexOf("params.set('fingerprint', FP)") >= 0).assertTrue();
+      // 注入的是**生效值**（方案 A：页面值优先，缺失才兜底），而不是无条件的我们自己的 UUID
+      expect(script.indexOf("params.set('fingerprint', effectiveFingerPrint())") >= 0).assertTrue();
+      expect(script.indexOf("params.set('fingerprint', FP)") ).assertEqual(-1);
       expect(script.indexOf("params.set('deviceName', DEVICE_NAME)") >= 0).assertTrue();
       expect(script.indexOf("params.set('radioVal', '是')") >= 0).assertTrue();
       expect(script.indexOf('XMLHttpRequest') >= 0).assertTrue();
@@ -99,6 +107,89 @@ export default function enrollmentScriptTest() {
       expect(merged.saveFingerFingerprint).assertEqual('sent-value');
     });
 
+    it('allowsTheFirstEnrollmentWhenTheSiteFingerprintsAreEmpty', 0, () => {
+      const script: string = build();
+      // 放行分支：远端也拿不到（未登录会话恒 result=error）⇒ 判定为"首登的固有状态"，放行并打 reason。
+      expect(script.indexOf("var reason = (fgChars > 0 && fg3Chars > 0) ? 'finger3Ready'") >= 0)
+        .assertTrue();
+      expect(script.indexOf(": (finger3RemoteOk === 0 ? 'firstEnrollmentEmptyFinger3'") >= 0).assertTrue();
+      expect(script.indexOf("report('submitGate', 'allowed=1 reason=' + reason") >= 0).assertTrue();
+    });
+
+    it('blocksOnlyWhenTheRemoteValueWasObtainedButTheDomMissedIt', 0, () => {
+      const script: string = build();
+      // 判定**收窄过一次**（设备取证后）：对全新浏览器，fingerGenPrint/fingerGenPrint3 为空是
+      // 站点固有行为（getFinger3 在未登录会话上恒为 result=error），按"为空就拦"会把每一次首登
+      // 都拦死 = 变相禁用登记。只有"远端拿到了值、而 DOM 没接住"才是我们本可避免的失败。
+      expect(script.indexOf('var domMissedRemote = (finger3RemoteOk === 1)') >= 0).assertTrue();
+      expect(script.indexOf('if (domMissedRemote) {') >= 0).assertTrue();
+      expect(script.indexOf('event.preventDefault()') >= 0).assertTrue();
+      expect(script.indexOf(GATE_NOTICE) >= 0).assertTrue();
+      // 拦不拦都要有 reason，否则将来分不清"判定为常态"与"门槛失效"
+      expect(script.indexOf("report('preSubmitGate', 'blocked=1 reason=domMissedRemoteValue") >= 0)
+        .assertTrue();
+      expect(script.indexOf("report('submitGate', 'allowed=1 reason=' + reason") >= 0).assertTrue();
+      expect(script.indexOf("'firstEnrollmentEmptyFinger3'") >= 0).assertTrue();
+      expect(script.indexOf("'finger3Ready'") >= 0).assertTrue();
+      expect(script.indexOf('gateBlocked = true;') >= 0).assertTrue();
+    });
+
+    it('takesThePageFingerprintAsTheAuthoritativeValue', 0, () => {
+      const script: string = build();
+      // 方案 A：页面自己算的 fingerprintjs2 值是权威值（只在页面没值时用我们的 UUID 兜底），
+      // 这样登录报文与 stock 浏览器逐字段一致；三处（表单 / saveFinger / 落盘）仍同值。
+      expect(script.indexOf('function effectiveFingerPrint()') >= 0).assertTrue();
+      expect(script.indexOf("var pageValue = valueOf('fingerPrint');") >= 0).assertTrue();
+      expect(script.indexOf('return pageValue.length > 0 ? pageValue : FP;') >= 0).assertTrue();
+      expect(script.indexOf('var want = effectiveFingerPrint();') >= 0).assertTrue();
+      expect(script.indexOf("params.set('fingerprint', effectiveFingerPrint())") >= 0).assertTrue();
+      // 不能再出现"无条件写我们的 UUID"
+      expect(script.indexOf('if (el.value !== FP) { el.value = FP; }') ).assertEqual(-1);
+    });
+
+    it('fetchesTheSiteFingerprintsItselfAndReassertsThemBeforeSubmit', 0, () => {
+      const script: string = build();
+      // 站点自己的 getFinger3() 在"远端成功但 localforage 写失败"时会 reject，DOM 永远不更新；
+      // 我们直接调同一个 API，拿到值就写 DOM。
+      expect(script.indexOf('lsu.getFinger3FromRemoteAndSave().then(function (v)') >= 0).assertTrue();
+      expect(script.indexOf('function applyFinger3(value)') >= 0).assertTrue();
+      expect(script.indexOf('if (finger3Value.length > 0) { applyFinger3(finger3Value); }') >= 0)
+        .assertTrue();
+      const values: EnrollmentDomValues =
+        parseEnrollmentValues('fpSource=page&f3Remote=0&gateBlocked=0');
+      expect(values.fingerPrintSource).assertEqual('page');
+      expect(values.finger3RemoteOk).assertEqual(0);
+      // 漫游后字段消失时不覆盖已有结论
+      const merged: EnrollmentDomValues = mergeDomValues(values, parseEnrollmentValues('fpSource=none&f3Remote=-1'));
+      expect(merged.fingerPrintSource).assertEqual('page');
+      expect(merged.finger3RemoteOk).assertEqual(0);
+      expect(describeEnrollmentDomValues(values).indexOf('fpSource=page f3Remote=0') >= 0).assertTrue();
+    });
+
+    it('keepsTheGateStateInTheValuesBridge', 0, () => {
+      const blocked: EnrollmentDomValues = parseEnrollmentValues('gateBlocked=1&fingerGenPrint=');
+      expect(blocked.gateBlocked).assertTrue();
+      const open: EnrollmentDomValues = parseEnrollmentValues('gateBlocked=0&fingerGenPrint3=abc');
+      expect(open.gateBlocked).assertFalse();
+      // 自检状态取末次观测（它回答"此刻这一屏是否被拦下"），不做粘性
+      const merged: EnrollmentDomValues = mergeDomValues(blocked, open);
+      expect(merged.gateBlocked).assertFalse();
+      expect(merged.fingerGenPrint3).assertEqual('abc');
+      expect(describeEnrollmentDomValues(blocked).indexOf('gateBlocked=true') >= 0).assertTrue();
+    });
+
+    it('shipsWithTheDiagnosticsSwitchOff', 0, () => {
+      // 开关本身 + 它在脚本里的实际生效值（AGENTS.md：开关必须自证生效）
+      expect(ENROLLMENT_DIAGNOSTICS_FOR_EVIDENCE).assertFalse();
+      const script: string = build();
+      expect(script.indexOf('var DIAG = false;') >= 0).assertTrue();
+      // 诊断块本身在（切到 true 就有用），但关闭时不产生任何报告
+      expect(script.indexOf('function diagEnvironment()') >= 0).assertTrue();
+      expect(script.indexOf('function diagIndexedDb()') >= 0).assertTrue();
+      expect(script.indexOf('function diagLocalforage()') >= 0).assertTrue();
+      expect(script.indexOf('if (!DIAG) { return; }') >= 0).assertTrue();
+    });
+
     it('doesNotMonkeyPatchJQuerySubmit', 0, () => {
       const script: string = build();
       // 我们**用**jQuery（提交前断言一次），但**不替换**它的 submit，也不回传表单数据：
@@ -118,7 +209,7 @@ export default function enrollmentScriptTest() {
       expect(script.indexOf('setTimeout(tick, TICK_MILLIS);') >= 0).assertTrue();
       expect(script.indexOf('attachSubmitHook();') >= 0).assertTrue();
       // (b) 提交前的最后一次断言：jQuery 公开 API 挂 handler，先于默认动作（原生 submit）执行
-      expect(script.indexOf("jq(form).on('submit', function () {") >= 0).assertTrue();
+      expect(script.indexOf("jq(form).on('submit', function (event) {") >= 0).assertTrue();
       expect(script.indexOf("report('submitHook', 'attached=1')") >= 0).assertTrue();
       // 导航前的末次观测（"提交那一刻"的状态）
       expect(script.indexOf('function reportLastObservation()') >= 0).assertTrue();
@@ -195,6 +286,18 @@ export default function enrollmentScriptTest() {
       expect(record.fingerPrint).assertEqual(SYNTHETIC_FINGERPRINT);
       expect(record.fingerGenPrint).assertEqual('SITE1');
       expect(record.fingerGenPrint3).assertEqual('SITE3');
+    });
+
+    it('prefersThePageFingerprintOverOurFallbackInTheCredentialRecord', 0, () => {
+      // 方案 A：页面值权威。DOM 里的 fingerPrint 与"我们生成的兜底值"不同时，取页面值。
+      const dom: EnrollmentDomValues = parseEnrollmentValues(
+        'fingerPrint=' + encodeURIComponent('0123456789abcdef0123456789abcdef'));
+      const record = credentialRecordFor(SYNTHETIC_USERNAME, SYNTHETIC_PASSWORD, SYNTHETIC_FINGERPRINT, dom);
+      expect(record.fingerPrint).assertEqual('0123456789abcdef0123456789abcdef');
+      // 页面没给出值时（理论上的空 DOM）才回落到调用方给的兜底值
+      const empty: EnrollmentDomValues = emptyDomValues();
+      const fallback = credentialRecordFor(SYNTHETIC_USERNAME, SYNTHETIC_PASSWORD, SYNTHETIC_FINGERPRINT, empty);
+      expect(fallback.fingerPrint).assertEqual(SYNTHETIC_FINGERPRINT);
     });
 
     it('describesDomValuesWithoutAnyFingerprintValue', 0, () => {

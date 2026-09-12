@@ -20,7 +20,7 @@
  * Regenerate:  node scripts/generate-i18n-resources.mjs && node scripts/gen-i18n-keys.mjs
  * Verify:      node scripts/check-i18n-keys.mjs
  *
- * 231 keys; project-local additions: 3.
+ * 235 keys; project-local additions: 6.
  */
 export type I18nKey = 'loh_back'
   | 'loh_notices'
@@ -205,6 +205,9 @@ export type I18nKey = 'loh_back'
   | 'loh_fall'
   | 'loh_spring'
   | 'loh_summer'
+  | 'loh_session_expired'
+  | 'loh_network_unavailable'
+  | 'loh_retry'
   | 'ui_app_name'
   | 'ui_app_tagline'
   | 'ui_self_check_card_title'
@@ -252,7 +255,8 @@ export type I18nKey = 'loh_back'
   | 'ui_month_sep'
   | 'ui_month_oct'
   | 'ui_month_nov'
-  | 'ui_month_dec';
+  | 'ui_month_dec'
+  | 'ui_enrollment_fingerprint_not_ready';
 
 const ALL_KEYS: string[] = [
   'loh_back',
@@ -438,6 +442,9 @@ const ALL_KEYS: string[] = [
   'loh_fall',
   'loh_spring',
   'loh_summer',
+  'loh_session_expired',
+  'loh_network_unavailable',
+  'loh_retry',
   'ui_app_name',
   'ui_app_tagline',
   'ui_self_check_card_title',
@@ -486,6 +493,7 @@ const ALL_KEYS: string[] = [
   'ui_month_oct',
   'ui_month_nov',
   'ui_month_dec',
+  'ui_enrollment_fingerprint_not_ready',
 ];
 
 const KEY_SET: Set<string> = new Set<string>(ALL_KEYS);
@@ -496,4 +504,4 @@ export function isI18nKey(value: string): boolean {
 }
 
 /** Total number of known keys; scripts/check-i18n-keys.mjs asserts this. */
-export const I18N_KEY_COUNT: number = 231;
+export const I18N_KEY_COUNT: number = 235;

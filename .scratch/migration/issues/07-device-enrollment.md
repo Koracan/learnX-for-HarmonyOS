@@ -198,3 +198,88 @@ ticket 08 把认证门从「**有凭据** = 已登记（ENROLLED）」收紧为�
 
 > 这是本工程**第二次**出现"后置 ticket 收紧前提，使已验收 ticket 的证据不再可复现"（第一次是 ticket 04 的 NavPathStack 使 ticket 03 验收第 1 条的证据早于该改造）。两次的处理方式相同：**不推翻当时的判定**（当时确实成立），但**记录边界并写明由谁补**。已验收不是"永不失效"，而是"失效时必须被记录"。
 
+
+
+### 2026-09-12 真实登记失败后的诊断与「方案 A」（模拟器实测；**没有**再提交表单、没有消耗短信）
+
+**症状（用户实测）**：用户完成完整登记、短信验证成功，但服务端拒绝授予信任：
+「您的浏览器目前处于隐私或匿名模式，系统无法将该浏览器设置为信任浏览器」
+（消息键 double_sfjbsbbjwxrsb3，见站点消息字典 /common/public/all-messages.js）。
+当时状态行：stage=page fpChars=36 fgChars=0 fg3Chars=0 prefill=11 saveFinger=1 singleLogin=1 roaming=0。
+**但 fgChars/fg3Chars 为 0 并不等于"这就是被拒的原因"**——见下。
+
+#### 1. 三条证据
+
+1. **离线 HTTP 探针**：POST https://id.tsinghua.edu.cn/b/doubleAuth/personal/getFinger3 匿名返回
+   {"result":"error","msg":null,"object":null}；**带上刚取的登录页 JSESSIONID 再打仍是同一个 error**。
+2. **设备诊断（加载期，.scratch/enrollment/evidence/07-diag-prefix-finger3-empty.txt）**：
+   - [xhr] req method=POST path=/b/doubleAuth/personal/getFinger3 n=1
+   - [xhr] res path=/b/doubleAuth/personal/getFinger3 status=200 chars=59 result=error objectChars=0
+   - [diag:env] origin=[https://id.tsinghua.edu.cn] … cookieChars=0 localStorageOk=true indexedDB=object
+   - [diag:idb] roundTripOk=true
+   - [finger3] source=localstorage chars=0
+   - [console] …/login/form/…:0 Uncaught (in promise) #<Object>
+   页面自己的 getFinger3() 在**未登录会话**上必然 reject，两个字段永远填不上。
+   **这是站点对"全新浏览器"的固有行为**（站点另有专门文案 double_finger_whqdzwxx =「未获取到指纹信息」，
+   我们拿到的不是那一条）⇒ 不是我们能修的缺陷，也很可能不是被拒的原因。
+3. **逐字段对比**：stock 浏览器提交那一刻是 fingerPrint=fingerprintjs2 的 **32 位十六进制**、
+   fingerGenPrint=fingerGenPrint3=''、deviceName=other,Chrome/132、singleLogin=用户勾选。
+   我们除了 singleLogin（按站点本意勾上）之外，**唯一不同的一栏就是 fingerPrint**。
+
+#### 2. 两条嫌疑判死（含我自己的探针误读）
+
+- **"我们的 XHR patch 弄坏了 jQuery 的 $.post"——判死**：请求确实发出并拿到响应，失败来自服务端 result=error。
+- **"ArkWeb 没开 databaseAccess ⇒ localforage 写不进去 ⇒ 匿名模式"——判死**：diag:idb roundTripOk=true。
+  **ArkWeb 里 IndexedDB 在 databaseAccess 默认 false 时依然可用**（那个开关管的是老的 Web SQL Database）——
+  已写进 docs/reference-quirks.md 第 11 条【平台事实】。
+- **自我更正**：diag:lf localstorageUtil=absent 是**探针时机**（document-start 时 <head> 的脚本还没定义全局），
+  不是"站点对象不存在"；同一轮 load 期的调用正常。**探针本身也要能自证**，否则会生产假结论。
+
+#### 3. 方案 A（统筹批准；推翻 b511a2f 里"页面值不可用"那条推理）
+
+**生效指纹 = 页面自己算出的 fingerprintjs2 值**；只有页面没给出值时才用我们的 UUID 兜底。
+三处同值：表单字段、saveFinger 的 XHR、凭据落盘与重登回放。**store-and-replay**：登记值与重登出示值
+仍逐字相同（**不需要复算**页面值）。
+
+加载期证据（07-planA-prefix.txt + 截图 07-planA-prefix.png）：
+- [dom values] fingerPrintChars=32 … fpSource=page f3Remote=0 singleLogin=true
+- [fingerprint digest] point=formFieldDom value=746a15a2 point=saveFingerXhr value=empty
+- [finger3] source=localstorage chars=0 -> tryRemote
+- [finger3] remote rejected object result=error keys=[result,msg,object] message=[]
+- [summary] … fingerPrintSource=page … diag=0
+
+状态行：stage=page fpChars=32 fpSource=page f3Remote=0 singleLogin=1（**32** = 页面值；此前 36 = 我们的 UUID）。
+另外脚本现在**自己**调 getFinger3FromRemoteAndSave() 并把结果写进两个 DOM 字段（不再依赖页面那条 promise 链），
+并在提交前再断言一次。
+
+#### 4. 提交前自检（新增防线；判定收窄过一次）
+
+- 原要求"fg3Chars==0 就拦"会把**每一次首登都拦死**（对全新浏览器为空是站点固有行为）⇒ 统筹同意收窄为：
+  **只在"远端确实拿到了值、而 DOM 没接住"时拦**（finger3RemoteOk===1 && (fgChars===0||fg3Chars===0)）。
+- 拦与不拦**都打日志**：submitGate allowed=1 reason=finger3Ready|firstEnrollmentEmptyFinger3|finger3Unavailable、
+  preSubmitGate blocked=1 reason=domMissedRemoteValue——否则将来分不清"判定为常态"与"门槛失效"。
+- 拦住的手段是 jQuery submit handler 里的 event.preventDefault()（阻止 jQuery 默认动作=原生 submit），**不是猴补丁**。
+  单测 3 条：allowsTheFirstEnrollmentWhenTheSiteFingerprintsAreEmpty、
+  blocksOnlyWhenTheRemoteValueWasObtainedButTheDomMissedIt、keepsTheGateStateInTheValuesBridge。
+- **边界**：这两行运行时日志只在真正点提交时才会出现；本轮只验了脚本内容与协议解析。
+
+#### 5. 下一次真实提交 = 一次实验（用诊断开关打开的构建）
+
+- 诊断已记录**每个 XHR 的 req/res**；saveFinger 另有 saveFingerRequest 报告，只记**参数名与长度**
+  （fingerprint/deviceName/radioVal 是否都在、body 是 URL 编码表单还是别的形态）。
+- 判读：saveFinger **没发出** ⇒ 站点没走到登记那一步；**发出但被拒** ⇒ 问题在它的 body/参数
+  （对照 sso.js 注入的三项逐项比）；A 成功 ⇒ 根因确认。
+- 实验构建与提交态分开出；实验前工作区必须是已提交的干净态，实验后再按 AGENTS.md 做**产物级**复核。
+
+#### 6. 有意偏离与台账（已按统筹要求登记）
+
+- docs/reference-quirks.md **第 10 条（已复审）**：fingerPrint 取页面值（参考实现两处都写自己的值）；
+  替代验收标准 = 验收第 2 条的**三点等式判据不变**，只是那个值来自页面。
+- docs/reference-quirks.md **第 11 条（平台事实）**：IndexedDB 与 databaseAccess 的真相 +
+  javaScriptOnDocumentStart 的时机坑（不构成保真约束）。
+- docs/adr/0004 正文仍写"我们生成的设备指纹"，需随本 ticket 复核。
+
+#### 7. 对 ticket 08 的影响（改前提要在两边留边界）
+
+重登出示的 fingerPrint 现在来自**登记时页面算出的值**（store-and-replay），不再是我们的 UUID。
+08 的调用契约不变（它只从凭据库取值），但**不要假设它是 UUID 形状**（旧的长度/形状断言会失效）。

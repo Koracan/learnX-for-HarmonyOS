@@ -61,5 +61,12 @@ export const UI_STRINGS = [
   ['ui_month_sep', '9 月', 'Sep'],
   ['ui_month_oct', '10 月', 'Oct'],
   ['ui_month_nov', '11 月', 'Nov'],
-  ['ui_month_dec', '12 月', 'Dec']
+  ['ui_month_dec', '12 月', 'Dec'],
+  // --- ticket 07（设备登记）新增：提交前自检的提示 ---
+  // 2026-09-12 真实登记被服务端判为"隐私/匿名模式"而拒绝信任：fingerGenPrint/fingerGenPrint3
+  // 为空时该浏览器不可能被记为可信，而用户已经为此白花了一条短信。这条文案就是"替你挡下"时
+  // 显示给用户的话（页面内横幅 + 应用内提示各用一次）。
+  ['ui_enrollment_fingerprint_not_ready',
+    '浏览器指纹尚未就绪，此刻提交不会把该浏览器记为可信（服务端会提示"隐私或匿名模式"）。请稍等几秒后再次点击登录；若反复出现，请关闭本页重新登录。',
+    'The browser fingerprint is not ready yet, so signing in now would not register this browser as trusted (the server would report a private/anonymous browser). Wait a few seconds and tap sign in again; if it keeps happening, close this page and sign in again.']
 ];

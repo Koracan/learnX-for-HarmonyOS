@@ -745,6 +745,18 @@
       "value": "夏季学期"
     },
     {
+      "name": "loh_session_expired",
+      "value": "登录状态已失效，需要重新验证。"
+    },
+    {
+      "name": "loh_network_unavailable",
+      "value": "网络不可用，请检查网络后重试。"
+    },
+    {
+      "name": "loh_retry",
+      "value": "重试"
+    },
+    {
       "name": "ui_app_name",
       "value": "learnOH"
     },
@@ -935,6 +947,10 @@
     {
       "name": "ui_month_dec",
       "value": "12 月"
+    },
+    {
+      "name": "ui_enrollment_fingerprint_not_ready",
+      "value": "浏览器指纹尚未就绪，此刻提交不会把该浏览器记为可信（服务端会提示\"隐私或匿名模式\"）。请稍等几秒后再次点击登录；若反复出现，请关闭本页重新登录。"
     }
   ]
 }

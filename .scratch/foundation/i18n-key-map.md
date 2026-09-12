@@ -16,9 +16,9 @@
 | 类别 | 数量 | 命名空间 |
 | --- | --- | --- |
 | 参考实现迁入 | 180 | `loh_` |
-| 本工程新增（学期季节词） | 3 | `loh_` |
-| 本工程新增（原生重写 UI 文案） | 48 | `ui_` |
-| 合计 | 231 | |
+| 本工程新增（学期季节词） | 6 | `loh_` |
+| 本工程新增（原生重写 UI 文案） | 49 | `ui_` |
+| 合计 | 235 | |
 
 ## 参考实现迁入键（180）
 
@@ -205,59 +205,63 @@
 | 179 | `avoidFrontCameraDescription` | `loh_avoid_front_camera_description` | - | 在上部留出空间以避让挖孔区域，需要重启应用 | Leave top space to avoid the front camera cutout. App restart required. |
 | 180 | `pleaseRestartAppToApplyImmersive` | `loh_please_restart_app_to_apply_immersive` | - | 请重启应用以应用沉浸式模式设置。 | Please restart the app to apply immersive mode setting. |
 
-## 本工程新增键（51）
+## 本工程新增键（55）
 
 | # | 类别 | 资源名 | 占位符 | 中文 | 英文 |
 | --- | --- | --- | --- | --- | --- |
 | 1 | local | `loh_fall` | - | 秋季学期 | Fall |
 | 2 | local | `loh_spring` | - | 春季学期 | Spring |
 | 3 | local | `loh_summer` | - | 夏季学期 | Summer |
-| 4 | ui | `ui_app_name` | - | learnOH | learnOH |
-| 5 | ui | `ui_app_tagline` | - | HarmonyOS 原生重写 · foundation / 01 分层 + 日志 + 主题令牌 | Native HarmonyOS rewrite · foundation / 01 layering + logging + theme tokens |
-| 6 | ui | `ui_self_check_card_title` | - | 自检 | Self-check |
-| 7 | ui | `ui_system_color_mode` | - | 系统配色 | System color mode |
-| 8 | ui | `ui_dark` | - | 深色 | Dark |
-| 9 | ui | `ui_light` | - | 浅色 | Light |
-| 10 | ui | `ui_color_tokens` | - | 颜色令牌 | Color tokens |
-| 11 | ui | `ui_recent_log_count` | - | 最近日志条数 | Recent log records |
-| 12 | ui | `ui_semester_parse_failed` | - | 解析失败 | Parse failed |
-| 13 | ui | `ui_semester_parse` | - | domain.Semester 解析 | domain.Semester parse |
-| 14 | ui | `ui_semester_compare` | - | domain.Semester 比较 | domain.Semester compare |
-| 15 | ui | `ui_semester_later` | {0} | 较晚 = %1$s | later = %1$s |
-| 16 | ui | `ui_reference_palette` | - | 参考实现调色板（Colors.ts） | Reference palette (Colors.ts) |
-| 17 | ui | `ui_export_logs` | - | 导出日志为文本文件 | Export logs to a text file |
-| 18 | ui | `ui_exported` | {0},{1} | 已导出 %1$s 条 / %2$s 字节 | Exported %1$s records / %2$s bytes |
-| 19 | ui | `ui_export_failed` | {0} | 导出失败：%1$s | Export failed: %1$s |
-| 20 | ui | `ui_locale_live_demo` | - | 语言切换（无需重启） | Language switch (no restart) |
-| 21 | ui | `ui_switch_chinese` | - | 切到中文 | Switch to Chinese |
-| 22 | ui | `ui_switch_english` | - | 切到英文 | Switch to English |
-| 23 | ui | `ui_current_locale` | - | 当前语言 | Current locale |
-| 24 | ui | `ui_relative_time_sample` | - | 相对时间示例 | Relative time sample |
-| 25 | ui | `ui_date_time_sample` | - | 日期时间示例 | Date/time sample |
-| 26 | ui | `ui_semester_sample` | - | 学期文案示例 | Semester text sample |
-| 27 | ui | `ui_language` | - | 语言 | Language |
-| 28 | ui | `ui_tab_notices` | - | 公告 | Notices |
-| 29 | ui | `ui_tab_placeholder` | - | 该页面将在后续迭代中实现 | This page will be implemented in a later iteration |
-| 30 | ui | `ui_empty_notices` | - | 暂无公告 | No notices |
-| 31 | ui | `ui_refreshed_at` | {0} | 更新于 %1$s | Updated %1$s |
-| 32 | ui | `ui_notice_publish_time` | - | YYYY 年 M 月 D 日 dddd HH:mm | MMM D, YYYY HH:mm |
-| 33 | ui | `ui_weekday_sunday` | - | 星期日 | Sun |
-| 34 | ui | `ui_weekday_monday` | - | 星期一 | Mon |
-| 35 | ui | `ui_weekday_tuesday` | - | 星期二 | Tue |
-| 36 | ui | `ui_weekday_wednesday` | - | 星期三 | Wed |
-| 37 | ui | `ui_weekday_thursday` | - | 星期四 | Thu |
-| 38 | ui | `ui_weekday_friday` | - | 星期五 | Fri |
-| 39 | ui | `ui_weekday_saturday` | - | 星期六 | Sat |
-| 40 | ui | `ui_month_jan` | - | 1 月 | Jan |
-| 41 | ui | `ui_month_feb` | - | 2 月 | Feb |
-| 42 | ui | `ui_month_mar` | - | 3 月 | Mar |
-| 43 | ui | `ui_month_apr` | - | 4 月 | Apr |
-| 44 | ui | `ui_month_may` | - | 5 月 | May |
-| 45 | ui | `ui_month_jun` | - | 6 月 | Jun |
-| 46 | ui | `ui_month_jul` | - | 7 月 | Jul |
-| 47 | ui | `ui_month_aug` | - | 8 月 | Aug |
-| 48 | ui | `ui_month_sep` | - | 9 月 | Sep |
-| 49 | ui | `ui_month_oct` | - | 10 月 | Oct |
-| 50 | ui | `ui_month_nov` | - | 11 月 | Nov |
-| 51 | ui | `ui_month_dec` | - | 12 月 | Dec |
+| 4 | local | `loh_session_expired` | - | 登录状态已失效，需要重新验证。 | Your session has expired. Please sign in again to verify. |
+| 5 | local | `loh_network_unavailable` | - | 网络不可用，请检查网络后重试。 | Network unavailable. Check your connection and try again. |
+| 6 | local | `loh_retry` | - | 重试 | Retry |
+| 7 | ui | `ui_app_name` | - | learnOH | learnOH |
+| 8 | ui | `ui_app_tagline` | - | HarmonyOS 原生重写 · foundation / 01 分层 + 日志 + 主题令牌 | Native HarmonyOS rewrite · foundation / 01 layering + logging + theme tokens |
+| 9 | ui | `ui_self_check_card_title` | - | 自检 | Self-check |
+| 10 | ui | `ui_system_color_mode` | - | 系统配色 | System color mode |
+| 11 | ui | `ui_dark` | - | 深色 | Dark |
+| 12 | ui | `ui_light` | - | 浅色 | Light |
+| 13 | ui | `ui_color_tokens` | - | 颜色令牌 | Color tokens |
+| 14 | ui | `ui_recent_log_count` | - | 最近日志条数 | Recent log records |
+| 15 | ui | `ui_semester_parse_failed` | - | 解析失败 | Parse failed |
+| 16 | ui | `ui_semester_parse` | - | domain.Semester 解析 | domain.Semester parse |
+| 17 | ui | `ui_semester_compare` | - | domain.Semester 比较 | domain.Semester compare |
+| 18 | ui | `ui_semester_later` | {0} | 较晚 = %1$s | later = %1$s |
+| 19 | ui | `ui_reference_palette` | - | 参考实现调色板（Colors.ts） | Reference palette (Colors.ts) |
+| 20 | ui | `ui_export_logs` | - | 导出日志为文本文件 | Export logs to a text file |
+| 21 | ui | `ui_exported` | {0},{1} | 已导出 %1$s 条 / %2$s 字节 | Exported %1$s records / %2$s bytes |
+| 22 | ui | `ui_export_failed` | {0} | 导出失败：%1$s | Export failed: %1$s |
+| 23 | ui | `ui_locale_live_demo` | - | 语言切换（无需重启） | Language switch (no restart) |
+| 24 | ui | `ui_switch_chinese` | - | 切到中文 | Switch to Chinese |
+| 25 | ui | `ui_switch_english` | - | 切到英文 | Switch to English |
+| 26 | ui | `ui_current_locale` | - | 当前语言 | Current locale |
+| 27 | ui | `ui_relative_time_sample` | - | 相对时间示例 | Relative time sample |
+| 28 | ui | `ui_date_time_sample` | - | 日期时间示例 | Date/time sample |
+| 29 | ui | `ui_semester_sample` | - | 学期文案示例 | Semester text sample |
+| 30 | ui | `ui_language` | - | 语言 | Language |
+| 31 | ui | `ui_tab_notices` | - | 公告 | Notices |
+| 32 | ui | `ui_tab_placeholder` | - | 该页面将在后续迭代中实现 | This page will be implemented in a later iteration |
+| 33 | ui | `ui_empty_notices` | - | 暂无公告 | No notices |
+| 34 | ui | `ui_refreshed_at` | {0} | 更新于 %1$s | Updated %1$s |
+| 35 | ui | `ui_notice_publish_time` | - | YYYY 年 M 月 D 日 dddd HH:mm | MMM D, YYYY HH:mm |
+| 36 | ui | `ui_weekday_sunday` | - | 星期日 | Sun |
+| 37 | ui | `ui_weekday_monday` | - | 星期一 | Mon |
+| 38 | ui | `ui_weekday_tuesday` | - | 星期二 | Tue |
+| 39 | ui | `ui_weekday_wednesday` | - | 星期三 | Wed |
+| 40 | ui | `ui_weekday_thursday` | - | 星期四 | Thu |
+| 41 | ui | `ui_weekday_friday` | - | 星期五 | Fri |
+| 42 | ui | `ui_weekday_saturday` | - | 星期六 | Sat |
+| 43 | ui | `ui_month_jan` | - | 1 月 | Jan |
+| 44 | ui | `ui_month_feb` | - | 2 月 | Feb |
+| 45 | ui | `ui_month_mar` | - | 3 月 | Mar |
+| 46 | ui | `ui_month_apr` | - | 4 月 | Apr |
+| 47 | ui | `ui_month_may` | - | 5 月 | May |
+| 48 | ui | `ui_month_jun` | - | 6 月 | Jun |
+| 49 | ui | `ui_month_jul` | - | 7 月 | Jul |
+| 50 | ui | `ui_month_aug` | - | 8 月 | Aug |
+| 51 | ui | `ui_month_sep` | - | 9 月 | Sep |
+| 52 | ui | `ui_month_oct` | - | 10 月 | Oct |
+| 53 | ui | `ui_month_nov` | - | 11 月 | Nov |
+| 54 | ui | `ui_month_dec` | - | 12 月 | Dec |
+| 55 | ui | `ui_enrollment_fingerprint_not_ready` | - | 浏览器指纹尚未就绪，此刻提交不会把该浏览器记为可信（服务端会提示"隐私或匿名模式"）。请稍等几秒后再次点击登录；若反复出现，请关闭本页重新登录。 | The browser fingerprint is not ready yet, so signing in now would not register this browser as trusted (the server would report a private/anonymous browser). Wait a few seconds and tap sign in again; if it keeps happening, close this page and sign in again. |
 

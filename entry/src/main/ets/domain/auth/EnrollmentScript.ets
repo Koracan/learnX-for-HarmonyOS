@@ -17,8 +17,7 @@
  * 的（sso.js 同时覆盖表单字段与 XHR）。页面自己的 fingerPrint 是 fingerprintjs2 的
  * canvas/webgl 指纹，纯 ArkTS 侧无法复算，"读 DOM 当凭据再回放"反而更弱。
  *
- * 回传协议（两条通道，值/日志分离）：
- * 设备实测的两处修正（都写进了 ticket Comments）：
+ * 设备实测的修正（都写进了 ticket Comments）：
  *   - "信任该浏览器"复选框**只有 name（singleLogin）、没有 id**，且全新 profile 上页面并不勾选它
  *     （finger3.js 只在 localStorage 已有 "singleLoginKey"="yes" 时才勾选）——必须由我们按 name
  *     找到并勾上（参考实现 sso.js:69-74 的等价物），否则服务端不会登记 180 天信任；
@@ -26,6 +25,16 @@
  *     是勾上的"是 180 天信任的前提；另加一个 jQuery **公开 API** 的 submit 钩子（不是猴补丁），
  *     在提交前再断言一次。
  *
+ *   - 另外两条是 2026-09-12 真实登记失败后加的：
+ *     ① **提交前自检（gate）**：fingerGenPrint / fingerGenPrint3 为空时**拦住提交**并给出提示。
+ *        理由是实测教训——这两个值为空时服务端必然拒绝信任（用户已因此白花一条短信），
+ *        而"注定失败的提交"不该让用户先过短信；参考实现没有这个保护（见 ticket Comments，
+ *        这是**新增的防线**而非行为偏离）。
+ *     ② **只读诊断（ENROLLMENT_DIAGNOSTICS_FOR_EVIDENCE）**：origin / 每个 XHR 的请求与响应摘要 /
+ *        IndexedDB 往返回 / localforage 读写探测 / 页面 console。它不改变行为，只补上"失败时
+ *        什么都没有留下"的观测缺口。
+ *
+ * 回传协议（两条通道，值/日志分离）：
  *   - report(kind, payload)：**只进日志**，payload 已脱敏（长度、布尔、host+path）；
  *   - values(payload)：k=v&k=v（值经 encodeURIComponent），给原生侧**保存**用，永不进日志。
  */
@@ -42,6 +51,16 @@ export const SAVE_FINGER_PATH: string = '/b/doubleAuth/personal/saveFinger';
  */
 export const TICK_MILLIS: number = 250;
 
+/**
+ * 取证开关：注入**只读诊断**（origin / XHR 请求与响应摘要 / IndexedDB 往返回 / localforage 探测 /
+ * 页面 console）。**提交态 false**；它的实际生效值由原生侧打进 hilog（AGENTS.md「开关必须自证生效」）。
+ *
+ * 为什么需要：真实登记被服务端判为"隐私/匿名模式"而拒绝信任时，页面自己的
+ * `console.log('getFinger3 error')` 与那次 `POST /b/doubleAuth/personal/getFinger3` 的响应
+ * 没有留在任何日志里。这层观测**不改变行为**，只把"为什么拿不到指纹"变成可读的事实。
+ */
+export const ENROLLMENT_DIAGNOSTICS_FOR_EVIDENCE: boolean = false;
+
 /** 注入脚本的输入。 */
 export interface EnrollmentScriptSpec {
   username: string;
@@ -49,6 +68,8 @@ export interface EnrollmentScriptSpec {
   fingerPrint: string;
   deviceName: string;
   bridgeName: string;
+  /** 提交前自检不通过时显示给用户的文案（调用方从 i18n 取，不把文案写死在脚本里）。 */
+  gateNoticeText: string;
 }
 
 /** 桥回传的 DOM 事实（原生侧据此保存凭据并打脱敏日志）。 */
@@ -59,6 +80,12 @@ export interface EnrollmentDomValues {
   pageDeviceName: string;
   /** saveFinger 的 XHR **实际发出**的 fingerprint 参数（用于"三点一致"的等式证据）。 */
   saveFingerFingerprint: string;
+  /** 提交前自检是否拦下过提交（远端拿到了值而 DOM 没接住）。取**末次观测**，不做粘性。 */
+  gateBlocked: boolean;
+  /** 生效指纹的来源：page（页面 fingerprintjs2 值，方案 A 的权威值）/ fallback（我们的 UUID）/ none。 */
+  fingerPrintSource: string;
+  /** 站点指纹的远端结果：1 成功 / 0 失败 / -1 还没试。 */
+  finger3RemoteOk: number;
   singleLoginChecked: boolean;
   userPrefilled: boolean;
   passPrefilled: boolean;
@@ -69,6 +96,7 @@ export interface EnrollmentDomValues {
 export function emptyDomValues(): EnrollmentDomValues {
   return {
     fingerPrint: '', fingerGenPrint: '', fingerGenPrint3: '', pageDeviceName: '', saveFingerFingerprint: '',
+    gateBlocked: false, fingerPrintSource: 'none', finger3RemoteOk: -1,
     singleLoginChecked: false, userPrefilled: false, passPrefilled: false, saveFingerPatched: false
   };
 }
@@ -98,6 +126,13 @@ const SCRIPT_TEMPLATE: string = `(function () {
   var SAVE_FINGER_PATH = __LEARNOH_SAVE_FINGER_PATH__;
   var TICK_MILLIS = __LEARNOH_TICK_MILLIS__;
   var submitHookAttached = false;
+  var DIAG = __LEARNOH_DIAGNOSTICS__;
+  var GATE_NOTICE = __LEARNOH_GATE_NOTICE__;
+  var gateBlocked = false;
+  var finger3Value = '';
+  var finger3RemoteOk = -1;
+  var requestLogCount = 0;
+  var consoleLogCount = 0;
   var lastSummary = '';
   var lastValues = '';
   var ticks = 0;
@@ -176,10 +211,34 @@ const SCRIPT_TEMPLATE: string = `(function () {
       var jq = window.jQuery;
       var form = field('theform');
       if (!jq || typeof jq !== 'function' || !form) { return false; }
-      jq(form).on('submit', function () {
+      jq(form).on('submit', function (event) {
         var forced = ensureSingleLogin();
         writeFingerPrint();
-        report('submitHook', 'fired=1 singleLoginForced=' + (forced ? '1' : '0'));
+        // 页面自己的 doLogin() 会在提交前用 local 值覆盖 #fingerGenPrint（local 为空时 jQuery 的
+        // .val(null) 会把它清成空串）。我们把自己取到的值再断言回去；取不到就没有可断言的。
+        if (finger3Value.length > 0) { applyFinger3(finger3Value); }
+        var fgChars = valueOf('fingerGenPrint').length;
+        var fg3Chars = valueOf('fingerGenPrint3').length;
+        // 提交前自检（**新增防线**，参考实现没有）。判定收窄过一次：
+        //   - "为空就拦"会把**每一次首登都拦死**（对全新浏览器为空是站点固有行为），所以不能那么判；
+        //   - 只在"**远端确实拿到了值、而 DOM 没接住**"时拦——那才是我们本可避免的失败。
+        // 无论拦不拦都打 reason，否则将来无法区分"判定为常态"和"门槛失效"。
+        var domMissedRemote = (finger3RemoteOk === 1) && (fgChars === 0 || fg3Chars === 0);
+        if (domMissedRemote) {
+          gateBlocked = true;
+          try { if (event && typeof event.preventDefault === 'function') { event.preventDefault(); } } catch (e) { }
+          showGateNotice();
+          report('preSubmitGate', 'blocked=1 reason=domMissedRemoteValue fgChars=' + fgChars
+            + ' fg3Chars=' + fg3Chars + ' remoteOk=' + finger3RemoteOk);
+          publish();
+          return;
+        }
+        gateBlocked = false;
+        hideGateNotice();
+        var reason = (fgChars > 0 && fg3Chars > 0) ? 'finger3Ready'
+          : (finger3RemoteOk === 0 ? 'firstEnrollmentEmptyFinger3' : 'finger3Unavailable');
+        report('submitGate', 'allowed=1 reason=' + reason + ' singleLoginForced=' + (forced ? '1' : '0')
+          + ' fgChars=' + fgChars + ' fg3Chars=' + fg3Chars + ' remoteOk=' + finger3RemoteOk);
         publish();
       });
       submitHookAttached = true;
@@ -210,15 +269,41 @@ const SCRIPT_TEMPLATE: string = `(function () {
     return hits;
   }
 
-  // 页面在解析末尾写自己的指纹，所以这里要反复盖回去（有限次；之后页面不会再改这个字段）。
+  // **方案 A（2026-09-12 设备取证后改定）**：以**页面自己算出的 fingerprintjs2 值**为权威值，
+  // 只有页面没有值时才用我们生成的 UUID 兜底。
+  //
+  // 为什么改：真实登记被服务端判为"隐私/匿名模式"而拒绝信任。把提交报文逐字段与"stock 浏览器"
+  // 对比后，**唯一不同的一栏就是我们覆盖掉的 fingerPrint**（fingerGen* 对任何未登录会话都为空，
+  // 是站点固有行为；deviceName 我们没动；singleLogin 是站点本意要勾的）。所以让它保持页面原值，
+  // 报文就与 stock 浏览器一致。
+  //
+  // 为什么仍然满足"登记值 == 重登出示值"：生效值被**原样保存**并在重登时回放，
+  // 不需要复算 fingerprintjs2（服务端记录的就是它收到的那一个）。
+  function effectiveFingerPrint() {
+    var pageValue = valueOf('fingerPrint');
+    return pageValue.length > 0 ? pageValue : FP;
+  }
+
   function writeFingerPrint() {
     var el = field('fingerPrint');
     if (!el) { return false; }
-    if (el.value !== FP) { el.value = FP; }
+    var want = effectiveFingerPrint();
+    if (el.value !== want) { el.value = want; }
     return true;
   }
 
-  // 让页面自己算 fingerGenPrint（值在 localStorage，原生侧算不出来，只能读）。
+  // 把站点指纹同时写进两个字段（页面自己也是同一个来源：local → 远端）。
+  function applyFinger3(value) {
+    finger3Value = value;
+    var a = field('fingerGenPrint');
+    if (a) { a.value = value; }
+    var b = field('fingerGenPrint3');
+    if (b) { b.value = value; }
+  }
+
+  // 取站点指纹（fingerGenPrint / fingerGenPrint3）。**不依赖页面那条 promise 链**：
+  // 站点自己的 getFinger3() 在远端成功但 localforage 写失败时会 reject，于是 DOM 永远不更新；
+  // 我们直接调同一个 API，拿到值就写 DOM（失败则如实记录原因，供提交前自检判定）。
   function collectFinger3() {
     try {
       var lsu = window.localstorageUtil;
@@ -227,12 +312,276 @@ const SCRIPT_TEMPLATE: string = `(function () {
         return;
       }
       lsu.getFinger3FromLocal().then(function (r) {
-        var el = field('fingerGenPrint');
-        if (el && r) { el.value = r; }
-        report('finger3', 'source=localstorage chars=' + (r ? String(r).length : 0));
+        if (r) {
+          applyFinger3(String(r));
+          report('finger3', 'source=localstorage chars=' + String(r).length);
+          publish();
+          return;
+        }
+        report('finger3', 'source=localstorage chars=0 -> tryRemote');
+        if (typeof lsu.getFinger3FromRemoteAndSave !== 'function') {
+          finger3RemoteOk = 0;
+          report('finger3', 'remoteApi=absent');
+          publish();
+          return;
+        }
+        lsu.getFinger3FromRemoteAndSave().then(function (v) {
+          if (v) {
+            applyFinger3(String(v));
+            finger3RemoteOk = 1;
+            report('finger3', 'source=remote chars=' + String(v).length);
+          } else {
+            finger3RemoteOk = 0;
+            report('finger3', 'remote resolved empty');
+          }
+          publish();
+        }).catch(function (e) {
+          finger3RemoteOk = 0;
+          report('finger3', 'remote rejected ' + describeThing(e));
+          publish();
+        });
+      }).catch(function (e) {
+        finger3RemoteOk = 0;
+        report('finger3', 'local rejected ' + describeThing(e));
         publish();
-      }).catch(function (e) { report('finger3', 'error=' + e); });
+      });
     } catch (e) { report('finger3', 'throw=' + e); }
+  }
+
+  // ------------------------------------------------------------------
+  // 只读诊断（DIAG=false 时全部空转）：真实登记失败时，页面自己的报错与那次
+  // POST /b/doubleAuth/personal/getFinger3 的响应都没有留在日志里。以下都只记录，不改变行为。
+  // ------------------------------------------------------------------
+  function describeThing(value) {
+    try {
+      if (value === null) { return 'null'; }
+      if (value === undefined) { return 'undefined'; }
+      var type = typeof value;
+      if (type !== 'object') { return type + ':' + String(value).substring(0, 60); }
+      var keys = '';
+      try { keys = Object.keys(value).slice(0, 6).join(','); } catch (e) { keys = ''; }
+      var result = (value.result !== undefined && value.result !== null) ? String(value.result) : 'none';
+      var message = (value.message !== undefined && value.message !== null)
+        ? String(value.message).substring(0, 120) : '';
+      return 'object result=' + result + ' keys=[' + keys + '] message=[' + message + ']';
+    } catch (e) { return 'undescribable'; }
+  }
+
+  // 只记**参数名与长度**，不记值：实验时要能对照参考实现注入的三个参数
+  // （fingerprint / deviceName / radioVal=是）是否都在，以及 body 到底是什么形态
+  // （URL 编码表单？JSON？非字符串？——这是"我们的 URLSearchParams 改写是否改坏了它"的判据）。
+  function describeBody(body) {
+    try {
+      if (typeof body !== 'string') { return 'bodyType=' + (typeof body); }
+      var params = new URLSearchParams(body);
+      var wanted = ['fingerprint', 'deviceName', 'radioVal'];
+      var parts = [];
+      for (var i = 0; i < wanted.length; i++) {
+        var v = params.get(wanted[i]);
+        parts.push(wanted[i] + '=' + (v === null ? 'absent' : 'len:' + String(v).length));
+      }
+      var all = [];
+      try {
+        params.forEach(function (value, key) {
+          if (all.length < 12) { all.push(key + '(' + String(value).length + ')'); }
+        });
+      } catch (e) { }
+      return 'bodyChars=' + body.length + ' ' + parts.join(' ') + ' allParams=' + all.join(',');
+    } catch (e) { return 'describeFailed=' + e; }
+  }
+
+  function recordRequest(method, path) {
+    try {
+      if (!DIAG || requestLogCount >= 40) { return; }
+      requestLogCount++;
+      report('xhr', 'req method=' + method + ' path=' + path + ' n=' + requestLogCount);
+    } catch (e) { }
+  }
+
+  // 记录一次 XHR 的结局；对 /b/doubleAuth/ 下的接口额外摘出 result 与 object 长度（**不含值**）。
+  function attachResponseRecorder(xhr, path) {
+    try {
+      xhr.addEventListener('load', function () {
+        var text = '';
+        try { text = String(xhr.responseText || ''); } catch (e) { text = ''; }
+        var shape = '';
+        if (path.indexOf('/b/doubleAuth/') >= 0) {
+          var result = 'none';
+          var objectChars = 0;
+          try {
+            var parsed = JSON.parse(text);
+            if (parsed && parsed.result !== undefined && parsed.result !== null) { result = String(parsed.result); }
+            if (parsed && parsed.object !== undefined && parsed.object !== null) { objectChars = String(parsed.object).length; }
+          } catch (e) { result = 'nonJson'; }
+          shape = ' result=' + result + ' objectChars=' + objectChars;
+        }
+        report('xhr', 'res path=' + path + ' status=' + String(xhr.status) + ' chars=' + text.length + shape);
+      });
+      xhr.addEventListener('error', function () { report('xhr', 'err path=' + path); });
+      xhr.addEventListener('timeout', function () { report('xhr', 'timeout path=' + path); });
+    } catch (e) { report('xhr', 'recordFail=' + e); }
+  }
+
+  function diagEnvironment() {
+    if (!DIAG) { return; }
+    try {
+      var href = window.location ? String(window.location.href) : '';
+      var origin = window.location ? String(window.location.origin || '') : '';
+      var cookieChars = 0;
+      try { cookieChars = String(document.cookie || '').length; } catch (e) { cookieChars = -1; }
+      var lsOk = false;
+      try {
+        window.localStorage.setItem('learnoh_ls_probe', '1');
+        lsOk = window.localStorage.getItem('learnoh_ls_probe') === '1';
+        window.localStorage.removeItem('learnoh_ls_probe');
+      } catch (e) { lsOk = false; }
+      var idbType = 'n/a';
+      try { idbType = typeof window.indexedDB; } catch (e) { idbType = 'throw'; }
+      var ua = '';
+      try { ua = String(navigator.userAgent || ''); } catch (e) { ua = ''; }
+      report('diag:env', 'origin=[' + origin + '] path=' + pathOf(href)
+        + ' cookieChars=' + cookieChars + ' localStorageOk=' + lsOk
+        + ' indexedDB=' + idbType + ' uaChars=' + ua.length
+        + ' uaChrome=' + (ua.indexOf('Chrome') >= 0 ? '1' : '0')
+        + ' diag=' + DIAG);
+    } catch (e) { report('diag:env', 'throw=' + e); }
+  }
+
+  function diagIndexedDb() {
+    if (!DIAG) { return; }
+    try {
+      if (!window.indexedDB) { report('diag:idb', 'unavailable'); return; }
+      var request = window.indexedDB.open('learnoh-probe', 1);
+      request.onupgradeneeded = function () { try { request.result.createObjectStore('kv'); } catch (e) { } };
+      request.onerror = function () { report('diag:idb', 'openError=' + (request.error ? request.error.name : 'unknown')); };
+      request.onblocked = function () { report('diag:idb', 'blocked=1'); };
+      request.onsuccess = function () {
+        var db = request.result;
+        try {
+          var tx = db.transaction('kv', 'readwrite');
+          tx.objectStore('kv').put('v1', 'k1');
+          tx.oncomplete = function () {
+            var tx2 = db.transaction('kv', 'readonly');
+            var get = tx2.objectStore('kv').get('k1');
+            get.onsuccess = function () { report('diag:idb', 'roundTripOk=' + (get.result === 'v1')); };
+            get.onerror = function () { report('diag:idb', 'readError=' + (get.error ? get.error.name : 'unknown')); };
+          };
+          tx.onerror = function () { report('diag:idb', 'writeError=' + (tx.error ? tx.error.name : 'unknown')); };
+        } catch (e) { report('diag:idb', 'txThrow=' + e); }
+      };
+    } catch (e) { report('diag:idb', 'throw=' + e); }
+  }
+
+  // localforage 的**写→读→复原**往返（站点把 fingerKey / singleLoginKey / browser_fp 都放在这里）。
+  // 只读诊断做不到这一条：IndexedDB 写失败时"读"可能只是返回空，看起来跟"没写过"一样。
+  // 复原规则：原本没有值就 removeFinger3()，原本有值就写回原值——不留痕。
+  function diagLocalforageRoundTrip() {
+    if (!DIAG) { return; }
+    try {
+      var lsu = window.localstorageUtil;
+      if (!lsu || typeof lsu.saveFinger3Local !== 'function' || typeof lsu.getFinger3FromLocal !== 'function') {
+        report('diag:lfrt', 'api=absent');
+        return;
+      }
+      var probe = 'learnoh-probe-' + String(Date.now());
+      lsu.getFinger3FromLocal().then(function (before) {
+        report('diag:lfrt', 'before type=' + (typeof before) + ' chars=' + (before ? String(before).length : 0));
+        lsu.saveFinger3Local(probe).then(function () {
+          report('diag:lfrt', 'writeOk=1');
+          lsu.getFinger3FromLocal().then(function (after) {
+            report('diag:lfrt', 'readBackMatch=' + (String(after) === probe ? '1' : '0'));
+            try {
+              if (before === null || before === undefined || before === '') {
+                if (typeof lsu.removeFinger3 === 'function') {
+                  lsu.removeFinger3();
+                  report('diag:lfrt', 'restored=removed');
+                }
+              } else {
+                lsu.saveFinger3Local(String(before));
+                report('diag:lfrt', 'restored=original');
+              }
+            } catch (e) { report('diag:lfrt', 'restoreFailed=' + e); }
+          }).catch(function (e) { report('diag:lfrt', 'readBackRejected ' + describeThing(e)); });
+        }).catch(function (e) { report('diag:lfrt', 'writeRejected ' + describeThing(e)); });
+      }).catch(function (e) { report('diag:lfrt', 'beforeRejected ' + describeThing(e)); });
+    } catch (e) { report('diag:lfrt', 'throw=' + e); }
+  }
+
+  function diagLocalforage() {
+    if (!DIAG) { return; }
+    try {
+      var lsu = window.localstorageUtil;
+      if (!lsu) { report('diag:lf', 'localstorageUtil=absent'); return; }
+      try {
+        lsu.getFinger3FromLocal().then(function (v) {
+          report('diag:lf', 'getFinger3FromLocal resolved type=' + (typeof v)
+            + ' chars=' + (v ? String(v).length : 0) + ' falsy=' + (!v));
+        }).catch(function (e) { report('diag:lf', 'getFinger3FromLocal rejected ' + describeThing(e)); });
+      } catch (e) { report('diag:lf', 'getFinger3FromLocal throw=' + e); }
+      try {
+        lsu.getFinger3FromRemoteAndSave().then(function (v) {
+          report('diag:lf', 'getFinger3FromRemoteAndSave resolved type=' + (typeof v)
+            + ' chars=' + (v ? String(v).length : 0));
+        }).catch(function (e) { report('diag:lf', 'getFinger3FromRemoteAndSave rejected ' + describeThing(e)); });
+      } catch (e) { report('diag:lf', 'getFinger3FromRemoteAndSave throw=' + e); }
+      try {
+        var jq = window.jQuery;
+        if (jq && typeof jq.post === 'function') {
+          jq.post('/b/doubleAuth/personal/getFinger3', {}, function (t) {
+            report('diag:getFinger3', 'direct ok ' + describeThing(t));
+          }).fail(function (xhr, status) {
+            report('diag:getFinger3', 'direct fail status=' + status
+              + ' httpStatus=' + (xhr ? String(xhr.status) : '?'));
+          });
+        } else {
+          report('diag:getFinger3', 'jQuery=absent');
+        }
+      } catch (e) { report('diag:getFinger3', 'throw=' + e); }
+    } catch (e) { report('diag:lf', 'throw=' + e); }
+  }
+
+  // 页面 console 经桥转进我们自己的 hilog（只在 DIAG 下），用于抓页面自己的
+  // console.log('getFinger3 error') 这类线索。上限 40 条、每条截断。
+  function installConsoleTap() {
+    if (!DIAG) { return; }
+    try {
+      var original = window.console ? window.console.log : null;
+      if (!window.console || typeof original !== 'function') { report('diag:console', 'no-console'); return; }
+      window.console.log = function () {
+        try {
+          if (consoleLogCount < 40) {
+            consoleLogCount++;
+            var parts = [];
+            for (var i = 0; i < arguments.length; i++) { parts.push(describeThing(arguments[i])); }
+            report('diag:console', 'log ' + parts.join(' | ').substring(0, 240));
+          }
+        } catch (e) { }
+        return original.apply(window.console, arguments);
+      };
+      report('diag:console', 'tapped=1');
+    } catch (e) { report('diag:console', 'tapFailed=' + e); }
+  }
+
+  // 提交前自检的提示横幅（只在拦下提交时出现）。
+  function showGateNotice() {
+    try {
+      var node = document.getElementById('learnohGateNotice');
+      if (!node) {
+        node = document.createElement('div');
+        node.id = 'learnohGateNotice';
+        node.setAttribute('style', 'position:fixed;left:0;right:0;bottom:0;z-index:2147483647;'
+          + 'background:#8b0000;color:#ffffff;font-size:14px;line-height:1.5;padding:10px 12px;');
+        if (document.body) { document.body.appendChild(node); }
+      }
+      node.textContent = GATE_NOTICE;
+    } catch (e) { report('preSubmitGate', 'noticeFailed=' + e); }
+  }
+
+  function hideGateNotice() {
+    try {
+      var node = document.getElementById('learnohGateNotice');
+      if (node && node.parentNode) { node.parentNode.removeChild(node); }
+    } catch (e) { }
   }
 
   // saveFinger 的 XHR 拦截：这里是唯一注入"服务端登记值"的地方。
@@ -244,22 +593,35 @@ const SCRIPT_TEMPLATE: string = `(function () {
       var originalOpen = proto.open;
       var originalSend = proto.send;
       proto.open = function (method, url) {
-        try { this.__learnohUrl = (typeof url === 'string') ? url : String(url); } catch (e) { }
+        try {
+          this.__learnohUrl = (typeof url === 'string') ? url : String(url);
+          this.__learnohMethod = (typeof method === 'string') ? method : String(method);
+        } catch (e) { }
         return originalOpen.apply(this, arguments);
       };
       proto.send = function (body) {
         var outgoing = body;
         try {
           var url = this.__learnohUrl ? String(this.__learnohUrl) : '';
+          if (DIAG) {
+            var method = this.__learnohMethod ? String(this.__learnohMethod) : 'GET';
+            var reqPath = pathOf(url);
+            recordRequest(method, reqPath);
+            attachResponseRecorder(this, reqPath);
+            if (reqPath.indexOf(SAVE_FINGER_PATH) >= 0) {
+              report('saveFingerRequest', describeBody(body));
+            }
+          }
           if (url.indexOf(SAVE_FINGER_PATH) >= 0 && typeof body === 'string') {
             var params = new URLSearchParams(body);
-            params.set('fingerprint', FP);
+            params.set('fingerprint', effectiveFingerPrint());
             params.set('deviceName', DEVICE_NAME);
             params.set('radioVal', '是');
             outgoing = params.toString();
             saveFingerSent = params.get('fingerprint') ? String(params.get('fingerprint')) : '';
             report('saveFinger', 'patched=1 path=' + pathOf(url)
-              + ' deviceName=' + DEVICE_NAME + ' fingerprintChars=' + FP.length);
+              + ' deviceName=' + DEVICE_NAME + ' fingerprintChars=' + effectiveFingerPrint().length
+              + ' fingerprintSource=' + (effectiveFingerPrint() === FP ? 'fallback' : 'page'));
             publish();
             try {
               this.addEventListener('load', function () {
@@ -290,6 +652,9 @@ const SCRIPT_TEMPLATE: string = `(function () {
       + '&fingerGenPrint3=' + encodeURIComponent(fg3)
       + '&pageDeviceName=' + encodeURIComponent(dn)
       + '&saveFingerFingerprint=' + encodeURIComponent(saveFingerSent)
+      + '&gateBlocked=' + (gateBlocked ? '1' : '0')
+      + '&fpSource=' + encodeURIComponent(fp.length === 0 ? 'none' : (fp === FP ? 'fallback' : 'page'))
+      + '&f3Remote=' + String(finger3RemoteOk)
       + '&singleLogin=' + (single && single.checked ? '1' : '0')
       + '&userPrefilled=' + (USERNAME.length > 0 && user === USERNAME ? '1' : '0')
       + '&passPrefilled=' + (PASSWORD.length > 0 && pass === PASSWORD ? '1' : '0')
@@ -297,7 +662,9 @@ const SCRIPT_TEMPLATE: string = `(function () {
     if (payload !== lastValues) { lastValues = payload; publishValues(payload); }
     var summary = 'fingerPrintField=' + (field('fingerPrint') ? '1' : '0')
       + ' fingerPrintChars=' + fp.length
-      + ' fingerPrintMatchInjected=' + (fp === FP ? '1' : '0')
+      + ' fingerPrintSource=' + (fp.length === 0 ? 'none' : (fp === FP ? 'fallback' : 'page'))
+      + ' finger3ValueChars=' + finger3Value.length
+      + ' finger3RemoteOk=' + finger3RemoteOk
       + ' fingerGenPrintChars=' + fg.length
       + ' fingerGenPrint3Chars=' + fg3.length
       + ' pageDeviceNameChars=' + dn.length
@@ -306,6 +673,9 @@ const SCRIPT_TEMPLATE: string = `(function () {
       + ' prefillPass=' + (PASSWORD.length > 0 && pass === PASSWORD ? '1' : '0')
       + ' saveFingerPatched=' + (patched ? '1' : '0')
       + ' saveFingerFingerprintChars=' + saveFingerSent.length
+      + ' fingerGenReady=' + (fg.length > 0 && fg3.length > 0 ? '1' : '0')
+      + ' gateBlocked=' + (gateBlocked ? '1' : '0')
+      + ' diag=' + (DIAG ? '1' : '0')
       + ' url=' + pathOf(window.location ? window.location.href : '');
     if (summary !== lastSummary) { lastSummary = summary; report('summary', summary); }
   }
@@ -322,6 +692,11 @@ const SCRIPT_TEMPLATE: string = `(function () {
   }
 
   patchSaveFinger();
+  installConsoleTap();
+  diagEnvironment();
+  diagIndexedDb();
+  diagLocalforage();
+  diagLocalforageRoundTrip();
   tick();
   collectFinger3();
   try {
@@ -354,6 +729,9 @@ export function buildEnrollmentScript(spec: EnrollmentScriptSpec): string {
   script = substitute(script, '__LEARNOH_BRIDGE__', jsStringLiteral(spec.bridgeName));
   script = substitute(script, '__LEARNOH_SAVE_FINGER_PATH__', jsStringLiteral(SAVE_FINGER_PATH));
   script = substitute(script, '__LEARNOH_TICK_MILLIS__', TICK_MILLIS.toString());
+  script = substitute(script, '__LEARNOH_DIAGNOSTICS__',
+    ENROLLMENT_DIAGNOSTICS_FOR_EVIDENCE ? 'true' : 'false');
+  script = substitute(script, '__LEARNOH_GATE_NOTICE__', jsStringLiteral(spec.gateNoticeText));
   return script;
 }
 
@@ -385,6 +763,12 @@ export function parseEnrollmentValues(payload: string): EnrollmentDomValues {
       values.pageDeviceName = value;
     } else if (key === 'saveFingerFingerprint') {
       values.saveFingerFingerprint = value;
+    } else if (key === 'gateBlocked') {
+      values.gateBlocked = value === '1';
+    } else if (key === 'fpSource') {
+      values.fingerPrintSource = value;
+    } else if (key === 'f3Remote') {
+      values.finger3RemoteOk = Number.parseInt(value, 10);
     } else if (key === 'singleLogin') {
       values.singleLoginChecked = value === '1';
     } else if (key === 'userPrefilled') {
@@ -426,6 +810,13 @@ export function mergeDomValues(previous: EnrollmentDomValues, fresh: EnrollmentD
   merged.userPrefilled = previous.userPrefilled || fresh.userPrefilled;
   merged.passPrefilled = previous.passPrefilled || fresh.passPrefilled;
   merged.saveFingerPatched = previous.saveFingerPatched || fresh.saveFingerPatched;
+  // 自检状态取**末次观测**（不粘性）：它要回答的是"此刻这一屏是不是被拦下了"。
+  merged.gateBlocked = fresh.gateBlocked;
+  // 来源与"远端是否成功"是**有意义才覆盖**：漫游到 learn 域后字段消失（source=none / remote=-1），
+  // 那时要保留登录页上的结论（否则等式与自检判定会丢掉依据）。
+  merged.fingerPrintSource = fresh.fingerPrintSource !== 'none' && fresh.fingerPrintSource.length > 0
+    ? fresh.fingerPrintSource : previous.fingerPrintSource;
+  merged.finger3RemoteOk = fresh.finger3RemoteOk >= 0 ? fresh.finger3RemoteOk : previous.finger3RemoteOk;
   return merged;
 }
 
@@ -435,7 +826,11 @@ export function mergeDomValues(previous: EnrollmentDomValues, fresh: EnrollmentD
  */
 export function credentialRecordFor(username: string, password: string, injectedFingerPrint: string,
   dom: EnrollmentDomValues): CredentialRecord {
-  return createCredentialRecord(username, password, injectedFingerPrint, dom.fingerGenPrint, dom.fingerGenPrint3);
+  // **方案 A**：生效指纹以**页面值**为权威，`injectedFingerPrint` 只是页面没给出值时的兜底。
+  // 权威判定放在这里（而不是调用点）是有意的：调用方可能来自不同 ticket 的编排代码，
+  // 让"哪个值权威"只有一处定义，重登（ticket 08）读到的就是同一个生效值。
+  const effective: string = dom.fingerPrint.length > 0 ? dom.fingerPrint : injectedFingerPrint;
+  return createCredentialRecord(username, password, effective, dom.fingerGenPrint, dom.fingerGenPrint3);
 }
 
 /**
@@ -452,5 +847,8 @@ export function describeEnrollmentDomValues(dom: EnrollmentDomValues): string {
     + ' saveFingerFingerprintChars=' + dom.saveFingerFingerprint.length.toString()
     + ' singleLogin=' + dom.singleLoginChecked.toString()
     + ' prefill=(' + dom.userPrefilled.toString() + ',' + dom.passPrefilled.toString() + ')'
-    + ' saveFingerPatched=' + dom.saveFingerPatched.toString();
+    + ' saveFingerPatched=' + dom.saveFingerPatched.toString()
+    + ' gateBlocked=' + dom.gateBlocked.toString()
+    + ' fpSource=' + dom.fingerPrintSource
+    + ' f3Remote=' + dom.finger3RemoteOk.toString();
 }

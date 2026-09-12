@@ -36,7 +36,7 @@
 
 ---
 
-## 2. 自动重登只在结果**恰好等于字符串** `'[]'` 时触发 —— 锁定（并已知其缺口）
+## 2. 自动重登只在结果**恰好等于字符串** `'[]'` 时触发 —— 已复审（触发并集仍锁定；「重登后仍 `'[]'`」这一支在 ticket 08 收口）
 
 **参考实现行为**（`src/data/source.ts:104`）：
 ```ts
@@ -65,6 +65,17 @@ if (result === '[]') {           // ← 精确字符串比较
 所以新实现要做的**不是"自己发明一条补充分支"，而是把参考实现这两半的并集都覆盖**：`'[]'` **或** 响应 URL 含 `login_timeout` **或** 状态码 `403` → 重登，且**只重试一次**（两条路径都只重试一次，无循环）。这样 ADR-0004 要求的"任何非预期响应一律降级到 Enrollment"就落在参考实现既有语义上，而不是新增推测——论证强度完全不同，之前那种写法容易被当成"移植者擅自加戏"。
 
 另一条路径重登后还会再判一次：仍 `noLogin` → `NOT_LOGGED_IN`；状态码非 200 → `UNEXPECTED_STATUS`（`index.js:49-68`）。这两个失败原因值得照搬成可诊断的错误分类。
+
+**ticket 08 收口（2026-09-12，本条改判为「已复审」的那一半）**：触发条件与"只重试一次"两条**保持锁定**——并集照上表，`SessionGate`（06 交付）**一行语义都没改**。偏离的只有**重登之后仍然返回 `'[]'`** 这一支：
+
+| 项 | 参考实现 | 新实现 | 替代验收标准 |
+| --- | --- | --- | --- |
+| 重登后仍 `'[]'` | 静默把 `'[]'` 交给调用方（界面表现为"空列表"，看不出会话其实没恢复） | `SessionGate` 仍原样返回（`sessionLostAfterReAuth=true`，06 已交付）；**调用方** `AuthedTaskRunner` 把它翻成 `requiresEnrollment=true`，值不往上传 | 单测 `degradesWhenTheListIsStillEmptyAfterReAuth`：任务两次都返回 `'[]'` 时结果 `requiresEnrollment === true`、`value === ''`；界面停回登录页并说明需要重新验证 |
+
+**为什么这次可以偏离**：ADR-0004 的 Consequences 明文要求"任何非预期响应一律降级到 Enrollment"，而"重登成功但列表仍空"正是"非预期响应"；ticket 06 交付 `sessionLostAfterReAuth` 时就把这个口子留给了调用方（其 Comments 原话是"便于日后升级为 Enrollment 而不改行为"），本 ticket 就是那个"日后"。**触发条件那条没有动**，所以"移植是否与参考一致"仍有可比对的基准。
+
+**取证**：`entry/src/main/ets/data/auth/SessionRestore.ets`（`AuthedRunResult.fromGate`）；
+`entry/src/test/SessionRestore.test.ets`；`entry/src/main/ets/data/auth/ReAuth.ets`（未改）。
 
 补充两条同源事实（都在 `source.ts`，ticket 06 要用）：`loginWithFingerPrint` **每次登录前先清空全部 cookie**（`:11-28,37`，注释写明"HarmonyOS cookies may persist unexpectedly"——又一处平台能力缺口补丁）；自定义 fetch **强制桌面 Chrome UA**（`:55-57`）。
 
@@ -222,6 +233,60 @@ const sorted = semesters?.sort().reverse();
 **背景**：ticket 04 曾把"行内 `$…$` 未渲染"记为"部分达成／根因未定论"。经查证它属**参考实现行为**，故验收第 3 条以"`$$…$$` 正常排版"为达成判据。若将来确实要支持单 `$`，那是**新增**，需单独定义验收标准并评估与真实正文的冲突。
 
 **取证**：`reference/learnOH-old/src/helpers/html.ts:110-114`（未传 delimiters）；`reference/learnOH-old/node_modules/katex/dist/contrib/auto-render.min.js`（默认分隔符数组）；`entry/src/main/ets/domain/render/WebViewTemplate.ets`。
+
+---
+
+## 10. 提交报文里的 `fingerPrint` 取**页面值**而不是自造值 —— 已复审（ticket 07，有意偏离参考实现）
+
+**参考实现行为**：`sso.js` 的 `jQuery.fn.submit` 猴补丁在**提交时**把 `${fingerPrint}`（RN 侧
+`Math.random` 造的 UUID）写进表单字段，`saveFinger` 的 XHR 也注入同一个值
+（`src/helpers/preval/sso.js:12-36,55-89`；`src/screens/SSO.tsx:33-52`）——**两处都是它自己的值**。
+
+**为什么偏离**：2026-09-12 的真实登记（用户在模拟器上完成短信验证）被服务端拒绝授予信任，
+原话"您的浏览器目前处于隐私或匿名模式，系统无法将该浏览器设置为信任浏览器"
+（消息键 `double_sfjbsbbjwxrsb3`，见站点消息字典 `/common/public/all-messages.js`）。
+把**提交报文**逐字段与"stock 浏览器"对比后，**唯一不同的一栏就是我们覆盖掉的 `fingerPrint`**：
+`fingerGenPrint` / `fingerGenPrint3` 对未登录会话恒为空（设备实测
+`POST /b/doubleAuth/personal/getFinger3` → `result=error`，匿名 HTTP 探针同样如此），
+`deviceName` 我们没动（页面写 `other,Chrome/132`），`singleLogin` 是站点本意要勾上的。
+在只有证据没有猜测的前提下，**让报文与 stock 浏览器一致是唯一有依据的可控变量**。
+
+**新实现做法**：生效指纹 = **页面自己算出的 fingerprintjs2 值**；只有页面没给出值时，才用我们生成的
+UUID 兜底。同一个生效值用于三处：表单字段、`saveFinger` 的 XHR、凭据落盘与重登回放。
+**store-and-replay**：登记值与重登出示值仍然**逐字相同**（不需要复算页面值——服务端记录的就是它
+收到的那一个字符串）。日志里以 `fingerprintSource=page|fallback` 自证取的是哪一个。
+
+**替代验收标准（本表"已复审"档要求写明的那一条）**：验收第 2 条"服务端登记的设备指纹与我们保存的
+凭据指纹是同一个值"**判据不变**（三点脱敏等式：`formFieldDom` = `saveFingerXhr` = `persistedReadBack`），
+只是**那个值来自页面**；不再要求它等于"我们生成的 UUID"。
+
+**取证**：ticket 07 Comments 的「方案 A」；`.scratch/enrollment/evidence/07-diag-prefix-finger3-empty.txt`
+（`xhr res path=/b/doubleAuth/personal/getFinger3 … result=error`、`diag:idb roundTripOk=true`）；
+`entry/src/main/ets/domain/auth/EnrollmentScript.ets` 的 `effectiveFingerPrint`；
+`docs/adr/0004` 的正文仍需按本条修订（原文写"我们生成的设备指纹"）。
+
+---
+
+## 11. 【平台事实】ArkWeb 的 IndexedDB 与 `databaseAccess`（不是参考实现的怪癖，**不构成保真约束**）—— ticket 07 新增
+
+设备实测（模拟器 Pura 90，HarmonyOS 6.1.0(23)），两条都来自 ticket 07 的诊断构建：
+
+1. **`databaseAccess` 默认 false，但 IndexedDB 照样可用。** `EnrollmentWebView` 没有设置
+   `databaseAccess`，实测 `indexedDB=object`，且原生往返探针（`indexedDB.open` → `put` → `get`）
+   `roundTripOk=true`；`domStorageAccess(true)` 下的 localStorage 也正常（`localStorageOk=true`）。
+   ⇒ `databaseAccess` 对应的是**老的 Web SQL Database**，**不是 IndexedDB**。
+   排查"站点认为这个浏览器存不住东西"时，**不要先去动这个开关**（ticket 07 曾把它当第一嫌疑，
+   被这一条判死）。
+2. **`javaScriptOnDocumentStart` 注入的脚本跑在文档最开始**：那时 `<head>` 里的第三方脚本
+   （例如站点的 `localstorageUtil.js`）**还没有定义全局**。ticket 07 的第一版探针在那一刻读到
+   `localstorageUtil=absent`，一度被误读成"站点对象不存在"——同一轮 load 期的调用是正常的
+   （`finger3 source=localstorage chars=0`）。⇒ 探针必须能区分"此刻还没定义"与"根本不存在"，
+   否则它会生产假结论。
+
+**取证**：`.scratch/enrollment/evidence/07-diag-prefix-finger3-empty.txt`
+（`diag:env origin=[https://id.tsinghua.edu.cn] … localStorageOk=true indexedDB=object`、
+`diag:idb roundTripOk=true`、`diag:lf localstorageUtil=absent` 与随后 load 期的
+`[finger3] source=localstorage chars=0` 并存）。
 
 ---
 
