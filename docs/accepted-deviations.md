@@ -62,8 +62,6 @@ if (result === '[]') {           // ← 精确字符串比较
 
 ---
 
----
-
 ## 6. 模板内联 <script> 与正文里的 </script> —— 已复审（ticket 04 加固）
 
 **参考实现行为**：`helpers/html.ts:32-118` 的 `getWebViewTemplate` 把正文 `content` 直接拼进
@@ -86,8 +84,6 @@ if (result === '[]') {           // ← 精确字符串比较
 **取证**：`reference/learnOH-old/src/helpers/html.ts:108`（`${content}` 直接插值）；
 `entry/src/main/ets/domain/render/WebViewTemplate.ets` 的 `escapeScriptEndTags`；
 `entry/src/test/NoticeDetail.test.ets`。
-
----
 
 ---
 
@@ -190,8 +186,6 @@ ticket 07 Comments 的「方案 A」；`.scratch/enrollment/evidence/07-diag-pre
 
 ---
 
----
-
 ## 16. 公告卡片的状态图标：参考实现用三色图标，新实现用同色 emoji —— 已复审（ticket 09）→ **【改判】改用与参考实现一致的扁平矢量图标（ticket 11.5）**
 
 > **【改判·仍是约束】**本条原评审结论（"用 emoji + 颜色/位置判据"）已被账号所有者**推翻**（2026-09-12）。
@@ -263,8 +257,6 @@ ticket 09 的模拟器截图（`.scratch/notices/evidence/`）。
 
 ---
 
----
-
 ## 18. 课程 / 学期这条线的四处有意偏离 —— 已复审（ticket 12）
 
 **参考实现行为**（参考工程 reference/learnOH-old/）：
@@ -302,8 +294,6 @@ ticket 09 的模拟器截图（`.scratch/notices/evidence/`）。
    以及 data.courses snapshot semester=2025-2026-2 source=override courses=⟨n⟩ ...；
 3. 覆盖优先级 = override > 界面选择 > 站点当前学期，且**界面显示的 semester 就是实际生效值**
    （课程 tab 头部那句"当前学期：getSemesterTextFromId(effective)"）。
-
----
 
 ---
 
@@ -357,8 +347,6 @@ ticket 11 的设备证据里保留了两段：`PdfView` 崩溃的 hilog（上文
 `entry/src/main/ets/features/files/FileDetailPage.ets` 的 `loadPreview` / `previewBody`；
 入口单测 `entry/src/test/FileDownload.test.ets`（`classifiesPreviewableTypesAndMetaLine`）；ticket 11 的模拟器截图与 hilog。
 
-
----
 
 ---
 

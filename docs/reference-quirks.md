@@ -57,8 +57,6 @@
 
 ---
 
----
-
 ## 3. 学期排序是 `sort().reverse()`，不是自定义比较器 —— 锁定
 
 **参考实现行为**（`src/data/actions/semesters.ts:27`）：
@@ -72,8 +70,6 @@ const sorted = semesters?.sort().reverse();
 **新实现的做法**：`domain/model/Semester.ets` 用**显式的时间序比较**（ticket 01 已交付），并在单测里断言"与参考实现的 `sort().reverse()` 在合法 id 上结果一致"——既拿到了正确性，又保留了对参考实现的兼容证明。
 
 **取证**：`src/data/actions/semesters.ts:27`；新实现的等价断言见 `entry/src/test/Semester.test.ets`。
-
----
 
 ---
 
@@ -109,15 +105,11 @@ const sorted = semesters?.sort().reverse();
 
 ---
 
----
-
 ## 5. 搜索的"手工精确匹配合并"是 CJK 下的必要行为 —— 锁定
 
 参考实现里有一段看起来冗余的"手工精确/前缀匹配再合并"逻辑。**它不是权宜之计**：`fuse.js` 的 Bitap 与 `flexsearch` 的 `cjk` charset 对中文都**按码点逐字切分**，匹配不了拼音/同音字。这段合并层是 CJK 场景下的**必要补偿**，必须保留。拼音检索需独立拼音索引字段（后续增强，不在本次范围）。
 
 **取证**：`.scratch/migration/search-package-eval.md`；`spec.md` 第 8 节「搜索的 CJK 注」。
-
----
 
 ---
 
@@ -153,8 +145,6 @@ const sorted = semesters?.sort().reverse();
 
 ---
 
----
-
 ## 8. 【平台事实】ArkWeb 的两条行为（不是参考实现的怪癖，故**不构成保真约束**）—— ticket 04 新增
 
 设备实测（模拟器 Pura 90，HarmonyOS 6.1.0(23)），两条都写进了
@@ -172,8 +162,6 @@ const sorted = semesters?.sort().reverse();
 **取证**：`.scratch/notices-detail/evidence/04-hilog-probe4.txt`（`ERR_ACCESS_DENIED`）、
 `04-hilog-probe5.txt`（`page log: bridge=object keys=log,onExternalLink,onHeight`）、
 `04-hilog-detail.txt`（`loadData issued` + `no content height`）。
-
----
 
 ---
 
@@ -199,8 +187,6 @@ const sorted = semesters?.sort().reverse();
 
 ---
 
----
-
 ## 11. 【平台事实】ArkWeb 的 IndexedDB 与 `databaseAccess`（不是参考实现的怪癖，**不构成保真约束**）—— ticket 07 新增
 
 设备实测（模拟器 Pura 90，HarmonyOS 6.1.0(23)），两条都来自 ticket 07 的诊断构建：
@@ -221,8 +207,6 @@ const sorted = semesters?.sort().reverse();
 （`diag:env origin=[https://id.tsinghua.edu.cn] … localStorageOk=true indexedDB=object`、
 `diag:idb roundTripOk=true`、`diag:lf localstorageUtil=absent` 与随后 load 期的
 `[finger3] source=localstorage chars=0` 并存）。
-
----
 
 ---
 
@@ -269,8 +253,6 @@ saveFinger / singleLogin）**在它之外**。**参考实现在这台模拟器�
 `07-incognito-probe-after-resize.txt`（改后，`isPrivateByChromeRule=false`，quota 9801080832 / 9347 MB）、
 `doubleAuth.bundle.js`（`e.VERSION="1.5.1"` 与该判据、该 render 分支）、
 `experiment-0918-full.txt`（用户会话：三次 `/b/doubleAuth/login` 全部 `result=success`、无 `saveFingerRequest`、无 roaming）。
-
----
 
 ---
 
@@ -328,8 +310,6 @@ location.assign=0 scriptTag=0 formTag=0 actionEq=0`、`inlineScriptCount=0`、`c
 
 **取证**：`.scratch/enrollment/evidence/experiment-w12/` 的 `E2-w12-raw-lines.txt`（counts 原文）、
 `E7-response-body.txt`（整张正文还原）、`README.md`（判定与未验证项）。
-
----
 
 ---
 
@@ -392,8 +372,6 @@ Netscape 行两条入口都保留**（`response.header['set-cookie']` 那边给�
 
 ---
 
----
-
 ## 17. 【站点事实】部分接口的**裸请求一律 403**（站点自己的报错页），带 `?_csrf=` 才 200 —— ticket 09 实测
 
 **观察到的事实**（模拟器 Pura 90 / HarmonyOS 6.1.0(23)，2026-09-12）：
@@ -418,8 +396,6 @@ Netscape 行两条入口都保留**（`response.header['set-cookie']` 那边给�
   当会话失效 ⇒ 生产代码的 `authedGet` 一律带 `_csrf` 这条**必须遵守**。
 - 取证：`.scratch/courses/evidence/A5b-hilog-final-current-datacourses.txt`、`A4-layout-semester-picker-final.json`；
   ticket 12 Comments 的"修正台账第 17 条的一条子结论"。
-
----
 
 ---
 
@@ -464,8 +440,6 @@ ticket 05 的移植正是这样，而它的单测 `ordersUpcomingFirstLikeTheRef
 
 ---
 
----
-
 ## 20. 完成方式 / 提交方式：参考实现比较**数字枚举**，站点下发的也是数字 —— 锁定（ticket 10 补证）
 
 **参考实现行为**（`src/screens/AssignmentDetail.tsx:153,158`）：
@@ -491,8 +465,6 @@ ticket 05 的移植正是这样，而它的单测 `ordersUpcomingFirstLikeTheRef
 **取证**：`AssignmentDetail.tsx:153,158`；thu-learn-lib `lib/module/types.js:65-73`、`lib/module/index.js:874-875`；
 `entry/src/main/ets/features/assignments/AssignmentText.ets`；
 `.scratch/assignments/evidence/B7-hilog-spring-assignments-full.txt`（`completionType=1 submissionType=2`）。
-
----
 
 ---
 
