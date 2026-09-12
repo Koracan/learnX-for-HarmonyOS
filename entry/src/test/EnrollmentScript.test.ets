@@ -15,7 +15,7 @@ import { describe, it, expect } from '@ohos/hypium';
 import {
   ENROLLMENT_DIAGNOSTICS_FOR_EVIDENCE, EnrollmentDomValues, SAVE_FINGER_PATH, buildEnrollmentScript,
   credentialRecordFor, describeEnrollmentDomValues, emptyDomValues, jsStringLiteral, mergeDomValues,
-  parseEnrollmentValues
+  parseEnrollmentValues, resolveEnrollmentFingerPrint
 } from '../main/ets/domain/auth/EnrollmentScript';
 import {
   SYNTHETIC_FINGERPRINT, SYNTHETIC_PASSWORD, SYNTHETIC_USERNAME
@@ -68,6 +68,24 @@ export default function enrollmentScriptTest() {
       expect(script.indexOf("params.set('radioVal', '是')") >= 0).assertTrue();
       expect(script.indexOf('XMLHttpRequest') >= 0).assertTrue();
       expect(script.indexOf(DEVICE_NAME) >= 0).assertTrue();
+    });
+
+    it('neverOverwritesTheFingerprintThePageAlreadyPutInTheSaveFingerBody', 0, () => {
+      const script: string = build();
+      // **D1（2026-09-12 设备实测）**：页面自己在二次验证页的 saveFinger body 里已经放了正确的指纹
+      // （doubleAuth.bundle.js 的组件构造函数里就调了 getFingers()）。我们的 XHR patch 曾经**无条件**
+      // 用 effectiveFingerPrint() 覆盖它，而那一页**没有 #fingerPrint 字段**（那是登录页的），
+      // 于是每次都回落成 36 字符的兜底 UUID，把页面 32 字符的值改掉 —— 表单 32 / saveFinger 36。
+      expect(script.indexOf("var pageValue = params.get('fingerprint');") >= 0).assertTrue();
+      expect(script.indexOf('var pageProvidedFingerprint = (pageValue !== null') >= 0).assertTrue();
+      expect(script.indexOf('if (!pageProvidedFingerprint) {') >= 0).assertTrue();
+      // 覆盖只发生在"页面没给值"的分支里（顺序也是判据：set 必须在 if 之后）
+      expect(script.indexOf("params.set('fingerprint', effectiveFingerPrint());") >= 0).assertTrue();
+      expect(script.indexOf('if (!pageProvidedFingerprint) {')
+        < script.indexOf("params.set('fingerprint', effectiveFingerPrint());")).assertTrue();
+      // 实际发出的值要能自证来源（pageBody / pageDom / fallback）
+      expect(script.indexOf('pageProvidedFingerprint=') >= 0).assertTrue();
+      expect(script.indexOf("'pageBody'") >= 0).assertTrue();
     });
 
     it('asksThePageItselfForTheSiteFingerprints', 0, () => {
@@ -298,6 +316,28 @@ export default function enrollmentScriptTest() {
       const empty: EnrollmentDomValues = emptyDomValues();
       const fallback = credentialRecordFor(SYNTHETIC_USERNAME, SYNTHETIC_PASSWORD, SYNTHETIC_FINGERPRINT, empty);
       expect(fallback.fingerPrint).assertEqual(SYNTHETIC_FINGERPRINT);
+    });
+
+    it('prefersTheSaveFingerValueOverTheDomValueAndTheFallback', 0, () => {
+      // **D1**：信任按指纹登记 ⇒ saveFinger 的 XHR 实际发出的值最权威，落盘值必须等于它
+      // （否则 ticket 08 的纯 HTTP 重登出示的是另一个值，信任不可能命中）。
+      const sent: EnrollmentDomValues = parseEnrollmentValues(
+        'fingerPrint=' + encodeURIComponent('form-value')
+          + '&saveFingerFingerprint=' + encodeURIComponent('sent-value'));
+      const resolved = resolveEnrollmentFingerPrint(SYNTHETIC_FINGERPRINT, sent);
+      expect(resolved.value).assertEqual('sent-value');
+      expect(resolved.source).assertEqual('saveFingerXhr');
+      expect(credentialRecordFor(SYNTHETIC_USERNAME, SYNTHETIC_PASSWORD, SYNTHETIC_FINGERPRINT, sent)
+        .fingerPrint).assertEqual('sent-value');
+      // 没有 saveFinger 观测时用登录页 DOM 值（方案 A）；两者都没有才回落我们生成的 UUID
+      const domOnly: EnrollmentDomValues = parseEnrollmentValues('fingerPrint=form-value');
+      expect(resolveEnrollmentFingerPrint(SYNTHETIC_FINGERPRINT, domOnly).source).assertEqual('formFieldDom');
+      const empty: EnrollmentDomValues = emptyDomValues();
+      expect(resolveEnrollmentFingerPrint(SYNTHETIC_FINGERPRINT, empty).source).assertEqual('generatedFallback');
+      expect(resolveEnrollmentFingerPrint(SYNTHETIC_FINGERPRINT, empty).value)
+        .assertEqual(SYNTHETIC_FINGERPRINT);
+      // 连兜底都没有 ⇒ none（调用方据此显式失败，不猜）
+      expect(resolveEnrollmentFingerPrint('', empty).source).assertEqual('none');
     });
 
     it('describesDomValuesWithoutAnyFingerprintValue', 0, () => {

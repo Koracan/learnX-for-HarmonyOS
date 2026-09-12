@@ -7,7 +7,7 @@
 import { describe, it, expect } from '@ohos/hypium';
 import {
   extractSm2PublicKey, extractTicket, extractCsrfToken, extractLanguage,
-  isNoLoginResponse, isEmptyListResult, looksLikeIdLoginPage, CSRF_PATTERN, LANGUAGE_PATTERN
+  isNoLoginResponse, isEmptyListResult, looksLikeIdLoginPage, countOccurrences, CSRF_PATTERN, LANGUAGE_PATTERN
 } from '../main/ets/data/auth/LoginParsers';
 import {
   REAL_ID_LOGIN_FORM_SNIPPET, REAL_SM2_PUBLIC_KEY, INPUT_STYLE_SM2_PUBLIC_KEY_HTML,
@@ -70,6 +70,16 @@ export default function loginParsersTest() {
       expect(isEmptyListResult('[] ')).assertFalse();
       expect(isEmptyListResult(' [ ]')).assertFalse();
       expect(isEmptyListResult('{"a":1}')).assertFalse();
+    });
+
+    it('countsDoubleAuthMentionsForSecondFactorDiagnostics', 0, () => {
+      // 站点要二次验证/验证码时给的是 doubleAuth 那套页面（doubleAuth.bundle.js）。
+      // 计数让日志能区分"又被要求二次验证"与"页面改版/其他拒绝"（分类仍看有没有票据）。
+      expect(countOccurrences('<script src="/b/doubleAuth/x.js"></script>', 'doubleAuth')).assertEqual(1);
+      expect(countOccurrences('doubleAuthdoubleAuth', 'doubleAuth')).assertEqual(2);
+      expect(countOccurrences(ID_CHECK_CAPTCHA_HTML, 'doubleAuth')).assertEqual(0);
+      expect(countOccurrences('', 'doubleAuth')).assertEqual(0);
+      expect(countOccurrences('abc', '')).assertEqual(0);
     });
 
     it('spotsIdLoginPageForDiagnostics', 0, () => {

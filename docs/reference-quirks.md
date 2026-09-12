@@ -260,19 +260,35 @@ const sorted = semesters?.sort().reverse();
 **新实现做法**：生效指纹 = **页面自己算出的 fingerprintjs2 值**；只有页面没给出值时，才用我们生成的
 UUID 兜底。同一个生效值用于三处：表单字段、`saveFinger` 的 XHR、凭据落盘与重登回放。
 **store-and-replay**：登记值与重登出示值仍然**逐字相同**（不需要复算页面值——服务端记录的就是它
-收到的那一个字符串）。日志里以 `fingerprintSource=page|fallback` 自证取的是哪一个。
+收到的那一个字符串）。日志里以 `fingerprintSource=pageBody|pageDom|fallback` 自证取的是哪一个。
+
+**2026-09-12 补正（D1）**：`saveFinger` 的 XHR patch **只在页面没给值时**才写 `fingerprint`，
+**绝不覆盖非空值**——二次验证页（`doubleAuth.bundle.js`）自己已经在 body 里放了正确的指纹。
+旧实现无条件覆盖，而那一页没有 `#fingerPrint` 字段（那是登录页的），于是每次回落成 36 字符兜底 UUID，
+把页面 32 字符的值改掉（表单 32 / saveFinger 36）。**落盘的 `fingerPrint` 必须是 saveFinger 实际发出的
+那个值（回读值）**：权威顺序 = `saveFingerXhr` > `formFieldDom` > `generatedFallback`
+（`domain/auth/EnrollmentScript.ets` 的 `resolveEnrollmentFingerPrint`，唯一一处定义）。
 
 **替代验收标准（本表"已复审"档要求写明的那一条）**：**提交报文里的 `fingerPrint` 必须等于页面
 fingerprintjs2 的值；页面没给出值时才用我们生成的 UUID 兜底；且三处同值**（三点脱敏等式
 `formFieldDom` = `saveFingerXhr` = `persistedReadBack`，判据本身不变），
 不再要求它等于"我们生成的 UUID"。
 
-**附注 1（事实，不是偏离）**：`/b/doubleAuth/personal/saveFinger` **在登录页加载的任何脚本里都不存在**
-（把抓下来的全部站点脚本搜过；此前看到的 "saveFinger" 都是 `saveFinger3Local`/`saveFinger2Local` 的子串）。
-⇒ 只能确定"登录页不调它"。用户看到的失败发生在「二次验证成功」**之后**的另一个页面，那个页面本工程
-尚未抓到，所以**它仍可能在那里被调用**（参考实现专门为它打了补丁，作者多半见过它发出）。
-实验里若诊断日志**没有** `saveFingerRequest`，那是**一条信息**（信任登记不走这个端点），
-**不是 bug**，不要去"修"。
+**附注 1（2026-09-12 已推翻并更正）**：原文写"`/b/doubleAuth/personal/saveFinger` 在登录页加载的
+任何脚本里都不存在 ⇒ 信任登记不走这个端点"——**这条推测是错的，已被 2026-09-12 10:57 那次真实登记的
+设备日志推翻**（原文保留在此以免有人以为它从未出现过）：
+
+- `10:57:08.553` `[xhr] req … path=/b/doubleAuth/personal/saveFinger n=4` →
+  `10:57:08.600` `[xhr] res … status=200 chars=92 result=success … msgs=[msg=已增加]`；
+  页面自己还打印了 `save local finger success`（`10:57:08.584/08.586`）。
+  ⇒ **端点确实被调用，且服务端回了"已增加"**。
+- **错的起因为什么值得记下来**：当时只把**登录页加载的脚本**搜了一遍就下了"不存在"的结论，
+  而调用点在 `login/check` **之后**的二次验证页 bundle（`doubleAuth.bundle.js`）里——
+  **"没搜到"不等于"不存在"**，尤其当搜索范围本身就是结论的一部分时。这是本表的一条方法论警告：
+  范围受限的否定证据只能支持"在我搜过的范围内没有"，不能支持"不存在"。
+- **取证**：`.scratch/enrollment/evidence/experiment-1057/experiment-1057-full.txt`（应用域 `A04c4f`）。
+- **对本条实现的影响**：saveFinger 的 XHR patch 是**有效且必要**的注入点；随之而来的 D1 缺陷
+  （我们覆盖了页面自己放好的指纹）见 `EnrollmentScript.ets` 的 `patchSaveFinger` 注释。
 
 **附注 2（另一处已知偏离，本次实验**不动**）**：`deviceName` 参考是
 `HarmonyOS,learnOH/{packageJson.version}`（`SSO.tsx:52`），本工程是

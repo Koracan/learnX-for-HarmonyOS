@@ -20,12 +20,14 @@ import { Logger } from '../../core/log/Logger';
 import { updateWebSessionHeader } from '../../core/web/SessionHeaderProvider';
 import { EnrollmentSessionResult } from '../../data/auth/EnrollmentSession';
 import { SessionRestoreResult } from '../../data/auth/SessionRestore';
+import { Credentials, FailReason, LoginResult } from '../../data/auth/AuthTypes';
 import { Session } from '../../data/remote/Requests';
 import {
-  EnrollmentDomValues, SAVE_FINGER_PATH, credentialRecordFor, describeEnrollmentDomValues
+  EnrollmentDomValues, EnrollmentFingerPrint, SAVE_FINGER_PATH, credentialRecordFor,
+  describeEnrollmentDomValues, resolveEnrollmentFingerPrint
 } from '../../domain/auth/EnrollmentScript';
 import { CredentialRecord } from '../../domain/auth/CredentialRecord';
-import { redactSecret, sameSecret } from '../../domain/auth/DeviceIdentity';
+import { redactSecret } from '../../domain/auth/DeviceIdentity';
 import { fingerprintDigest } from '../../domain/auth/FingerprintDigest';
 import { AuthServices, authServices } from './AuthServices';
 
@@ -247,15 +249,18 @@ export class AuthStore {
    */
   async completeEnrollment(dom: EnrollmentDomValues, browserCookieHeader: string): Promise<boolean> {
     logger.info('enrollment roaming reached: ' + describeEnrollmentDomValues(dom));
-    // **方案 A（2026-09-12 设备取证后改定）**：生效指纹以**页面自己算出的**值为权威，
-    // 只有页面没给出值时才是我们生成的 UUID 兜底。
-    // 依据：真实登记被服务端判为"隐私/匿名模式"；把提交报文与"stock 浏览器"逐字段对比后，
-    // 唯一不同的一栏就是我们覆盖掉的 fingerPrint（见 ticket Comments 的"方案 A"一节）。
-    // 三处仍然同值——saveFinger 上报的就是这里算出的生效值，保存与重登出示也是它。
-    const effectiveFingerPrint: string = dom.fingerPrint.length > 0 ? dom.fingerPrint : this.fingerPrint;
-    const usingFallback: boolean = sameSecret(effectiveFingerPrint, this.fingerPrint);
+    // **生效指纹（验收第 2 条的落点）**：权威顺序见 resolveEnrollmentFingerPrint ——
+    // saveFinger 的 XHR **实际发出**值 > 登录页 DOM 值 > 我们生成的兜底 UUID。
+    // **D1（2026-09-12 设备实测）**：saveFinger 优先是必须的。信任按指纹登记，服务端记下的就是它在
+    // saveFinger 里收到的那个值；旧代码落盘的是"表单 DOM 值"，而 saveFinger 被我们自己的 XHR patch
+    // 覆盖成了另一个值（32 vs 36），登记值与落盘值不一致 ⇒ ticket 08 的重登必然再要一次短信。
+    // 三处同值（表单 / saveFinger / 落盘）由同一次登记的 dom 快照给出，来源打进日志。
+    const resolvedFingerPrint: EnrollmentFingerPrint = resolveEnrollmentFingerPrint(this.fingerPrint, dom);
+    const effectiveFingerPrint: string = resolvedFingerPrint.value;
+    const usingFallback: boolean = resolvedFingerPrint.source === 'generatedFallback';
     logger.info('enrollment fingerprint effective: value=' + redactSecret(effectiveFingerPrint)
-      + ' source=' + (dom.fingerPrintSource.length > 0 ? dom.fingerPrintSource : 'unknown')
+      + ' source=' + resolvedFingerPrint.source
+      + ' pageDomSource=' + (dom.fingerPrintSource.length > 0 ? dom.fingerPrintSource : 'unknown')
       + ' usingFallback=' + usingFallback.toString()
       + ' generatorValue=' + redactSecret(this.fingerPrint)
       + ' saveFingerPatched=' + dom.saveFingerPatched.toString());
@@ -269,15 +274,54 @@ export class AuthStore {
       return false;
     }
 
-    const outcome: EnrollmentSessionResult = await this.services.enrollment.adopt(browserCookieHeader);
-    const session: Session | undefined = outcome.session;
-    if (!outcome.ok || session === undefined) {
-      logger.error('enrollment session failed: reason=' + outcome.reason + ' diag=' + outcome.diagnostic);
-      this.failure = AuthFailure.SESSION;
-      this.forgetEnrollmentInputs();
-      this.phase = AuthPhase.UNENROLLED;
-      return false;
+    const adopted: EnrollmentSessionResult = await this.services.enrollment.adopt(browserCookieHeader);
+    let session: Session | undefined = adopted.session;
+    let language: string = adopted.language;
+    let via: string = 'browser-cookie-adopt';
+    let diagnostic: string = adopted.diagnostic;
+
+    if (!adopted.ok || session === undefined) {
+      // **登记路径对齐参考实现（2026-09-12）**：adopt() 本身就是相对参考实现的偏离——它收割 WebView
+      // 的 cookie 再 GET 课程页。参考实现（SSO.tsx + src/data/source.ts:30-46）**根本不采纳** WebView 的
+      // cookie：WebView 只用于 (a) 确认凭据可用、(b) 拿走三个指纹，然后用 username/password + 三个指纹
+      // 走一遍纯 HTTP 登录（= 本工程已实现的 LoginClient 7 步，对齐 thu-learn-lib）。
+      // 这里两条都跑：adopt 的结局**完整记录**（成功率与诊断都要），失败才回落到参考实现那条路。
+      // 用户今天在另一台设备上装的旧版 learnOH 首次登录仍可用 ⇒ 这条路今天仍然成立。
+      logger.warn('enrollment adopt failed: reason=' + adopted.reason + ' diag=' + adopted.diagnostic
+        + ' -> fallback to pure HTTP login (reference path: username/password + three fingerprints)');
+      const credentials: Credentials = {
+        username: this.username,
+        password: this.password,
+        fingerPrint: effectiveFingerPrint,
+        fingerGenPrint: dom.fingerGenPrint,
+        fingerGenPrint3: dom.fingerGenPrint3
+      };
+      const httpResult: LoginResult = await this.services.loginClient.login(credentials);
+      // **这一行回答"用户下一次还要不要花一条短信"**：ticket=ok ⇒ 取票据那一步过了（信任已生效）；
+      // secondAuthOrCaptcha=true ⇒ 服务端又要二次验证/验证码（NO_TICKET_IN_RESPONSE），下一次仍要短信。
+      logger.info('enrollment http login: ok=' + httpResult.ok.toString()
+        + ' ticket=' + (httpResult.ok ? 'ok' : 'none')
+        + ' secondAuthOrCaptcha=' + (httpResult.reason === FailReason.NO_TICKET_IN_RESPONSE).toString()
+        + ' reason=' + httpResult.reason
+        + ' fingerprintSource=' + resolvedFingerPrint.source
+        + ' finger3Chars=(' + dom.fingerGenPrint.length.toString() + ','
+        + dom.fingerGenPrint3.length.toString() + ')'
+        + ' diag=' + httpResult.diagnostic);
+      if (httpResult.ok && httpResult.session !== undefined) {
+        session = httpResult.session;
+        language = httpResult.language;
+        via = 'pure-http-login';
+        diagnostic = 'adopt failed (' + adopted.reason + '); http login: ' + httpResult.diagnostic;
+      } else {
+        logger.error('enrollment session failed: reason=' + adopted.reason + ' diag=' + adopted.diagnostic
+          + ' httpLoginReason=' + httpResult.reason + ' httpLoginDiag=' + httpResult.diagnostic);
+        this.failure = AuthFailure.SESSION;
+        this.forgetEnrollmentInputs();
+        this.phase = AuthPhase.UNENROLLED;
+        return false;
+      }
     }
+    logger.info('enrollment session established: via=' + via + ' diag=' + diagnostic);
 
     const record: CredentialRecord = credentialRecordFor(this.username, this.password, effectiveFingerPrint, dom);
     const saved: boolean = await this.services.credentials.save(record);
@@ -309,8 +353,9 @@ export class AuthStore {
     this.statusLine = '';
     this.forgetEnrollmentInputs();
     this.phase = AuthPhase.ENROLLED;
-    logger.info('enrollment complete: language=' + outcome.language
-      + ' diag=' + outcome.diagnostic
+    logger.info('enrollment complete: language=' + language
+      + ' via=' + via
+      + ' diag=' + diagnostic
       + ' session=' + this.services.session.getJar().describe());
     return true;
   }

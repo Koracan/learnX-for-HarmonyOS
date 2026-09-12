@@ -93,6 +93,29 @@ export function extractLanguage(pageHtml: string): string {
 }
 
 /**
+ * 子串出现次数（大小写敏感，不重叠）。
+ *
+ * 用途：登录检查响应里出现几次 `doubleAuth`——站点要求二次验证/验证码时给的就是那套页面
+ * （doubleAuth.bundle.js）。**它只是诊断计数，不是分类依据**：分类仍由「有没有票据链接」决定
+ * （LoginClient.extractTicket）。有一条计数，日志就能区分"又被要求二次验证"与"页面改版/其他拒绝"。
+ */
+export function countOccurrences(haystack: string, needle: string): number {
+  if (haystack.length === 0 || needle.length === 0) {
+    return 0;
+  }
+  let count: number = 0;
+  let from: number = 0;
+  while (true) {
+    const at: number = haystack.indexOf(needle, from);
+    if (at < 0) {
+      return count;
+    }
+    count++;
+    from = at + needle.length;
+  }
+}
+
+/**
  * 会话失效判据（thu-learn-lib 路径）：URL 含 login_timeout 或状态码 403（index.js:21）。
  * **平台不暴露重定向后的最终 URL**，所以这里再补一条响应体判据，构成「并集」而不是替代。
  */

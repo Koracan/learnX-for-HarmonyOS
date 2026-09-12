@@ -346,3 +346,156 @@ ticket 08 把认证门从「**有凭据** = 已登记（ENROLLED）」收紧为�
    SHA256 `28814380647D65B6CE68789F3BD1078859418E4D8B9A607FB9CBD5F052B9747A`），解包 `ets/modules.abc` 检索：
    `lastReport=` 在、`stage=` 不在；装机后 hilog 自证 `diagnostics=false`、`diag:` 报告 **0 条**；
    状态的截图 `07-commit-state-diag0-fpSourcePage.png` 里 **`diag=0` 与 `fpSource=page` 同屏**。
+### 2026-09-12 10:57 那次真实登记的日志定因：**漫游到了、收割也到了，失败在收割之后的纯 HTTP 会话采纳**（分析轮，未改代码）
+
+**取证出处**：`.scratch/enrollment/evidence/experiment-1057/experiment-1057-full.txt`（106,032 行；应用域 `A04c4f` 330 行）。
+**源码版本**：HEAD = `3920408`（其源码树与交接单写的还原点 `254d360` **逐字节相同**——两者之间只差 `.scratch/enrollment/evidence/README.md` 的文档提交）。
+工作区在分析时**就是诊断态**：`git diff` 的 SHA256 = `433FFEE4…BB98876` = `.dsh/logs/diagnostics.patch`（16,706 B），且 `git apply --check --reverse` 通过 ⇒ **诊断补丁与工作区非空 diff 完全一致，还原不会丢代码**（B 项的坑已就地排掉）。
+
+#### 一、结论（按失败链的位置，不按猜测）
+
+```
+ID 登录页 → /do/off/ui/auth/login/check → /do/off/ui/auth/login/redirect2Jsp
+  → learn 域 roaming_entry（命中！）→ 课程页 → harvest entries=2 → **adopt() 失败** → 关 WebView 回原生登录页
+```
+
+**用户看到的那个报错不是站点给的，也不是"没漫游"，而是我们自己 `EnrollmentSession.adopt()` 的失败分支。**
+文案映射（逐字对上，可复核）：
+
+| 环节 | 证据 |
+| --- | --- |
+| 失败分类日志 | `10:57:11.802 E [features.auth.store] enrollment session failed: reason=not logged in or login timeout diag=no csrf token: status=200 bytes=1657 idLoginPage=false` |
+| `reason` 字面量 | `data/auth/AuthTypes.ets:24` `NOT_LOGGED_IN = 'not logged in or login timeout'` |
+| 触发条件 | `data/auth/EnrollmentSession.ets:112-119`：`extractCsrfToken(body).length === 0` ⇒ `failure(NOT_LOGGED_IN, 'no csrf token: …')` |
+| 应用侧分类 | `features/auth/AuthStore.ets:275-279`：`this.failure = AuthFailure.SESSION` → `phase = UNENROLLED`（**不落盘**） |
+| 可见文案 | `features/auth/LoginPage.ets:59-61`：`AuthFailure.SESSION → $r('app.string.loh_login_failed')`；`entry/src/main/resources/zh_CN/element/string.json:72-74` = 「登录失败，请检查网络连接并确保用户电子身份服务系统的登录依旧有效」 |
+| WebView 被谁关掉 | 不是超时/取消/回退/异常，而是**状态机**：`completeEnrollment` 返回 false ⇒ `phase=UNENROLLED` ⇒ `LoginPage.build()` 的 `if (this.store.isEnrolling())`（`LoginPage.ets:196`）不再挂 `EnrollmentWebView` ⇒ `EnrollmentWebView.aboutToDisappear()`（`EnrollmentWebView.ets:164-167`）清 cookie 并关闭容器 |
+| 收尾日志 | `10:57:11.810 … web cookies cleared: when=on-disappear`（失败后 8 ms） |
+| 崩溃/未捕获异常 | **不存在**：应用域 330 行里 `W/E/F` **只有 1 行**，就是上面那条 ERROR；`onErrorReceive` / `jscrash` / `AppRecovery` **0 命中** |
+
+#### 二、逐条回答（原文行）
+
+1. **roaming 到了。** `10:57:10.216 INFO [features.enrollment] enrollment roaming reached: path=learn.tsinghua.edu.cn/f/j_spring_security_thauth_roaming_entry -> allow navigation, harvest afterwards`（`roaming=1` 自此恒为 1）。完整 `navigate:` 序列：`10:56:43.935` ID 登录页 → `10:56:46.517` …`/login/check` → `10:57:08.597` …`/login/redirect2Jsp` → **`10:57:10.316` `learn.tsinghua.edu.cn/f/wlxt/index/course/student/;jsessionid=6242DAD7DC2553B8E3346409D8F4ED32.wlxt20182`**（共 5 条，无第 6 条）。⇒ **失败不在"没有漫游"，而在漫游之后的 HTTP 步骤**；"看见 roaming 即成功"这条判据本轮**是对的**。
+2. **信任确认那一步是走通的**（本轮最重要的正面结论）：`10:57:08.553` `[xhr] req … path=/b/doubleAuth/personal/saveFinger n=4` → `10:57:08.555 [saveFingerRequest] bodyChars=111 … allParams=fingerprint(32),deviceName(16),radioVal(1),singleLogin(3)` → `10:57:08.600 [xhr] res … status=200 chars=92 result=success … msgs=[msg=已增加]` → `10:57:08.584/08.586` 页面自己打印 `save local finger success` → `10:57:08.587` `redirectUrl = /do/off/ui/auth/login/redirect2Jsp`。`radioVal` 出现且 `saveFinger` 回 `已增加` ⇒ **信任登记在服务端落地了**。
+   `[pageScripts]` 三阶段（同一轮）：`10:56:46.491 phase=submit-allowed url=…/login/form/…/0 scriptCount=25`、`10:57:08.589 与 10:57:08.623 phase=navigation url=…/login/check scriptCount=3`、`10:57:08.722 phase=load url=…/login/redirect2Jsp scriptCount=3`、`10:57:10.416 phase=load url=learn…/course/student/;jsessionid=… scriptCount=0`。`submitGate allowed=1 reason=firstEnrollmentEmptyFinger3`（`10:56:46.488`）⇒ 自检**没有**误拦。渲染"信任"选项的那一页 = **`/do/off/ui/auth/login/check` 之后的二次验证页**（`doubleAuth.bundle.js`，3 个脚本）。
+3. **cookie 前后（5 次记录，逐次）**：`10:57:08.734`（redirect2Jsp）之前，`nativeAllCookies` 始终是 `tsinghuaCount=1`，只有 `JSESSIONID@id.tsinghua.edu.cn{secure=false,httpOnly=true,session=true,expires=no}`；`10:57:10.438`（第一次到 learn 域）变成 `tsinghuaCount=3`：同上 + `JSESSIONID@learn.tsinghua.edu.cn{…session=true,expires=no}` + `XSRF-TOKEN@learn.tsinghua.edu.cn{secure=false,httpOnly=false,session=false,expires=yes}`。`jsCookieNames`：id 域**恒为 `[]`**（`cookieChars=0`，httpOnly）；到 learn 域才出现 `jsCookieNames=[XSRF-TOKEN] cookieChars=47`。
+   ⇒ **① 本轮唯一带 `expires` 的持久 cookie 是 `XSRF-TOKEN`（CSRF 用），不是信任凭证；② id 域从头到尾只有 1 个会话 cookie、没有新增持久 cookie；③ "信任登记落在哪个 cookie 上"这个问题，本轮日志的答案是：`saveFinger` 回了 `已增加`（服务端记下了），但 cookie 层面**没有可观察物**——这一点要交给 ticket 08 的"无短信纯 HTTP 重登"去证。**
+4. **所有 `[xhr] res`（本轮 16 条 req/res，唯一非 success 是 `getFinger3`）**：`getFinger3` `10:56:45.100/…113`、`10:57:08.735`：`status=200 chars=59 result=error keys=[result,msg,object]`；`doubleAuth/login` n=1 `10:56:46.829 chars=315 result=success msgs=[msg=]`、n=2 `10:56:49.623 chars=322 result=success`、n=3 `10:57:06.880 chars=164 result=success`；`saveFinger` n=4 `chars=92 result=success msgs=[msg=已增加]`。**紧邻应用报错之前的最后一个请求/响应**：不是站点 XHR，而是**我们自己的** `GET https://learn.tsinghua.edu.cn/f/wlxt/index/course/student/`，NETSTACK 记录 `10:57:11.800 … size:857, redirect:0.000, errCode:0, RespCode:200, httpVer:3, method:GET` —— **200 / 无重定向 / 响应体约 1657 字符**，而 CSRF 抽取为空。
+5. 见上表：**日志里的失败分类 `reason=NOT_LOGGED_IN` + `diag=no csrf token` 与源码 `EnrollmentSession.ets:112-119` 的触发条件逐字对上**，应用侧是 `AuthFailure.SESSION`，文案是 `loh_login_failed`。
+6. **WebView 是我们关的**（依据见上表末三行）；站点侧最后停在 `learn…/f/wlxt/index/course/student/;jsessionid=…`（`page end` @`10:57:10.431`），**站点没有把用户送回 ID 登录页**。用户看到的"跳回初始页" = 我们的原生登录页。
+7. 无崩溃、无未捕获异常（应用域 W/E/F 只有 1 条 ERROR）。
+
+#### 三、根因排序（每条附依据；能区分与不能区分都写明）
+
+1. **（最可能）收割来的 `learn.tsinghua.edu.cn` cookie 没有被 learn 服务端当成有效会话** —— 依据：浏览器里这颗 cookie 明明把课程页打开到 FirstMeaningfulPaint（`10:57:11.064 OnFirstMeaningfulPaint`），而 4 ms 后我们用**同一个 header**（长度证据：cookie 值 78 + 名 12 + 名 10 + 分隔 2 = `headerChars=102`，与 jar 自算的 `session.cookie` 一致）发同一个 URL 却拿到 200 + 1657 字符 + **CSRF 抽取为空**。注意 `idLoginPage=false` 说明那不是 ID 登录页。
+   - ⚠️ **本条的子解释无法用现有日志区分**：(a) 服务端认 cookie 但页面结构变了；(b) 服务端不认这个 cookie（例如会话与 User-Agent 绑定：ArkWeb 报 `pageDeviceName=other,Chrome/132`，我们发的是 `Chrome/120.0.0.0`，见 `entry/src/main/ets/data/remote/Requests.ets:21-22`）；(c) 漫游那次跳转把会话写在 **URL 的 `;jsessionid=`** 上，而这颗 cookie 不是同一会话。**要分辨必须再取一次证据**（见四）。
+2. **CSRF 正则与站点当前课程页不再匹配** —— `entry/src/main/ets/data/auth/LoginParsers.ets:64` 的 `/^.*&_csrf=(\S*)"/gm` 逐字照 thu-learn-lib，而验收口径要求"必须解出 CSRF 才算会话建起来"。若页面改版把令牌换了形态（行首 `?_csrf=`、或在 JS 变量里），我们会把一个**本来是好的会话**判成失败。与 1 的区别只能靠"响应体里到底有没有 `_csrf=`"这一条判据。
+3. **User-Agent 差异**（单列，因为它可以独立解释 1(b)）：`Requests.ets:21` 钉死 Chrome/120，而浏览器是 Chrome/132；参考实现当年用同一颗 UA，但站点脚本带 `v=20260830062616`（2026-08-30 改版）晚于参考实现。
+
+**明确写清"日志中不存在"的**：`saveFingerRequest` **存在**（`10:57:08.555`）⇒ "信任登记不走这个端点"这条旧推测**被本轮推翻**；`j_spring_security_thauth_roaming_entry` **存在**（`10:57:10.216`，1 次）；`enrollment session: ok csrfChars=` **不存在**；`enrollment complete` / `credentials saved` / `enrollment fingerprint digest equation`（含 `persistedReadBack`）**都不存在**（在 adopt 就返回了，三点等式的第③点本轮仍无法闭合）；`absorbed=` **不存在**（那次响应没带 `Set-Cookie`）；`page end` **只有** `redirect2Jsp`（`10:57:08.728`）与课程页（`10:57:10.431`）两条。
+
+#### 四、建议的修法（**未实施**，交统筹决定）
+
+- **首选：先加"会话采纳"的判别探针，再决定改哪**。只需回答三个问题，代价极小（诊断构建各一次，**不需要用户再动短信**）：
+  1. 响应体里 `_csrf=` 出现过几次？`login_timeout` 出现过吗？（`LoginParsers.ets:99-107` 已有现成的 `isNoLoginResponse` 判据，并进 `adopt()` 的诊断串即可）；
+  2. 我们实际发出的 `Cookie` 头**名字序列**（值仍不打；现在只有 `headerChars`，看不出名字）；
+  3. `GET` 的最终 URL（重定向后）与 `Content-Length`、`Content-Type`。
+  ⇒ 这一步能一次把根因 1 与 2 分开；**在此之前改代码都是猜**。
+- **若根因 2（正则失配）**：只放宽 `extractCsrfToken`（允许行首 `_csrf=`），并在 `docs/reference-quirks.md` 登记"站点改版使参考正则失配"与替代验收标准；三点等式判据不变。
+- **若根因 1(b)（UA 绑定）**：用**登记时 WebView 的真实 UA**（页面已能给出 `pageDeviceName`，原生也可直接取 ArkWeb 的 UA）替换钉死的常量，仅用于登记后的第一次会话建立与后续重登，并在 `reference-quirks.md` 登记偏差。
+- **若根因 1(a)/1(c)**：那不是我们能修的——按 spec 第 5 节降级回 Enrollment（当前行为已正确），并把失败分类细化（`UNEXPECTED_STATUS` vs `NOT_LOGGED_IN`）以便下次一眼可读。
+
+**必须写明的边界**：本轮**没有观察到任何"信任凭证"落到 cookie**（见二.3），所以即便把 `adopt()` 修好、应用进了主壳，**"180 天信任"是否真的建立仍只能由 ticket 08 的无短信重登来证**——不要用本轮的正向信号（`msg=已增加`）去勾 ticket 08 的验收。
+
+**未验证 / 待补**：
+1. 根因 1 与 2 的区分（需要四.1 的三条探针；**现有日志无法区分**）。
+2. 那 1657 字符的响应体内容（日志没有落正文；`bytes=1657` 是 `response.body.length`，NETSTACK 的 `size:857` 是网络字节数，两者不是同一把尺子）。
+3. `learn` 域 `JSESSIONID` 是否在漫游时被服务端轮换过（我们只记长度 52，不记值）。
+4. 第一次到 learn 域时 `pageScripts phase=load scriptCount=0`（`10:57:10.416`）——服务端返回的是无脚本文档（不是 SPA 壳），与"未认证页面只有 1.6 KB"一致，但**不能据此断定**它就是登录页：它既不含 `sm2publicKey` 也不含 `/do/off/ui/auth/login/form`。
+
+### 2026-09-12 D1 修复 + 登记路径对齐参考实现（实现轮；**没有**提交表单、没有消耗短信）
+
+**起点**：`git checkout --` 还原后 HEAD = `3920408`，`git diff -- entry/` 为空；
+还原前把诊断补丁备份为 `.dsh/logs/diagnostics.patch.keep`（16,706 B / `433FFEE4…BB98876`，
+`git apply --check --reverse` 通过）。
+**注意（给下一位）**：上一轮的 10:57 定因分析（本文档末尾那 66 行）在本轮开始时**是未提交的工作区改动**，
+它不是诊断件——本轮把它保留下来并随本次提交一起入库，没有 `git checkout` 掉。
+
+#### 一、D1（真 bug）：saveFinger 的 XHR patch 覆盖了页面自己放好的指纹
+
+**证据（统筹从 10:57 日志里读出）**：
+
+```
+10:57:08.555 [saveFingerRequest] bodyChars=111 allParams=fingerprint(32),deviceName(16),radioVal(1),singleLogin(3)
+10:57:08.557 [saveFinger] patched=1 path=/b/doubleAuth/personal/saveFinger fingerprintChars=36 fingerprintSource=fallback
+```
+
+页面在 saveFinger 的 body 里**自己**已经放了 32 字符的正确指纹（`doubleAuth.bundle.js` 在组件构造函数里
+就调了 `getFingers()`），而我们的 patch 用 36 字符的兜底 UUID 覆盖了它；同时表单字段与状态行是
+`fpChars=32 fpSource=page`。⇒ **"三处同值"被破坏：表单 32、saveFinger 36。**
+原因是 `effectiveFingerPrint()`（只读 DOM 的 `#fingerPrint`）在**二次验证页**读不到那个字段
+（`#fingerPrint` 是登录页的字段），于是回落兜底。
+
+**为什么这不是洁癖**：信任按指纹登记——参考实现 `SSO.tsx:76` 专门**回读** `data.requestBody.fingerPrint`
+再连同三个指纹交给 `login()`，正是因为登记值与出示值必须是同一个；不一致 ⇒ 信任不可能命中 ⇒
+下一轮 HTTP 重登还会再要一次短信。
+
+**修法（`domain/auth/EnrollmentScript.ets`）**：
+
+1. saveFinger 的 patch **只在 `fingerprint` 缺失/为空时**才写入，**绝不覆盖非空值**：
+   `var pageValue = params.get('fingerprint'); if (!pageProvidedFingerprint) { params.set('fingerprint', effectiveFingerPrint()); }`
+2. **回读实际发出的值**（`saveFingerSent = params.get('fingerprint')`，原有）并把来源打进日志：
+   `pageProvidedFingerprint=1|0` + `fingerprintSource=pageBody|pageDom|fallback`（旧日志是
+   `fingerprintSource=page|fallback`，字段名保留、取值细化，便于与 10:57 那行对照）。
+3. 新增 `resolveEnrollmentFingerPrint(injected, dom)` = **生效指纹的唯一一处定义**：
+   `saveFingerXhr` > `formFieldDom` > `generatedFallback` > `none`；
+   `credentialRecordFor` 与 `AuthStore.completeEnrollment` 都用它（落盘值 == saveFinger 实际登记值）。
+   `AuthStore` 打 `enrollment fingerprint effective: value=… source=saveFingerXhr|formFieldDom|generatedFallback
+   pageDomSource=… usingFallback=…`。
+4. 单测：`neverOverwritesTheFingerprintThePageAlreadyPutInTheSaveFingerBody`、
+   `prefersTheSaveFingerValueOverTheDomValueAndTheFallback`。
+
+**边界（未验证）**：修好后"登记值与落盘值一致"仍需**一次真实登记**才能观察到（本轮的设备证据是 armed 探针，
+见下）；三点等式 `formFieldDom = saveFingerXhr = persistedReadBack` 的判据不变。
+
+#### 二、登记路径对齐参考实现：adopt 失败 → 纯 HTTP 登录
+
+- `adopt()` **保留**并完整记录（本轮要同时拿到它的成功率与诊断）；
+  **失败后**才回落参考实现那条路：用 username/password + 收割到的三个指纹跑 `LoginClient.login()`
+  （= 我们已实现的 7 步，对齐 thu-learn-lib），两者都记录，谁成功用谁。
+- `features/auth/AuthStore.ets` 新增唯一一行判读日志：
+  `enrollment http login: ok=… ticket=ok|none secondAuthOrCaptcha=true|false reason=… fingerprintSource=…
+  finger3Chars=(…) diag=…`，随后 `enrollment session established: via=browser-cookie-adopt|pure-http-login`。
+  失败时仍是原来的 `enrollment session failed: reason=… diag=…`（另加 `httpLoginReason/httpLoginDiag`）。
+- **核实结果（派单要求的）**：`LoginClient.postLoginCheck` **已经在发** `fingerPrint` / `fingerGenPrint` /
+  `fingerGenPrint3` / `singleLogin='on'`（`data/auth/LoginClient.ets:228-231`；单测
+  `LoginFlow.test.ets:182-185` 断言 `singleLogin=on` 与三个指纹字段），**无需补字段**。
+  **边界**：`thu-learn-lib` 的源码**不在本工作区**（`reference/learnOH-old/` 下没有 `node_modules`），
+  所以"与参考逐字一致"这一条我无法对着 `index.js:119-125` 逐字复核；依据是
+  `docs/rn-app-inventory.md:66` 记录的 `login({username,password,fingerPrint,fingerGenPrint,fingerGenPrint3,reset})`
+  契约 + 浏览器表单语义（勾选的 checkbox 提交 `singleLogin=on`）。
+- **新增诊断**：`LoginParsers.countOccurrences` + `doubleAuthMentions` 计数（进 `login: ticket ok` 与
+  `NO_TICKET_IN_RESPONSE` 的诊断串）。它是**区分"又被要求二次验证/验证码"与"页面改版"**的判据；
+  分类本身不变（仍由"有没有票据链接"决定）。
+- **未验证**：真实第 4 次登记尚未发生 ⇒ "adopt 失败后 HTTP 登录能不能拿到票据"本轮**没有设备证据**，
+  只能由统筹安排的那一次运行回答（不要用本轮的单测/构建去勾它）。
+
+#### 三、台账更正（`docs/reference-quirks.md` 第 10 条附注 1）
+
+前任写的"**saveFinger 在登录页任何脚本里都不存在 / 信任登记不走这个端点**"**已被推翻**：
+`10:57:08.553` 那次 `POST /b/doubleAuth/personal/saveFinger` 确实被调用，回 `result=success msgs=[msg=已增加]`，
+页面还打印了 `save local finger success`。**错的起因**写进了台账：当时只在**登录页**加载的脚本里搜，
+而调用点在 `login/check` **之后**的二次验证页 bundle（`doubleAuth.bundle.js`）里——
+**"没搜到"不等于"不存在"**（范围受限的否定证据只能支持"在我搜过的范围内没有"）。
+
+#### 四、门禁（真实输出）
+
+- 单测：删 `entry/.test` + `--no-incremental` → `Tests run: 235, Failure: 0, Error: 0, Pass: 235`
+  （`entry/.test/default/intermediates/test/coverage_data/test_result.txt` @11:16:48；
+  日志里没有 `Tests run` 行，条数以该文件为准）。本轮新增 3 条：
+  `domain.EnrollmentScript` +2、`data.auth.LoginParsers` +1，另在 `LoginFlow` 的既有用例上加了一条断言。
+- `check-domain-purity.mjs` → `PASS`（16 个领域源文件）；`check-import-graph.mjs` → `PASS`
+  （99 个源文件；WARN 只剩 `pages/Index.ets` 与 `EntryBackupAbility.ets` 两个入口）；
+  `check-i18n-keys.mjs` → `RESULT: OK`（235 键，未新增文案）；
+  `check-generated-fresh.mjs` → `PASS`。
+

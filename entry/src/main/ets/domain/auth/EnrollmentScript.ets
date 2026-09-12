@@ -3,8 +3,9 @@
  *
  * 注入面（spec 第 5 节 + ticket 07 Comments 的既有结论）——只有三件事：
  *   1. **预填**账号/口令并置 readonly（照参考实现 src/helpers/preval/sso.js:38-53）；
- *   2. 把**我们生成的**设备指纹写进 #fingerPrint，并拦截 saveFinger 的 XHR，把
- *      fingerprint / deviceName / radioVal=是 换成我们的值（sso.js:12-36 的等价物）；
+ *   2. 把**生效指纹**（方案 A：页面值优先）写进 #fingerPrint，并拦截 saveFinger 的 XHR，把
+ *      deviceName / radioVal=是 换成我们的值（sso.js:12-36 的等价物）；**`fingerprint` 只在页面
+ *      没给值时才写**——二次验证页自己已经在 body 里放了正确的指纹（D1 修复，见 patchSaveFinger）；
  *   3. 让页面自己把 localStorage 里的 fingerGenPrint 吐回 DOM（localstorageUtil.getFinger3FromLocal）。
  *
  * **明确不做**（idp-login-flow.md 第 3 节）：旧实现对 jQuery.fn.submit 的猴补丁——它只是为了把
@@ -614,14 +615,29 @@ const SCRIPT_TEMPLATE: string = `(function () {
           }
           if (url.indexOf(SAVE_FINGER_PATH) >= 0 && typeof body === 'string') {
             var params = new URLSearchParams(body);
-            params.set('fingerprint', effectiveFingerPrint());
+            // **D1 修复（2026-09-12，设备实测）**：页面自己已经在 saveFinger 的 body 里放了正确的
+            // 指纹（二次验证页的 doubleAuth.bundle.js 在组件构造函数里就调了 getFingers()）。
+            // 旧代码**无条件**用 effectiveFingerPrint() 覆盖它，而那一页**没有 #fingerPrint 字段**
+            // （那是登录页的；effectiveFingerPrint 只读 DOM），于是每次都回落成我们 36 字符的兜底
+            // UUID，把页面 32 字符的值改掉 —— 表单 32 / saveFinger 36，"三处同值"被破坏。
+            // 信任是按指纹登记的（参考实现 SSO.tsx:76 回读 data.requestBody.fingerPrint 正是为此），
+            // 登记值与出示值不一致 ⇒ 信任不可能命中 ⇒ 下一轮 HTTP 重登还会再要一次短信。
+            // 规则：**只在缺失或为空时才写入，绝不覆盖非空值**。
+            var pageValue = params.get('fingerprint');
+            var pageProvidedFingerprint = (pageValue !== null && String(pageValue).length > 0);
+            if (!pageProvidedFingerprint) {
+              params.set('fingerprint', effectiveFingerPrint());
+            }
             params.set('deviceName', DEVICE_NAME);
             params.set('radioVal', '是');
             outgoing = params.toString();
             saveFingerSent = params.get('fingerprint') ? String(params.get('fingerprint')) : '';
             report('saveFinger', 'patched=1 path=' + pathOf(url)
-              + ' deviceName=' + DEVICE_NAME + ' fingerprintChars=' + effectiveFingerPrint().length
-              + ' fingerprintSource=' + (effectiveFingerPrint() === FP ? 'fallback' : 'page'));
+              + ' pageProvidedFingerprint=' + (pageProvidedFingerprint ? '1' : '0')
+              + ' deviceName=' + DEVICE_NAME
+              + ' fingerprintChars=' + saveFingerSent.length
+              + ' fingerprintSource=' + (pageProvidedFingerprint ? 'pageBody'
+                : (saveFingerSent === FP ? 'fallback' : 'pageDom')));
             publish();
             try {
               this.addEventListener('load', function () {
@@ -820,16 +836,46 @@ export function mergeDomValues(previous: EnrollmentDomValues, fresh: EnrollmentD
   return merged;
 }
 
+/** 生效指纹 + 它的来源（来源要进日志：验收第 2/5 条都要求可诊断）。 */
+export interface EnrollmentFingerPrint {
+  value: string;
+  /** saveFingerXhr（服务端登记值） / formFieldDom（登录页表单值） / generatedFallback（我们的 UUID） / none。 */
+  source: string;
+}
+
 /**
- * 登记成功时该保存的凭据：fingerPrint 取**我们注入的那一个**（验收第 2 条的落点），
- * 另外两个站点指纹取页面 DOM 里的实际值（可能是空串，参考实现的默认值也是空串）。
+ * 生效指纹的**唯一一处**定义（登记、落盘、重登回放都必须用它）。
+ *
+ * 权威顺序（2026-09-12 的 D1 修复 + 方案 A 合起来的结果）：
+ *   1. `saveFingerXhr` —— saveFinger 的 XHR **实际发出**的 fingerprint（页面自己算的，或页面没给时
+ *      我们写的那个）。**它最权威**：服务端按它登记信任，将来 HTTP 重登出示的必须是同一个值；
+ *   2. `formFieldDom` —— 登录页 #fingerPrint 的值（方案 A 的权威值；saveFinger 没被触发时用它）；
+ *   3. `generatedFallback` —— 页面既没给字段也没发 saveFinger 时才用我们生成的 UUID；
+ *   4. `none` —— 三者都空（调用方据此显式失败，不猜）。
+ */
+export function resolveEnrollmentFingerPrint(injectedFingerPrint: string,
+  dom: EnrollmentDomValues): EnrollmentFingerPrint {
+  if (dom.saveFingerFingerprint.length > 0) {
+    return { value: dom.saveFingerFingerprint, source: 'saveFingerXhr' };
+  }
+  if (dom.fingerPrint.length > 0) {
+    return { value: dom.fingerPrint, source: 'formFieldDom' };
+  }
+  if (injectedFingerPrint.length > 0) {
+    return { value: injectedFingerPrint, source: 'generatedFallback' };
+  }
+  return { value: '', source: 'none' };
+}
+
+/**
+ * 登记成功时该保存的凭据：fingerPrint 取**生效值**（见 resolveEnrollmentFingerPrint；
+ * 验收第 2 条的落点），另外两个站点指纹取页面 DOM 里的实际值（可能是空串，参考实现的默认值也是空串）。
  */
 export function credentialRecordFor(username: string, password: string, injectedFingerPrint: string,
   dom: EnrollmentDomValues): CredentialRecord {
-  // **方案 A**：生效指纹以**页面值**为权威，`injectedFingerPrint` 只是页面没给出值时的兜底。
   // 权威判定放在这里（而不是调用点）是有意的：调用方可能来自不同 ticket 的编排代码，
   // 让"哪个值权威"只有一处定义，重登（ticket 08）读到的就是同一个生效值。
-  const effective: string = dom.fingerPrint.length > 0 ? dom.fingerPrint : injectedFingerPrint;
+  const effective: string = resolveEnrollmentFingerPrint(injectedFingerPrint, dom).value;
   return createCredentialRecord(username, password, effective, dom.fingerGenPrint, dom.fingerGenPrint3);
 }
 

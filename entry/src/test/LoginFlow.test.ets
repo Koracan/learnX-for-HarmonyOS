@@ -252,6 +252,8 @@ export default function loginFlowTest() {
       expect(result.ok).assertFalse();
       expect(result.reason).assertEqual(FailReason.NO_TICKET_IN_RESPONSE);
       expect(result.diagnostic.includes('idLoginPage=false')).assertTrue();
+      // "又被要求二次验证/验证码"与"页面改版"要能分开读：doubleAuth 计数进诊断串
+      expect(result.diagnostic.includes('doubleAuthMentions=')).assertTrue();
       expect(port.requests.length).assertEqual(2);
     });
 

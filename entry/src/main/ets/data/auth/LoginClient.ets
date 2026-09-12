@@ -29,7 +29,7 @@ import {
   Credentials, CredentialProvider, CredentialEncryptor, FailReason, LoginResult, isNetworkFailure
 } from './AuthTypes';
 import {
-  extractCsrfToken, extractLanguage, extractSm2PublicKey, extractTicket, looksLikeIdLoginPage
+  countOccurrences, extractCsrfToken, extractLanguage, extractSm2PublicKey, extractTicket, looksLikeIdLoginPage
 } from './LoginParsers';
 
 export const ID_ORIGIN: string = 'https://id.tsinghua.edu.cn';
@@ -151,14 +151,19 @@ export class LoginClient {
           + (checkResponse.error === undefined ? '' : ' error=' + checkResponse.error));
     }
     const ticket: string = extractTicket(checkResponse.body);
+    // 站点要求二次验证/验证码时，这一页是 doubleAuth 那套（doubleAuth.bundle.js）——计一个数，
+    // 让日志能一眼区分"又被要求二次验证"与"页面改版/其他拒绝"（分类仍由有没有票据决定）。
+    const doubleAuthMentions: number = countOccurrences(checkResponse.body, 'doubleAuth');
     if (ticket.length === 0) {
       return LoginResult.failure(FailReason.NO_TICKET_IN_RESPONSE,
         'no ticket anchor: status=' + checkResponse.status.toString()
           + ' bytes=' + checkResponse.body.length.toString()
-          + ' idLoginPage=' + looksLikeIdLoginPage(checkResponse.body).toString());
+          + ' idLoginPage=' + looksLikeIdLoginPage(checkResponse.body).toString()
+          + ' doubleAuthMentions=' + doubleAuthMentions.toString());
     }
     this.logger.info('login: ticket ok status=' + checkResponse.status.toString()
-      + ' ticketChars=' + ticket.length.toString());
+      + ' ticketChars=' + ticket.length.toString()
+      + ' doubleAuthMentions=' + doubleAuthMentions.toString());
 
     // 5) 漫游到 learn
     const roamResponse: RawResponse = await this.port.sendRaw({
