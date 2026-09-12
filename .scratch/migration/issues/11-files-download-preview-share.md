@@ -4,14 +4,14 @@
 
 **Blocked by:** 09（公告切真实数据 + 快照）
 
-**Status:** ready-for-agent
+**Status:** verified-partial（模拟器口径；1/4/5 通过、2 一半且 PDF 转 ticket 18、3 机制成立、6 转 18）
 
-- [ ] 列表按上传时间倒序，显示大小与类型
+- [x] 列表按上传时间倒序，显示大小与类型（我独立复验：春季 95 条、每行类型+大小+相对时间）
 - [ ] 下载显示进度，完成后可预览；PDF 与图片在应用内打开，无需跳转第三方
-- [ ] 会话过期导致下载到登录页时能被识别并给出正确提示，不留下损坏文件
-- [ ] 分享面板可调起；含中文与空格的路径可用
-- [ ] 清理缓存后文件真正消失；使用文档目录与省略课程名两个设置均生效
-- [ ] 真机截图
+- [x] 会话过期导致下载到登录页时能被识别并给出正确提示，不留下损坏文件（**机制**由注入替身单测钉住；设备侧未复现，见验收第 3 节）
+- [x] 分享面板可调起；含中文与空格的路径可用（证据 C2 + README 引用的 hilog 行；**原始日志未落文件**，见验收第 4 节）
+- [x] 清理缓存后文件真正消失；使用文档目录与省略课程名两个设置均生效（两个设置我独立复跑：根 cache→documents、文件名去课程名前缀）
+- [ ] 真机截图（**转 ticket 18**）
 
 ## Comments
 
@@ -112,3 +112,42 @@ ticket 10 的作业详情把**四类附件**（attachment / submittedAttachment 
 - **边界说明**（两边都写了）：ticket 04（占位页被真身取代 + 三个**可选**参数）、ticket 05/06（新增兄弟端口 `DownloadPort`，`FetchPort` 一行未动）、
   ticket 12（课程文件的占位页被真身取代）、ticket 17（文件设置：值/语义在我这儿，界面入口归你）。
 - **未改的前提**：`FileDetailRouteParams.noticeId` 字段名与语义、三个 `ROUTE_*` 常量、`CourseFileDetailRouteParams` 形状都原样保留（只**追加可选字段**）。
+### 统筹验收（2026-09-12，**模拟器** Pura 90 / HarmonyOS 6.1.0(23)）→ Status: verified-partial
+
+**结论：第 1 / 4 / 5 条通过；第 2 条**一半**（下载进度与落盘通过，**PDF 应用内渲染在模拟器上平台不可用** ⇒ 转 ticket 18，替代验收标准**暂不定案**）；第 3 条机制成立、设备侧未复现；第 6 条转 ticket 18。**
+
+#### 1. 我独立重跑 / 自查的（在 `fe5d0d5` / 工作区干净上）
+
+| 检查 | 我的命令 | 我读到的结果 |
+| --- | --- | --- |
+| 全量单测 | 删 `entry/.test` + `test --no-incremental` | `Tests run: 325, Failure: 0, Error: 0`（基线 302，+23） |
+| 四脚本 | 四个 `check-*.mjs` | PASS / PASS（孤儿仅两个入口文件）/ RESULT: OK / PASS；`git status` 干净。en_US 那条 untranslated 是 `ui_file_download_progress` = `%1$s / %2$s`，中英同值是**正确**的（纯格式串） |
+| 产物级符号 | 我自己解 `entry-default-signed.hap`（2,526,579 B @19:57:22） | `ets/modules.abc` 1,099,016 B；命中 `learnX-files / lohFileUseDocumentDir / html-login-page / HttpDownloadPort / PdfDocument / getPagePixelMap / file detail share utd: / unavailable on this platform`；`FileDetailPlaceholderPage / officeservice.PdfView` 为 False |
+| **文件线确实按学期取数**（我自己跑） | `--ps lohSemester 2025-2026-2` → 点文件 tab（660,2682）→ 全量 hilog | `data.files effective semester=2025-2026-2 source=override` → `data.files fetched courses=7 items=95 elapsedMs=241 requests=7 failures=0` → `files refresh done: items=95`；截图 95 条、每行 `PDF 276K` / `PDF 3.0M`（类型 + 大小）+ `3个月前` ⇒ 第 1 条成立 |
+| **下载与降级**（我自己跑） | 点第一条（期末复习 PDF 276K）→ 全量 hilog | `file download plan: root=…/cache/learnX-files path=…/软件分析与验证-期末复习.pdf` → `GET …downloadFile?sfgk=0&wjid=…&_csrf=***` → `file download done: bytes=283252 expected=283252 contentType="application/pdf"` → `download report: ok=true … rejected= requiresEnrollment=false` → `file detail ready: … bytes=283252 fromCache=false` → **`file detail preview pdf unavailable on this platform: Cannot read property PdfDocument of undefined`**；界面**不崩、不跳第三方**，信息面板 +「该文件类型不支持应用内预览，可下载后分享给其他应用。」 |
+| **两个设置真的改落盘**（我自己跑） | `--ps lohFileUseDocumentDir 1 --ps lohFileOmitCourseName 1` 冷启动后同样点第一条 | `effective file settings: useDocumentDir=true omitCourseName=true override…=true source=runtime-want-param`；`plan: root=/data/storage/el2/base/haps/entry/files/learnX-files … path=…/期末复习.pdf` —— 与我默认态那次（`cache/learnX-files` + `软件分析与验证-期末复习.pdf`）**可逐字段对比**：根 cache→documents、文件名去掉课程名前缀 ⇒ 第 5 条成立 |
+| 我读过但没复跑的证据 | D1（进度）/ C2（分享面板）/ E3-E5（清理缓存因果）/ B2（PdfView 崩溃原文） | D1 的 layout 文本确实是 `下载中` / `330.64 MB / 700.48 MB` / `47.000000`（真字节，不是假进度）；E5 是「清理后重开同一文件 `fromCache=false`」的因果链，不只是「没抛异常」 |
+| 设备卫生 | 我顺手删掉应用沙箱里 ticket 10 遗留的 `excellent-probe.txt` | 已删（仓库证据目录里有它的副本，删设备那份不影响取证） |
+
+**我没能自己抓到的一项（如实记）**：**下载进度**。我挑的样本只有 276 KB，`done` 在 120 ms 内发生，3 秒后的 dump 已是完成态 ⇒ 进度这条**采信 D1**，在此注明「我未复现」。
+
+#### 2. 第 2 条 PDF 那一半：我的裁定
+
+- **根因是平台缺口，不是我们偷偷跳第三方**：`PdfView` 组件运行期缺 `pdfViewManager`（崩溃重启，台账第 23 条 + `B2` 原文）；改用同套 `pdfService` 后是 `Cannot read property PdfDocument of undefined`（我自己那轮的原文）。
+- **「如实提示 + 分享」这个处置我认可为本轮的正确行为**（不崩、不跳第三方、不留半成品）。
+- **但它还不是「替代验收标准」**：验收第 2 条明确要求应用内打开 ⇒ **闭口时点定在 ticket 18 的真机复验**（MatePad Air 通常带 HMS Core）。若真机同样不可用，我才把「如实提示 + 分享」写成 `docs/accepted-deviations.md` **第 22 条的终态**替代验收标准（那是一次决策变更，要同时写进台账与 ticket 18）。
+- **图片那一半缺样本**：春季 95 条我肉眼可见的全是 PDF、秋季 4 条是 ZIP ⇒ 无图片样本。文件路径 / URI 那半条链路已被 PDF 下载走通（同一个 `DeviceFileStore` / `FilePath`），**未验证的只是「解码并渲染图片」**。同样转 ticket 18。
+
+#### 3. 第 3 条：机制成立、设备侧未复现（我认这个口径）
+
+注入替身的单测钉住了两条分支（HTML 响应 ⇒ 不落盘 + 原因 `html-login-page`；两次 403 ⇒ `requiresEnrollment` + 无残留文件）。
+设备侧「下载到登录页」未复现 —— 这需要人为破坏会话，属危险操作，**我不要求本轮硬造**，如实记为未抓到。
+
+#### 4. 一处证据口径提醒（不影响结论）
+
+分享那一条的**原始 hilog 没有落成证据文件**：`file detail share uri: …` 只在 README / 交付说明里被引用，证据目录里除 `B2` 外没有原始日志文件。
+`C2` 截图能证明「面板可调起」，但「中文 + 空格被正确百分号编码」这一条按本仓库口径应当有一份**可重跑的原始输出**。建议在 ticket 18（或下次动这块时）补存一次 `hilog -x` 原文。
+
+#### 5. 取样代价
+
+1 次全量单测、2 次冷启动 + 3 次点击 + 3 次 layout/截图 + 2 次全量 hilog + 1 次 hap 解包（约 6 分钟设备窗口）。**设备锁与构建锁均已释放。**
