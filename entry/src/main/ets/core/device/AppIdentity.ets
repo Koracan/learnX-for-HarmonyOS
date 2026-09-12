@@ -33,6 +33,25 @@ export function appVersionName(): string {
   }
 }
 
+/**
+ * 应用自身的 versionCode（AppScope/app.json5）的文本形态。取不到返回空串。
+ *
+ * 对应参考实现 `constants/DeviceInfo.ts:9` 的 `Info.getBuildNumber()`（react-native-device-info）：
+ * 关于页用它拼 `v{version} (build {buildNo})`（`screens/About.tsx:27`）。HarmonyOS 侧最贴近
+ * "构建号"的量就是 `versionCode`，故取它并在 ticket 17 交付节里写明这处口径换算。
+ */
+export function appVersionCode(): string {
+  try {
+    const info: bundleManager.BundleInfo =
+      bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_DEFAULT);
+    const code: number = info.versionCode;
+    return code === undefined || code === null ? '' : code.toString();
+  } catch (error) {
+    logger.warn('appVersionCode failed: ' + (error as Error).message);
+    return '';
+  }
+}
+
 /** 设备型号（productModel）。取不到返回空串。 */
 export function deviceProductModel(): string {
   try {

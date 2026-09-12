@@ -1227,6 +1227,14 @@
     {
       "name": "ui_unhide_course",
       "value": "Unhide course"
+    },
+    {
+      "name": "ui_mock_mode_active",
+      "value": "Mock mode (guest): sample data, network requests issued = %1$s"
+    },
+    {
+      "name": "ui_opensource_dependencies_none",
+      "value": "This app bundles no third-party runtime dependencies; it uses only the HarmonyOS SDK system capabilities."
     }
   ]
 }

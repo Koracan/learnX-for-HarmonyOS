@@ -34,6 +34,8 @@ import {
   COURSE_LIST_LOG_DOMAIN, HttpCourseListSource, HttpSemesterSource
 } from '../../../data/notices/CourseListFetcher';
 import { NoticeSnapshotFileStore } from '../../../data/notices/NoticeSnapshotFileStore';
+import { MockNoticeRepository } from '../../../data/mock/MockNoticeRepository';
+import { isMockMode } from '../../mock/MockMode';
 
 /** 取证开关：启动时强制深色（深色截图）。提交态 false。 */
 export const FORCE_DARK_FOR_EVIDENCE: boolean = false;
@@ -70,6 +72,11 @@ function hostContext(): common.Context | null {
  * 这里返回一个"永远失败"的仓储，界面走错误态（与 RealNoticeRepository 的降级口径一致）。
  */
 export function createNoticeRepository(): NoticeRepository {
+  // Mock 模式（ticket 17）：样例数据，**不发任何请求**。判据只有 features/mock/MockMode 一处。
+  if (isMockMode()) {
+    logger.info('notice repository wired: source=mock (guest mode, zero network)');
+    return new MockNoticeRepository();
+  }
   const context: common.Context | null = hostContext();
   if (context === null) {
     return new MissingContextNoticeRepository();

@@ -14,6 +14,7 @@ import http from '@ohos.net.http';
 import { Logger } from '../../core/log/Logger';
 import { parseContentLength } from '../../domain/files/FileDownloadPolicy';
 import { DownloadPort, DownloadSink, DownloadStreamResult } from './DownloadPort';
+import { noteNetworkAttempt } from './NetworkAudit';
 import { Session, USER_AGENT } from './Requests';
 
 /** 连接超时（毫秒），与 HttpClient 一致。 */
@@ -55,6 +56,8 @@ export class HttpDownloadPort implements DownloadPort {
   }
 
   async download(session: Session, url: string, sink: DownloadSink): Promise<DownloadStreamResult> {
+    // **消费点自证**（ticket 17 验收第 5 条）：流式下载是第二个真实出口。
+    noteNetworkAttempt('download', url);
     const request = http.createHttp();
     let contentType: string = '';
     let contentLength: number = -1;

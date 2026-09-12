@@ -59,6 +59,12 @@ learnOH —— HarmonyOS 原生（ArkTS / ArkUI）应用，是原 React Native f
 
    **多设备时必须显式传 `--device <serial>`**（`devecocli install/run/ui/log` 与任何 `hdc`）。
 
+   **判设备身份以 `hdc` 实测为准，不要信 `devecocli emulator list` 的串口列**（实测，ticket 17）：
+   它会**张冠李戴**——有一次把 `MatePad Pro 13` 报成 `5555`、`Pura 90` 报成 `5557`，而 `devecocli device list` 与
+   `hdc -t <serial> shell param get const.product.devicetype` 两者一致（`5555 = phone`，`5557 = tablet`）。
+   另外**串口会被复用**：同时只跑一台时它可能拿到 `5555`——所以"5555 就是 Pura 90"这个假设**不成立**，每次取证前都要重新确认。
+   确认方法：`hdc -t 127.0.0.1:5555 shell param get const.product.devicetype`（应回 `phone` 或 `tablet`）。
+
  - **工作区是共享的：任何"半成品"都会冻住别人的构建。** 实测过两次：ticket 05 留下 21 个编译错误挡住 ticket 03；ticket 07 给 `EnrollmentScriptSpec` 加了必填字段却没同步它的测试，挡住 ticket 08（对方 `COMPILE RESULT:FAIL {ERROR:2}`，一行自己的代码都没编到）。因此：
    - **加/改必填字段、改签名、改导出名，必须与所有构造点/调用点在**同一次编辑**里落地**——不要让工作区停留在编译不过的状态；
    - **并行只在文件与层都真正不重叠时才开。** 同一个 feature 目录（`features/auth`、`domain/auth` 之类）下的两条线应当串行；

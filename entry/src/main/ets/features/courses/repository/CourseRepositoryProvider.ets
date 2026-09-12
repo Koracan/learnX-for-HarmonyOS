@@ -22,11 +22,18 @@ import { HttpSemesterSource } from '../../../data/courses/SemesterFetcher';
 import { HttpCourseFetchSource } from '../../../data/courses/CourseFetchSource';
 import { CourseRepository } from '../../../data/courses/CourseRepository';
 import { RealCourseRepository } from '../../../data/courses/RealCourseRepository';
+import { MockCourseRepository } from '../../../data/mock/MockCourseRepository';
+import { isMockMode } from '../../mock/MockMode';
 
 const logger: Logger = new Logger('features.courses.provider');
 
 /** 当前生效的课程数据源。 */
 export function createCourseRepository(): CourseRepository {
+  // Mock 模式（ticket 17）：样例数据，**不发任何请求**。
+  if (isMockMode()) {
+    logger.info('course repository wired: source=mock (guest mode, zero network)');
+    return new MockCourseRepository();
+  }
   const port: HttpFetchPort = new HttpFetchPort();
   const semesters: HttpSemesterSource =
     new HttpSemesterSource(new Logger(COURSE_LIST_LOG_DOMAIN), port);

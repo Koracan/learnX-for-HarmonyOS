@@ -46,12 +46,16 @@ export default function splitViewTest() {
       expect(resolveSplitViewActive(0, 0, 440, 952)).assertFalse();
     });
 
-    it('recognises exactly the nine detail routes of the reference whitelist', 0, () => {
+    it('recognises the reference whitelist plus the immersive settings page', 0, () => {
+      // 参考实现 SplitView.tsx:55-65 是九条；**ticket 17 补了第十条** ImmersiveSettings
+      // （白名单里其余四个设置子页都在、唯独漏了它）。理由与替代验收标准见
+      // docs/accepted-deviations.md 第 30 条。
       const expected: string[] = [
         'NoticeDetail', 'AssignmentDetail', 'FileDetail', 'CourseDetail',
-        'AssignmentSubmission', 'SemesterSelection', 'FileSettings', 'About', 'Help'
+        'AssignmentSubmission', 'SemesterSelection', 'FileSettings', 'About', 'Help',
+        'ImmersiveSettings'
       ];
-      expect(DETAIL_ROUTE_NAMES.length).assertEqual(9);
+      expect(DETAIL_ROUTE_NAMES.length).assertEqual(10);
       for (let i = 0; i < expected.length; i++) {
         expect(isSplitDetailRoute(expected[i])).assertTrue();
         expect(DETAIL_ROUTE_NAMES[i]).assertEqual(expected[i]);

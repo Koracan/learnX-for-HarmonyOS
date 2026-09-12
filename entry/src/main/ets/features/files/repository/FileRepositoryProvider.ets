@@ -33,6 +33,8 @@ import {
   FileSettingsPort, FileSettingsStore, InMemoryFileSettingsPort
 } from '../../../data/settings/FileSettings';
 import { PreferencesFileSettingsPort } from '../../../data/settings/PreferencesFileSettings';
+import { MockFileRepository } from '../../../data/mock/MockFileRepository';
+import { isMockMode } from '../../mock/MockMode';
 import { authServices } from '../../auth/AuthServices';
 
 const logger: Logger = new Logger('features.files.provider');
@@ -72,8 +74,8 @@ export function fileSettingsStore(): FileSettingsStore {
 
 let repository: FileRepository | null = null;
 
-/** 当前生效的文件数据源。 */
-export function fileRepository(): FileRepository {
+/** 真实实现（进程内单例）。 */
+function realFileRepository(): FileRepository {
   if (repository !== null) {
     return repository;
   }
@@ -99,6 +101,23 @@ export function fileRepository(): FileRepository {
   logger.info('file repository wired: source=real (semesters + course list + files + http download)');
   repository = new RealFileRepository(executor, source, downloader, new Logger('data.files.repository'));
   return repository;
+}
+
+/**
+ * 当前生效的文件数据源。
+ *
+ * Mock 模式（ticket 17）返回一个**每次新建**的薄包装：取数走样例、下载直接短路，
+ * 文件系统三件事委托给真实实现。为什么每次都新建而不是缓存：真实实现是单例，
+ * 而 mock 开关可能在同一进程里被登出/再登录改掉（guest → 真实账号），
+ * 缓存住 mock 包装会让第二次登录继续看样例数据。
+ */
+export function fileRepository(): FileRepository {
+  const real: FileRepository = realFileRepository();
+  if (isMockMode()) {
+    logger.info('file repository wired: source=mock (sample data + short-circuited download, zero network)');
+    return new MockFileRepository(real);
+  }
+  return real;
 }
 
 /**

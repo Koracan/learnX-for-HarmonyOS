@@ -5,7 +5,7 @@
  *
  * | 项 | 参考实现 | 这里 |
  * | --- | --- | --- |
- * | 入口 | 页头右侧 search 图标，`App.tsx:137-158` 的 `headerRight`（`hideSearch` 可关） | 四个 tab 页各自的 `header()` 里放 `ui/components/SearchButton`；设置页（`PlaceholderTab`）没有 |
+ * | 入口 | 页头右侧 search 图标，`App.tsx:137-158` 的 `headerRight`（`hideSearch` 可关） | 四个 tab 页各自的 `header()` 里放 `ui/components/SearchButton`；设置页（`SettingsPage`）没有 |
  * | 哪些页有 | 公告 / 作业 / 文件 / 课程四个 tab 都有；设置页显式关掉（`App.tsx:404,445,471,501` vs `:558`） | 同 |
  * | 搜索页本体 | `screens/Search.tsx`：Searchbar + SectionList 三段 + 三段都空才 Empty | 本文：Search + 三段列表 + 全空才 `EmptyState`（`loh_empty`，与参考实现 `Empty` 的 `t('empty')` 同义） |
  * | 初值 | `useState(route.params?.query ?? '')`（`:39`） | `@Prop initialQuery`（入口参数见 SearchRoutes） |

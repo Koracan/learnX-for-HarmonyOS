@@ -30,6 +30,9 @@ import { CredentialRecord } from '../../domain/auth/CredentialRecord';
 import { redactSecret } from '../../domain/auth/DeviceIdentity';
 import { fingerprintDigest } from '../../domain/auth/FingerprintDigest';
 import { AuthServices, authServices } from './AuthServices';
+import {
+  MOCK_USERNAME, describeMockMode, enterMockMode as enterMockModeFlag, exitMockMode
+} from '../mock/MockMode';
 
 const logger: Logger = new Logger('features.auth.store');
 
@@ -60,6 +63,8 @@ export class AuthStore {
   @Trace failure: AuthFailure = AuthFailure.NONE;
   /** 网页登记页顶部的诊断行（脱敏；设备取证时一眼能看出走到哪一步）。 */
   @Trace statusLine: string = '';
+  /** 当前处于 Mock 模式（guest/guest 登录；见 features/mock/MockMode）。 */
+  @Trace mockActive: boolean = false;
   /** 已登记的账号名（只用于界面显示，不写日志）。 */
   @Trace accountLabel: string = '';
   /** 冷启动重登的**脱敏**诊断（原因/状态码；界面不显示原文，只进日志与取证）。 */
@@ -208,6 +213,62 @@ export class AuthStore {
       + ' reason=' + result.reason
       + ' offline=' + result.isOffline().toString()
       + ' -> login page (re-verification required) diag=' + result.diagnostic);
+  }
+
+  /**
+   * Mock 模式登录（ticket 17）：参考实现 `screens/Login.tsx:43-46` 的那一支。
+   *
+   * **一行请求都不发、也不打开网页登记**：直接进主壳，数据由 `data/mock/Mock*Repository` 提供
+   * （判据在 `features/mock/MockMode`，消费点在四个仓储 provider）。
+   * 不写任何凭据（`CredentialStore` 一行都没碰）——会话与凭据都不落盘是本工程既有的口径
+   * （ADR-0004），mock 模式因此只活到本进程结束。
+   */
+  loginAsMockUser(): void {
+    this.forgetEnrollmentInputs();
+    this.services.session.clear();
+    this.services.session.setCredentials(null);
+    enterMockModeFlag();
+    this.mockActive = true;
+    this.accountLabel = MOCK_USERNAME;
+    this.failure = AuthFailure.NONE;
+    this.statusLine = '';
+    this.restoreDiagnostic = '';
+    this.phase = AuthPhase.ENROLLED;
+    logger.info('mock login accepted: phase=ENROLLED (zero network, zero webview); ' + describeMockMode());
+  }
+
+  /**
+   * 退出登录（ticket 17）：参考实现 `Settings.tsx:37-57` 确认后那三个动作的对应物。
+   *
+   * | 参考实现 | 这里 |
+   * | --- | --- |
+   * | `dataSource.logout()`（**服务端**注销会话） | **不移植**：本工程的数据层没有"服务端登出"这个用例。见 ticket 17 交付节的偏离说明 |
+   * | `clearLoginCookies()`（清 WebView / 平台 cookie） | `session.clear()`（内存 cookie jar + Session + 凭据缓存） |
+   * | `dispatch(clearStore())`（清 state） | `credentials.clear()`（asset store 里的持久化凭据）+ 把 store 显式降级回 `UNENROLLED` |
+   *
+   * 验收第 4 条要的可观察量是"凭据被清除并回到登录页"，这三步合起来就是它。
+   * `credentials.clear()` 先于状态回落执行：清盘失败也照样回登录页，但日志里能看见 `cleared=false`。
+   */
+  async logout(): Promise<void> {
+    logger.info('logout requested: clearing session and persisted credentials');
+    let cleared: boolean = false;
+    try {
+      cleared = await this.services.credentials.clear();
+    } catch (error) {
+      logger.error('logout: credentials.clear threw: ' + (error as Error).message);
+    }
+    this.services.session.clear();
+    updateWebSessionHeader('', '');
+    this.forgetEnrollmentInputs();
+    exitMockMode();
+    this.mockActive = false;
+    this.accountLabel = '';
+    this.failure = AuthFailure.NONE;
+    this.statusLine = '';
+    this.restoreDiagnostic = '';
+    this.phase = AuthPhase.UNENROLLED;
+    logger.info('logout complete: credentialsCleared=' + cleared.toString()
+      + ' phase=' + this.phase + '; ' + describeMockMode());
   }
 
   /** 点"登录"→ 生成指纹与 deviceName，打开网页登记。 */

@@ -1,8 +1,8 @@
 {
-  "total": 307,
+  "total": 309,
   "referenceCount": 180,
   "localCount": 8,
-  "uiCount": 119,
+  "uiCount": 121,
   "referenceKeys": [
     "back",
     "notices",
@@ -3045,6 +3045,28 @@
       "name": "ui_unhide_course",
       "zhValue": "取消屏蔽",
       "enValue": "Unhide course",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_mock_mode_active",
+      "name": "ui_mock_mode_active",
+      "zhValue": "Mock 模式（guest）：数据为样例，已发出的网络请求 = %1$s",
+      "enValue": "Mock mode (guest): sample data, network requests issued = %1$s",
+      "zhPlaceholders": [
+        "{0}"
+      ],
+      "enPlaceholders": [
+        "{0}"
+      ],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_opensource_dependencies_none",
+      "name": "ui_opensource_dependencies_none",
+      "zhValue": "本应用不包含第三方运行时依赖，只使用 HarmonyOS SDK 提供的系统能力。",
+      "enValue": "This app bundles no third-party runtime dependencies; it uses only the HarmonyOS SDK system capabilities.",
       "zhPlaceholders": [],
       "enPlaceholders": [],
       "origin": "ui"

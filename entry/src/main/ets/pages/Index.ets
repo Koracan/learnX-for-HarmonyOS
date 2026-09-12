@@ -18,6 +18,7 @@ import { resourceManager } from '@kit.LocalizationKit';
 import { AuthPhase, authStore } from '../features/auth/AuthStore';
 import { LoginPage } from '../features/auth/LoginPage';
 import { ShellTabs } from '../features/shell/ShellTabs';
+import { restoreImmersiveMode } from '../features/settings/repository/ImmersiveSettingsProvider';
 import { registerIconFonts } from '../ui/icons/IconFont';
 
 @Entry
@@ -37,10 +38,25 @@ struct Index {
     }
   }
 
+  /** 宿主 Context（沉浸式恢复要用它取窗口；拿不到就跳过，界面照常）。 */
+  private hostContext(): common.Context | null {
+    try {
+      return this.getUIContext().getHostContext() as common.Context;
+    } catch (error) {
+      return null;
+    }
+  }
+
   aboutToAppear(): void {
     registerIconFonts(this.hostResourceManager());
     // 读凭据 + 静默重登都是异步的；phase 会在完成时刷新界面（@ObservedV2/@Trace）。
     authStore.start();
+    // ticket 17 验收第 3 条「重启后保持」：读持久化的沉浸式设置并应用到窗口。
+    // 与登录状态**无关**（参考实现的 ImmersiveModeController 挂在根容器上，登录页也生效）。
+    const context: common.Context | null = this.hostContext();
+    if (context !== null) {
+      restoreImmersiveMode(context);
+    }
   }
 
   build() {

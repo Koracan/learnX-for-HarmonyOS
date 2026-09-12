@@ -42,11 +42,12 @@ const LOCAL_ADDITION_COUNT: number = 8;
  * ticket 10 25 个（作业列表与详情 22 + 优秀作业 3）；
  * ticket 11 24 个（文件列表/详情/下载进度/预览/分享/文件设置）；
  * ticket 11.5 4 个（页头的相对更新时间四档 —— 见 scripts/i18n-ui-strings.mjs）；
- * ticket 14 3 个（滑动按钮/长按菜单的三个"反向动作"说法：取消收藏 / 取消归档 / 取消屏蔽）。
+ * ticket 14 3 个（滑动按钮/长按菜单的三个"反向动作"说法：取消收藏 / 取消归档 / 取消屏蔽）；
+ * ticket 17 2 个（Mock 模式自证行 / 关于页"没有第三方运行时依赖"那一句）。
  */
-const UI_STRING_COUNT: number = 119;
+const UI_STRING_COUNT: number = 121;
 /** 迁移后的资源键总数（也是 I18N_KEY_COUNT 的期望值）。 */
-const TOTAL_KEY_COUNT: number = 307;
+const TOTAL_KEY_COUNT: number = 309;
 
 const REFERENCE_SAMPLE: string[] = ['loh_back', 'loh_notices', 'loh_assignments', 'loh_files', 'loh_courses'];
 const LOCAL_ADDITIONS: string[] = ['loh_fall', 'loh_spring', 'loh_summer'];

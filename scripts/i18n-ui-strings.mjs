@@ -208,5 +208,19 @@ export const UI_STRINGS = [
   // 因此需要三个"反向动作"的说法；正向动作直接用参考实现已有的 loh_fav / loh_archived / loh_hidden。
   ['ui_remove_favorite', '取消收藏', 'Remove from favorites'],
   ['ui_unarchive', '取消归档', 'Unarchive'],
-  ['ui_unhide_course', '取消屏蔽', 'Unhide course']
+  ['ui_unhide_course', '取消屏蔽', 'Unhide course'],
+  // --- ticket 17（设置与子页 + Mock 模式）新增 ---
+  // Mock 模式的**可见自证行**（设置页在 mock 用户下显示这一条）：
+  // {0} = 进入 mock 模式后**实际发生过的网络请求数**。要点是它必须打在**消费点**——
+  // 计数来自 data/remote/NetworkAudit（唯一的两处 http 出口：HttpClient / HttpDownloadPort），
+  // 所以"界面可用 + 计数为 0"是同一张截图里可核的（验收第 5 条的自证方式）。
+  ['ui_mock_mode_active',
+    'Mock 模式（guest）：数据为样例，已发出的网络请求 = {0}',
+    'Mock mode (guest): sample data, network requests issued = {0}'],
+  // 关于页的「开源依赖」一节：参考实现把 package.json 的 dependencies 逐行列出，本工程根
+  // oh-package.json5 的 dependencies 为空（只有 hypium / hamock 两个 devDependency），
+  // 所以**如实说明没有第三方运行时依赖**，而不是照抄参考实现那份名单。
+  ['ui_opensource_dependencies_none',
+    '本应用不包含第三方运行时依赖，只使用 HarmonyOS SDK 提供的系统能力。',
+    'This app bundles no third-party runtime dependencies; it uses only the HarmonyOS SDK system capabilities.']
 ];

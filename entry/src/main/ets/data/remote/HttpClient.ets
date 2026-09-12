@@ -10,6 +10,7 @@
 
 import http from '@ohos.net.http';
 import { HttpMethod, HttpOutcome, RequestSpec, Session } from './Requests';
+import { noteNetworkAttempt } from './NetworkAudit';
 
 /** 单次请求超时（毫秒）。 */
 const CONNECT_TIMEOUT_MS: number = 15000;
@@ -124,6 +125,8 @@ export class HttpClient {
     binaryBody: ArrayBuffer | undefined,
     onProgress?: (sent: number, total: number) => void
   ): Promise<HttpResponse> {
+    // **消费点自证**（ticket 17 验收第 5 条）：任何一条真实请求都在这里被计数。
+    noteNetworkAttempt(method === HttpMethod.POST ? 'post' : 'get', url);
     const request = http.createHttp();
     let cookiePresent: boolean = false;
     const keys: string[] = Object.keys(headers);

@@ -40,8 +40,8 @@ import { FilesPage } from '../files/FilesPage';
 import {
   FORCE_DARK_FOR_EVIDENCE, FORCE_ENGLISH_FOR_EVIDENCE, logEvidenceSwitchState
 } from '../notices/repository/NoticeRepositoryProvider';
-import { PlaceholderTab } from './PlaceholderTab';
 import { SPLIT_VIEW_BREAKPOINT_VP, publishSplitViewDecision } from './SplitView';
+import { SettingsPage } from '../settings/SettingsPage';
 import { SearchPage } from '../search/SearchPage';
 import { SearchRouteParams, ROUTE_SEARCH } from '../search/SearchRoutes';
 import { bindSearchRootStack } from '../search/SearchEntry';
@@ -320,12 +320,10 @@ export struct ShellTabs {
           }
           .tabBar(this.s($r('app.string.loh_courses')))
 
+          // 设置 tab（ticket 17）：设置列表 + 五个子页（沉浸式 / 学期选择 / 文件设置 / 帮助 / 关于）。
+          // 设置 tab 的子页落在**本 tab 自己的 NavPathStack** 上（见 features/settings/SettingsPage.ets）。
           TabContent() {
-            PlaceholderTab({
-              title: this.s($r('app.string.loh_settings')),
-              message: this.s($r('app.string.ui_tab_placeholder')),
-              isDark: this.isDark()
-            })
+            SettingsPage()
           }
           .tabBar(this.s($r('app.string.loh_settings')))
         }

@@ -8,8 +8,10 @@
  *   - 网页登记容器以**覆盖层**的形式盖在本页上（不另起路由）：于是"用户中途放弃/验证失败
  *     回到登录页"就是一次状态回落，不涉及导航栈，也就没有"半登记状态"可残留（验收第 4 条）。
  *
- * 参考实现里"记住我/mock 账号"那一支（Login.tsx:43-46 的 DUMMY_USERNAME 离线模式）不在本
- * ticket：Mock 数据源策略归 ticket 17。
+ * 【ticket 17】参考实现里"mock 账号"那一支（`Login.tsx:43-46`：`username === DUMMY_USERNAME &&
+ * password === DUMMY_PASSWORD` ⇒ `dispatch(setMockStore())`）**已在 ticket 17 落地**：
+ * 见下面 `handleLoginTap` 里 `isMockCredentials` 那一段 —— 它**先于** SSO 说明对话框，
+ * 因此 mock 登录既不打开网页、也不发任何请求。
  */
 
 import { ConfigurationConstant } from '@kit.AbilityKit';
@@ -20,6 +22,7 @@ import { COLOR_MODE_KEY, LOCALE_VERSION_KEY } from '../../entryability/EntryAbil
 import { EnrollmentDomValues } from '../../domain/auth/EnrollmentScript';
 import { AuthFailure, AuthStore, authStore } from './AuthStore';
 import { EnrollmentWebView } from './EnrollmentWebView';
+import { isMockCredentials } from '../mock/MockMode';
 
 const logger: Logger = new Logger('features.login');
 
@@ -113,6 +116,13 @@ export struct LoginPage {
       return;
     }
     this.hint = '';
+    // 参考实现 Login.tsx:43-46：**guest/guest 直接进 Mock 模式**，不发请求、不弹 SSO 说明。
+    // 参考实现的两个输入框都在 onChangeText 里做了 trim（Login.tsx:82,95），这里按同一口径比较。
+    if (isMockCredentials(account, this.password.trim())) {
+      logger.info('login: mock credentials detected -> mock mode (no request, no webview)');
+      this.store.loginAsMockUser();
+      return;
+    }
     // 参考实现 Login.tsx:48-64：先弹说明，用户确认后才进入网页登记。
     AlertDialog.show({
       title: this.s($r('app.string.loh_sso')),

@@ -58,10 +58,15 @@ export const SPLIT_VIEW_ACTIVE_KEY: string = 'lohSplitViewActive';
 export const SPLIT_VIEW_MASTER_HIDDEN_KEY: string = 'lohSplitViewMasterHidden';
 
 /**
- * 详情路由白名单（**逐字**抄参考实现 `SplitView.tsx:55-65` 的九条）。
+ * 详情路由白名单（**逐字**抄参考实现 `SplitView.tsx:55-65` 的九条 + **本工程补的第 10 条**）。
  *
  * 它的用途只有一个：判断主栈栈顶那段是不是"详情"，从而决定要不要迁到右栏。
  * 本工程的路由名与参考实现同名同义（见各 tab 目录下的 `*Routes.ets`）。
+ *
+ * **补的那一条：`ImmersiveSettings`**（ticket 17）。参考实现的白名单里有其余四个设置子页
+ * （`SemesterSelection` / `FileSettings` / `About` / `Help`），唯独漏了沉浸式设置页 ——
+ * 后果是"平板横屏下从设置页点进沉浸式 → 再旋转一次 → 该页被留在 393vp 的左栏"。
+ * 本工程把这一条补齐，理由与替代验收标准见 `docs/accepted-deviations.md` 第 30 条。
  */
 export const DETAIL_ROUTE_NAMES: string[] = [
   'NoticeDetail',
@@ -72,7 +77,8 @@ export const DETAIL_ROUTE_NAMES: string[] = [
   'SemesterSelection',
   'FileSettings',
   'About',
-  'Help'
+  'Help',
+  'ImmersiveSettings'
 ];
 
 /** 这条路由名是不是"详情"（白名单判定）。 */

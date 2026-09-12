@@ -639,5 +639,74 @@ previewUrl: attachmentResult.uri, size, type })` —— 即用**本地 URI**（`
 `entry/src/main/ets/features/search/SearchCore.ets`；`entry/src/test/Search.test.ets`；
 `.scratch/search/evidence/README.md`、`.scratch/search/evidence/15-flexsearch-smoke-failure.txt`；
 `.scratch/migration/search-package-eval.md`。
+---
+
+## 30. 设置与 Mock 模式的四处偏离 + 两处增补：分栏详情白名单补一条 / **不移植服务端登出** / Mock 落在**仓储层**（不是整棵 state）/ 「导出日志」与「Mock 自证行」 —— 已复审（ticket 17）
+
+**参考实现行为**（`reference/learnOH-old/`）：
+
+| 项 | 参考实现 | 出处 |
+| --- | --- | --- |
+| 设置页条目 | 8 条：用户信息 / 退出登录 / 沉浸式 / 学期选择 / 文件设置 / 隐私政策（外链）/ 帮助 / 关于 | `src/screens/Settings.tsx:62-118` |
+| 退出登录 | `dataSource.logout()`（**服务端**注销）→ `clearLoginCookies()`（清平台 cookie）→ `dispatch(clearStore())` | `Settings.tsx:37-57` |
+| Mock 模式 | 登录页判定 `username===DUMMY_USERNAME && password===DUMMY_PASSWORD` ⇒ `dispatch(setMockStore())`，**整棵 redux state** 换成 `data/mock.ts`（723 行）；mock 状态由 redux-persist 写进 SecureStorage（白名单含 `username/password/fingerPrint`） | `Login.tsx:43-46`、`reducers/root.ts:46-56,138-139` |
+| Mock 用户不显示沉浸式 | `!isMockUser ? <TableCell …immersiveMode/> : null` | `Settings.tsx:74-82` |
+| 分栏详情路由白名单 | **9 条**，含其余四个设置子页，**没有** `ImmersiveSettings` | `components/SplitView.tsx:55-65` |
+| 沉浸式设置的说明文字 | `immersiveModeDescription` = "隐藏导航栏和状态栏，**需要重启应用**"；另有一个**从未被引用**的 `pleaseRestartAppToApplyImmersive` | `assets/translations/zh.ts:206-210`（全仓 grep 无 UI 引用） |
+| 关于页构建号 | `DeviceInfo.buildNo()`（react-native-device-info 的 `getBuildNumber()`） | `screens/About.tsx:27`、`constants/DeviceInfo.ts:9` |
+| 开源依赖一节 | `Object.keys(packageJson.dependencies)` 动态列 | `About.tsx:79-84` |
+
+**四处偏离**：
+
+| # | 项 | 参考实现 | 新实现 | 为什么 |
+| --- | --- | --- | --- | --- |
+| D1 | 分栏详情白名单 | 9 条（漏 `ImmersiveSettings`） | **10 条**（补上 `ImmersiveSettings`） | **参考实现自身不一致**：`App.tsx:512-538` 把五个设置子页都注册进 Settings 栈（`ImmersiveSettings:515` / `SemesterSelection:520` / `FileSettings:525` / `About:530` / `Help:535`），而白名单只收了后四个 —— 于是参考实现下"从设置页点沉浸式"在平板分栏时会被推进**左栏**，其余四个进右栏。补齐的理由：① 与同栈其余四个子页一致；② 沉浸式是**全屏式**设置页，塞进 393vp 左栏比进右栏更差。⇒ 这是**有意识的偏离，不是没看出区别**。见 `features/shell/SplitView.ets` 与 `entry/src/test/SplitView.test.ets`（断言跟随事实改成 10 条） |
+| D2 | 退出登录 | 还调 `dataSource.logout()`（服务端注销会话） | **只清本地**：`session.clear()`（内存 cookie jar + Session + 凭据缓存）+ `credentials.clear()`（asset store） | 本工程的数据层没有"服务端登出"这个用例，也没有对应端口；工单验收第 4 条要的可观察量是"凭据被清除并回到登录页"，两步合起来就是它。**不新造一个没有验收判据的网络调用**（另见"未验证"一节） |
+| D3 | Mock 的落点 | 替换**整棵 redux state** | 落在**仓储层**：mock 模式下四个 provider 返回 `data/mock/Mock*Repository` | 本工程没有 redux / 全局 state（数据源是四个注入式仓储，界面各持一份 store）；工单验收第 5 条要的是"界面可用 + 数据是样例 + 不发请求"，仓储层替换即达成，且**界面与 store 一行都不用改** |
+| D4 | Mock 的持久化 | mock 状态会被 redux-persist 写进 SecureStorage | **只活在进程内**（不写任何凭据 / 偏好） | 会话与凭据都不落盘是既有口径（ADR-0004 / spec 第 4 节）；把 guest/guest 写进凭据库会让"重启后自动登录 mock 账号"成为一条新的、没人验收的路径 |
+
+**两处增补**（参考实现没有、本工程主动加）：
+
+| # | 项 | 依据 | 代价 |
+| --- | --- | --- | --- |
+| A1 | 设置页多一行「**导出日志**」（图标 `description`，就地动作 + Toast） | ticket 01 的 `core/log/LogBuffer.ets` 文件头**明确**把 `exportLogs()` 的调用方留给"settings 切片（ticket 17「导出日志」）"；本 ticket 的 What to build 也列了它 | 参考实现里这一项不存在 ⇒ 逐条比对截图时多一行；位置在**最后**（前 8 行与参考实现逐字同序同图标） |
+| A2 | 设置页在 **mock 用户**下多一条自证行（`ui_mock_mode_active`，含实时请求计数） | 验收第 5 条要求"不发起真实网络请求"**可证明**；计数打在**消费点**（`data/remote/NetworkAudit`，两个真实 http 出口共用） | 只在 mock 用户下出现，正常账号界面与参考实现逐条一致 |
+
+**一处"文案与行为不完全一致"（如实登记，未偏离）**：说明文字仍按参考实现原样显示"需要重启应用"（**迁移键**，改它会让 `check-generated-fresh` 失败），而本 ticket 的验收第 3 条要求**即时生效** —— 行为按验收（切换后立刻调 `setWindowLayoutFullScreen` / `setWindowSystemBarEnable`），文字保持原样。参考实现自己也是"文字说重启、代码里 `useEffect` 立刻生效"（`App.tsx:682-690`），本工程与它的行为一致。
+
+**替代验收标准**：
+
+1. **设置页条目**：前 8 条的顺序、图标、分组间距与参考实现逐条一致（一屏一对文件：浅色 / 深色各一张）；
+   「退出登录」弹确认框（标题 `logout` / 正文 `logoutConfirmation` / 按钮 `cancel`+`ok`），确认后**回到登录页**且凭据被清（重启后仍在登录页）；
+2. **D1**：平板模拟器（≥750vp 横向）上从设置页点进**沉浸式**子页 → 该页在**右栏**；在该页上旋转 / 缩放窗口
+   → 该页仍留在屏上（hilog 有 `split view enter/exit: tab=settings moved=N`）；
+3. **D2**：退出登录后 `credentials.load()` 返回 undefined（"没有持久化凭据"一行）、cookie jar 已清空、
+   界面回到登录页；**不声称**服务端会话被注销；
+4. **D3/D4**：以 guest/guest 登录后三个 tab + 课程详情都有样例数据可浏览，**且** `data/remote/NetworkAudit` 的计数
+   在这些浏览动作之后仍为 **0**（设置页那一行把它显示在屏幕上；另有一条**独立**证据证明这个计数器本身会涨 —— 真实账号下同一个计数器 > 0）；重启后回到登录页（mock 不持久化）；
+5. **沉浸式**：切换开关后**立刻**生效（状态栏 / 导航栏消失与恢复各一张截图）；重启后仍是上次的值
+   （preferences `learnoh_immersive_settings`）；关掉开关 1 时开关 2 自动置假且持久化；
+6. **A1/A2**：见上表"代价"一列；两处都**只在对应场景**出现。
+
+**未验证 / 边界**：
+
+- **D2 的"服务端会话仍有效"这条路没有验证**：本工程不发"服务端登出"请求，所以被注销的只是本机凭据；
+  服务端那一侧是否仍有会话（直到超时）**未测**。若将来要补，判据应是"下一次登录是否还需要短信 / 二次验证"，
+  而那属于 ticket 07/08 的信任链，不在本 ticket。
+- **`immersiveAvoidFrontCamera` 的平台效果没有移植**：参考实现里它唯一的用途是 RN 安全区回退
+  （`App.tsx:727` 的 `disableHeaderTopInsetFallback`）；本工程的自绘页头没有那套 inset 回退，
+  所以这个开关**只持久化与显示**（显示值 = `immersiveMode && immersiveAvoidFrontCamera`，联动与禁用照抄），
+  **不声称**它改变了任何布局。
+- **学期选择子页的 store 是设置页自己的一份**：参考实现的学期是全局 redux state，从设置页切学期会**全局**生效；
+  本工程的课程数据按 tab 各持一份 store（ticket 12/15 的既有结构），所以从**设置页**切学期只影响该子页自身，
+  **课程 tab 不会跟着变**。这是本 ticket 的已知缺口（登记为未验证项）；要修需要把课程 store 收敛成进程内单例
+  ——那会动 ticket 12/15 已验收的结构，超出本 ticket 范围。
+
+**取证**：`reference/learnOH-old/src/screens/{Settings,ImmersiveSettings,About,Help}.tsx`、`src/components/{TableCell,SplitView}.tsx`、
+`src/data/{mock.ts,reducers/root.ts,reducers/settings.ts}`、`src/App.tsx:682-690,727`、`src/helpers/env.ts` 与 `.env`；
+`entry/src/main/ets/features/settings/`（SettingsPage / ImmersiveSettingsPage / AboutPage / HelpPage）、
+`entry/src/main/ets/features/mock/MockMode.ets`、`entry/src/main/ets/data/mock/`、`entry/src/main/ets/data/remote/NetworkAudit.ets`、
+`entry/src/main/ets/data/settings/ImmersiveSettings.ets`；`entry/src/test/Settings.test.ets`；
+`.scratch/settings/evidence/README.md`。
 
 

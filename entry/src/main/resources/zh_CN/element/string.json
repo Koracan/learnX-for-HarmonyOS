@@ -1227,6 +1227,14 @@
     {
       "name": "ui_unhide_course",
       "value": "取消屏蔽"
+    },
+    {
+      "name": "ui_mock_mode_active",
+      "value": "Mock 模式（guest）：数据为样例，已发出的网络请求 = %1$s"
+    },
+    {
+      "name": "ui_opensource_dependencies_none",
+      "value": "本应用不包含第三方运行时依赖，只使用 HarmonyOS SDK 提供的系统能力。"
     }
   ]
 }

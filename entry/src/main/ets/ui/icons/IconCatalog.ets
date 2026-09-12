@@ -105,7 +105,41 @@ export enum AppIcon {
    */
   SEARCH = 'search',
   /** MaterialIcons `close`：搜索页页头左上角的关闭（参考实现 `App.tsx:113-121` 的 BackButton）。 */
-  CLOSE = 'close'
+  CLOSE = 'close',
+  /* --- ticket 17（设置与子页）：**全部来自 MaterialIcons**，与参考实现 `Settings.tsx` /
+   * `TableCell.tsx` 的 `import MaterialIcons from 'react-native-vector-icons/MaterialIcons'` 同族。
+   * 码位逐条抄自 `react-native-vector-icons@10.2.0` 的 glyphmaps/MaterialIcons.json
+   * （每条的码位都写在下面的 `iconSpec` 里，便于复核）。 --- */
+  /** MaterialIcons `person-remove`：设置页「退出登录」（参考实现 `Settings.tsx:69`）。 */
+  PERSON_REMOVE = 'person-remove',
+  /** MaterialIcons `loop`：设置页「学期选择」（参考实现 `Settings.tsx:84`）。 */
+  LOOP = 'loop',
+  /** MaterialIcons `rule-folder`：设置页「文件设置」（参考实现 `Settings.tsx:91`）。 */
+  RULE_FOLDER = 'rule-folder',
+  /** MaterialIcons `policy`：设置页「隐私政策」（参考实现 `Settings.tsx:98`）。 */
+  POLICY = 'policy',
+  /** MaterialIcons `help`：设置页「帮助与反馈」（参考实现 `Settings.tsx:109`）。 */
+  HELP = 'help',
+  /** MaterialIcons `copyright`：设置页「关于」（参考实现 `Settings.tsx:114`）。 */
+  COPYRIGHT = 'copyright',
+  /** MaterialIcons `center-focus-strong`：沉浸式设置页「避免前置摄像头」（参考实现 `ImmersiveSettings.tsx:44`）。 */
+  CENTER_FOCUS_STRONG = 'center-focus-strong',
+  /** MaterialIcons `keyboard-arrow-right`：`TableCell type="arrow"` 的行尾箭头（参考实现 `TableCell.tsx:116`）。 */
+  KEYBOARD_ARROW_RIGHT = 'keyboard-arrow-right',
+  /**
+   * MaterialCommunityIcons `account`：**唯一一个 MCI 图标**，用于 `TableCell imageAlt` 的头像占位
+   * （参考实现 `TableCell.tsx:72-77` 的 `Avatar.Icon icon="account"` 走 paper 的 MaterialCommunityIcons）。
+   * **family 别搞错**：它不在 MaterialIcons 的码位表里。
+   */
+  ACCOUNT = 'account',
+  /**
+   * MaterialIcons `description`：设置页「导出日志」那一行。
+   *
+   * **这是本工程对参考实现的一处增补**（参考实现 Settings.tsx 没有这一项）：ticket 01 的
+   * `core/log/LogBuffer.ets` 明确把 `exportLogs()` 的调用方留给「settings 切片（ticket 17「导出日志」）」，
+   * 而本 ticket 的 What to build 也列了它。理由与替代验收标准见 ticket 17 交付节的「偏离与增补」。
+   */
+  DESCRIPTION = 'description'
 }
 
 /** 闭集 → 资源。没有 default 分支的"兜底语义"：未知枚举值按 attachment 渲染并保持可读。 */
@@ -170,6 +204,37 @@ export function iconSpec(icon: AppIcon): IconSpec {
     case AppIcon.CLOSE:
       // 码位 58829 (0xE5CD)，同表的 close（ticket 15 搜索页的关闭按钮）。
       return { family: IconFamily.MATERIAL, code: 0xE5CD, fallback: '[x]' };
+    case AppIcon.PERSON_REMOVE:
+      // 码位 61286 (0xEF66) 抄自 glyphmaps/MaterialIcons.json 的 person-remove（Settings.tsx:69）。
+      return { family: IconFamily.MATERIAL, code: 0xEF66, fallback: '[logout]' };
+    case AppIcon.LOOP:
+      // 码位 57384 (0xE028)，同表的 loop（Settings.tsx:84）。
+      return { family: IconFamily.MATERIAL, code: 0xE028, fallback: '[loop]' };
+    case AppIcon.RULE_FOLDER:
+      // 码位 61897 (0xF1C9)，同表的 rule-folder（Settings.tsx:91）。
+      return { family: IconFamily.MATERIAL, code: 0xF1C9, fallback: '[rules]' };
+    case AppIcon.POLICY:
+      // 码位 59927 (0xEA17)，同表的 policy（Settings.tsx:98）。
+      return { family: IconFamily.MATERIAL, code: 0xEA17, fallback: '[policy]' };
+    case AppIcon.HELP:
+      // 码位 59527 (0xE887)，同表的 help（Settings.tsx:109）。
+      return { family: IconFamily.MATERIAL, code: 0xE887, fallback: '[help]' };
+    case AppIcon.COPYRIGHT:
+      // 码位 59660 (0xE90C)，同表的 copyright（Settings.tsx:114）。
+      return { family: IconFamily.MATERIAL, code: 0xE90C, fallback: '[c]' };
+    case AppIcon.CENTER_FOCUS_STRONG:
+      // 码位 58292 (0xE3B4)，同表的 center-focus-strong（ImmersiveSettings.tsx:44）。
+      return { family: IconFamily.MATERIAL, code: 0xE3B4, fallback: '[focus]' };
+    case AppIcon.KEYBOARD_ARROW_RIGHT:
+      // 码位 58133 (0xE315)，同表的 keyboard-arrow-right（TableCell.tsx:116 的行尾箭头）。
+      return { family: IconFamily.MATERIAL, code: 0xE315, fallback: '>' };
+    case AppIcon.ACCOUNT:
+      // 码位 983044 (0xF0004)，抄自 glyphmaps/MaterialCommunityIcons.json 的 account
+      // （paper 的 Avatar.Icon 默认图标族是 MCI）。
+      return { family: IconFamily.MATERIAL_COMMUNITY, code: 0xF0004, fallback: '[user]' };
+    case AppIcon.DESCRIPTION:
+      // 码位 59507 (0xE873)，同表的 description（本工程增补的「导出日志」行）。
+      return { family: IconFamily.MATERIAL, code: 0xE873, fallback: '[log]' };
     default:
       return { family: IconFamily.MATERIAL_COMMUNITY, code: 0xF0066, fallback: '[icon]' };
   }

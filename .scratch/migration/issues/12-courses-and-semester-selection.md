@@ -252,4 +252,24 @@ E14 = 从课程 tab 的「通知」进入的是 ticket 04 的**真详情**（陆
 - **可观察量转移到哪里**：界面部分 → ticket 11.5 的课程页头截图（学期文本 + 无徽标）；
   机制部分 → 上面两行 hilog（本来就是 ticket 12 的首选证据）。
 
+### 边界说明（2026-09-13，由 ticket 17 带入）—— 学期切换的**作用域**从「全局」降为「单页」（设置页新增的入口不联动课程 tab）
+
+- **变了什么**：ticket 17 在**全局设置页**补上了参考实现里那个「学期选择」入口
+  （参考实现 `Settings.tsx:83-89` 的 `handlePush('SemesterSelection')`，与课程 tab 头部进的是**同一个页面**）。
+  但本工程的课程数据是**每个页面实例各持一份 store**（`features/courses/CoursesPage.ets:101` 的
+  `private store: CourseListStore = new CourseListStore(createCourseRepository())`，ticket 10/15 同此结构），
+  而参考实现的学期是**全局 redux state**（`semesters.current`，由 `setCurrentSemester` 写、所有页面读）。
+  ⇒ **从设置页切学期只影响该子页自身的 store，课程 tab 不会跟着变**。这是**行为上的不等价**，
+  已登记在 ticket 17 交付节的「未验证项与边界」与 `docs/accepted-deviations.md` 第 30 条。
+- **原证据还成立到哪一步**：ticket 12 的四条验收**全部不受影响** ——
+  课程 tab 自己的学期切换（头部学期文本 → 学期选择页 → 列表随之更新）、
+  `aa start --ps lohSemester` 的覆盖链路（`data.courses effective semester=… source=override` 那两行 hilog）、
+  空态与三类计数**一行都没动**。被削弱的是「**学期是全局的**」这个**隐含前提**：
+  它以前没有别人依赖（设置页此前是占位页），从 ticket 17 起有了一条**看起来**能全局切、实际不能的入口。
+- **可观察量转移到哪里**：一个**新 ticket** —— 把课程 store 收敛成进程内单例（`CourseRepositoryProvider`
+  暴露 `courseListStore()`，四个消费页共用），让「从设置页切学期」与参考实现一样全局生效；
+  在那之前，「学期切换」的可观察量仍然只在**课程 tab 那条线**上。
+- **为什么不在 ticket 17 里顺手改**：那会动 ticket 12/15 已验收的结构（三个页面的 store 生命周期），
+  超出本 ticket 的范围；工单 Comments 的边界说明也要求「文件设置复用、不另造存储」这类**最小改动**口径。
+
 

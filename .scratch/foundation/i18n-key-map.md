@@ -17,8 +17,8 @@
 | --- | --- | --- |
 | 参考实现迁入 | 180 | `loh_` |
 | 本工程新增（学期季节词） | 8 | `loh_` |
-| 本工程新增（原生重写 UI 文案） | 119 | `ui_` |
-| 合计 | 307 | |
+| 本工程新增（原生重写 UI 文案） | 121 | `ui_` |
+| 合计 | 309 | |
 
 ## 参考实现迁入键（180）
 
@@ -205,7 +205,7 @@
 | 179 | `avoidFrontCameraDescription` | `loh_avoid_front_camera_description` | - | 在上部留出空间以避让挖孔区域，需要重启应用 | Leave top space to avoid the front camera cutout. App restart required. |
 | 180 | `pleaseRestartAppToApplyImmersive` | `loh_please_restart_app_to_apply_immersive` | - | 请重启应用以应用沉浸式模式设置。 | Please restart the app to apply immersive mode setting. |
 
-## 本工程新增键（127）
+## 本工程新增键（129）
 
 | # | 类别 | 资源名 | 占位符 | 中文 | 英文 |
 | --- | --- | --- | --- | --- | --- |
@@ -336,4 +336,6 @@
 | 125 | ui | `ui_remove_favorite` | - | 取消收藏 | Remove from favorites |
 | 126 | ui | `ui_unarchive` | - | 取消归档 | Unarchive |
 | 127 | ui | `ui_unhide_course` | - | 取消屏蔽 | Unhide course |
+| 128 | ui | `ui_mock_mode_active` | {0} | Mock 模式（guest）：数据为样例，已发出的网络请求 = %1$s | Mock mode (guest): sample data, network requests issued = %1$s |
+| 129 | ui | `ui_opensource_dependencies_none` | - | 本应用不包含第三方运行时依赖，只使用 HarmonyOS SDK 提供的系统能力。 | This app bundles no third-party runtime dependencies; it uses only the HarmonyOS SDK system capabilities. |
 
