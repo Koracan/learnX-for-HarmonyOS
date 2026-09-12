@@ -53,6 +53,10 @@ learnOH —— HarmonyOS 原生（ArkTS / ArkUI）应用，是原 React Native f
 
  - **两个论断不能复用同一份证据**：同一张 PNG 同时充当"刷新反馈"与"刷新后"的证据，等于两个论断都没有证据。抓不到就如实写"未抓到"——重复文件比缺失更糟，因为它看起来像有证据。
 
+ - **`read` 工具会截断超长行：minified 文件必须用 pwsh 取全文再搜。** 实测：一个 34,992 字符的单行站点 JS（`localstorageUtil.js`）用 `read` 只回来 **4,273 字符**，据此搜「文件里有没有 `location`」会得到**假阴性**。判据：读回来的字符数与文件大小/行数对不上（8 行却只有 4 千字符）就先怀疑工具，而不是内容。检查 minified 文件或超长日志行时，用 `Get-Content -Raw` + `.IndexOf()`。
+
+ - **未提交的诊断补丁，唯一副本就是那个 patch 文件——还原前先另存。** 实测：`git checkout --` 把当时唯一一份探针代码清掉，事后只能靠 `.dsh/logs/*.patch` 找回。规矩：① 探针代码先落成 `.dsh/logs/<ticket>-probe.patch`（`.dsh/` 已 gitignore，`git checkout` 波及不到）；② 还原前再另存一份 `.keep`；③ **工作区脏的时候不要改 `AGENTS.md`**——那次编辑被卷进补丁，又被 `git checkout` 一起清掉。
+
 ## 门禁（提交前都要真跑）
 
  - **先设 `DEVECO_SDK_HOME`**，否则 hvigor 一旦重建守护进程就会失败、**一条测试都不跑**：
