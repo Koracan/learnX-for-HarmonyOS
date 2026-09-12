@@ -50,6 +50,8 @@
  * 单元测试 `escapesScriptEndTagsInContent` 守住它。
  */
 
+import { decodeAllEntities } from '../parse/Text';
+
 /** Web 容器模板需要的外部资产（由 core 从 rawfile 读出后传入）。 */
 export interface WebPageAssets {
   /** `katex.min.css`（`url(fonts/` 已重写为 CDN 绝对地址）。 */
@@ -334,6 +336,101 @@ function templateShell(content: string, darkMode: boolean, backgroundColor: stri
     + '      </script>\n'
     + '    </body>\n'
     + '  </html>\n';
+}
+
+/** HTML 注释：`<!--(.*?)-->`（非贪婪，不跨注释；参考实现用正则，这里手写以避开 RegExp 结构类型）。 */
+function stripHtmlComments(html: string): string {
+  let out: string = '';
+  let cursor: number = 0;
+  while (cursor < html.length) {
+    const start: number = html.indexOf('<!--', cursor);
+    if (start < 0) {
+      out += html.substring(cursor);
+      break;
+    }
+    out += html.substring(cursor, start);
+    const end: number = html.indexOf('-->', start + 4);
+    if (end < 0) {
+      // 注释没闭合：参考实现的 `<!--(.*?)-->` 匹配不到 ⇒ **整段保留**。照做。
+      out += html.substring(start);
+      break;
+    }
+    cursor = end + 3;
+  }
+  return out;
+}
+
+/**
+ * 去掉 HTML 标签：`<...>`，**允许标签里含换行**（参考实现的正则是 `/<(?:.|\n)*?>/gm`）。
+ * 遇到没闭合的 `<` 时原样保留（参考实现同样匹配不到）。
+ */
+function stripHtmlTags(html: string): string {
+  let out: string = '';
+  let cursor: number = 0;
+  while (cursor < html.length) {
+    const start: number = html.indexOf('<', cursor);
+    if (start < 0) {
+      out += html.substring(cursor);
+      break;
+    }
+    out += html.substring(cursor, start);
+    const end: number = html.indexOf('>', start + 1);
+    if (end < 0) {
+      out += html.substring(start);
+      break;
+    }
+    cursor = end + 1;
+  }
+  return out;
+}
+
+/** 折叠连续空白（两个及以上）成单个空格（参考实现 `/\s\s+/g` → ' '）。 */
+function collapseWhitespace(text: string): string {
+  let out: string = '';
+  let pendingSpace: boolean = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch: string = text.charAt(i);
+    const code: number = text.charCodeAt(i);
+    const isSpace: boolean = code === 32 || code === 9 || code === 10 || code === 13
+      || code === 12 || code === 11 || code === 0x00A0;
+    if (isSpace) {
+      pendingSpace = true;
+      continue;
+    }
+    if (pendingSpace && out.length > 0) {
+      out += ' ';
+    }
+    pendingSpace = false;
+    out += ch;
+  }
+  return out;
+}
+
+/**
+ * `removeTags` —— 参考实现 `reference/learnOH-old/src/helpers/html.ts:11-22` 的等价物。
+ *
+ * 依次做四件事（顺序与参考实现逐条一致，见 docs/reference-quirks.md 第 4 条的两层契约）：
+ *   1. 去 HTML 注释 `<!--...-->`；
+ *   2. 去标签 `<...>`（允许跨行）；
+ *   3. **实体解码**（`he.decode` 等价物，含 `&#39;` / `&#x27;` 数字实体，见 domain/parse/Text）；
+ *   4. 折叠连续空白并 `trim`。
+ *
+ * **渲染层是"解码"的**：解析层刻意不解码（台账第 4 条上半，锁定），解码推迟到这里。
+ * 公告卡片用它渲染**标题与正文预览**（NoticeCard.tsx:42,72）。
+ * 解析或解码出错时返回空串（参考实现的 `catch { return '' }`）。
+ */
+export function removeTags(html: string | undefined): string {
+  if (html === undefined || html === null || html.length === 0) {
+    return '';
+  }
+  try {
+    const withoutComments: string = stripHtmlComments(html);
+    const withoutTags: string = stripHtmlTags(withoutComments);
+    const decoded: string = decodeAllEntities(withoutTags);
+    return collapseWhitespace(decoded).trim();
+  } catch (error) {
+    return '';
+  }
 }
 
 /** 一次性替换全部出现（ArkTS 的 String.replace 只换第一处，故用 split/join）。 */

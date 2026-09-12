@@ -17,8 +17,8 @@
 | --- | --- | --- |
 | 参考实现迁入 | 180 | `loh_` |
 | 本工程新增（学期季节词） | 6 | `loh_` |
-| 本工程新增（原生重写 UI 文案） | 49 | `ui_` |
-| 合计 | 235 | |
+| 本工程新增（原生重写 UI 文案） | 51 | `ui_` |
+| 合计 | 237 | |
 
 ## 参考实现迁入键（180）
 
@@ -205,7 +205,7 @@
 | 179 | `avoidFrontCameraDescription` | `loh_avoid_front_camera_description` | - | 在上部留出空间以避让挖孔区域，需要重启应用 | Leave top space to avoid the front camera cutout. App restart required. |
 | 180 | `pleaseRestartAppToApplyImmersive` | `loh_please_restart_app_to_apply_immersive` | - | 请重启应用以应用沉浸式模式设置。 | Please restart the app to apply immersive mode setting. |
 
-## 本工程新增键（55）
+## 本工程新增键（57）
 
 | # | 类别 | 资源名 | 占位符 | 中文 | 英文 |
 | --- | --- | --- | --- | --- | --- |
@@ -263,5 +263,7 @@
 | 52 | ui | `ui_month_oct` | - | 10 月 | Oct |
 | 53 | ui | `ui_month_nov` | - | 11 月 | Nov |
 | 54 | ui | `ui_month_dec` | - | 12 月 | Dec |
-| 55 | ui | `ui_enrollment_fingerprint_not_ready` | - | 浏览器指纹尚未就绪，此刻提交不会把该浏览器记为可信（服务端会提示"隐私或匿名模式"）。请稍等几秒后再次点击登录；若反复出现，请关闭本页重新登录。 | The browser fingerprint is not ready yet, so signing in now would not register this browser as trusted (the server would report a private/anonymous browser). Wait a few seconds and tap sign in again; if it keeps happening, close this page and sign in again. |
+| 55 | ui | `ui_attachment_label` | - | 含附件 | Has attachment |
+| 56 | ui | `ui_marked_important_label` | - | 重要公告 | Marked important |
+| 57 | ui | `ui_enrollment_fingerprint_not_ready` | - | 浏览器指纹尚未就绪，此刻提交不会把该浏览器记为可信（服务端会提示"隐私或匿名模式"）。请稍等几秒后再次点击登录；若反复出现，请关闭本页重新登录。 | The browser fingerprint is not ready yet, so signing in now would not register this browser as trusted (the server would report a private/anonymous browser). Wait a few seconds and tap sign in again; if it keeps happening, close this page and sign in again. |
 

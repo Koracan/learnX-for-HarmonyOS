@@ -1,8 +1,8 @@
 {
-  "total": 235,
+  "total": 237,
   "referenceCount": 180,
   "localCount": 6,
-  "uiCount": 49,
+  "uiCount": 51,
   "referenceKeys": [
     "back",
     "notices",
@@ -2306,6 +2306,24 @@
       "name": "ui_month_dec",
       "zhValue": "12 月",
       "enValue": "Dec",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_attachment_label",
+      "name": "ui_attachment_label",
+      "zhValue": "含附件",
+      "enValue": "Has attachment",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_marked_important_label",
+      "name": "ui_marked_important_label",
+      "zhValue": "重要公告",
+      "enValue": "Marked important",
       "zhPlaceholders": [],
       "enPlaceholders": [],
       "origin": "ui"

@@ -949,6 +949,14 @@
       "value": "12 月"
     },
     {
+      "name": "ui_attachment_label",
+      "value": "含附件"
+    },
+    {
+      "name": "ui_marked_important_label",
+      "value": "重要公告"
+    },
+    {
       "name": "ui_enrollment_fingerprint_not_ready",
       "value": "浏览器指纹尚未就绪，此刻提交不会把该浏览器记为可信（服务端会提示\"隐私或匿名模式\"）。请稍等几秒后再次点击登录；若反复出现，请关闭本页重新登录。"
     }

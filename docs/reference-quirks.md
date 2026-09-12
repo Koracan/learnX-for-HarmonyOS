@@ -516,6 +516,44 @@ Netscape 行两条入口都保留**（`response.header['set-cookie']` 那边给�
 
 ---
 
+---
+
+## 16. 公告卡片的状态图标：参考实现用三色图标，新实现用同色 emoji —— 已复审（ticket 09）
+
+**参考实现行为**（`src/components/NoticeCard.tsx:45-69`）：卡片右上角最多三个图标，来自
+`react-native-vector-icons/MaterialCommunityIcons`：
+
+| 图标名 | 颜色 | 令牌 | 条件 |
+| --- | --- | --- | --- |
+| `attachment` | 橙 | `Colors.orange500` = `#ff9800` | `attachment` 存在 |
+| `flag` | 红 | `Colors.red500` = `#f44336` | `markedImportant` |
+| `checkbox-blank-circle` | 蓝 | `Colors.blue500` = `#2196f3` | `!hasRead` |
+
+**为什么不能照抄**：MaterialCommunityIcons 是 RN 生态的字体图标包，ArkUI 没有对应物。
+候选有两个：`SymbolGlyph`（系统符号库）与 emoji 文本。前者的问题不是"做不到"，而是
+**符号 id 不可移植**——符号集随系统字体版本变化，拿 `attachment` 这样的名字猜 id 会得到
+"编译通过、运行时空格"的失败模式，而且它无法保证"橙/红/蓝"三种语义色（`SymbolGlyph` 的
+着色是单色渲染层的事）。emoji 在**本模拟器（Pura 90 / HarmonyOS 6.1.0(23)）上逐帧可验**，
+且颜色由 `PLAIN_PALETTE` 令牌给出，与参考实现同源。
+
+**新实现做法**：三个标记都用文本渲染，颜色取**同一批令牌**（`PLAIN_PALETTE.orange500` /
+`red500` / `blue500`），顺序与参考实现一致（附件 → 重要 → 未读）。因为 emoji 本身不带
+语义文字，两个图标各挂一条 `accessibilityText`（`ui_attachment_label` /
+`ui_marked_important_label`）——参考实现的图标名对读屏就是名称，这里用 i18n 键补上。
+未读**改回纯圆点**（参考实现就是纯圆点；ticket 03 曾额外加"未读"文字，本 ticket 移除）。
+
+**替代验收标准（本表"已复审"档要求写明的那一条）**：公告卡片右上角在
+`attachment` 存在时出现橙色标记、在 `markedImportant` 时出现红色标记、在
+`hasRead === false` 时出现蓝色圆点；三者可同时出现，顺序为附件 → 重要 → 未读；
+**判据是设备截图上的颜色与位置，而不是"用了名为 attachment 的图标"**。
+
+**取证**：`reference/learnOH-old/src/components/NoticeCard.tsx:45-69`、
+`reference/learnOH-old/src/constants/Colors.ts`；
+`entry/src/main/ets/features/notices/NoticesPage.ets` 的 `statusIcons`；
+ticket 09 的模拟器截图（`.scratch/notices/evidence/`）。
+
+---
+
 ## 待查
 
 （暂无。发现新的怪癖时追加，格式同上：参考实现行为／为什么别急着改／新实现做法／取证。）

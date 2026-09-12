@@ -937,6 +937,14 @@
       "value": "Dec"
     },
     {
+      "name": "ui_attachment_label",
+      "value": "Has attachment"
+    },
+    {
+      "name": "ui_marked_important_label",
+      "value": "Marked important"
+    },
+    {
       "name": "ui_enrollment_fingerprint_not_ready",
       "value": "The browser fingerprint is not ready yet, so signing in now would not register this browser as trusted (the server would report a private/anonymous browser). Wait a few seconds and tap sign in again; if it keeps happening, close this page and sign in again."
     }

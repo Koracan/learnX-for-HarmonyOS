@@ -32,14 +32,14 @@ const REFERENCE_KEY_COUNT: number = 180;
  */
 const LOCAL_ADDITION_COUNT: number = 6;
 /**
- * 本工程新增：原生重写 UI 文案 49 个（ui_ 命名空间）。
+ * 本工程新增：原生重写 UI 文案 51 个（ui_ 命名空间）。
  * ticket 03 加了 4 个（tab/空态/刷新）；ticket 04 加了 20 个（公告详情的日期模式 +
- * 星期词表 + 月份词表）；ticket 07 加了 1 个（登记页的提交前自检提示），见
- * scripts/i18n-ui-strings.mjs。
+ * 星期词表 + 月份词表）；ticket 07 加了 1 个（登记页的提交前自检提示）；
+ * ticket 09 加了 2 个（公告卡片两个状态图标的无障碍文案），见 scripts/i18n-ui-strings.mjs。
  */
-const UI_STRING_COUNT: number = 49;
+const UI_STRING_COUNT: number = 51;
 /** 迁移后的资源键总数（也是 I18N_KEY_COUNT 的期望值）。 */
-const TOTAL_KEY_COUNT: number = 235;
+const TOTAL_KEY_COUNT: number = 237;
 
 const REFERENCE_SAMPLE: string[] = ['loh_back', 'loh_notices', 'loh_assignments', 'loh_files', 'loh_courses'];
 const LOCAL_ADDITIONS: string[] = ['loh_fall', 'loh_spring', 'loh_summer'];

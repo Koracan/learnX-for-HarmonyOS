@@ -66,6 +66,15 @@ export const UI_STRINGS = [
   // 2026-09-12 真实登记被服务端判为"隐私/匿名模式"而拒绝信任：fingerGenPrint/fingerGenPrint3
   // 为空时该浏览器不可能被记为可信，而用户已经为此白花了一条短信。这条文案就是"替你挡下"时
   // 显示给用户的话（页面内横幅 + 应用内提示各用一次）。
+  // --- ticket 09（真实公告 + 快照）新增 ---
+  // 卡片右上角两个状态图标是无文字的 emoji（参考实现用 MaterialCommunityIcons 的
+  // attachment / flag），所以这两条只作为 accessibilityText 存在，保证读屏也能拿到语义。
+  ['ui_attachment_label', '含附件', 'Has attachment'],
+  ['ui_marked_important_label', '重要公告', 'Marked important'],
+  // 数据陈旧程度：与 ui_refreshed_at 拼在一起（"更新于 09:12:33 · 5 分钟前"）。
+  // **不需要新键**：整句相对时间（含"前" / "ago"）由 core/i18n 的 formatRelativeTo 给出，
+  // 它已按 locale 出措辞；再套一层 "{0} ago" 会在中文界面拼出"… ago"或在英文拼出
+  // "ago ago"。取不到措辞时（relative.length===0）整段不显示，界面只留绝对时间。
   ['ui_enrollment_fingerprint_not_ready',
     '浏览器指纹尚未就绪，此刻提交不会把该浏览器记为可信（服务端会提示"隐私或匿名模式"）。请稍等几秒后再次点击登录；若反复出现，请关闭本页重新登录。',
     'The browser fingerprint is not ready yet, so signing in now would not register this browser as trusted (the server would report a private/anonymous browser). Wait a few seconds and tap sign in again; if it keeps happening, close this page and sign in again.']

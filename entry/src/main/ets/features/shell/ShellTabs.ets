@@ -23,7 +23,9 @@ import { i18nService } from '../../core/i18n/I18n';
 import { Logger } from '../../core/log/Logger';
 import { COLOR_MODE_KEY, LOCALE_VERSION_KEY } from '../../entryability/EntryAbility';
 import { NoticesPage } from '../notices/NoticesPage';
-import { FORCE_DARK_FOR_EVIDENCE, FORCE_ENGLISH_FOR_EVIDENCE } from '../notices/repository/NoticeRepositoryProvider';
+import {
+  FORCE_DARK_FOR_EVIDENCE, FORCE_ENGLISH_FOR_EVIDENCE, logEvidenceSwitchState
+} from '../notices/repository/NoticeRepositoryProvider';
 import { PlaceholderTab } from './PlaceholderTab';
 
 const logger: Logger = new Logger('features.shell');
@@ -115,6 +117,7 @@ export struct ShellTabs {
 
   /** 取证开关：只作用于本应用（不碰设备全局深色模式 / 语言）。默认全关。 */
   private applyEvidenceOverrides(): void {
+    logEvidenceSwitchState();
     if (!FORCE_DARK_FOR_EVIDENCE && !FORCE_ENGLISH_FOR_EVIDENCE) {
       return;
     }

@@ -35,6 +35,21 @@ function pad(value: number, width: number): string {
   return s;
 }
 
+/**
+ * 把多行消息压成一行：换行/回车转义成字面量 \n / \r。
+ *
+ * 为什么需要：hilog 的每条记录就是一行，平台侧按行切分；一条含换行的业务消息
+ * （例如探针打印响应体片段、或异常消息里带换行）在 hilog 里会变成多条**不属于本**
+ * tag 的记录，既丢前缀又难 grep。ticket 03/04 都靠"一条日志一行、前缀齐全"来判读。
+ * 只做压行，不做截断/脱敏——那是调用方的责任。
+ */
+export function sanitizeLogMessage(message: string): string {
+  if (message.length === 0) {
+    return message;
+  }
+  return message.split('\r\n').join('\\n').split('\n').join('\\n').split('\r').join('\\r');
+}
+
 /** `YYYY-MM-DD HH:mm:ss.SSS`（本地时区）。 */
 export function formatTimestamp(timestamp: number): string {
   const d: Date = new Date(timestamp);
@@ -45,7 +60,8 @@ export function formatTimestamp(timestamp: number): string {
 
 /** 统一格式：`时间戳 级别 [标签] 消息`。 */
 export function formatRecord(record: LogRecord): string {
-  return formatTimestamp(record.timestamp) + ' ' + logLevelName(record.level) + ' [' + record.tag + '] ' + record.message;
+  return formatTimestamp(record.timestamp) + ' ' + logLevelName(record.level) + ' [' + record.tag + '] '
+    + sanitizeLogMessage(record.message);
 }
 
 /** 多行日志文本，可附一段头部说明。 */
