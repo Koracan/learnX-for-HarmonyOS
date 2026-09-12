@@ -4,7 +4,7 @@
 
 **Blocked by:** 08（保持登录 + 自动重登 + 降级）
 
-**Status:** done (2026-09-12, emulator evidence; device re-verification moved to ticket 18)
+**Status:** verified（模拟器口径，统筹复验 2026-09-12；真机转 ticket 18，桌面网页端人工比对见 Comments）
 
 > **承接的临时技术债（来自 ticket 03）**：`entry/src/main/ets/features/notices/repository/` 下的 `NoticeRepository` 接口与 `MockNoticeRepository` 是**过渡位置**——ticket 03 开工时 `data/` 正被 ticket 05 占用，故接口暂寄在 features 下。本 ticket 落地时必须把接口与真实实现移到 `data/notices/`，并修改 `NoticeRepositoryProvider` 这一处工厂注入点；**界面不得改动**（这正是当初把接口与 Mock 分开放的目的）。迁移后删除 features 下的过渡文件。
 
@@ -156,3 +156,21 @@
   `removeTags` 五条、真实记录 id 一条）。
 - `devecocli build` 全量重建 BUILD SUCCESSFUL；四个脚本 PASS/OK/PASS/PASS。
 - 提交后工作区只剩未跟踪的 `.scratch/notices/`（证据目录，按惯例不入库）。
+
+### 统筹验收（2026-09-12，模拟器口径）→ Status: verified
+
+**结论：8 条验收在模拟器口径下全部达成，且这是本工程第一次用"真实数据"把验收判死。** 下面是我**自己**复核过的（不是转述）：
+
+- **提交与门禁**：`df66e44`（迁移+真实源+快照）/ `46aa84e`（保真项）/ `a988fe6`（交付记录），HEAD `a988fe6`；`test_result.txt` 最后一行 **`Tests run: 256, Failure: 0, Error: 0`**（基线 242，只加）；工作区只剩未跟踪的 `.scratch/notices/`（证据目录）。
+- **产物级（我自己解的包）**：hap `1,717,696 B @14:11:49` / SHA256 `B437A10D…74A23`，解开后在 `ets/modules.abc`（564,472 B）里查：`RealNoticeRepository` / `NoticeSnapshotFileStore` / `CourseListFetcher` / `snapshot discarded` / `data.notices.source` **全部命中**；`RealNoticesProbe` / `DiagLog` / `runNoticesProbe` **全部未命中** ⇒ 探针不在提交态产物里。
+- **真实数据（本 ticket 的核心）**：hilog 里 `data.notices fetched courses=2 items=2 requests=4 failures=0` 在 5 次运行中逐次复现；课程 = `英语听说交流（A）` / `形式语言与自动机`；**截图 `09-list-real-simulator.png` 上就是这两条真实公告**（标题、发布者 赵乙宁 / 张为民、`昨天` / `前天`、红色重要标记 + 蓝色未读圆点、2 行正文预览），头部 `未读 2`。**相对时间是「昨天/前天」而不是 mock 的「5年前」——mock 的指纹消失，这是"真的是真实数据"最直观的一条。**
+- **快照**：`snapshot applied: items=2 fetchedAt=1789192225900`（13:58:25.669）**早于** `notices refresh done: … fetchedAt=1789192706054`（13:58:26.069）⇒ 先用快照、后刷新，且时间戳前移。版本不符：把设备上快照的 `schemaVersion` 改成 9 后 `usable=false discard=version_mismatch:9 items=0` → `will rebuild` → 重建成功（`09-v9-rebuild-simulator.png` 仍是同 2 条）。
+- **`_csrf` 基线**：裸请求 `status=403 bytes=2628 text/html`、带 `?_csrf=` → `200 application/json`；403 正文是站点自己的「服务器内部错误 403」页，**不是**登录页。原始行在 `.scratch/notices/evidence/README.md:25-29` 与 probe3 hilog 里。已登记为 `reference-quirks` 第 17 条。
+
+**我唯一要加限定的地方**：验收第 5 条里的「**无空白与闪跳**」——机制（先快照、后刷新、时间戳前移）**已证**，但"没有任何一帧空白"**没有直接观测**（截图为稳定态，未录屏）。按"抓不到就写未抓到"的规矩，这一半记为**未直接观测**；不影响判 `verified`（机制才是该条判据的实质）。
+
+**未验证项（照单收下，不阻塞）**：公告附件无真实样本（两条 `fjmc` 均 `null`）⇒ 橙图标只有夹具覆盖；"公告是否按学期过滤"需 ticket 12；真机转 ticket 18；**桌面网页端人工比对未做**——对照改用站点自身两个列表接口的原始 `aaData` 逐条比对（方法论上比"人眼看网页"更硬，但**不等价**，已如实标注）。
+
+**技术债交接已确认**：`NoticeRepository` 与 `MockNoticeRepository` 已从 `features/notices/repository/` 迁到 `data/notices/`；迁移提交只改 import 与再导出、**没有为迁移改界面结构**（`NoticesPage` 的改动全部属于保真项）；`features/` 下过渡文件已删；组装点仍是一处，且**取不到 Context 时显式失败、不回落 Mock**——这条很重要：不会再出现"悄悄用 mock 顶替真实数据"而无人察觉的情况。
+
+**一条真缺陷（ticket 05 的待验证项关掉一条）**：站点公告主键 `id` 是 `<ggid><学号>`，不是 `ggid`（`id=…333502023011272` vs `ggid=…33350`）。参考实现的 mock 里两者恰好相同 ⇒ 夹具看不出来。已修并加单测钉住。

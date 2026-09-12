@@ -554,6 +554,21 @@ ticket 09 的模拟器截图（`.scratch/notices/evidence/`）。
 
 ---
 
+## 17. 【站点事实】部分接口的**裸请求一律 403**（站点自己的报错页），带 `?_csrf=` 才 200 —— ticket 09 实测
+
+**观察到的事实**（模拟器 Pura 90 / HarmonyOS 6.1.0(23)，2026-09-12）：
+- `GET /b/kc/zhjw_v_code_xnxq/getCurrentAndNextSemester` **不带参数** → `status=403 bytes=2628 text/html`；带 `?_csrf=<36>` → `status=200 bytes=153 application/json`。
+- `GET /b/kc/v_wlkc_xs_xktjb_coassb/queryxnxq` → **带不带 `_csrf` 都 403**（它还要别的参数）⇒ 不能一概而论成"带 csrf 就行"。
+- 403 的正文是**站点自己的报错页**：`<p class="infoo">服务器内部错误 </p> <p>错误码为：403</p>`——**不是**登录页，正文里**没有** `login_timeout`。
+
+**为什么这条值钱（也为什么别急着把它当"会话失效"）**：`data/auth/LoginParsers.isNoLoginResponse` 的并集判据里**包含 `status === 403`**（照参考实现 `thu-learn-lib` 抄的，属锁定行为）。于是**任何漏带 `_csrf` 的请求都会被判成"会话丢了"** → 触发一次重登 → 重试仍 403 → 按 `SessionGate` 降级为 `NOT_LOGGED_IN` / `UNEXPECTED_STATUS`，最终把用户踢回登录页——**而根因只是我们自己少了一个查询参数**。这与第 15 条是同一类教训：**先把"我们发出去的请求"变成可观察量，再谈服务端行为。**
+
+**新实现做法**：生产代码的 `authedGet` **一律**带 `?_csrf=`（`data/remote/AuthedRequest.ets`）——这是必须项不是可选项；判读失败时先核对"这次请求带没带 `_csrf`"，再看状态码。
+
+**取证**：`.scratch/notices/evidence/README.md` 第 1 节（A1/A2/A3/A4 四行原始输出）、`09-probe3-hilog-simulator.txt` 的 `[probe] …-bare status=403` 系列。
+
+---
+
 ## 待查
 
 （暂无。发现新的怪癖时追加，格式同上：参考实现行为／为什么别急着改／新实现做法／取证。）

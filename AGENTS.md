@@ -12,6 +12,8 @@ learnOH —— HarmonyOS 原生（ArkTS / ArkUI）应用，是原 React Native f
 
  - `devecocli run` 必须作为后台作业运行。 它在应用启动后仍保持运行，直到应用退出才返回——前台调用会一直挂住。
 
+ - **`devecocli run` 可能在 `BUILD SUCCESSFUL` 之后长时间不进安装**（实测一次 6 分钟无输出）。处置：`devecocli run --skip-build` 部署已有 hap，或直接 `hdc install` + `aa start`。**杀掉 run 之后必须显式清掉残留的 hvigor / deveco 子进程**，否则下一次构建会卡在 `Another build is already running`。
+
  - 构建耗时以分钟计，不要用会阻塞的短超时前台调用：把输出重定向到 `.dsh/logs/`，或作为后台作业运行。用管道（`| Select-Object`）转发 devecocli 的 stdout 会丢失 hvigor 的失败信息并让命令迟迟不返回。
 
  - 签名问题参见 `docs\sign.md`。
@@ -57,6 +59,12 @@ learnOH —— HarmonyOS 原生（ArkTS / ArkUI）应用，是原 React Native f
 
  - **未提交的诊断补丁，唯一副本就是那个 patch 文件——还原前先另存。** 实测：`git checkout --` 把当时唯一一份探针代码清掉，事后只能靠 `.dsh/logs/*.patch` 找回。规矩：① 探针代码先落成 `.dsh/logs/<ticket>-probe.patch`（`.dsh/` 已 gitignore，`git checkout` 波及不到）；② 还原前再另存一份 `.keep`；③ **工作区脏的时候不要改 `AGENTS.md`**——那次编辑被卷进补丁，又被 `git checkout` 一起清掉。
  - **在把失败归因给站点或架构之前，先证明我们自己发出去的请求是完备的。** 实测（ticket 08）：冷启动纯 HTTP 重登一直失败于「响应里没有票据」，一度被升级成「要不要改 ADR-0004」的决策；真因是 `CookieJar` 解析不了平台 `response.cookies` 的 Netscape 制表符格式 ⇒ **一个 cookie 都没入库** ⇒ POST 带着空 `JSESSIONID` 发出，服务端按「会话失效」回了一张通用报错页。教训：**在断言「站点给了奇怪的响应」之前，先把我们发了什么变成可观察量**（请求头、cookie 名与长度、表单字段），否则下游所有推断都建立在错误的前提上。
+
+ - **`devecocli log --keyword` 会丢 tag**（实测，ticket 09）：用 `--keyword 'data.notices'` 过滤时 `data.courses` 的行**一条都不在**——差点把「课程表没取到」当成结论。要过滤就**先全量拉再本地筛**（或按 `--from <时间>`），并**先确认工具返回的是全集**。这是「取证工具本身会撒谎」的又一例。
+
+ - **`hilog` 单条有长度上限**（实测 ~2400 字符会被截断）：要把完整响应体 / 大正文当证据，就**落到应用自己的存储再 `hdc file recv`**，不要指望一行 hilog 装得下。
+
+ - **改设备上的二进制 / 带缓存文件前先 `aa force-stop`**：应用会把内存中的旧内容 flush 回去覆盖你的改动（实测 `preferences` 里的快照）；改定长字段要**逐字节等长替换**（`dd … bs=1 seek=<偏移> count=1 conv=notrunc`），用文本读写会把文件头弄坏。
 
 ## 门禁（提交前都要真跑）
 
