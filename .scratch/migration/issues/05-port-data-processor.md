@@ -229,3 +229,27 @@ domain.Utf8 4 / core.textChannels 1。
 
 `core/codec/TextCodec.ets:6-8` 仍写着「Base64 → 字节仍走平台 `util.Base64Helper`（**这部分在本环境工作正常**）」，并称「平台 `decodeWithStream` 在单测环境里返回 undefined」。
 前者与本次设备复验结论**相反**（设备正常、local 不正常），后者是 05 自己已撤回的**推断**。同一类错误我已要求在 `TestHelpers.ets` 修过，这里漏了——**同源错误要一次修干净**，否则下一个读这份文件的人会得出相反结论。
+
+### 边界说明（2026-09-12，由 ticket 12 带入）—— 你已验收的两个资产被改了，但你的证据仍然成立
+
+ticket 12 在**真实数据**上发现：站点把作业的 `jzsj`（截止时间）下发成 **epoch 毫秒数字**（2025-2026 春季学期实测 57/57 条，
+例 `1780243140000` = 2026-05-31 23:59 本地时间），而 `parseTimestamp` 直接对入参调 `raw.trim()` ⇒
+`undefined is not callable` ⇒ 整页课程/作业失败。参考实现在**渲染层**用 `dayjs(deadline)` 处理（dayjs 对数字按毫秒解释，
+`AssignmentCard.tsx:103-108`），所以这是**我们的移植在真实数据上缺了一格**，不是站点异常。
+
+**变了什么**（提交 `2a776d2`）：
+
+- `domain/parse/Text.ets`：`parseTimestamp` / `compareTimeDesc` / `compareByTimeThenIdDesc` 的入参放宽为 `string | number | undefined`；
+  **有限数字按 epoch 毫秒返回**，其它非字符串 = 不可解析（等价 dayjs 的 Invalid Date）。
+- `domain/parse/AssignmentParser.ets`：新增 `normalizeDeadline`，`deadline` 由 `text(raw.jzsj)` 改成 `normalizeDeadline(text(raw.jzsj))`
+  （非字符串 → 本地 `YYYY-MM-DD HH:mm`；**字符串一律原样保留**）。
+- 诊断侧：`data/remote/AssignmentsFetcher` 的汇总行多一个 `nonStringDeadlines=<n>`，并只对第一条打一行 warn。
+
+**你的证据还成立到哪一步**：**全部成立**。字符串入参的行为一字未改（`AssignmentParser.test.ets` 里"字符串截止时间一律原样保留"
+那条断言就是为它钉的）；本 ticket 验收第 1 条的三域抓取与 D4 的 Base64 设备复验都**不经过**数字分支。
+**可观察量转移到哪里**：`data.assignments` 的 `nonStringDeadlines` 字段（真实数据上应等于条目总数）；
+界面上截止时间的正确显示见 ticket 12 的 E3 截图与 `Assignment.deadline` 的既定形状。
+**本 ticket 的 `verified-partial` 不变**（两项仍由账号门控）。
+
+**给 ticket 10 读者的一句话**：作业卡片要显示截止时间时**直接读 `Assignment.deadline`**（已是 `YYYY-MM-DD HH:mm` 字符串），
+不要再自己 `Number(...)` 或假设它是字符串。

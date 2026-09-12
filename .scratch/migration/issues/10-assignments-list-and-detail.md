@@ -2,7 +2,7 @@
 
 **What to build:** 作业 tab 显示真实作业（未到期在前、已过期在后），详情展示描述、附件、提交状态、成绩与优秀作业。
 
-**Blocked by:** 09（公告切真实数据 + 快照）
+**Blocked by:** 09（已完成）、12（已完成）——两者均已 `verified`
 
 **Status:** ready-for-agent
 
@@ -23,3 +23,23 @@
   3. **真实数据**要拿到作业，必须切到 **2025-2026 学年春季学期**（上学期）：那需要学期切换能力（**ticket 12**），或在取证期用一个**开关守卫的学期覆盖**（开关**实际生效值**必须打进 hilog，取证后复原）。
 - 切到上学期后的预期：作业**全部已截止** ⇒ 这条路径正好覆盖"已过期在后"的排序要求与"已过期"状态标记；**不要**期待未到期形态。
 - 与 ticket 05 的关系：那批真实解析器至今**未被真实数据行使过**（此前业务数据层是 mock），所以拿到真实作业时**逐字段与网页端对照**。
+
+### 统筹补充（2026-09-12，ticket 12 验收后）—— 取数前提、截止时间、以及"别把空当成同一个空"
+
+1. **学期覆盖只作用于「课程这条线」，不会自动让作业 tab 切过去。** 我在模拟器上实测：`aa start … --ps lohSemester 2025-2026-2`
+   且**不点课程 tab** 时，日志只有 `semester override: … effective="2025-2026-2"`，数据侧仍是
+   `data.courses resolved semester=2026-2027-1 requested= courses=2`；点了课程 tab 才出现
+   `effective semester=2025-2026-2 source=override` → `courses=7` → `assignments=57`。
+   源码上：覆盖只在 `data/courses/CourseFetchSource.fetchWithSession()`（`CourseFetchSource.ets:90`）里被读，
+   公告/作业路径的 `fetchWithSession(session)` 连学期参数都没有（`data/notices/RealNoticeRepository.ets:44`）。
+   ⇒ **本 ticket 必须把"生效学期"接进自己的取数路径**：用 `effectiveSemesterOverride()`（优先级 override > 界面选择 > 站点当前学期），
+   或直接复用课程线已抓到的 `CourseSnapshot.assignments`（覆盖态下就是春季那 57 条）。
+   **否则在 `--ps lohSemester` 下作业 tab 仍取「站点当前学期」= 空**，而"空"同时也是账号事实 ⇒ 两个原因会在日志上长得一样，
+   你会把"前提没接上"误判成"账号确实没作业"。取证时**必须**在 hilog 里看到 `effective semester=… source=override` 那一行。
+2. **截止时间直接读 `Assignment.deadline`**：站点把 `jzsj` 下发成 epoch 毫秒**数字**（春季 57/57 条），ticket 12 已按 dayjs 对齐修好
+   （数字 → 本地 `YYYY-MM-DD HH:mm`，字符串原样保留）。别再自己 `Number(...)`/`new Date(raw.jzsj)`。
+   界面上已经能正常显示（ticket 12 的 E3：`2026-05-31 23:59` 等 3 条）。
+3. **真实数据只能覆盖「已提交 / 已过期」两种形态**：春季 57 条作业**全部已截止**（账号事实），"未到期"形态只能靠 mock。
+   **禁止**向任何已截止作业提交（见 ticket 13；那是真实且不可逆的写入）。
+4. **取样成本**：一次「force-stop → `--ps` 启动 → 点课程/作业 tab → 全量 hilog」约 1–3 分钟设备窗口；
+   春季那次抓取是 `requests=135 / elapsedMs=4548`（7 门课），比秋季（4 次请求）贵得多，别在一次会话里反复重抓。

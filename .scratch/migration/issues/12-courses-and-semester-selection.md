@@ -4,7 +4,7 @@
 
 **Blocked by:** 09（公告切真实数据 + 快照）
 
-**Status:** ready-for-agent
+**Status:** verified（模拟器口径；真机与平板横向转 ticket 16/18）
 
 - [x] 列表显示课程名、教师与三类计数
 - [x] 详情三个标签页各自列出该课程的内容，且能从任一标签页进入对应详情（公告 → ticket 04 的真详情；作业/文件 → 各自详情路由的**占位页**，真身在 ticket 10/11）
@@ -159,3 +159,61 @@ ticket 09 的 A3/A4 探针记着"带不带 `_csrf` 都 403"。本轮用**同一�
 **取样代价**：一轮"单测 → 构建 → 装机 → 点按/截图/布局 → 拉 hilog" ≈ 3–5 分钟设备窗口；
 本轮 9 次装机（2 次探针构建 + 1 次全量重建）、约 30 次 ui 操作（单次 15–30s），设备窗口合计约 40 分钟，
 另有 1 次 appfreeze 使该轮作废。完整清单与可重跑命令见 `.scratch/courses/evidence/README.md`。
+### 统筹验收（2026-09-12，**模拟器** Pura 90 / HarmonyOS 6.1.0(23)）→ Status: verified
+
+**结论：5 条验收项全部通过（模拟器口径）。** 交付里的主要论断我都自己重跑或自己读了原始 artifact，未采信转述。
+另有**两条边界必须写进下游 ticket**（见下），它们不影响本 ticket 的验收结论。
+
+#### 1. 我独立重跑的（在 `2a776d2` 上；工作区只有未跟踪的 `.scratch/*/evidence/`）
+
+| 检查 | 我跑的命令 | 我读到的结果 |
+| --- | --- | --- |
+| 全量单测 | 删 `entry/.test` 后 `hvigorw --mode module -p module=entry@default -p product=default test --no-incremental` | `entry/.test/…/test_result.txt` 末行 `Tests run: 279, Failure: 0, Error: 0, Pass: 279, Ignore: 0`（我自己的运行，非转述；日志 `.dsh/logs/t12-coord-test.log`，BUILD SUCCESSFUL in 38 s） |
+| 四脚本 | `check-domain-purity` / `check-import-graph` / `check-i18n-keys` / `check-generated-fresh` | `PASS` / `PASS`（仅 WARN 两个入口文件为孤儿：`pages/Index.ets`、`entrybackupability/EntryBackupAbility.ets`，属正常）/ `RESULT: OK`（245 键，en_US 唯一 untranslated = `ui_app_name`）/ `PASS 生成物与其生成器输入一致`；跑完 `git status --porcelain` 仍只有未跟踪证据目录 ⇒ **生成物无漂移** |
+| 产物级符号 | 我自己把 `entry-default-signed.hap`（2,051,450 B，15:05:16）当 zip 解开 | `ets/modules.abc` = 791,840 B；`IndexOf` 命中 `RealCourseRepository / SemesterOverride / CourseListStore / CoursesPage / SemesterSelectionPage / HttpCourseFetchSource / buildCourseRecords / normalizeDeadline / lohSemester / ui_courses_override_badge` 全为 True，`PROBE asg` 为 False |
+| **学期覆盖（我自己重跑）** | `aa force-stop` → `aa start -a EntryAbility -b com.koracan.learnOH --ps lohSemester 2025-2026-2` → `devecocli ui click --device 127.0.0.1:5555 924 2682`（课程 tab）→ `hilog -r` 后全量拉、本地筛 | `semester override: … effective="2025-2026-2" source=runtime-want-param` → `data.courses effective semester=2025-2026-2 source=override` → `override active: siteCurrent=2026-2027-1 effective=2025-2026-2` → `resolved semester=2025-2026-2 requested=2025-2026-2 courses=7 bytes=6288` → `assignments fetched courses=7 items=57 elapsedMs=4548 requests=135 failures=0 nonStringDeadlines=57` → `snapshot semester=2025-2026-2 source=override courses=7 notices=17 assignments=57 files=95 semesters=9 semestersAvailable=true`（原始输出存 `.scratch/courses/evidence/coord/`） |
+| ticket 09 行为未回归 | 同上那次冷启动（未点课程 tab 的第一次） | `data.notices fetched courses=2 items=2 elapsedMs=168 requests=4 failures=0` —— 与 ticket 09 验收时的同一行一致 ⇒ 公告线未被本轮改动破坏 |
+| 界面 | A1 / A3 / B0 / B1 / C1 / D0 / E3 / E14 / G1 逐张看过 | 与第 3 节逐条对得上（详见下） |
+
+**截图逐张核对**：A1 = 秋季 2 门（张为民/英语听说交流（A）🔔1📅0📁4、高跃/形式语言与自动机 🔔1📅0📁0，右上计数 2）；
+A3 = 学期切换页 9 项、最新在前、秋季打勾、**第 2 项正是 2025-2026 学年春季学期**；B1 = 春季 7 门 +「取证覆盖生效」标记 + 计数 7；
+C1 = **界面**切到 2023-2024 夏季 → 1 门（穆太江/C++程序设计实践，无覆盖标记，确系界面路径）；D0 = 2010-2011 秋季居中「暂无课程」+ 计数 0；
+E3 = 课程详情「作业」页 3 条且**截止时间正常显示**（2026-05-31 23:59 等，全部 ✓ 已提交）⇒ 第 4 节那条修复在界面上可见；
+E14 = 从课程 tab 的「通知」进入的是 ticket 04 的**真详情**（陆玫 / 2026年6月9日 / 正文）；G1 = 覆盖态下点夏季被压住，仍 7 门。
+`domain/courses/CourseCounts.ets` 与参考 `filteredData.ts:24-49` 我逐条件对过：未读公告 / **未提交且未截止** / `isNew`，一致。
+
+#### 2. 边界一（**必须写进 ticket 10**）：学期覆盖只到「课程这条线」，不是全局开关
+
+我在冷启动时**不点课程 tab**，日志里覆盖自证那行照样出现：
+
+    entry.ability: semester override: want parameter "lohSemester"="2025-2026-2" accepted=true;
+      semester override: constant="" runtime="2025-2026-2" effective="2025-2026-2" source=runtime-want-param
+    data.courses: data.courses resolved semester=2026-2027-1 requested= lang=zh_CN courses=2 bytes=1837   ← 仍是站点当前学期
+
+源码上能对上：覆盖只在 `data/courses/CourseFetchSource.fetchWithSession()` 里被读（`CourseFetchSource.ets:90`），
+而公告路径的 `NoticeFetchSource.fetchWithSession(session)`（`data/notices/RealNoticeRepository.ets:44`）**连学期参数都没有**，
+它经 `data/notices/CourseListFetcher` 走 `SemesterFetcher.resolve()` = 站点当前学期。
+
+⇒ **这不是本 ticket 的缺陷**（本 ticket 的交付物是课程 tab；覆盖也确实是本轮为作业线新加的能力），
+但它是一个**会被下游误读的坑**：作业 tab 若不把生效学期接进自己的取数路径，`--ps lohSemester` 下它依旧取「站点当前学期」= **空**，
+而空列表恰好又是账号事实 ⇒ 两种原因会**在日志上长得一样**。已把处置写进 ticket 10 的 Comments 第 2 节。
+
+#### 3. 边界二（证据标签）：`B0-notices-tab-spring-final.png` **名不符实**
+
+该图拍的是**秋季**公告：未读 2、形式语言与自动机 / 英语听说交流（A）、「更新于 15:09:40」、状态栏 03:10——
+**早于**本轮 B 组（B1 状态栏 03:36、更新于 15:36:13）的那次切换，而且它是公告 tab，本来就不受覆盖影响（见边界一）。
+⇒ 它**不能**当「切到春季」的证据，只能当「**覆盖不影响公告 tab**」的界面侧佐证（这一点它很有用）。文件名保留但按此读；
+已在 `.scratch/courses/evidence/README.md` 第 3 节就地更正，并把这条教训写进 `AGENTS.md`「取证要点」。
+
+#### 4. 未验证 / 转出（与交付第 6 节一致，我逐条认账）
+
+平板横向 → ticket 16；真机 API 24 → ticket 18；公告/文件**附件真实样本**仍缺；课程「上课时间地点」未取（源码已写明理由）；
+一次 appfreeze 未复现——**我今日两次冷启动（15:43、15:44，含覆盖态）均正常，同样未能复现**，维持「观察到但未复现」。
+两条可读性 nit（不阻塞）：`AssignmentsFetcher.ets` 与 `AssignmentParser.ets` 末尾丢了换行（No newline at end of file）；
+`normalizeDeadline(value: string)` 靠 `text()` 的「类型谎」（运行时可能是数字）才能进到数字分支——单测（`jzsj` 由 `JSON.parse` 造出的数字）钉住了它，不会静默退化。
+
+#### 5. 我这一轮的取样代价
+
+1 次全量单测（38 s 构建 + 测试）、2 次冷启动 + 1 次 ui 点击 + 2 次全量 hilog（约 3 分钟设备窗口）、1 次 hap 解包。
+**设备锁与构建锁均已释放，无后台作业在跑。**
+
