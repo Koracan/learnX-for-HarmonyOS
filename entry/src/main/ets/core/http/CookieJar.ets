@@ -251,6 +251,189 @@ export function parseSetCookie(one: string, requestUrl: string): JarCookie | und
   return cookie;
 }
 
+/* ------------------------------------------------------------------ *
+ * 平台 `response.cookies` 的**第二种形态**（ticket 08 实测，见 docs/reference-quirks.md）： 
+ * Netscape cookie-file 行——**制表符分隔的 7 个字段**，不是 `name=value; attrs`。
+ *
+ * 为什么必须支持：`@ohos.net.http` 的 `HttpResponse.cookies` 文档只写
+ * "Cookies returned by the server."，不写格式；实测（模拟器 Pura 90）给出的是
+ *
+ *   #HttpOnly_id.tsinghua.edu.cn<TAB>FALSE<TAB>/<TAB>FALSE<TAB>0<TAB>JSESSIONID<TAB>FB9C…
+ *
+ * 而只认 `name=value` 的解析器在这里 `indexOf('=') <= 0` **直接落空** ⇒ 一个 cookie 都不入库
+ * ⇒ 后续请求带着空 JSESSIONID 发出。这是"我们发出去的请求不完备"的真因，不是站点行为异常。
+ *
+ * 字段顺序：domain / includeSubdomains / path / secure / expiry / name / value。
+ *   - `#HttpOnly_` 前缀表示 httpOnly，**域是去掉该前缀之后的部分**；
+ *     以 `#` 开头的行通常是注释，但这一种**不是注释**，不能跳过；
+ *   - `expiry` 为 0 ⇒ 会话 cookie（无过期时间）；
+ *   - 域可能带前导点；
+ *   - 值里允许出现 `=`（只切第 6 个制表符）。
+ * ------------------------------------------------------------------ */
+
+/** 制表符分隔的字段数（Netscape 形态有 7 个字段 = 6 个制表符）。 */
+function tabFieldCount(line: string): number {
+  let count: number = 1;
+  for (let i = 0; i < line.length; i++) {
+    if (line.charAt(i) === '\t') {
+      count++;
+    }
+  }
+  return count;
+}
+
+/**
+ * 这一行是不是 Netscape cookie-file 行。
+ *
+ * 判据刻意宽：`#HttpOnly_` 前缀是强信号；否则看制表符字段数 ≥ 7。
+ * 宁可把可疑行当 Netscape 解析（解析不出来也没什么可丢的），也不要把标准
+ * `Set-Cookie` 误判成 Netscape（那才会丢 cookie）。
+ */
+export function looksLikeNetscapeCookieLine(line: string): boolean {
+  const text: string = line.trim();
+  if (text.length === 0) {
+    return false;
+  }
+  if (text.startsWith('#HttpOnly_')) {
+    return true;
+  }
+  return tabFieldCount(text) >= 7;
+}
+
+/** 解析一条 Netscape cookie-file 行；不是该形态或字段不合法时返回 undefined。 */
+export function parseNetscapeCookieLine(line: string, requestUrl: string): JarCookie | undefined {
+  let text: string = line;
+  if (text.endsWith('\r')) {
+    text = text.substring(0, text.length - 1);
+  }
+  if (text.trim().length === 0) {
+    return undefined;
+  }
+  let httpOnly: boolean = false;
+  if (text.startsWith('#HttpOnly_')) {
+    httpOnly = true;
+    text = text.substring('#HttpOnly_'.length);
+  } else if (text.startsWith('#')) {
+    // 真正的注释行（平台不会给，防御性跳过）
+    return undefined;
+  }
+  const fields: string[] = text.split('\t');
+  if (fields.length < 7) {
+    return undefined;
+  }
+  const domainRaw: string = fields[0].trim();
+  const path: string = fields[2].trim();
+  const secureText: string = fields[3].trim().toUpperCase();
+  const expiryText: string = fields[4].trim();
+  const name: string = fields[5].trim();
+  // 值里允许含 '='，也可能含制表符（切出来多于 7 段时全部并回值）
+  const value: string = fields.length > 7 ? fields.slice(6).join('\t') : fields[6];
+  if (name.length === 0) {
+    return undefined;
+  }
+  const domain: string = domainRaw.startsWith('.') ? domainRaw.substring(1).toLowerCase() : domainRaw.toLowerCase();
+  if (domain.length === 0) {
+    return undefined;
+  }
+  let hasExpires: boolean = false;
+  let expiresAt: number = 0;
+  const seconds: number = Number.parseInt(expiryText, 10);
+  if (!Number.isNaN(seconds) && seconds > 0) {
+    hasExpires = true;
+    expiresAt = seconds * 1000;
+  }
+  return {
+    name: name,
+    value: value,
+    domain: domain,
+    path: path.length > 0 ? path : defaultPathFor(pathOf(requestUrl)),
+    // host-only cookie（includeSubdomains 为 FALSE）在域不覆盖请求 host 时不可用
+    secure: secureText === 'TRUE',
+    httpOnly: httpOnly,
+    hasExpires: hasExpires,
+    expiresAt: expiresAt
+  };
+}
+
+/**
+ * 一次 Set-Cookie 串的来源（**自证用**：到底走的是哪条解析入口）。
+ *
+ * - `netscape` —— 平台 `HttpResponse.cookies` 的 Netscape 制表符行；
+ * - `standard` —— 标准的 `name=value; attrs` 形态；
+ * - `mixed`    —— 同一串里两种都出现过（实测未出现，保留以防平台混发）。
+ */
+export type SetCookieSource = 'standard' | 'netscape' | 'mixed' | 'empty';
+
+/** 一次吸收的结果（自证日志用：来源 / 吸收数 / 跳过数）。 */
+export interface SetCookieAbsorbResult {
+  stored: number;
+  source: SetCookieSource;
+  skipped: number;
+}
+
+/** 解析结果 + 来源标注。 */
+export interface ParsedSetCookieResponse {
+  cookies: JarCookie[];
+  source: SetCookieSource;
+  /** 被跳过的行数（空行/注释/解析不出），用于自证"没有静默丢东西"。 */
+  skipped: number;
+}
+
+/**
+ * 把一次响应的 `response.cookies` / `response.header['set-cookie']` 解析成 cookie，
+ * **逐行**判定形态：一行一条，Netscape 行与标准行都支持。
+ */
+export function parseSetCookieResponse(raw: string, requestUrl: string): ParsedSetCookieResponse {
+  const cookies: JarCookie[] = [];
+  let netscapeLines: number = 0;
+  let standardLines: number = 0;
+  let skipped: number = 0;
+  if (raw === undefined || raw === null || raw.length === 0) {
+    return { cookies: cookies, source: 'empty', skipped: 0 };
+  }
+  const lines: string[] = raw.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const line: string = lines[i];
+    if (line.trim().length === 0) {
+      continue;
+    }
+    if (looksLikeNetscapeCookieLine(line)) {
+      const parsed: JarCookie | undefined = parseNetscapeCookieLine(line, requestUrl);
+      if (parsed === undefined) {
+        skipped++;
+      } else {
+        cookies.push(parsed);
+        netscapeLines++;
+      }
+      continue;
+    }
+    // 标准形态：一条物理行里可能用逗号拼了多个 cookie（Expires 含逗号，靠启发式切）
+    const parts: string[] = splitSetCookieHeader(line);
+    let storedHere: number = 0;
+    for (let p = 0; p < parts.length; p++) {
+      const parsed: JarCookie | undefined = parseSetCookie(parts[p], requestUrl);
+      if (parsed === undefined) {
+        continue;
+      }
+      cookies.push(parsed);
+      standardLines++;
+      storedHere++;
+    }
+    if (storedHere === 0) {
+      skipped++;
+    }
+  }
+  let source: SetCookieSource = 'empty';
+  if (netscapeLines > 0 && standardLines > 0) {
+    source = 'mixed';
+  } else if (netscapeLines > 0) {
+    source = 'netscape';
+  } else if (standardLines > 0) {
+    source = 'standard';
+  }
+  return { cookies: cookies, source: source, skipped: skipped };
+}
+
 /**
  * 内存 cookie jar。
  *
@@ -321,19 +504,26 @@ export class CookieJar {
     return pairs.length;
   }
 
-  /** 由一次响应的 Set-Cookie 串写入（可含多个 cookie）。 */
+  /**
+   * 由一次响应的 Set-Cookie 串写入（可含多个 cookie）。
+   *
+   * ticket 08：**逐行**判定形态——平台 `HttpResponse.cookies` 给的是 Netscape 制表符行，
+   * 而 `response.header['set-cookie']` 给的是标准形态；两种都要能吸收。
+   * 想连来源一起看时用 `setFromResponseDetailed`（调用方据此打自证日志）。
+   */
   setFromResponse(setCookie: string, requestUrl: string): number {
-    const parts: string[] = splitSetCookieHeader(setCookie);
+    return this.setFromResponseDetailed(setCookie, requestUrl).stored;
+  }
+
+  /** 同 `setFromResponse`，但把"哪条来源、吸收到几个、跳过几行"一并带回（自证用）。 */
+  setFromResponseDetailed(setCookie: string, requestUrl: string): SetCookieAbsorbResult {
+    const parsed: ParsedSetCookieResponse = parseSetCookieResponse(setCookie, requestUrl);
     let stored: number = 0;
-    for (let i = 0; i < parts.length; i++) {
-      const parsed: JarCookie | undefined = parseSetCookie(parts[i], requestUrl);
-      if (parsed === undefined) {
-        continue;
-      }
-      this.store(parsed);
+    for (let i = 0; i < parsed.cookies.length; i++) {
+      this.store(parsed.cookies[i]);
       stored++;
     }
-    return stored;
+    return { stored: stored, source: parsed.source, skipped: parsed.skipped };
   }
 
   /** 组装某个 URL 的 Cookie 头；空值 cookie 不发。 */
@@ -384,6 +574,44 @@ export class CookieJar {
       + ' domains=[' + domains.join(',') + ']'
       + ' names=[' + names.join(',') + ']'
       + ' valueChars=' + totalLength.toString();
+  }
+
+  /**
+   * 本次**实际会发出**的 Cookie 头摘要（自证用）：条数 + 每条的 `名字(值长度)`。
+   *
+   * 为什么需要：'我们发出去的请求完不完整' 必须是可观察量——空 JSESSIONID 曾经静默地
+   * 发了半个月，日志里只留下一个 `valueChars=0`（见 ticket 08）。
+   * **绝不落值**：只有名字与长度。
+   */
+  cookieSummaryFor(url: string): string {
+    const host: string = hostOf(url);
+    const path: string = pathOf(url);
+    const secure: boolean = url.startsWith('https://');
+    const now: number = Date.now();
+    const parts: string[] = [];
+    for (let i = 0; i < this.cookies.length; i++) {
+      const cookie: JarCookie = this.cookies[i];
+      if (cookie.value.length === 0) {
+        continue;
+      }
+      if (cookie.hasExpires && cookie.expiresAt <= now) {
+        continue;
+      }
+      if (!domainMatches(cookie.domain, host)) {
+        continue;
+      }
+      if (!pathMatches(cookie.path, path)) {
+        continue;
+      }
+      if (cookie.secure && !secure) {
+        continue;
+      }
+      parts.push(cookie.name + '(' + cookie.value.length.toString() + ')');
+    }
+    if (parts.length === 0) {
+      return 'sent=0 names=[]';
+    }
+    return 'sent=' + parts.length.toString() + ' names=[' + parts.join(',') + ']';
   }
 
   /** 仅测试/诊断：克隆出一份快照（不含值的使用请走 describe）。 */

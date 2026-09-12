@@ -94,3 +94,23 @@ export const SET_COOKIE_WITH_EXPIRES: string =
   'CASTGC=TGT-1; Path=/; Expires=Wed, 21 Oct 2026 07:28:00 GMT; Secure; HttpOnly';
 
 export const SET_COOKIE_EMPTY_JSESSIONID: string = 'JSESSIONID=; Path=/; HttpOnly';
+
+/* ------------------------------------------------------------------
+ * [设备] 平台 `HttpResponse.cookies` 的**实测形态**（ticket 08，模拟器 Pura 90 / 127.0.0.1:5555）：
+ * 制表符分隔的 7 字段 Netscape cookie-file 行，不是 `name=value; attrs`。
+ *
+ * 逐字来源：`.scratch/enrollment/evidence/experiment-w12/E5-page-cookie-format.txt`
+ * （`POST /do/off/ui/auth/login/check` 的响应；值只留前缀，其余用 `…` 占位以保持长度可比）。
+ * ------------------------------------------------------------------ */
+export const NETSCAPE_COOKIE_LINE: string =
+  '#HttpOnly_id.tsinghua.edu.cn\tFALSE\t/\tFALSE\t0\tJSESSIONID\tFB9C7214ABA6E5BDE3BCD45DA90494CC.authweb1';
+
+/** [反推] 两行 Netscape 形态（多 cookie；第二条带前导点域、secure=TRUE、有 expiry）。 */
+export const NETSCAPE_COOKIE_TWO_LINES: string =
+  '#HttpOnly_id.tsinghua.edu.cn\tFALSE\t/\tFALSE\t0\tJSESSIONID\tAAA111\n'
+  + '.tsinghua.edu.cn\tTRUE\t/\tTRUE\t1893456000\tCASTGC\tTGT-9';
+
+/** [反推] 值里含 '='、且域不带前导点的 Netscape 行。 */
+export const NETSCAPE_COOKIE_VALUE_WITH_EQUALS: string =
+  'id.tsinghua.edu.cn\tFALSE\t/do/off\tFALSE\t0\tTOKEN\tYWJjPT0=';
+

@@ -9,11 +9,13 @@
 
 import { describe, it, expect } from '@ohos/hypium';
 import {
-  CookieJar, JarCookie, splitSetCookieHeader, parseSetCookie, hostOf, pathOf, defaultPathFor,
-  domainMatches, pathMatches
+  CookieJar, JarCookie, ParsedSetCookieResponse, splitSetCookieHeader, parseSetCookie,
+  parseNetscapeCookieLine, looksLikeNetscapeCookieLine, parseSetCookieResponse,
+  hostOf, pathOf, defaultPathFor, domainMatches, pathMatches
 } from '../main/ets/core/http/CookieJar';
 import {
-  SET_COOKIE_TWO_COOKIES, SET_COOKIE_WITH_EXPIRES, SET_COOKIE_EMPTY_JSESSIONID
+  SET_COOKIE_TWO_COOKIES, SET_COOKIE_WITH_EXPIRES, SET_COOKIE_EMPTY_JSESSIONID,
+  NETSCAPE_COOKIE_LINE, NETSCAPE_COOKIE_TWO_LINES, NETSCAPE_COOKIE_VALUE_WITH_EQUALS
 } from './fixtures/AuthFixtures';
 
 const ID_URL: string = 'https://id.tsinghua.edu.cn/do/off/ui/auth/login/check';
@@ -113,6 +115,113 @@ export default function cookieJarTest() {
       expect(jar.size()).assertEqual(0);
       expect(jar.cookieHeaderFor(ID_URL)).assertEqual('');
       expect(jar.cookieHeaderFor(LEARN_LIST_URL)).assertEqual('');
+    });
+
+
+    /* ------------------------------------------------------------------
+     * ticket 08：平台 `HttpResponse.cookies` 的 Netscape 制表符形态。
+     * 夹具是设备上逐字观测到的那一行（见 AuthFixtures 与 experiment-w12/E5）。
+     * ------------------------------------------------------------------ */
+
+    it('parsesPlatformNetscapeCookieLineVerbatim', 0, () => {
+      // 逐字观测行：`#HttpOnly_` 前缀 ⇒ httpOnly=true 且域要剥掉前缀
+      expect(looksLikeNetscapeCookieLine(NETSCAPE_COOKIE_LINE)).assertTrue();
+      const cookie: JarCookie | undefined = parseNetscapeCookieLine(NETSCAPE_COOKIE_LINE, ID_URL);
+      expect(cookie !== undefined).assertTrue();
+      expect(cookie?.name).assertEqual('JSESSIONID');
+      expect(cookie?.value).assertEqual('FB9C7214ABA6E5BDE3BCD45DA90494CC.authweb1');
+      expect(cookie?.domain).assertEqual('id.tsinghua.edu.cn');
+      expect(cookie?.path).assertEqual('/');
+      expect(cookie?.httpOnly).assertTrue();
+      expect(cookie?.secure).assertFalse();
+      // expiry=0 ⇒ 会话 cookie
+      expect(cookie?.hasExpires).assertFalse();
+      expect(cookie?.expiresAt).assertEqual(0);
+    });
+
+    it('absorbsPlatformNetscapeLineIntoCookieHeader', 0, () => {
+      // 这一条是本轮的真因验证：修复前 `setFromResponse` 吸收 0 条
+      const jar: CookieJar = new CookieJar();
+      const absorbed = jar.setFromResponseDetailed(NETSCAPE_COOKIE_LINE, ID_URL);
+      expect(absorbed.stored).assertEqual(1);
+      expect(absorbed.source).assertEqual('netscape');
+      expect(jar.size()).assertEqual(1);
+      expect(jar.cookieHeaderFor(ID_URL)).assertEqual('JSESSIONID=FB9C7214ABA6E5BDE3BCD45DA90494CC.authweb1');
+      // 自证串只出现名字与长度
+      expect(jar.cookieSummaryFor(ID_URL)).assertEqual('sent=1 names=[JSESSIONID(41)]');
+    });
+
+    it('parsesNetscapeMultipleLinesAndAttributes', 0, () => {
+      const parsed: ParsedSetCookieResponse = parseSetCookieResponse(NETSCAPE_COOKIE_TWO_LINES, ID_URL);
+      expect(parsed.source).assertEqual('netscape');
+      expect(parsed.cookies.length).assertEqual(2);
+      expect(parsed.cookies[0].name).assertEqual('JSESSIONID');
+      expect(parsed.cookies[1].name).assertEqual('CASTGC');
+      // 前导点域要去掉点
+      expect(parsed.cookies[1].domain).assertEqual('tsinghua.edu.cn');
+      expect(parsed.cookies[1].secure).assertTrue();
+      expect(parsed.cookies[1].hasExpires).assertTrue();
+      expect(parsed.cookies[1].expiresAt).assertEqual(1893456000 * 1000);
+      // 子域覆盖：域是 .tsinghua.edu.cn ⇒ learn 也能带
+      const jar: CookieJar = new CookieJar();
+      jar.setFromResponse(NETSCAPE_COOKIE_TWO_LINES, ID_URL);
+      expect(jar.cookieHeaderFor('https://learn.tsinghua.edu.cn/f/x').includes('CASTGC')).assertTrue();
+      expect(jar.cookieHeaderFor('https://learn.tsinghua.edu.cn/f/x').includes('JSESSIONID')).assertFalse();
+    });
+
+    it('parsesNetscapeValueContainingEqualsAndCustomPath', 0, () => {
+      const cookie: JarCookie | undefined =
+        parseNetscapeCookieLine(NETSCAPE_COOKIE_VALUE_WITH_EQUALS, ID_URL);
+      expect(cookie !== undefined).assertTrue();
+      expect(cookie?.name).assertEqual('TOKEN');
+      expect(cookie?.value).assertEqual('YWJjPT0=');
+      expect(cookie?.path).assertEqual('/do/off');
+      expect(cookie?.httpOnly).assertFalse();
+      // 路径不覆盖时不发
+      const jar: CookieJar = new CookieJar();
+      jar.setFromResponse(NETSCAPE_COOKIE_VALUE_WITH_EQUALS, ID_URL);
+      expect(jar.cookieHeaderFor(ID_URL).includes('TOKEN')).assertTrue();
+      expect(jar.cookieHeaderFor('https://id.tsinghua.edu.cn/other').includes('TOKEN')).assertFalse();
+    });
+
+    it('keepsStandardSetCookieParsingAlongsideNetscape', 0, () => {
+      // 两条入口都要能用：标准形态仍然走 splitSetCookieHeader + parseSetCookie
+      const standard: ParsedSetCookieResponse = parseSetCookieResponse(SET_COOKIE_TWO_COOKIES, ID_URL);
+      expect(standard.source).assertEqual('standard');
+      expect(standard.cookies.length).assertEqual(2);
+      expect(standard.cookies[0].name).assertEqual('JSESSIONID');
+      // 混发（实测未出现，防御）：两种形态各算各的
+      const mixed: ParsedSetCookieResponse =
+        parseSetCookieResponse(NETSCAPE_COOKIE_LINE + '\n' + 'SERVERID=node1; Path=/', ID_URL);
+      expect(mixed.source).assertEqual('mixed');
+      expect(mixed.cookies.length).assertEqual(2);
+      // 空串
+      expect(parseSetCookieResponse('', ID_URL).source).assertEqual('empty');
+    });
+
+    it('presetEmptyJsessionIdDoesNotOverrideAbsorbedValue', 0, () => {
+      // resetIdDomainSession 会预置一条空 JSESSIONID；真实值吸收进来必须把它顶掉，
+      // 而且此后再 reset 之前，发出的头里必须是真值（不是空值被静默丢弃）。
+      const jar: CookieJar = new CookieJar();
+      jar.reset();
+      jar.resetIdDomainSession(ID_ORIGIN);
+      expect(jar.cookieHeaderFor(ID_URL)).assertEqual('');
+      expect(jar.cookieSummaryFor(ID_URL)).assertEqual('sent=0 names=[]');
+      jar.setFromResponse(NETSCAPE_COOKIE_LINE, ID_URL);
+      expect(jar.size()).assertEqual(1);
+      expect(jar.cookieHeaderFor(ID_URL).includes('FB9C7214')).assertTrue();
+      expect(jar.cookieSummaryFor(ID_URL)).assertEqual('sent=1 names=[JSESSIONID(41)]');
+    });
+
+    it('doesNotTreatTabsFreeSetCookieAsNetscape', 0, () => {
+      // 反之的误判也要防：标准形态不能被当成 Netscape 行
+      expect(looksLikeNetscapeCookieLine('JSESSIONID=ABC; Path=/; HttpOnly')).assertFalse();
+      expect(parseNetscapeCookieLine('JSESSIONID=ABC; Path=/; HttpOnly', ID_URL) === undefined).assertTrue();
+      expect(looksLikeNetscapeCookieLine('')).assertFalse();
+      expect(looksLikeNetscapeCookieLine('# a comment')).assertFalse();
+      expect(parseNetscapeCookieLine('# a comment', ID_URL) === undefined).assertTrue();
+      // 字段不足 7 个 ⇒ 不是 Netscape
+      expect(looksLikeNetscapeCookieLine('a\tb\tc')).assertFalse();
     });
 
     it('neverLogsCookieValues', 0, () => {

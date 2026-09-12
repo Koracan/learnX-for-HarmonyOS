@@ -19,7 +19,9 @@
  */
 
 import { Logger } from '../../core/log/Logger';
-import { CookieJar } from '../../core/http/CookieJar';
+import {
+  CookieJar, CookiePair, SetCookieAbsorbResult, parseCookieHeaderPairs, pathOf
+} from '../../core/http/CookieJar';
 import { buildMultipartBody, MultipartBody } from '../upload/Multipart';
 import { newBoundary } from '../upload/UploadForm';
 import { encodeUtf8 } from '../../core/codec/TextCodec';
@@ -72,6 +74,33 @@ function headersFor(url: string, jar: CookieJar, contentType?: string): Record<s
 
 function missing(value: string | undefined): boolean {
   return value === undefined || value === null || value.length === 0;
+}
+
+/**
+ * 本次请求**实际带出去的** Cookie 头摘要（自证用）：条数 + 每条 `名字(值长度)`。
+ *
+ * 为什么要在登录路径上单独落这一行：ticket 08 实测过——cookie 吸收从来没成功过，
+ * 而日志里只有 `jar=… valueChars=0`，看不出"发出去的到底是空 JSESSIONID 还是真会话"。
+ * 空 JSESSIONID 会被 `cookieHeaderFor` 丢掉，所以 `names=[]` 就是"没带会话"的直接判据。
+ * **绝不落值**：只有名字与长度。
+ */
+function sentCookieSummary(headers: Record<string, string>): string {
+  const keys: string[] = Object.keys(headers);
+  let cookie: string = '';
+  for (let i = 0; i < keys.length; i++) {
+    if (keys[i].toLowerCase() === 'cookie') {
+      cookie = headers[keys[i]];
+    }
+  }
+  const pairs: CookiePair[] = parseCookieHeaderPairs(cookie);
+  const parts: string[] = [];
+  for (let i = 0; i < pairs.length; i++) {
+    parts.push(pairs[i].name + '(' + pairs[i].value.length.toString() + ')');
+  }
+  if (parts.length === 0) {
+    return 'sent=0 names=[]';
+  }
+  return 'sent=' + parts.length.toString() + ' names=[' + parts.join(',') + ']';
 }
 
 /** 7 步纯 HTTP 登录。 */
@@ -166,10 +195,12 @@ export class LoginClient {
       + ' doubleAuthMentions=' + doubleAuthMentions.toString());
 
     // 5) 漫游到 learn
+    const roamHeaders: Record<string, string> = headersFor(LEARN_ORIGIN, this.jar);
+    this.logger.info('login: roam request ' + sentCookieSummary(roamHeaders));
     const roamResponse: RawResponse = await this.port.sendRaw({
       url: roamUrl(ticket),
       method: HttpMethod.GET,
-      headers: headersFor(LEARN_ORIGIN, this.jar)
+      headers: roamHeaders
     });
     this.absorbCookies(roamResponse);
     if (isNetworkFailure(roamResponse.status, roamResponse.ok)) {
@@ -186,10 +217,12 @@ export class LoginClient {
       + ' jar=' + this.jar.describe());
 
     // 6) 课程列表页 → CSRF + 语言
+    const pageHeaders: Record<string, string> = headersFor(LEARN_STUDENT_COURSE_LIST_URL, this.jar);
+    this.logger.info('login: course list request ' + sentCookieSummary(pageHeaders));
     const pageResponse: RawResponse = await this.port.sendRaw({
       url: LEARN_STUDENT_COURSE_LIST_URL,
       method: HttpMethod.GET,
-      headers: headersFor(LEARN_STUDENT_COURSE_LIST_URL, this.jar)
+      headers: pageHeaders
     });
     this.absorbCookies(pageResponse);
     if (isNetworkFailure(pageResponse.status, pageResponse.ok)) {
@@ -218,10 +251,14 @@ export class LoginClient {
   }
 
   private async fetchIdLoginForm(): Promise<RawResponse> {
+    const headers: Record<string, string> = headersFor(ID_LOGIN_URL, this.jar);
+    // 自证：这一次 GET 到底带了什么 cookie（空 JSESSIONID 不会进头 ⇒ sent=0）
+    this.logger.info('login: id form request ' + sentCookieSummary(headers)
+      + ' url=' + ID_LOGIN_URL);
     return this.port.sendRaw({
       url: ID_LOGIN_URL,
       method: HttpMethod.GET,
-      headers: headersFor(ID_LOGIN_URL, this.jar)
+      headers: headers
     });
   }
 
@@ -238,25 +275,40 @@ export class LoginClient {
     fields['i_captcha'] = '';
     const boundary: string = newBoundary();
     const assembled: MultipartBody = buildMultipartBody(boundary, fields, undefined, encodeUtf8);
+    const checkHeaders: Record<string, string> = headersFor(ID_LOGIN_CHECK_URL, this.jar, assembled.contentType);
+    // 自证（ticket 08 的教训）：把"我们发出去的请求"变成可观察量。
+    // 这一行必须紧跟表单响应之后，才能看出 Set-Cookie 有没有真的进 jar。
+    this.logger.info('login: check request ' + sentCookieSummary(checkHeaders)
+      + ' ' + this.jar.describe()
+      + ' fields=[' + Object.keys(fields).join(',') + ']');
     const response: RawResponse = await this.port.sendRaw({
       url: ID_LOGIN_CHECK_URL,
       method: HttpMethod.POST,
-      headers: headersFor(ID_LOGIN_CHECK_URL, this.jar, assembled.contentType),
+      headers: checkHeaders,
       binaryBody: assembled.body
     });
     this.absorbCookies(response);
     return response;
   }
 
-  /** 每次响应都把 Set-Cookie 吸收进 jar（会话 cookie 会在漫游与页面请求上轮换）。 */
+  /**
+   * 每次响应都把 Set-Cookie 吸收进 jar（会话 cookie 会在漫游与页面请求上轮换）。
+   *
+   * ticket 08：**无论吸收到几条都要落一行自证**（来源 = netscape / standard / mixed / empty、
+   * 吸收数、跳过行数、吸收后的 jar 摘要）。原来只在 `stored > 0` 时打，于是"一条都没吸收到"
+   * 这种**最该看见**的情况恰好无声——这次静默正是重登失败被误判成站点异常的原因。
+   */
   private absorbCookies(response: RawResponse): void {
-    if (response.setCookie.length === 0) {
-      return;
-    }
-    const stored: number = this.jar.setFromResponse(response.setCookie, response.requestUrl);
-    if (stored > 0) {
-      this.logger.info('login: absorbed cookies=' + stored.toString() + ' ' + this.jar.describe());
-    }
+    const source: string = response.setCookie.length === 0 ? 'header-absent' : 'present';
+    const absorbed: SetCookieAbsorbResult =
+      this.jar.setFromResponseDetailed(response.setCookie, response.requestUrl);
+    this.logger.info('login: absorb setCookie=' + source
+      + ' rawChars=' + response.setCookie.length.toString()
+      + ' source=' + absorbed.source
+      + ' stored=' + absorbed.stored.toString()
+      + ' skippedLines=' + absorbed.skipped.toString()
+      + ' path=' + pathOf(response.requestUrl)
+      + ' ' + this.jar.describe());
   }
 
   private async resolveCredentials(credentials?: Credentials): Promise<Credentials | undefined> {
