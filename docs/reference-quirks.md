@@ -518,7 +518,7 @@ Netscape 行两条入口都保留**（`response.header['set-cookie']` 那边给�
 
 ---
 
-## 16. 公告卡片的状态图标：参考实现用三色图标，新实现用同色 emoji —— 已复审（ticket 09）
+## 16. 公告卡片的状态图标：参考实现用三色图标，新实现用同色 emoji —— 已复审（ticket 09）→ **【改判】改用与参考实现一致的扁平矢量图标（ticket 11.5）**
 
 **参考实现行为**（`src/components/NoticeCard.tsx:45-69`）：卡片右上角最多三个图标，来自
 `react-native-vector-icons/MaterialCommunityIcons`：
@@ -546,6 +546,19 @@ Netscape 行两条入口都保留**（`response.header['set-cookie']` 那边给�
 `attachment` 存在时出现橙色标记、在 `markedImportant` 时出现红色标记、在
 `hasRead === false` 时出现蓝色圆点；三者可同时出现，顺序为附件 → 重要 → 未读；
 **判据是设备截图上的颜色与位置，而不是"用了名为 attachment 的图标"**。
+**改判（2026-09-12，账号所有者裁定，见 ticket 11.5）**：上面那条"emoji + 颜色/位置判据"的降级验收**被推翻**。
+账号所有者明确要求**与旧实现一致的扁平图标风格**（我们当前是拟物/emoji，旧实现是扁平矢量）。
+
+- **新的替代验收标准**：图标与参考实现**同形**（同一图标名对应的字形），单色矢量、颜色仍由 `PLAIN_PALETTE` / 主题令牌给出；
+  判据从"颜色与位置对得上"升级为"**形状也对得上**"（逐屏与旧实现截图对照，一屏一对文件）。
+- **实施条件已查明**：参考实现用的那份字体就在本地仓库里 ——
+  `reference/learnOH-old/node_modules/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf`（1,147,844 B）与 `MaterialIcons.ttf`（356,840 B）；
+  名称 → codepoint 可照 `react-native-vector-icons` 的 glyph map 抄。**推荐内嵌同一份字体**（保真度最高），
+  备选 SVG 资源；**仍然不要用 `SymbolGlyph`**（理由见上：符号 id 不可移植）。
+- **影响面**：本条的三个标记**只是其中一处**；作业卡片 5 枚、课程卡片 3 类计数、底部 tab 栏、页面顶栏、设置项都要一起换。
+  清单表、逐屏对照证据、许可证与 hap 体积代价都由 **ticket 11.5** 负责。
+- **原证据还成立到哪一步**：ticket 09/10/12 那些"颜色/位置对得上"的截图**仍然成立**（它们证明的是同一件事的颜色与顺序），
+  只是验收判据升级；ticket 11.5 会在这三个 ticket 里各写一句边界说明。
 
 **取证**：`reference/learnOH-old/src/components/NoticeCard.tsx:45-69`、
 `reference/learnOH-old/src/constants/Colors.ts`；
