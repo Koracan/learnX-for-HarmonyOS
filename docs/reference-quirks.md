@@ -36,6 +36,8 @@
 | 22 | 文件详情的"预览 / 打开"：参考实现本来就有应用内预览 | 已复审（ticket 11） |
 | 24 | 页头信息架构：左对齐自绘页头 + 相对更新时间（参考是居中 `HeaderTitle`，且没有更新时间元素） | 已复审（ticket 11.5，账号所有者点名） |
 | 25 | 全应用底色去品红：底色族 + 中性族改中性灰（参考是 `rgb(255,251,255)` 那一套） | 已复审（ticket 11.5，账号所有者裁定） |
+| 26 | 提交页不移植「之前分享的」（`pendingAssignmentData`） | 已复审（ticket 13；参考实现自己也没写过非 null 值） |
+| 27 | 新选中附件那一行不可点（参考实现用上传前的本地 URI 进 FileDetail） | 已复审（ticket 13） |
 
 > 流程：发现新怪癖 → 追加到本文件；决定偏离 → 写清理由与替代验收，**复审通过后迁到 `docs/accepted-deviations.md`**（保持编号），本文件留一行索引。
 
@@ -546,3 +548,91 @@ ticket 10 补做轮的 `G1/G1b/G5b/G8`（真实）、`H1/H3/H7`（夹具）、`G
 `.scratch/files/evidence/` 里 `pdfService` 渲染成功的截图。
 
 ---
+
+## 28. 【平台事实】本机模拟器清单：**只有 phone 镜像落到磁盘**，`emulator start` 不负责部署实例（ticket 16 侦察，2026-09-13）
+
+**这是什么**（不是参考实现的怪癖，**不构成保真约束**；是"模拟器实例 ≠ 已下载镜像"这一层工具行为）：
+
+`devecocli emulator list` 列出四个**实例**，但实例不等于能跑：
+
+| 实例 | 形态 | `config.ini` 的 `imageSubPath` | 该镜像在磁盘上 | 实例目录是否已铺开 |
+| --- | --- | --- | --- | --- |
+| Pura 90 | phone | `HarmonyOS-6.0.31/phone_all_x86/` | ✅ 有 | ✅ 5 个 `.img/.qcow2` |
+| Mate X7 | foldable | `HarmonyOS-6.0.31/phone_all_x86/` | ✅ 有（与 Pura 90 **同一个**） | ✅ 有（userdata 789 MB） |
+| MateBook Pro | 2in1 | `HarmonyOS-6.0.31/pc_all_x86/` | ❌ 无 | ❌ 只有 `config.ini` |
+| MatePad Pro 13 | tablet | `HarmonyOS-6.0.31/tablet_x86/` | ❌ 无 | ❌ 只有 `config.ini` |
+
+镜像库实况（`C:\Users\korac\AppData\Local\Huawei\Sdk\system-image\`）：**有且只有 `HarmonyOS-6.0.31\phone_all_x86\`**
+（`system.img` 3.67 GB、`sys_prod.img` 838 MB）。没有 `tablet_x86`、没有 `pc_all_x86`。
+
+**两个会骗人的地方**：
+
+1. **`devecocli emulator image list` 不加 `--all` 时，列出的是"本地已下载"这一档**，表头里那个 `Downloaded` 列**并不区分本地/远端**——
+   在 API 23 这一档它把 phone / foldable / triplefold / widefold 四行都报成 `Downloaded = true`，
+   但磁盘上只有 phone 一个镜像，且这四个形态**共用**同一个 `phone_all_x86`（见上表 Mate X7 行）。
+   判据：`--device-type tablet` 会直接回 `No matching system images found`，而 `image list --all` 给出的
+   API 23 `tablet` 行是 `downloaded: false`。**要把 `Downloaded` 当真，先加 `--all` 并只看与你 API 版本相符的那一行。**
+   另注：镜像目录名 `HarmonyOS-6.0.31` 与它实际承载的 API 23 / `6.1.0.115` 对不上，**别按目录名判断 API**。
+2. **`devecocli emulator start` 只启动已部署实例，不会替你部署。** 对未铺开的实例它会给出一句
+   `was launched but did not appear in hdc list targets within the timeout`，**看起来像超时，其实是启动即失败**；
+   真因在 `...\Emulator\deployed\<实例>\Log\Emulator.log` 逐字可见：
+
+       [Critical] [SnUtil.cpp(CheckPublic:229)]can not open image_signature file
+       [Critical] [SnUtil.cpp(ShowErrorMessage:138)]can not read uuid file
+       [Critical] [SnUtil.cpp(ReadSn:49)]"can not read sn"
+
+   **别把这句话当"等久一点就好"**，也别在超时后盲目重试。
+
+**对本工程的影响（ticket 16 的取证设备选择）**：
+
+- 唯一能直接启动的**大屏**实例是 **Mate X7（foldable，API 23，复用已下载的 phone 镜像）**。
+  其 `config.ini`：折叠态 `hw.lcd.single.width=1080`/`density=500` ⇒ 1080/(500/160) = **345.6 vp**；
+  `hw.lcd.number=2` ⇒ 展开态第二块屏（近方形），约 **1008 vp** ⇒ **高于 `spec.md` 第 149 行定的 750vp 断点**。
+  折叠↔展开切换本身就是"窗口尺寸变化"的真实触发，可用于 ticket 16 的双栏与状态稳定判定。
+- **tablet 形态不可用**：本地无 tablet 镜像，且 `tablet` 在**任何** `--all` 行上都是 `downloaded: false`
+  （云端最接近的是 API 24 的 6.1.0.125，与本工程 `compatibleSdkVersion` 的 API 23 不同档）。
+  要换 tablet 得先下镜像 + 在 DevEco 里铺开实例，**在只是想要一块"宽屏"时收益为负**。
+- **真机复验（`AGENTS.md`：真机只做最终一次性复验，时点卡在 ticket 18）不受影响**，也别拿 foldable 的验收去替代它。
+
+**取证**：`devecocli emulator list` / `device list` / `emulator image list [--all] [--device-type tablet]` 的原始输出；
+`...\Emulator\deployed\{Pura 90,Mate X7,MateBook Pro,MatePad Pro 13}\config.ini`；
+`...\deployed\MatePad Pro 13\Log\Emulator.log`（2026-09-13 00:02:20 起，783 字节，崩溃原因逐字）；
+`...\Sdk\system-image\HarmonyOS-6.0.31\` 的目录列举。
+
+---
+
+---
+
+## 29. 【平台事实】鸿蒙侧两个「选取附件」picker 的行为（ticket 13 实测；**不构成保真约束**）
+
+**这是什么**：参考实现用 RN 的两个库选附件（`AssignmentSubmission.tsx:120-170`：`DocumentPicker.pick` 与
+`launchImageLibrary({mediaType:'mixed', selectionLimit:1})`）；平台替换为 `picker.DocumentViewPicker` 与
+`photoAccessHelper.PhotoViewPicker`。以下四条是**设备实测**（模拟器 Pura 90 / `127.0.0.1:5555` /
+HarmonyOS 6.1.0(23)，2026-09-13），**不是**参考实现的行为，因此不作为保真判据：
+
+1. **两个 picker 都能在模拟器上打开**（都可重复打开；文件选择器本轮开了两次）。
+   文件选择器：最近 / 浏览两个页签、位置（我的手机 13.79 GB 可用 / 32 GB、我的云盘）、
+   媒体库（图库）、来源（下载与接收、浏览器）、`已选 (0)`、`完成` 禁用、「仅可访问所选项目」。
+   相册选择器：图片和视频 / 所有相册、安全访问图库横幅、拍照磁贴。
+   取证：`.scratch/submission/evidence/B4-*.png`、`B5-*.png`、`B8-*.png`。
+2. **取消 ⇒ `select` 正常 resolve 成空数组，不是抛异常**（这条决定了代码里不需要参考实现的
+   `DocumentPicker.isCancel(err)` 分支）：系统侧 `PickerSheetPage: onThirdSelectCancel` 紧接应用侧
+   `document/photo pick cancelled (empty uri list)`。取证：`B-log-pickers-full.txt`。
+3. **`photoAccessHelper.PhotoViewPicker` 在本 SDK 上只有无参构造**：带 context 的重载属于
+   `@ohos.file.picker` 的旧 `PhotoViewPicker`。写 `new photoAccessHelper.PhotoViewPicker(context)` 会得到
+   编译错误 `Expected 0 arguments, but got 1`（本轮实测，构建日志 `t13-build-1.log`）。
+   `picker.DocumentViewPicker` 仍是带 context 的推荐重载。
+4. **「选到文件」在本模拟器上取不到证据**（不是 picker 的问题，是环境里没有可选内容）：
+   用户区为空（「最近」= 没有文件）；`hdc file send` 推入 `…/Docs/Documents/` 的文件**不被「最近」收录**；
+   「浏览 → 我的手机」这一行对 `hdc` 级点击**无响应**（两次点击前后截图**字节完全相同**，
+   sha256 `4fd49f27c5385bcf603b4b59e74ed1884b6ee58aa3281a75995ab15a22e2a504`）；相册 `itemCount: 0`。
+   取证：`B6-*.png` / `B6b-*.png` / `B7-*.png` / `B8-*.png`。
+   ⇒ 复现「选到文件 → 附件进入状态机」这一跳，需要**用户区里真的有文件**（或图库里有照片）；
+   见 ticket 13 交付的未验证项第 3 条。
+
+**为什么值钱**：第 2 条把「取消要不要按失败处理」这个只能靠实测定的问题关掉了；
+第 3 条是「d.ts 与真实构造不一致」的又一例（同第 8、23 条的性质）；第 4 条划清了
+「平台能力不可用」与「本机环境没有内容」的界线 —— **别把 B6/B6b/B7 读成 picker 坏了**。
+
+**取证**：`.scratch/submission/evidence/README.md` 与其中的 `B4/B5/B6/B6b/B7/B8/B9-*.png`、
+`B-log-pickers-full.txt`；`entry/src/main/ets/features/assignments/AttachmentPickers.ets`。

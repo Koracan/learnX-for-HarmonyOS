@@ -462,3 +462,57 @@ ticket 11 的设备证据里保留了两段：`PdfView` 崩溃的 hilog（上文
 **取证**：`reference/learnOH-old/src/App.tsx:206-244`；`entry/src/main/ets/ui/theme/Tokens.ets` 的 `LIGHT_COLORS` / `DARK_COLORS`；
 `entry/src/test/Tokens.test.ets`；ticket 11.5 的设备取色（模拟器 Pura 90）。
 
+---
+
+## 26. 提交页不移植「之前分享的」（`pendingAssignmentData`）—— 已复审（ticket 13）
+
+**参考实现行为**：`screens/AssignmentSubmission.tsx` 从 redux 读 `assignments.pendingAssignmentData`
+（:79-80），非空时把它变成「即将上传的附件」（:294-302），并在附件行尾显示 `（之前分享的）` /
+`(previously shared)`（:376-380）。写入者是 action `setPendingAssignmentData`
+（`data/actions/assignments.ts:169-172`）。
+
+**为什么偏离（两条，第一条是决定性的）**：
+
+1. **参考实现自己也从来没有给它写过非 null 值。** 对 `reference/learnOH-old/` 全仓检索
+   （`Select-String -Pattern pendingAssignmentData`，见 `docs/accepted-deviations.md` 本条的取证一行）：
+   `setPendingAssignmentData` 只出现在**定义**（actions / types / reducer）与提交页里那 4 处
+   `dispatch(setPendingAssignmentData(null))`（:117, :136, :166, :228）——**没有任何一处** dispatch 一个真实对象。
+   ⇒ 参考实现里这条 UI 是**死支路**（系统分享入口从未接上），不构成可比对的行为。
+2. 本工程**没有**系统分享入口（spec 未涵盖「从其他应用分享文件到 learnOH」），也没有对应的数据层动作。
+
+**替代验收标准**：
+
+1. 提交页只有「文件 / 照片」两个入口能产生待上传附件，且附件行尾**没有**任何「之前分享的」字样；
+2. `grep -rn pendingAssignmentData entry/src` 无命中（键、状态、文案都不存在）；
+3. 被删掉的那条 UI 的不可达性由第 1 条的检索结果承担：参考实现里它不可达，所以「移植它」没有可观察量。
+
+**取证**：`reference/learnOH-old/src/screens/AssignmentSubmission.tsx:79-80,294-302,376-380`；
+`reference/learnOH-old/src/data/actions/assignments.ts:169-172`；`reference/learnOH-old/src/data/reducers/assignments.ts:21,100`；
+全仓检索输出见 ticket 13 的交付节（写入者只有 `null`）。
+
+---
+
+## 27. 新选中附件那一行不可点（参考实现点它进 FileDetail，用**上传前的本地 URI** 预览）—— 已复审（ticket 13）
+
+**参考实现行为**：`AssignmentSubmission.tsx:358-374` 把「即将上传的附件」渲染成 `TextButton`，
+`onPress` 调 `handleFileOpen({ id:'0000', name, downloadUrl: attachmentResult.uri,
+previewUrl: attachmentResult.uri, size, type })` —— 即用**本地 URI**（`file://…`，尚未上传）进 `FileDetail`。
+
+**为什么偏离**：本工程 `FileDetail` 的契约是「给一个 `downloadUrl`，**先下载再预览**」（ticket 11 验收：
+服务端返回 HTML / 非 200 时**不进入预览**、落到错误态）。把本地 `file://` URI 塞进这条路由不会预览，
+只会得到一次必然失败的下载。要真正支持「预览还没上传的本地文件」需要**另开一条**本地文件预览路径
+（超出 ticket 13 的范围；且本轮没有可提交的真实作业，无法判断该入口的实际价值）。
+
+**替代验收标准**：
+
+1. 新附件那一行**可读地**显示图标 + 文件名（含中文 / 空格的文件名不被吞掉）；
+2. 同一行的「移除已选择的附件」按钮可用；移除后该行消失、页头提交按钮按 `canSubmit` 规则变灰；
+3. 页面**不声称**提供预览：点击该行不发请求、不跳转、不弹错误；
+4. **已提交附件**行仍然可点进 `FileDetail`（与参考实现一致，且走的是真正的下载契约）。
+
+**取证**：`reference/learnOH-old/src/screens/AssignmentSubmission.tsx:358-374`（`handleFileOpen` 见 :147-163）；
+`entry/src/main/ets/features/assignments/AssignmentSubmissionPage.ets` 的 `pickedAttachmentRow` /
+`submittedAttachmentRow`；`entry/src/main/ets/features/files/FileDetailPage.ets`（下载契约）。
+
+
+
