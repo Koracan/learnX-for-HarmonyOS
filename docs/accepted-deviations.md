@@ -385,8 +385,8 @@ ticket 11 的设备证据里保留了两段：`PdfView` 崩溃的 hilog（上文
 
 1. **作业页**：页头只剩「标题 + 相对更新时间」**同一行**。移除 `当前学期 <学期>`、`取证覆盖生效` 徽标、`未完成 n`
    （未完成数在筛选片里已有，不重复）。
-2. **课程页**：页头 = 「课程 + 学期 + 相对更新时间」，学期与更新时间在标题右侧上下两行；
-   **学期文本仍可点** → 学期切换页（ticket 12 的行为一字未改）。
+2. **课程页**：页头 = 「课程 + 学期 + 相对更新时间」，学期与更新时间排在标题**右侧同一行区域内**、彼此上下两行
+   （学期在上、相对时间在下）；**学期文本仍可点** → 学期切换页（ticket 12 的行为一字未改）。
 3. **公告 / 文件页**：同一原则（标题 + 相对更新时间同一行），**保留**有信息量的计数
    （公告 `未读 n`、文件 `文件条数`）——不为了统一而删信息。
 4. **相对时间**：数据源 = 快照的 `fetchedAtMillis`（`snapshot.fetchedAt`）。措辞四档：
@@ -394,14 +394,29 @@ ticket 11 的设备证据里保留了两段：`PdfView` 崩溃的 hilog（上文
    **不每秒重算**（只在进入页面 / 刷新后取一次），实现见 `ui/components/UpdatedTime.ets`。
 5. **学期不再出现在作业 / 文件页头**（`当前学期：…` 那一行删掉；文件列表每行本来就有课程名，学期冗余）。
 
+**【"同一行"的语义 —— 账号所有者 2026-09-12 复看实现后补充澄清，同日记入】**
+
+账号所有者原话"和标题压缩到同一行 / 课程页则把标题、学期、更新时间压缩在同一行"，指的是**学期与相对时间都落在标题那一段文字所占的行区域内**
+（即参考实现 `HeaderTitle` 那种"标题 + 副标题并排"的版式），**不是"必须严格排成一行文字"**：
+标题字号更大（`headlineSmall`），它占的高度足以让学期与相对时间在标题右侧**竖排**放下，
+所以课程页「标题 + 右侧学期/时间两行」**符合原意**（账号所有者已确认其示例图就是这个排法）。
+统筹曾按字面读成"必须单行"并据此打回一次，账号所有者复看实现截图后否定了那次打回——**以本条澄清为准**。
+
 **替代验收标准（本表"已复审"档要求写明的那一条）**：
 
 1. 作业页头截图里**不出现**学期文本、`取证覆盖生效`、`未完成 n`（一屏一对文件）；只剩「作业 + 刚刚更新」这一类两段文字；
-2. 课程页头截图里有「课程 + 学期 + 相对更新时间」三项，且学期文本仍可点进学期切换（点击后截图/日志与 ticket 12 一致）；
+2. 课程页头截图里有「课程 + 学期 + 相对更新时间」三项，**三项都落在标题所在的那一行区域内**（学期与相对时间在标题右侧、允许竖排两行；
+   不得掉出页头区域或挤进正文），且学期文本仍可点进学期切换（点击后截图/日志与 ticket 12 一致）；
 3. 相对时间四档**边界**由单测钉住（`updatedTimeParts`：59s → `JUST_NOW`、60s → 1 分钟、59min → 59 分钟、60min → 1 小时、23h → 23 小时、24h → 1 天），
    设备侧用**注入快照时间戳**（改 `fetchedAtMillis`，不靠手速）拍 `刚刚更新` 与 `N 分钟前更新` 两帧；
 4. 公告页头仍有 `未读 n`、文件页头仍有条数（信息量计数未被"统一"删掉），两者与相对更新时间同行；
-5. 学期**只**出现在课程页头：`grep -n "ui_courses_semester_label" entry/src/main/ets/features` 只剩课程页一处调用点。
+5. **学期只出现在课程页头**（可复现的口径）：`grep -rn "getSemesterTextFromId(" entry/src/main/ets` 只有 3 处 ——
+   `core/i18n/DateTimeUtil.ets:248`（**定义**）、`features/courses/CoursesPage.ets:110`（**课程页头**，经 `semesterText()` 渲染
+   "实际生效学期"）、`features/courses/SemesterSelectionPage.ets:62`（**学期选择列表的每一行**，不是页头）。
+   作业页 / 文件页 / 公告页**没有任何调用点**，所以"学期不在它们的页头里"是可 grep 证的。
+   > 更正（ticket 11.5 复验）：这条判据原来写的是 `grep -n "ui_courses_semester_label" entry/src/main/ets/features`，
+   > 但该键在 features 下**唯一**的引用是 `features/courses/SemesterSelectionPage.ets:141` —— 学期选择页那枚勾的
+   > **无障碍文案**，与页头无关。原判据指向另一屏、且证明不了这件事，已换成上面的枚举口径。
 
 **与 ticket 12 的关系**：ticket 12 替代验收第 3 条"界面显示的 semester 就是实际生效值（课程 tab 头部那句）"**仍然成立**
 （学期文本还在，只是位置/版式变了）；**但"取证覆盖生效"这枚徽标被移除** ⇒ 覆盖生效的界面信号从此只有
@@ -411,8 +426,6 @@ ticket 11 的设备证据里保留了两段：`PdfView` 崩溃的 hilog（上文
 **取证**：`reference/learnOH-old/src/App.tsx:118-135`、`src/components/HeaderTitle.tsx`、`src/components/FilterList.tsx:185-201`、
 `src/screens/Courses.tsx:48-50`；`entry/src/main/ets/features/{assignments/AssignmentsPage,courses/CoursesPage,notices/NoticesPage,files/FilesPage}.ets` 的 `header()`；
 `entry/src/main/ets/ui/components/UpdatedTime.ets`；`entry/src/test/UpdatedTime.test.ets`；ticket 11.5 的逐屏截图。
-
----
 
 ---
 
