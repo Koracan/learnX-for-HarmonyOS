@@ -61,17 +61,23 @@ entry/src/main/ets/
 两个阶段，边界清晰：
 
 **设备登记 Enrollment**（仅首次安装、信任过期后）
-ArkWeb 加载 ID 登录页 → 注入脚本做三件事：预填账号密码（readonly）、把**我们生成的**设备指纹写入表单、把 localStorage 里的 `fingerGenPrint` 写进 DOM → 用户完成短信验证 → `onLoadIntercept` 检测到 roaming URL 即成功 → 提取 cookie 同步给 HTTP jar → 持久化凭据。
+ArkWeb 加载 ID 登录页 → 注入脚本做三件事：预填账号密码（readonly）、**确保表单里的设备指纹可用**（以页面自己算出的值为准，页面值缺失时才用我们生成的 UUID 兜底）、把 localStorage 里的 `fingerGenPrint` 写进 DOM → 用户完成短信验证 → `onLoadIntercept` 检测到 roaming URL 即成功 → 提取 cookie 同步给 HTTP jar → 持久化凭据。
 _注入面已缩小_：旧实现必须用**猴补丁**（`jQuery.fn.submit` + XHR 拦截）才拿得到这些值；新实现不需要猴补丁——页面会在加载时自己写好它们，用有限次轮询读/写 DOM 即可。**但"手段简化"不等于"语义改变"**：三个指纹字段的归属必须按下表分清，否则会踩到 2026-09-12 那次歧义（曾把"不需要猴补丁"误读成"表单别动"）。
 
 | 字段 | 谁的值 | 处理 |
 | --- | --- | --- |
-| `fingerPrint` | **我们生成的**（应用侧 UUID） | **必须权威**：页面写完之后**盖掉表单字段**，并在 `saveFinger` 的 XHR 里注入同一个值；两处都要，缺一即不一致 |
+| `fingerPrint` | **页面自己算出的值**（fingerprintjs2）—— 方案 A，2026-09-12 设备取证后改定 | **必须权威**：表单保持页面原值，`saveFinger` 的 XHR 注入**同一个**值，凭据里保存并在重登时**原样回放**同一个值。只覆盖一处即不一致。页面值缺失时才用我们生成的 UUID 兜底，并把来源打进日志 |
 | `fingerGenPrint` | 页面的（`localstorageUtil.getFinger3FromLocal()`） | 读 DOM 后写进 `#fingerGenPrint`，**持久化**，重登原样回放 |
 | `fingerGenPrint3` | **服务端下发**、缓存在 localStorage（`getFinger3FromRemoteAndSave`） | 读 DOM 并持久化，重登原样回放 |
 | `singleLogin` | **页面会把它显式置为未勾选**（全新 profile 上 `getSingleLoginKey()` 无兜底地返回 `null`，走 `else` 分支） | **必须幂等勾上**，且要能对抗页面 promise 晚到的重置（参考实现 `sso.js:69-74` 是在提交时 `click()`；我们用幂等勾选 + 轮询/持续重 assert 达到同一效果） |
 
-**为什么 `fingerPrint` 必须是我们的值**：纯 HTTP 重登（下一节）会把 `fingerPrint`/`fingerGenPrint`/`fingerGenPrint3` 一起作为表单字段发给 ID 侧（`thu-learn-lib/lib/module/index.js:119-125`），而服务端判定"同一浏览器"就建立在设备指纹上。因此**服务端登记的必须是将来重登要出示的同一个值**。页面那个值是 fingerprintjs2 的 canvas/webgl 指纹（17 项），我们**无法复算**，只能当不透明串存下来回放——那样凭据有效性就取决于服务端页面脚本保持不变，不受我们控制。我们自己的 UUID 是唯一**确定可复现**的值，所以它在**表单与 `saveFinger` 两处都必须权威**；只覆盖一处会导致两处不一致，服务端绑哪个变未知，验收第 2 条（服务端登记值 == 保存的凭据指纹）无法成立。这条同时是参考实现的行为：`sso.js` 的 `jQuery.fn.submit` 猴补丁在提交时把 `fingerPrint` 写进表单，`saveFinger` 的 XHR 也被注入同一个值（见 `idp-login-flow.md` 第 2 节）。
+**`fingerPrint` 取哪个值——这一条被推翻过一次，写清为什么。** 纯 HTTP 重登（下一节）会把 `fingerPrint`/`fingerGenPrint`/`fingerGenPrint3` 一起作为表单字段发给 ID 侧（`thu-learn-lib/lib/module/index.js:119-125`），而服务端判定"同一浏览器"就建立在设备指纹上。因此**服务端登记的必须是将来重登要出示的同一个值**——这条不变。
+
+但"同一个值"有两种取法，**都能满足它**：用页面自己算出的 fingerprintjs2 值，或用我们生成的 UUID 覆盖掉它。2026-09-12 起定为**前者（方案 A）**。依据是设备实测：把"站点在提交那一刻看到的报文"与 stock 浏览器**逐字段**对比后，**唯一不同的一栏就是 `fingerPrint`**（stock 的 `fingerGenPrint`/`fingerGenPrint3` **同样是空串**——那是站点对未登录会话的固有行为，不是缺陷），而站点报的正是「您的浏览器目前处于隐私或匿名模式…无法设置为信任浏览器」。在只有证据、读不到服务端实现的前提下，**让报文与 stock 一致是唯一有依据的可控变量**。
+
+**先前写在这里的"必须用我们的值"是错的，错在一个具体推理**：当时的理由是"页面值是 fingerprintjs2 指纹、我们**无法复算**，所以用它就意味着凭据有效性取决于服务端页面脚本保持不变"。这把「**不可复算**」与「**不可保持一致**」混为一谈了——**我们并不需要复算**：登记时读一次、存下来、重登时**原样回放**即可，服务端记录的就是它当时收到的那一个字符串。要保证的只有「登记值 == 重登值」，store-and-replay 完全满足。（ticket 正文原话"`fingerPrint` 直接读 DOM"指的正是这个语义；那次消歧把它解读反了。）
+
+**这是与参考实现不同的一次取法**（`sso.js` 的 `jQuery.fn.submit` 与 `saveFinger` XHR 都写它自己的值），已在 `docs/reference-quirks.md` 按 `已复审` 登记并写明替代验收标准。注意区分：这是"我们选了另一种取法"，**不是**"参考实现的怪癖被修好"。
 
 **取证要求（验收第 2 条的可判定形式）**：登记时在**三个点**各打一行**脱敏**指纹（例如 SHA256 前 8 位十六进制，**绝不打原始值**）——① 写进表单字段的值、② `saveFinger` 实际携带的值、③ 最终落盘的值。三点相同才算本条成立。只声明"我们注入的是同一个变量"只能证明代码意图，证明不了**实际发出的报文**。
 
