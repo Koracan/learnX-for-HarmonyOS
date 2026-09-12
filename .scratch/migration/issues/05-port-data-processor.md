@@ -253,3 +253,28 @@ ticket 12 在**真实数据**上发现：站点把作业的 `jzsj`（截止时�
 
 **给 ticket 10 读者的一句话**：作业卡片要显示截止时间时**直接读 `Assignment.deadline`**（已是 `YYYY-MM-DD HH:mm` 字符串），
 不要再自己 `Number(...)` 或假设它是字符串。
+
+**追加（2026-09-12，由 ticket 10 带入）——同一类"数字时间字段"的另外三个，以及一条排序缺陷**
+
+ticket 10 在真实数据上又发现两类同源问题，都在同一次编辑里修掉：
+
+1. **三个时间字段同样是 epoch 毫秒数字**：`scsj`（提交时间，实测 `1780143131000`）、
+   `pysj`（批改时间，实测 `1780243140000`）、`bjjzsj`（补交截止）。修前它们**原样落进 `Assignment`**，
+   详情页因此渲染出"提交于 1780143131000"这种字面量（截图：
+   `.scratch/assignments/evidence/pre-fix/B4-assignment-detail-spring-prefix.png`）。
+   现统一走 `normalizeDeadline`：数字 → 本地 `YYYY-MM-DD HH:mm`，**字符串原样保留**。
+   另：原实现对 `bjjzsj` 用 `raw.bjjzsj.length > 0` 判空 —— 数字没有 `.length`（`undefined > 0` 为 false），
+   即**数字形态的补交截止以前根本不会被赋值**；现改成 `!== undefined && !== null`。
+   `gradeLevel`（`cj` 的等级代码，thu-learn-lib `GRADE_LEVEL_MAP`）也是本次补的字段，
+   见 `domain/parse/AssignmentParser.gradeLevelOf`。
+2. **`AssignmentsFetcher` 少了参考实现排序的第一步**（参考实现 = processor 先按截止时间倒序 +
+   JS 侧切"未到期/已过期"两步）：真实数据上表现为**已过期段是接口返回顺序**
+   （`2026-05-31` / `2026-06-20` / `2026-04-30`）。见 docs/reference-quirks.md 第 19 条。
+   `compareAssignmentsByUpcoming` 的语义**一行未改**，补的是它的调用点。
+
+**你的证据还成立到哪一步**：**全部成立**。`AssignmentParser.test.ets` 里"字符串截止时间一律原样保留"
+与 `DataFetch.test.ets` 的计数断言（post 9 / get 6）都不过问那三个字段；
+`ordersUpcomingFirstLikeTheReferenceFinalSort` 钉的是 `compareAssignmentsByUpcoming` 这个**函数**（未改），
+新增的 `assignmentsFetchSortsByDeadlineBeforeSplittingUpcomingAndPast` 钉的是**调用点**（补上的第一步）。
+**可观察量转移到哪里**：详情页的"提交于 / 批改于 / 补交截止"三行与作业列表的次序 —— 见 ticket 10 的 B3/B5/C5。
+**本 ticket 的 `verified-partial` 不变**（两项仍由账号门控）。

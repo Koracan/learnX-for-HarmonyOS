@@ -618,3 +618,73 @@ ticket 09 的模拟器截图（`.scratch/notices/evidence/`）。
    以及 data.courses snapshot semester=2025-2026-2 source=override courses=⟨n⟩ ...；
 3. 覆盖优先级 = override > 界面选择 > 站点当前学期，且**界面显示的 semester 就是实际生效值**
    （课程 tab 头部那句"当前学期：getSemesterTextFromId(effective)"）。
+
+---
+
+## 19. 作业的最终次序是**两步**：processor 按截止时间倒序 + JS 侧切"未到期 / 已过期" —— 锁定
+
+**参考实现行为**：作业 tab 用的那条全局列表，次序由两处接起来：
+
+1. **原生 processor 先按截止时间倒序**：`DataProcessorModule.processAssignments`
+   （`reference/learnOH-old/node_modules/react-native-learn-oh-data-processor/harmony/learn_oh_data_processor/src/main/ets/DataProcessorModule.ts:72-76`
+   的 `.sort((a, b) => timeB - timeA)`）；
+2. **JS 侧再切分**：`src/data/actions/assignments.ts:123-128`
+
+   ```ts
+   const sorted = [
+     ...assignments.filter(a => dayjs(a.deadline).isAfter(dayjs())).reverse(),  // 未到期 → 由近及远
+     ...assignments.filter(a => !dayjs(a.deadline).isAfter(dayjs())),           // 已过期 → 保持第 1 步的降序
+   ];
+   ```
+
+**为什么容易被漏掉**：那句 `[...]` 读起来像一个完整的排序实现（它的名字也叫 `sorted`），
+于是只搬它、不搬 processor 的 sort。后果是**已过期段变成接口返回顺序**。
+
+**真实数据实测（2026-09-12，模拟器 Pura 90 / HarmonyOS 6.1.0(23)，2025-2026 春季 57 条）**：
+漏掉第一步时列表前三条的截止时间是 `2026-05-31 23:59` / `2026-06-20 23:59` / `2026-04-30 23:59`
+（截图 `.scratch/assignments/evidence/pre-fix/B1-assignments-spring-list-top-final.png`）。
+ticket 05 的移植正是这样，而它的单测 `ordersUpcomingFirstLikeTheReferenceFinalSort`
+（`entry/src/test/AssignmentParser.test.ets`）**只钉了"未到期在前"**、入参又是排好序的，
+所以这一步在真实数据之前从未被任何断言发现。
+
+**新实现做法（ticket 10 补第一步）**：两步都在 `data/remote/AssignmentsFetcher.fetch` 里做完 ——
+`compareAssignmentsByUpcoming(sortAssignments(collected), Date.now())`；
+`compareAssignmentsByUpcoming` 的语义**一行未改**（它对应的就是参考实现第 2 步），
+所以"与参考实现一致"这一基准仍然成立。
+
+**替代/补充验收标准**：单测 `assignmentsFetchSortsByDeadlineBeforeSplittingUpcomingAndPast`
+（`data.fetch`）用**故意乱序**的夹具（旧 → 未到期 → 新）断言
+`未到期（由近及远）→ 已过期（按时间倒序）`；界面侧见 ticket 10 的
+`B1/B3-assignments-spring-list-*-final.png`。
+
+**取证**：`DataProcessorModule.ts:72-76`；`src/data/actions/assignments.ts:123-128`；
+`entry/src/main/ets/data/remote/AssignmentsFetcher.ets`；`entry/src/test/DataFetch.test.ets`。
+
+---
+
+## 20. 完成方式 / 提交方式：参考实现比较**数字枚举**，站点下发的也是数字 —— 锁定（ticket 10 补证）
+
+**参考实现行为**（`src/screens/AssignmentDetail.tsx:153,158`）：
+`completionType === HomeworkCompletionType.GROUP`（= `2`）、
+`submissionType !== HomeworkSubmissionType.OFFLINE`（= `0`）；
+两个枚举在 thu-learn-lib `lib/module/types.js:65-73`，而 `completionType/submissionType`
+原样取列表接口的 `zywcfs` / `zytjfs`（`lib/module/index.js:874-875`）。
+
+**设备实测（2026-09-12，模拟器 Pura 90，2025-2026 春季真实作业）**：站点下发的是**数字代码** ——
+`assignment detail appear: … completionType=1 submissionType=2` ——
+所以参考实现那两个比较在真实数据上**是对的**（1 = 独立完成，2 = 在线提交）。
+
+**为什么值得单独登记**：ticket 05 的反推夹具里这两个字段是**中文标签**（`'个人'` / `'网络学堂'`，
+见 `entry/src/test/fixtures/ContentItemFixtures.ets`），真实形状却是数字。
+若按夹具的形状写映射（只认中文标签），两枚 Chip 会在真实数据上全部落进"else"分支 ——
+而单测仍会全绿（夹具就是这么写的）。**真实形状与反推夹具不一致时，以真实数据为准并登记。**
+
+**新实现做法**：`features/assignments/AssignmentText` 的 `isGroupCompletion` /
+`isOfflineSubmission` **两种形状都认**（数字代码 `'2'`/`'0'` 与站点标签 `'小组'`/`'线下'`），
+语义仍落在参考实现的同一分支；单测 `completionAndSubmissionAcceptCodesAndSiteLabels` 同时钉住两种形状。
+详情页把**原始值**打进 hilog，于是"映射判错"与"取数没取到"能区分。
+
+**取证**：`AssignmentDetail.tsx:153,158`；thu-learn-lib `lib/module/types.js:65-73`、`lib/module/index.js:874-875`；
+`entry/src/main/ets/features/assignments/AssignmentText.ets`；
+`.scratch/assignments/evidence/B7-hilog-spring-assignments-full.txt`（`completionType=1 submissionType=2`）。
+
