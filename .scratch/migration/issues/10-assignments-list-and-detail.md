@@ -109,9 +109,10 @@
 - 结论：**达成**。秋季（真实账号 0 条）渲染 `暂无作业`（筛选片 0/0/0，不白屏、不报错）；
   春季（全部已提交）"未完成"视图为空时文案是 `没有未完成的作业`，与"暂无作业"**不同句**
   （`emptyStateKey` 按视图给键，单测钉住）。
-- 证据：`A1/A2/A3`（秋季空态）；"未完成视图空态"的机制证据是单测
-  `emptyStateDependsOnTheViewAndOnBusy` + `allSubmittedAndPastShowsTheUnfinishedEmptyState`；
-  **界面截图未单独抓**（见"未验证项"）。
+- 证据：`A1/A2/A3`（秋季空态）；"未完成视图空态"的界面证据是 **`F1-assignments-spring-unfinished-empty-final.png`**
+  + `F2-layout-spring-unfinished-empty-final.json`（补做轮抓到：筛选片"未完成 0"高亮、空态文案
+  "没有未完成的作业"），机制证据另有单测 `emptyStateDependsOnTheViewAndOnBusy` +
+  `allSubmittedAndPastShowsTheUnfinishedEmptyState`。
 - 命令：`devecocli ui click --device 127.0.0.1:5555 411 492`（春季下点"未完成"筛选片）。
 
 **第 5 条 · 真机截图**
@@ -134,12 +135,8 @@
 #### 4. 未验证项 / 未交付项（**不要当成全绿**）
 
 1. **验收第 5 条真机截图**：转 ticket 18（模拟器口径已完成）。
-2. **"未完成"筛选片的空态截图**：未单独抓（机制有单测，界面侧未截）。
-3. **"优秀作业"（excellentHomeworkList）未交付**：工单 What-to-build 里出现过它，但四条验收标准都没有它；
-   参考实现那段（`AssignmentDetail.tsx:327-363`）的数据来自**另一条接口**
-   （thu-learn-lib `getExcellentHomeworkListByHomework`，每门课一次 POST），而 ticket 05 已验收的
-   `AssignmentsFetcher` 语义里没有它。改那条取数属于改已验收前提，且要额外请求，故本轮**只读、不取**。
-   **请统筹确认这是否算缺口**；若要补，建议单列一条小 ticket（含取样代价：7 门课 +7 请求）。
+2. ~~**"未完成"筛选片的空态截图**：未单独抓~~ → **补做轮已关闭**（`F1/F2`）。
+3. ~~**"优秀作业"（excellentHomeworkList）未交付**~~ → **统筹裁定为缺口，补做轮已交付**（见文末"补做"一节）。
 4. **描述含公式**：真实 57 条里**没有**一条描述带 KaTeX 公式（`B5` 的描述是纯文本），
    所以"公式渲染"这一半是**夹具**证据（`C3`），走的与公告详情同一条 `HtmlWebView`/`getWebViewTemplate` 链路。
 5. **附件 id 为空**：真实提交/作业附件的下载地址是路径形态，`Attachment.id` 取不到 ⇒ 传空串
@@ -239,4 +236,103 @@
 
 1 次全量单测（38 s 构建 + 测试）、1 次冷启动 + 2 次 ui 点击 + 1 次全量 hilog + 1 次截图（约 2.5 分钟设备窗口）、1 次 hap 解包。
 **设备锁与构建锁均已释放**（补做轮已把两把锁交回原 agent）。
+
+
+### ticket 10 补做交付（2026-09-12，模拟器 Pura 90 / 127.0.0.1:5555 / HarmonyOS 6.1.0(23)）
+
+**实现提交**：`7a3f38c`（探针 + 优秀作业取数/解析/卡片/详情 + 单测）。
+本节写的是**补做后**的数字 —— 上面第 3 节的 294 / 17:06:40 是**补做前**的。**Status 仍留给统筹改**。
+
+#### 1. 探针（先探针、再决定）—— 逐课原始计数
+
+做法：临时文件 `data/remote/ExcellentProbe.ets` + `AssignmentsFetcher.fetch` 末尾一行调用
+（补丁 `.dsh/logs/10b-probe.patch`，**用后已删**，源码里查不到）；逐门课 POST `yxzylist`
+（表单复用 `postForm({url, courseId})`），打印 `status / bytes / result / aaData`，
+把**最大那一条原始响应**按 1500 字符分块打进 hilog **并**落到应用 files 目录后 `hdc file recv`。
+
+| 学期 | 课程 id | status | bytes | result | aaData |
+| --- | --- | --- | --- | --- | --- |
+| 2025-2026-2 | 2025-2026-2151368314 | 200 | 172 | success | 0 |
+| 2025-2026-2 | 2025-2026-2151368509 | 200 | 172 | success | 0 |
+| 2025-2026-2 | 2025-2026-2151369202 | 200 | 172 | success | 0 |
+| 2025-2026-2 | **2025-2026-2151370719** | 200 | **7013** | success | **18** |
+| 2025-2026-2 | 2025-2026-2151370727 | 200 | 172 | success | 0 |
+| 2025-2026-2 | 2025-2026-2151371077 | 200 | 172 | success | 0 |
+| 2025-2026-2 | **2025-2026-2151371080** | 200 | **2451** | success | **6** |
+| 2026-2027-1 | 2026-2027-1152226210 | 200 | 172 | success | 0 |
+| 2026-2027-1 | 2026-2027-1152227978 | 200 | 172 | success | 0 |
+
+⇒ **春季 24 条非空 ⇒ 按裁定补做**（18 条落在 12 个 `zyid`、6 条落在 3 个 `zyid`；**24/24 全部匿名**）。
+证据：`P1-excellent-probe-spring.txt`、`P2-excellent-probe-autumn.txt`（`hdc file recv` 的原始文件）、
+`P3-hilog-spring-probe-full.txt`、`P4-hilog-autumn-probe-full.txt`（逐课行 + raw 分块）。
+可重跑：`aa start … --ps lohSemester 2025-2026-2` → `devecocli ui click --device 127.0.0.1:5555 396 2682`
+→ `hdc … file recv /data/app/el2/100/base/com.koracan.learnOH/haps/entry/files/excellent-probe.txt …`。
+（过程记录：秋季第一次启动 5 秒后被系统杀掉、应用侧零日志（`P4` 里只有 `onCreate`），**重试后成功** —— 当初那份 `P4` 已用重试版覆盖。）
+
+#### 2. 落地清单（补做轮）
+
+| 文件 | 变化 |
+| --- | --- |
+| `domain/model/ContentItem.ets` | 新增 `ExcellentHomework`；`Assignment.excellentHomeworkList?: ExcellentHomework[]` |
+| `domain/parse/AssignmentParser.ets` | 新增 `RawExcellent` / `excellentHomeworkPageUrl` / `parseExcellentHomework` / `excellentDisplayAttachment` / `attachExcellentHomework`（文件末尾一节） |
+| `data/remote/AssignmentsFetcher.ets` | `ASSIGNMENT_EXCELLENT_LIST_PATH` / `extractExcellentRows` / `fetchExcellent`（每门课 +1 POST、每条 +1 GET）；汇总行 `excellent=`；消费点自证行 `excellent: course=… zyid=… items=… anonymous=… named=…` |
+| `features/assignments/AssignmentFilter.ets` | `hasExcellentHomework`（卡片 medal 判据） |
+| `features/assignments/AssignmentsPage.ets` | 卡片右上角 🏅（`yellow500`，排在 📎/✓/🎓/🔑 之后，照 AssignmentCard.tsx:84-91） |
+| `features/assignments/AssignmentDetailPage.ets` | "优秀作业"段（medal + `gradeAttachment || submittedAttachment` 可点 → `ROUTE_FILE_DETAIL` + "X的优秀作业"）；`assignment detail appear` 增 `excellent=<n>` |
+| `features/assignments/AssignmentEvidence.ets` | 夹具加 2 条优秀作业（1 匿名 + 1 具名）—— 真实数据取不到具名那一支 |
+| i18n | `ui_assignment_excellent` / `ui_assignment_excellent_by` / `ui_assignment_excellent_mark_label`（270 键） |
+| 单测 | 新文件 `ExcellentHomework.test.ets`（7 条）+ `DataFetch` 新增 1 条 + 既有两个计数断言同步（post 9 → 10） |
+
+#### 3. 逐条证据（每条结论配**独立**证物）
+
+- **真实数据取数**（春季 7 门课）：`G4-hilog-spring-excellent-full.txt` 里
+  `assignments fetched courses=7 items=57 … requests=166 failures=0 nonStringDeadlines=57 excellent=24`
+  （166 = 135 + 7 次列表 + 24 次详情页）+ 15 行 `excellent: course=… zyid=… items=… anonymous=N named=0`。
+- **卡片 medal（真实）**：`G1-assignments-spring-excellent-list-final.png`（列表顶）、
+  `G1b-assignments-spring-excellent-medals-final.png` + `G2c-layout-spring-excellent-scroll2.json`
+  （布局树里两处 `MEDAL @[1194,765…]` / `@[1194,1479…]`）。
+- **详情"优秀作业"段（真实）**：`G5b-assignments-spring-excellent-section-final.png` +
+  `G6b-layout-spring-excellent-section-final.json`（`🏅 优秀作业` / `🏅 9.pdf` / `匿名的优秀作业`）+ `G7`（`excellent=1`）。
+- **附件可点（真实，优秀作业这一路）**：`G8/G9/G10`（`attachment tapped: kind=excellent name=9.pdf` →
+  FileDetail 参数逐项；注意优秀作业的下载地址是 `/b/wlxt/kczy/zy/student/downloadFileyx/…`，
+  **与作业附件的 `downloadFile` 不同**，ticket 11 需按 URL 原样用）。
+- **夹具：具名作者那一支**（真实 24/24 全匿名）：`H1`（列表 🏅）、`H5`（`mock=true … excellent=2`）、
+  `H6`（`assignment detail appear … excellent=2`）、`H3/H4`（`匿名的优秀作业` + `夹具同学的优秀作业`）、
+  `H7/H8/H9`（`kind=excellent name=夹具优秀作业-提交.pdf id=mock-exc-att-submitted`）。
+- **秋季 0 条**：`P2` + `P4`（2 门课均 `bytes=172 aaData=0`）。
+- **未完成视图空态（裁定 2）**：`F1-assignments-spring-unfinished-empty-final.png` + `F2` 布局树
+  （筛选片"未完成 0"高亮、空态"没有未完成的作业"）。
+- **提交态复验 + 产物检索**：`I1`（真实 57 条）+ `I2-hilog-commit-state-full.txt`
+  （`assignments evidence: mock=false … excellent=2`、`excellent=24 requests=166 failures=0`）；
+  `E2-hap-modules-abc-symbols.txt`（`yxzylist`/`viewYxzy`/`ExcellentHomework`/`parseExcellentHomework`/
+  `attachExcellentHomework`/`excellentHomeworkPageUrl` = True；`ExcellentProbe`/`excellent-probe`/
+  `PROBE-SWITCH`/`evidence.textcodec`/`TEMP-EVIDENCE` = False）。
+
+#### 4. 门禁（补做后，真跑）
+
+| 检查 | 结果 |
+| --- | --- |
+| 全量单测 | 删 `entry/.test` + `--no-incremental` → **Tests run: 302, Failure: 0, Error: 0, Pass: 302**（基线 294，+8） |
+| 构建 | `devecocli build` BUILD SUCCESSFUL，产物 **2026-09-12 18:04:40**，2242094 字节 |
+| 产物内容 | `ets/modules.abc` = 924768 字节；见 `E2`（含优秀作业符号、无任何探针串） |
+| 四脚本 | domain-purity PASS（17）/ import-graph PASS（131）/ i18n **RESULT: OK**（270 键、84 引用全解析）/ generated-fresh PASS |
+| 探针残留 | 源码无 `ExcellentProbe`；产物检索同上；补丁留档 `.dsh/logs/10b-probe.patch` + `10b-mock-switch.patch`（含 `.keep`/`.on`） |
+
+#### 5. 偏离（已登记在 `docs/reference-quirks.md` 第 21 条）
+
+1. **不取 `getHomeworkDetail(baseId)`**（参考实现对每条优秀作业再 POST 一次描述接口）：该作业描述同一次 fetch 已取到，
+   优秀作业段也不显示它 ⇒ **请求数减少**（24 次），界面可观察量不变。
+2. **失败粒度更细**：参考实现 `Promise.all` 一条详情页失败丢整门课；这里单条失败 ⇒ 保留该条（无附件）+ warn。
+   整条列表失败 ⇒ warn + 作业列表/次序不受影响（参考实现原语义）。
+3. 卡片/详情用 🏅 emoji 代替 MaterialCommunityIcons 的 medal（同第 16 条的判断）。
+4. 请求数如实增加（135 → 166）并进汇总行；ticket 05 的边界说明已追加"追加之二"。
+
+#### 6. 仍未验证 / 转出
+
+- **具名作者（非匿名）**这一支在真实数据上取不到（春季 24/24 `sfzm='是'`）⇒ 只有夹具证据（H3/H4）。
+- 优秀作业附件只到"名字 + 下载地址 + 参数逐项"这一层；真身（下载/预览/分享）仍归 ticket 11。
+- 真机截图仍转 ticket 18（本轮全部为**模拟器**口径）。
+- **取样代价**：探针 2 轮（春季 7 门课、秋季 2 门课）+ 补做后 2 轮（真实春季、夹具）+ 提交态 1 轮；
+  每次全量抓取春季 `requests=166 / elapsedMs≈5.2–6.7s`。
+
 

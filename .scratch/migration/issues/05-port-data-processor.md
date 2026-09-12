@@ -278,3 +278,28 @@ ticket 10 在真实数据上又发现两类同源问题，都在同一次编辑�
 新增的 `assignmentsFetchSortsByDeadlineBeforeSplittingUpcomingAndPast` 钉的是**调用点**（补上的第一步）。
 **可观察量转移到哪里**：详情页的"提交于 / 批改于 / 补交截止"三行与作业列表的次序 —— 见 ticket 10 的 B3/B5/C5。
 **本 ticket 的 `verified-partial` 不变**（两项仍由账号门控）。
+
+**追加之二（2026-09-12，ticket 10 补做"优秀作业"）—— `AssignmentsFetcher` 多了一类请求**
+
+统筹裁定「优秀作业」是缺口（工单 What-to-build 有它，参考实现的**卡片**也依赖它），补做落在同一个 fetcher 上：
+
+1. **每门课多 1 次 POST** `/b/wlxt/kczy/zy/student/yxzylist`（表单与作业列表同一个 `aoData`）；
+   **每条优秀作业多 1 次 GET** 优秀作业详情页 `viewYxzy?wlkcid=&xszyid=`（附件块复用 `parseAssignmentDetail`）。
+   汇总行多一个 `excellent=<n>`。实测（2025-2026 春季，7 门课）：
+   `data.assignments fetched courses=7 items=57 requests=166 failures=0 nonStringDeadlines=57 excellent=24`
+   —— 166 = 135（原来）+ 7（列表）+ 24（详情页）。
+2. **失败被吞**（照参考实现 `index.js:862-864` 的 `// Don't block the whole process`）：
+   整条列表失败 ⇒ `warn` 一行、作业列表/次序/其它课程不受影响；单条详情页失败 ⇒ 保留该条（无附件）+ warn。
+   见 docs/reference-quirks.md 第 21 条（含我们比参考实现更细的失败粒度这一条偏离）。
+3. **`DataFetch.test.ets` 的计数断言已在同一次编辑里更新**：
+   `assignmentsFetchParsesFourAttachmentsAndLogs` 的 **post 9 → 10**（该测试没有为 `yxzylist` 路由，
+   那次 404 被当成"这门课没有优秀作业"吞掉 —— 正好把失败容错也覆盖了），**get 仍 6**；
+   新增 `assignmentsFetchAttachesExcellentHomeworkAndCountsRequests`（post 10 / get 8）与
+   独立文件 `ExcellentHomework.test.ets`（7 条，含真实响应形状的夹具）。
+
+**你的证据还成立到哪一步**：**仍全部成立**。三个列表接口的语义、四类附件解析、两步排序都没变；
+新增的那一次 POST 不进入你钉过的 `items=` 与 `nonStringDeadlines=`（它只改变 `requests=` 与新增的 `excellent=`）。
+上面"追加"一节里写的 **post 9 / get 6** 是**补做前**的数字，补做后是 **post 10 / get 6**（`DataFetch.test.ets` 已同步）。
+**可观察量转移到哪里**：汇总行的 `excellent=` 与 `data.assignments excellent: course=… zyid=… items=… anonymous=… named=…`
+自证行；界面见 ticket 10 补做轮的 G/H 系列证据（列表 🏅、详情"优秀作业"段、附件 → FileDetail）。
+**本 ticket 的 `verified-partial` 不变**（两项仍由账号门控）。

@@ -688,3 +688,49 @@ ticket 05 的移植正是这样，而它的单测 `ordersUpcomingFirstLikeTheRef
 `entry/src/main/ets/features/assignments/AssignmentText.ets`；
 `.scratch/assignments/evidence/B7-hilog-spring-assignments-full.txt`（`completionType=1 submissionType=2`）。
 
+---
+
+## 21. 优秀作业是**另一条接口**（`yxzylist`）、失败被吞、卡片与详情各显示一处 —— 锁定（ticket 10 补做）
+
+**参考实现行为**：一个取数 + 两处消费，三者的语义都要一起照做。
+
+| 位置 | 行为 | 出处 |
+| --- | --- | --- |
+| 取数 | 拿完作业列表后，**对同一门课再 POST 一次** `LEARN_HOMEWORK_LIST_EXCELLENT` = `/b/wlxt/kczy/zy/student/yxzylist`，body 与作业列表**同一个** `LEARN_PAGE_LIST_FORM_DATA(courseID)`；取 `json.object.aaData`，按每条 `h.zyid` 归到作业；**整段在 try/catch 里被吞掉**（源码注释 `// Don't block the whole process if excellent homework list cannot be fetched`） | thu-learn-lib `lib/module/index.js:859-864, 894-928`、`urls.js:50` |
+| 卡片 | `excellentHomeworkList.length > 0` → 右上角一枚**黄色 medal**（`Colors.yellow500`） | `components/AssignmentCard.tsx:84-91` |
+| 详情 | 每条一段：medal 图标 + 附件（**`gradeAttachment \|\| submittedAttachment`**）+ `author.anonymous ? t('anonymous') : author.name` + "X的优秀作业"；附件点击走**同一条** `FileDetail` | `screens/AssignmentDetail.tsx:327-363` |
+| 每条记录的附件 | 来自**优秀作业详情页** `/f/wlxt/kczy/zy/student/viewYxzy?wlkcid=&xszyid=`（`urls.js:71`）的**四类附件块**（与作业详情同一套解析） | `index.js:906-920` |
+
+**为什么值得单独登记**：这条接口与作业列表**长得像、语义不同** ——
+它**按 `zyid` 分组后可以一条作业多条记录**（不是 1:1）；而且"失败被吞"是**有意行为**：
+拿不到优秀作业不该让整页作业失败。**别把这条 catch 当成遗漏去掉**，也别把它改成"取不到就把该作业标成失败"。
+
+**设备实测（2026-09-12，模拟器 Pura 90 / HarmonyOS 6.1.0(23)）**：
+
+| 学期 | 课程数 | 非空课程 | 原始条数 | 备注 |
+| --- | --- | --- | --- | --- |
+| 2025-2026 春季 | 7 | 2（`…719` 18 条 / `…1080` 6 条） | **24** | 落在 **15 个 `zyid`** 上（6 个 `zyid` 各 2 条）；**24/24 全部匿名**（`sfzm='是'`、`cy=''`） |
+| 2026-2027 秋季 | 2 | 0 | 0 | 与"秋季没有作业"一致 |
+
+原始响应（逐字节）落盘后取回：`.scratch/assignments/evidence/P1-excellent-probe-spring.txt`、`P2-excellent-probe-autumn.txt`；
+逐课 hilog（含 raw 分块）：`P3-hilog-spring-probe-full.txt`、`P4-hilog-autumn-probe-full.txt`。
+
+**新实现做法（与参考实现的三点差异，逐条写清）**：
+
+1. **请求数如实进汇总行**：`AssignmentsFetcher.fetch` 每门课 +1 POST、每条优秀作业 +1 GET，
+   汇总行多一个 `excellent=<n>`（实测春季 `requests=166` = 135 + 7 + 24、`excellent=24`、`failures=0`），
+   另有消费点自证行 `data.assignments excellent: course=… zyid=… items=… anonymous=… named=…`。
+2. **不取 `getHomeworkDetail(baseId)`**（参考实现对每条优秀作业还会再 POST 一次作业描述接口）：
+   该 `baseId` 的作业**本来就在同一次 fetch 里取过描述**，优秀作业段也不显示它。
+   这是**请求数减少**，不改变任何界面可观察量；要逐字照抄参考实现的请求集合，就把这一条改回并同步 ticket 05 的计数。
+3. **失败粒度比参考实现细一档**：参考实现的 `Promise.all` 一旦某条详情页抛错，**整门课**的优秀作业一起丢；
+   这里改成"单条取不到 ⇒ 保留该条（只是没有附件）+ warn 一行"。
+   替代验收标准：**整条列表请求失败 ⇒ warn 一行，作业列表与次序完全不受影响**；
+   **单条详情页失败 ⇒ 该条保留且无附件**。两条都由 `AssignmentsFetcher.fetchExcellent` 的 warn 分支承载，
+   并有单测（`assignmentsFetchParsesFourAttachmentsAndLogs` 里那次 404 就是第一条路径）。
+
+**取证**：上述 thu-learn-lib 行号；`entry/src/main/ets/data/remote/AssignmentsFetcher.ets`（`fetchExcellent`）；
+`entry/src/main/ets/domain/parse/AssignmentParser.ets`（文件末尾"优秀作业"一节）；
+`entry/src/test/ExcellentHomework.test.ets`；
+ticket 10 补做轮的 `G1/G1b/G5b/G8`（真实）、`H1/H3/H7`（夹具）、`G4/I2`（hilog）、`E2`（产物检索）。
+
