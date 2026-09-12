@@ -118,3 +118,18 @@
   本节的变更点用于解释「为什么同一台模拟器前后的失败/通过不同」。
 - 验证结果：探针 `quotaMb` 3504 → **9347**、`isPrivateByChromeRule` true → **false**
   （`experiment-0918/07-incognito-probe.txt` 与 `07-incognito-probe-after-resize.txt`，后者 SHA256 `86C8DB3B…3D1078`）。
+
+## 【提交态单独复验】diag=0 与 fpSource=page 同屏（2026-09-12 10:25）
+
+此前留下的缺口是「提交态产物未单独装机复验」。本轮补上（同时修掉 stage= 的误导命名）：
+
+- 代码改动：`EnrollmentWebView.publishStatus` 的 `stage=` → **`lastReport=`**（它装的是「最后一次桥上报的 kind」，
+  诊断构建下会被 `diag:*` 覆写，叫 stage 会让人误读成站点流程阶段）；并把判定标志（diag / gate / fpSource）
+  **排到行首**——容器顶部只有两行宽，末尾会被截成省略号，上一版 diag=0 就落在被截掉的半行里。
+- 提交态产物：删 entry/build 全量重建 → entry-default-signed.hap 1,558,436 B @ 10:22:04，
+  SHA256 `28814380647D65B6CE68789F3BD1078859418E4D8B9A607FB9CBD5F052B9747A`。
+- 产物内容检索（解包 ets/modules.abc）：lastReport= **在**、stage= **不在**、EnrollmentProbe 不在。
+- 装机后 hilog 自证：enrollment webview starting … diagnostics=false；diag: 报告 **0 条**；
+  状态行 `lastReport=page diag=0 gate=0 fpSource=page f3Remote=0 fpChars=32 …`。
+- 证据：`07-commit-state-diag0-fpSourcePage.png`（557,571 B，SHA256 `47871727E39DBFCC297156ADDC1F44A35E63A10B7936E9FCB28EFF4B3DC522DB`）、
+  `07-commit-state.txt`（8,755 B，SHA256 `ED90BBF6CDB68015CBA4D95A08B57B000452288AD81BDFB3BCB4ED28609BC5EB`）。

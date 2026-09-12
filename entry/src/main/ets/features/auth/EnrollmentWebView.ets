@@ -200,18 +200,27 @@ export struct EnrollmentWebView {
     return resolveTheme(this.colorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK);
   }
 
-  private publishStatus(stage: string): void {
-    const text: string = 'stage=' + stage
+  /**
+   * 状态行。字段名是 `lastReport=` 而不是 `stage=`——**这是 2026-09-12 的教训**：
+   * 它装的是"最后一次桥上报的 kind"（诊断构建下会被 `diag:*` 覆写），
+   * 叫 `stage` 会让人误以为它是"站点流程阶段"（用户那次失败截图里躺着的 `stage=diag:idb` 就是这样误导的）。
+   * 判站点阶段请用具体行：`submitGate` / `enrollment navigate:` / `[xhr]` / `[pageScripts]`。
+   */
+  private publishStatus(lastReport: string): void {
+    // 字段顺序是**故意**的：容器顶部那条状态行只有两行宽，末尾会被截断成 `…`。
+    // 因此判定用的标志（诊断开关、自检、指纹来源）排在前面，长度类信息排在后面——
+    // 2026-09-12 的取证就吃过一次亏：`diag=0` 落在被截掉的那半行里，没法与 `fpSource=page` 同屏。
+    const text: string = 'lastReport=' + lastReport
+      + ' diag=' + (ENROLLMENT_DIAGNOSTICS_FOR_EVIDENCE ? '1' : '0')
+      + ' gate=' + (this.dom.gateBlocked ? '1' : '0')
+      + ' fpSource=' + (this.dom.fingerPrintSource.length > 0 ? this.dom.fingerPrintSource : 'none')
+      + ' f3Remote=' + this.dom.finger3RemoteOk.toString()
       + ' fpChars=' + this.dom.fingerPrint.length.toString()
       + ' fgChars=' + this.dom.fingerGenPrint.length.toString()
       + ' fg3Chars=' + this.dom.fingerGenPrint3.length.toString()
-      + ' prefill=' + (this.dom.userPrefilled ? '1' : '0') + (this.dom.passPrefilled ? '1' : '0')
-      + ' saveFinger=' + (this.dom.saveFingerPatched ? '1' : '0')
-      + ' fpSource=' + (this.dom.fingerPrintSource.length > 0 ? this.dom.fingerPrintSource : 'none')
-      + ' f3Remote=' + this.dom.finger3RemoteOk.toString()
       + ' singleLogin=' + (this.dom.singleLoginChecked ? '1' : '0')
-      + ' gate=' + (this.dom.gateBlocked ? '1' : '0')
-      + ' diag=' + (ENROLLMENT_DIAGNOSTICS_FOR_EVIDENCE ? '1' : '0')
+      + ' saveFinger=' + (this.dom.saveFingerPatched ? '1' : '0')
+      + ' prefill=' + (this.dom.userPrefilled ? '1' : '0') + (this.dom.passPrefilled ? '1' : '0')
       + ' roaming=' + (this.roamingSeen ? '1' : '0');
     this.statusText = text;
     this.onStatus(text);
