@@ -85,3 +85,23 @@
 **分析那次真实提交时要看的关键词**：`roaming` / `harvest` / `saveFingerRequest` / `[xhr] res path=/b/doubleAuth/personal/saveFinger` / `[finger3]` / `submitGate` / `preSubmitGate` / `pageScripts` / `enrollment deviceName` / `enrollment session` / `credentials saved`。
 
 **未验证（勿当结论）**：方案 A 能否让服务端授予信任 —— 要等这次真实提交；提交前的自检两行日志也只在真正点提交时出现。
+
+## 【根因】2026-09-12 用户那次失败的判定链（模拟器实测）
+
+**结论：站点自带的 `detectIncognito@1.5.1` 在 ArkWeb 上误判隐私模式，与我们的注入无关。**
+
+- 失败文案是消息键 `double_sfjbsbbjwxrsb3`，渲染条件是 `this.state.isPrivate`；`isPrivate` 时页面**只渲染**
+  `type=否`，**「信任」单选项根本不出现**（`doubleAuth.bundle.js`，已离线取回存本目录）。
+- 检测器 Chromium 分支的判据：`Math.round(quota/1MB) < 2 * Math.round((performance.memory?.jsHeapSizeLimit ?? 1GB)/1MB)`。
+- 设备实测（登录页加载期，**未提交**，见 `07-incognito-probe.txt`）：
+  `heapMb=2089 → thresholdMb=4178`；`queryUsageAndQuota quota=3673699122 (quotaMb=3504)` →
+  **`isPrivateByChromeRule=true`**（3504 < 4178）。
+- 环境依赖：模拟器数据分区 5.7 GB（可用 4.4 GB），ArkWeb 临时配额≈60% 分区=3.5 GB；
+  而 `jsHeapSizeLimit` 按内存（3.9 GB）报 2089 MB。**更大分区的设备上配额会远超 8.4 GB，该误判自然消失。**
+
+**那次会话的 app 域证据**（`experiment-0918-full.txt`，用户会话 09:17:39–09:17:56）：
+`submitGate allowed=1 reason=firstEnrollmentEmptyFinger3`；`fpChars=32 fpSource=page`；
+三次 `POST /b/doubleAuth/login` 全部 `result=success`；**没有** `saveFingerRequest`；**没有** roaming；
+导航只有 登录页 → `/do/off/ui/auth/login/check`（二次验证页，3 个脚本）。
+
+**未验证**：包装配额后站点是否授予信任；真机上该检测器是否自然通过（都是预测）。
