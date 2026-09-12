@@ -283,3 +283,29 @@ ticket 08 把认证门从「**有凭据** = 已登记（ENROLLED）」收紧为�
 
 重登出示的 fingerPrint 现在来自**登记时页面算出的值**（store-and-replay），不再是我们的 UUID。
 08 的调用契约不变（它只从凭据库取值），但**不要假设它是 UUID 形状**（旧的长度/形状断言会失效）。
+
+### 2026-09-12 docs-only 更正：方案 A 的正当性来自「实测失败」，不是「更忠实于参考」
+
+统筹复核参考实现源码时读出我之前读漏的一段：**参考自己也生成随机 UUID**——
+`SSO.tsx:33-39` 的 `Math.random` UUID → `SSO.tsx:51` 注入脚本 → `sso.js:66` 写 `#fingerPrint`、
+`sso.js:24` 写 `saveFinger` 的 XHR → `SSO.tsx:76` 再**回读表单实际提交的值**存为凭据。所以：
+
+- 我先前写的「方案 A 更忠实于参考正文那句 fingerPrint 直接读 DOM」**不成立**——参考写的是它自己的值，
+  与 stock 浏览器同样不一致（36 字符 UUID，形状与我们改造前一模一样）。
+- 方案 A 的正当性只有一条：**参考那套在当前站点上实测失败**（2026-09-12 用户那次），
+  且站点脚本带版本戳 `v=20260830062616`（2026-08-30 改版），晚于参考实现。
+
+已把这段更正写进 `docs/reference-quirks.md` 第 10 条，替代验收标准明确为：**提交报文里的 fingerPrint
+必须等于页面 fingerprintjs2 的值**（页面没给出值才用我们的 UUID 兜底），且三处同值（三点等式判据不变）。
+
+另记两条：
+
+1. **事实（不是偏离）**：`/b/doubleAuth/personal/saveFinger` **在登录页加载的任何脚本里都不存在**
+   （把抓下来的全部站点脚本搜过；此前看到的 "saveFinger" 都是 `saveFinger3Local`/`saveFinger2Local` 的子串）。
+   只能确定「登录页不调它」；用户看到的失败发生在「二次验证成功」**之后**那个本工程尚未抓到的页面，
+   所以**它仍可能在那里被调用**。⇒ 实验里若诊断日志**没有** `saveFingerRequest`，那是**一条信息**
+   （信任登记不走这个端点），**不是 bug**，不要去修。
+2. **另一处已知偏离（本次实验不动）**：`deviceName` 参考是 `HarmonyOS,learnOH/{packageJson.version}`
+   （`SSO.tsx:52`），本工程是 `HarmonyOS,learnOH/{versionName} ({productModel})`
+   （`core/device/AppIdentity.ets:4`，依据 spec 第 5 节）。实验一次只动一个变量：deviceName 不改，
+   但两个值（页面 DOM 里的与我们的）都会进日志，便于事后判断服务端看到的是哪一个。

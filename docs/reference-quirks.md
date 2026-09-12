@@ -236,11 +236,16 @@ const sorted = semesters?.sort().reverse();
 
 ---
 
-## 10. 提交报文里的 `fingerPrint` 取**页面值**而不是自造值 —— 已复审（ticket 07，有意偏离参考实现）
+## 10. 提交报文里的 `fingerPrint` 取**页面值**而不是自造值 —— 已复审（ticket 07）
+状态：**参考那套（自造 UUID）已在 2026-09-12 的真实登记上实测失败**；站点脚本带版本戳
+`v=20260830062616`（2026-08-30 改版），晚于参考实现的最后修改，因此"参考能跑通"这一前提本身不再成立。
 
-**参考实现行为**：`sso.js` 的 `jQuery.fn.submit` 猴补丁在**提交时**把 `${fingerPrint}`（RN 侧
-`Math.random` 造的 UUID）写进表单字段，`saveFinger` 的 XHR 也注入同一个值
-（`src/helpers/preval/sso.js:12-36,55-89`；`src/screens/SSO.tsx:33-52`）——**两处都是它自己的值**。
+**参考实现行为（2026-09-12 补证，之前读漏了）**：它**自己生成随机 UUID**——
+`SSO.tsx:33-39` 的 `useRef('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(...))`（`Math.random`），
+经 `SSO.tsx:51` 的 `replaceAll('${fingerPrint}', …)` 注入脚本；`sso.js:66` 把它写进 `#fingerPrint`、
+`sso.js:24` 注入 `saveFinger` 的 XHR；`SSO.tsx:76` 再**回读表单实际提交的值**存为凭据。
+⇒ 参考**在 fingerPrint 上同样偏离 stock（36 字符 UUID，形状与我们改造前一模一样）**，
+而用户那次失败用的正是我们的 UUID。**所以本条不是"更忠实于参考"，而是"参考的取法在当前站点上已失败"。**
 
 **为什么偏离**：2026-09-12 的真实登记（用户在模拟器上完成短信验证）被服务端拒绝授予信任，
 原话"您的浏览器目前处于隐私或匿名模式，系统无法将该浏览器设置为信任浏览器"
@@ -249,6 +254,7 @@ const sorted = semesters?.sort().reverse();
 `fingerGenPrint` / `fingerGenPrint3` 对未登录会话恒为空（设备实测
 `POST /b/doubleAuth/personal/getFinger3` → `result=error`，匿名 HTTP 探针同样如此），
 `deviceName` 我们没动（页面写 `other,Chrome/132`），`singleLogin` 是站点本意要勾上的。
+`login.html:431-432` 又证明页面自己会给 `#fingerPrint` 赋值（fingerprintjs2，设备实测 `fpChars=32`）。
 在只有证据没有猜测的前提下，**让报文与 stock 浏览器一致是唯一有依据的可控变量**。
 
 **新实现做法**：生效指纹 = **页面自己算出的 fingerprintjs2 值**；只有页面没给出值时，才用我们生成的
@@ -256,11 +262,27 @@ UUID 兜底。同一个生效值用于三处：表单字段、`saveFinger` 的 X
 **store-and-replay**：登记值与重登出示值仍然**逐字相同**（不需要复算页面值——服务端记录的就是它
 收到的那一个字符串）。日志里以 `fingerprintSource=page|fallback` 自证取的是哪一个。
 
-**替代验收标准（本表"已复审"档要求写明的那一条）**：验收第 2 条"服务端登记的设备指纹与我们保存的
-凭据指纹是同一个值"**判据不变**（三点脱敏等式：`formFieldDom` = `saveFingerXhr` = `persistedReadBack`），
-只是**那个值来自页面**；不再要求它等于"我们生成的 UUID"。
+**替代验收标准（本表"已复审"档要求写明的那一条）**：**提交报文里的 `fingerPrint` 必须等于页面
+fingerprintjs2 的值；页面没给出值时才用我们生成的 UUID 兜底；且三处同值**（三点脱敏等式
+`formFieldDom` = `saveFingerXhr` = `persistedReadBack`，判据本身不变），
+不再要求它等于"我们生成的 UUID"。
 
-**取证**：ticket 07 Comments 的「方案 A」；`.scratch/enrollment/evidence/07-diag-prefix-finger3-empty.txt`
+**附注 1（事实，不是偏离）**：`/b/doubleAuth/personal/saveFinger` **在登录页加载的任何脚本里都不存在**
+（把抓下来的全部站点脚本搜过；此前看到的 "saveFinger" 都是 `saveFinger3Local`/`saveFinger2Local` 的子串）。
+⇒ 只能确定"登录页不调它"。用户看到的失败发生在「二次验证成功」**之后**的另一个页面，那个页面本工程
+尚未抓到，所以**它仍可能在那里被调用**（参考实现专门为它打了补丁，作者多半见过它发出）。
+实验里若诊断日志**没有** `saveFingerRequest`，那是**一条信息**（信任登记不走这个端点），
+**不是 bug**，不要去"修"。
+
+**附注 2（另一处已知偏离，本次实验**不动**）**：`deviceName` 参考是
+`HarmonyOS,learnOH/{packageJson.version}`（`SSO.tsx:52`），本工程是
+`HarmonyOS,learnOH/{versionName} ({productModel})`（`core/device/AppIdentity.ets:4`，
+依据 spec 第 5 节）。**本次实验一次只动一个变量**：`deviceName` 不改，但两个值（页面 DOM 里的与
+我们的）都会进日志，便于事后判断服务端看到的是哪一个。
+
+**取证**：`reference/learnOH-old/src/screens/SSO.tsx:33-39,51-52,76`；
+`reference/learnOH-old/src/helpers/preval/sso.js:24,66`；
+ticket 07 Comments 的「方案 A」；`.scratch/enrollment/evidence/07-diag-prefix-finger3-empty.txt`
 （`xhr res path=/b/doubleAuth/personal/getFinger3 … result=error`、`diag:idb roundTripOk=true`）；
 `entry/src/main/ets/domain/auth/EnrollmentScript.ets` 的 `effectiveFingerPrint`；
 `docs/adr/0004` 的正文仍需按本条修订（原文写"我们生成的设备指纹"）。
