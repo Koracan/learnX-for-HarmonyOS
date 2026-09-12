@@ -133,3 +133,55 @@
   状态行 `lastReport=page diag=0 gate=0 fpSource=page f3Remote=0 fpChars=32 …`。
 - 证据：`07-commit-state-diag0-fpSourcePage.png`（557,571 B，SHA256 `47871727E39DBFCC297156ADDC1F44A35E63A10B7936E9FCB28EFF4B3DC522DB`）、
   `07-commit-state.txt`（8,755 B，SHA256 `ED90BBF6CDB68015CBA4D95A08B57B000452288AD81BDFB3BCB4ED28609BC5EB`）。
+
+## 【已就位】诊断构建 armed + 两项新取证 + cookie 预检（2026-09-12 10:49-10:54）
+
+| 项 | 值 |
+| --- | --- |
+| 源码 HEAD（还原点） | `254d360`（工作区 = 诊断补丁，未提交） |
+| 诊断补丁 | `.dsh/logs/diagnostics.patch` 16,706 B，SHA256 `433FFEE4E880E70F40C4A888B626366F6E3984EDCB86557E724BE9169BB98876` |
+| 诊断 hap | 1,577,096 B @ 10:49:06，SHA256 `0D64800FEC5CC3CAF63D831B90D81A9280B26E21F0C812ABB32744B52D80F367`（已安装） |
+| 抓取 | 设备侧 `hilog -w start -f learnoh_ready2 -l 8M -n 20`（**仍在运行**，等用户） |
+| 证据文件 | `07-armed-state-precheck.txt`（4,278 B，SHA256 `B48824FB744DB8055F3AC0F05CF6AE5A5E7A6A4D16CF4EB2DE89746394CEBBDC`） |
+
+**正样本自证（在抓取产物里看到应用域原文行）**：
+
+```
+09-12 10:53:53.313 32102 32102 I A04c4f/features.enrollment: [features.enrollment] enrollment webview starting:
+  urlPath=id.tsinghua.edu.cn/do/off/ui/auth/login/form/bb5df85…/0 fingerprint=ddcf…(36)
+  deviceName=HarmonyOS,learnOH/1.1.0 (emulator) saveFingerPath=/b/doubleAuth/personal/saveFinger
+  injectedChars=31714 diagnostics=true
+```
+（`grep -c A04c4f` → **90** 行。）
+
+### (a) cookie 清单（原生 vs JS）——**预检通过**
+
+```
+enrollment cookies [id.tsinghua.edu.cn/do/off/ui/auth/login/form/…] nativeFetchCookie:
+  idNames=[JSESSIONID] idChars=52 learnNames=[] learnChars=0
+enrollment cookies […] nativeAllCookies: tsinghuaCount=1 allCount=1
+  entries=[JSESSIONID@id.tsinghua.edu.cn{secure=false,httpOnly=true,session=true,expires=no}]
+enrollment page report [diag:env] … jsCookieNames=[] cookieChars=0 …
+```
+
+⇒ **ArkWeb 对 id.tsinghua.edu.cn 持有 1 个 cookie，不是 0** ⇒ 不需要按「立刻停下」处理。
+并且这份基线恰好把「JS 看不到」说清楚了：**JS 侧 0 个（`cookieChars=0`）**，原生侧 1 个且 **httpOnly=true**、
+**session=true / expires=no**（会话 cookie，无过期时间）。`learn.tsinghua.edu.cn` 此刻 0 个（漫游前，符合预期）。
+⇒ 作为「cookie 通道可用」的预检证据；也给出一个**基线**：登录页只下发一个 httpOnly 会话 cookie，
+**没有任何持久 cookie**——用户那次提交后要与这个基线做前后对比。
+
+### 两项新取证的加载期自证
+
+```
+[xhr] res path=/b/doubleAuth/personal/getFinger3 status=200 chars=59 result=error objectChars=0 keys=[result,msg,object]
+[pageScripts] phase=load url=…/login/form/bb5df85…/0 scriptCount=25 inlineScripts=4 formAction=/do/off/ui/auth/login/check scripts=[…25 条…]
+[diag:incognito] queryUsageAndQuota usage=6472 quota=9801080832 quotaMb=9347 isPrivateByChromeRule=false
+```
+
+- (b) 已按规格工作：**字段名列表** + 仅 `msg`/`message`/`errorMsg` 的值（token 形态串换成 `<redacted:len>`）；
+  getFinger3 的 `msg` 是 `null`，所以没有 `msgs=` 段——这本身说明该接口不通过 msg 传理由。
+- (a) 的清单在**每个文档 load 完**（`onPageEnd`）各记一次；用户那次提交后，
+  **漫游前后**的 cookie 名字/属性变化就是「信任登记靠什么落地」的直接判据。
+
+**用户那次要 grep 的关键词**：`enrollment cookies`（前后对比）、`saveFingerRequest`、`[xhr] res`（含 `keys=`/`msgs=`）、
+`[pageScripts]`（失败落在哪个页面）、`[diag:incognito]`、`submitGate`/`preSubmitGate`、`roaming`/`harvest`、`credentials saved`。
