@@ -38,6 +38,29 @@ export interface AuthedTaskExecutor {
   run(task: SessionTask): Promise<AuthedRunResult>;
 }
 
+/**
+ * 取证开关：**在发起任何请求之前中止公告刷新**（提交态 `false`）。
+ *
+ * 用途只有一个：让**上一次成功刷新落盘的 `fetchedAtMillis`** 不被启动时那次刷新覆盖，
+ * 从而能拍到页头的 `N 分钟前更新` 那一档（台账第 24 条的替代验收标准第 3 条要设备侧证据）。
+ *
+ * 实测的设备侧步骤（逐字命令与"注入值 → 画面文本"的对应见 `.scratch/icons/evidence/README.md` §7）：
+ *   ① 用**提交态构建**启动一次 ⇒ 它成功刷新并落盘 `fetchedAtMillis = T0`
+ *      （hilog `notices refresh done: … fetchedAt=T0`）；
+ *   ② 换成**本开关为 true 的构建**装机；
+ *   ③ 用**设备时钟**核对，等到 `设备now − T0 ≈ 90s` 时启动 —— 启动时刻由我们选、
+ *      `hdc shell date +%s` 可读、差值可算，**不是赌手速**；
+ *   ④ 启动后快照先生效、刷新被本开关中止 ⇒ 页头显示的就是 T0 对应的那一档（≈ `1 分钟前更新`）。
+ *
+ * **不要试图直接改写 preferences 里的快照**：本模拟器上 `shell` 域对该文件**没有写权限**
+ * （实测 `/bin/sh: can't create …learnoh_notice_snapshot: Permission denied`，即使目录是 777），
+ * `su` 也不可用；所以这里的"注入"= 固定启动时刻 + 掐掉覆盖它的那次刷新。
+ *
+ * 消费点自证：`refresh()` 每次都会把**实际生效值**打进 hilog（`notices refresh switch…`），
+ * 所以"提交态已关"不靠源码行号、靠运行期那一行。其它任何数据路径都不读这个开关。
+ */
+export const NOTICES_REFRESH_FAILURE_FOR_EVIDENCE: boolean = false;
+
 /** 公告抓取端口：设备侧是"课程列表 + NoticesFetcher"，测试里是替身。 */
 export interface NoticeFetchSource {
   /** 在给定会话里抓取全部公告；失败时抛出（消息进日志）。 */
@@ -110,6 +133,14 @@ export class RealNoticeRepository implements NoticeRepository {
 
   /** 抓取 → 映射 → 落快照。失败一律 reject（**不返回空列表**）。 */
   async refresh(): Promise<NoticeSnapshot> {
+    // 消费点自证（AGENTS：开关必须把**实际生效值**打在谁读它的地方）：
+    this.logger.info('notices refresh switch: NOTICES_REFRESH_FAILURE_FOR_EVIDENCE='
+      + NOTICES_REFRESH_FAILURE_FOR_EVIDENCE.toString());
+    if (NOTICES_REFRESH_FAILURE_FOR_EVIDENCE) {
+      this.logger.error('notice refresh aborted before any request: NOTICES_REFRESH_FAILURE_FOR_EVIDENCE=true'
+        + '（取证用：让注入的快照时间戳留在页头上）');
+      throw new Error('notice refresh aborted by evidence switch');
+    }
     const startedAt: number = Date.now();
     this.fetched = [];
     const run: AuthedRunResult = await this.executor.run(async (session: Session): Promise<TaskOutcome> => {
