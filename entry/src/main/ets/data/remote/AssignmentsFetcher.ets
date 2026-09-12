@@ -13,17 +13,24 @@
  * 再切成"未到期（由近及远）/ 已过期（由远及近）"。见 `fetch` 内的注释与
  * docs/reference-quirks.md 第 19 条。
  *
- * 锚点日志（验收项 1）：
+ * 另外每门课还会：
+ *   3. POST `yxzylist` 取**优秀作业**列表，并对每条取优秀作业详情页（`viewYxzy`）解析附件；
+ *      整段失败只 warn 一行（参考实现吞掉这条失败），见 docs/reference-quirks.md 第 21 条。
+ *
+ * 锚点日志（验收项 1；ticket 10 补做后多了 `excellent=`）：
  *   data.assignments fetched courses=<n> items=<n> elapsedMs=<n> requests=<n> failures=<n>
+ *                            nonStringDeadlines=<n> excellent=<n>
+ *   data.assignments excellent: course=<id> zyid=<id> items=<n> anonymous=<n> named=<n>
  */
 
 import { Logger } from '../../core/log/Logger';
-import { Assignment } from '../../domain/model/ContentItem';
+import { Assignment, ExcellentHomework } from '../../domain/model/ContentItem';
 import { CourseName } from '../../domain/parse/CourseName';
 import { decodeHtmlEntities } from '../../domain/parse/Text';
 import {
-  AssignmentDetail, RawAssignment, assignmentDetailUrl,
-  mergeAssignmentDetail, parseAssignment, parseAssignmentDetail,
+  AssignmentDetail, RawAssignment, RawExcellent, assignmentDetailUrl,
+  attachExcellentHomework, excellentHomeworkPageUrl,
+  mergeAssignmentDetail, parseAssignment, parseAssignmentDetail, parseExcellentHomework,
   compareAssignmentsByUpcoming, sortAssignments
 } from '../../domain/parse/AssignmentParser';
 import { FetchOutcome, FetchPort, Session } from './Port';
@@ -65,6 +72,36 @@ export function extractAssignmentRows(body: string): RawAssignment[] {
   }
   const box: Record<string, Object> = object as Record<string, Object>;
   return box['aaData'] === undefined || box['aaData'] === null ? [] : box['aaData'] as RawAssignment[];
+}
+
+/** 优秀作业列表接口（thu-learn-lib `urls.js:50`）；表单与作业列表**同一个** `aoData`。 */
+export const ASSIGNMENT_EXCELLENT_LIST_PATH: string = '/b/wlxt/kczy/zy/student/yxzylist';
+
+/**
+ * 优秀作业列表响应 → 原始记录数组。
+ * 与作业列表同一个信封（`result: success` + `object.aaData`），判定逻辑一致。
+ * 实测原文见 `.scratch/assignments/evidence/P1-excellent-probe-spring.txt`。
+ */
+export function extractExcellentRows(body: string): RawExcellent[] {
+  if (body.length === 0) {
+    return [];
+  }
+  let parsed: Object;
+  try {
+    parsed = JSON.parse(body) as Object;
+  } catch (error) {
+    return [];
+  }
+  const root: Record<string, Object> = parsed as Record<string, Object>;
+  if (String(root['result']) !== 'success') {
+    return [];
+  }
+  const object: Object | undefined = root['object'] as Object | undefined;
+  if (object === undefined || object === null) {
+    return [];
+  }
+  const box: Record<string, Object> = object as Record<string, Object>;
+  return box['aaData'] === undefined || box['aaData'] === null ? [] : box['aaData'] as RawExcellent[];
 }
 
 /**
@@ -126,6 +163,13 @@ export function mergeAssignments(existing: Assignment, incoming: Assignment): As
   return merged;
 }
 
+/** 优秀作业抓取结果（条数 + 请求数，便于把请求数如实进汇总行）。 */
+export interface ExcellentFetchOutcome {
+  entries: ExcellentHomework[];
+  requests: number;
+  failures: number;
+}
+
 /** 作业仓储。 */
 export class AssignmentsFetcher {
   private readonly logger: Logger;
@@ -153,6 +197,7 @@ export class AssignmentsFetcher {
     let nonStringDeadlines: number = 0;
     const byId: Map<string, Assignment> = new Map<string, Assignment>();
     const order: string[] = [];
+    const excellentEntries: ExcellentHomework[] = [];
 
     for (let i = 0; i < courseIds.length; i++) {
       const courseId: string = courseIds[i];
@@ -186,6 +231,14 @@ export class AssignmentsFetcher {
           }
         }
       }
+      // 优秀作业：每门课**一次**列表 + 每条一次详情页（照参考实现）。
+      // 列表失败只 warn，不影响作业列表与次序（参考实现 `// Don't block the whole process`，index.js:862-864）。
+      const excellent: ExcellentFetchOutcome = await this.fetchExcellent(courseId);
+      requests += excellent.requests;
+      failures += excellent.failures;
+      for (let e = 0; e < excellent.entries.length; e++) {
+        excellentEntries.push(excellent.entries[e]);
+      }
     }
 
     const collected: Assignment[] = [];
@@ -193,6 +246,23 @@ export class AssignmentsFetcher {
       const item: Assignment | undefined = byId.get(order[i]);
       if (item !== undefined) {
         collected.push(item);
+      }
+    }
+    attachExcellentHomework(collected, excellentEntries);
+    // 消费点自证：zyid → 优秀作业条数（补做项的取证要求：看得见"哪条作业挂了几条、几条匿名"）。
+    for (let i = 0; i < collected.length; i++) {
+      const list: ExcellentHomework[] | undefined = collected[i].excellentHomeworkList;
+      if (list !== undefined) {
+        let named: number = 0;
+        for (let k = 0; k < list.length; k++) {
+          if (!list[k].anonymous) {
+            named++;
+          }
+        }
+        this.logger.info(ASSIGNMENTS_LOG_DOMAIN + ' excellent: course=' + collected[i].courseId
+          + ' zyid=' + collected[i].baseId + ' items=' + list.length.toString()
+          + ' anonymous=' + (list.length - named).toString()
+          + ' named=' + named.toString());
       }
     }
     // 参考实现的最终次序是**两步**：
@@ -209,7 +279,8 @@ export class AssignmentsFetcher {
       + ' elapsedMs=' + elapsedMs.toString()
       + ' requests=' + requests.toString()
       + ' failures=' + failures.toString()
-      + ' nonStringDeadlines=' + nonStringDeadlines.toString());
+      + ' nonStringDeadlines=' + nonStringDeadlines.toString()
+      + ' excellent=' + excellentEntries.length.toString());
     return ordered;
   }
 
@@ -267,6 +338,52 @@ export class AssignmentsFetcher {
       }
     }
     return mergeAssignmentDetail(base, detail);
+  }
+
+  /**
+   * 优秀作业：**每门课一次**列表请求（`yxzylist`，表单与作业列表同一个 `aoData`），
+   * 再对**每条**取优秀作业详情页（`viewYxzy?wlkcid=&xszyid=`）解析两枚附件。
+   *
+   * 失败语义照参考实现（`index.js:859-864`）：**整段被吞**，只 warn 一行，
+   * 作业列表、排序与其它课程都不受影响。详情页取不到时保留该条（只是没有附件），
+   * 见 docs/reference-quirks.md 第 21 条。
+   */
+  private async fetchExcellent(courseId: string): Promise<ExcellentFetchOutcome> {
+    const result: ExcellentFetchOutcome = { entries: [], requests: 1, failures: 0 };
+    const listOutcome: FetchOutcome = await this.port.postForm(this.session, {
+      url: LEARN_ORIGIN + ASSIGNMENT_EXCELLENT_LIST_PATH + '?_csrf=' + this.session.csrfToken,
+      courseId: courseId
+    });
+    if (!listOutcome.ok) {
+      result.failures = 1;
+      this.logger.warn(ASSIGNMENTS_LOG_DOMAIN + ' excellent list failed course=' + courseId + ' '
+        + (listOutcome.error === undefined ? 'HTTP ' + listOutcome.status.toString() : listOutcome.error)
+        + ' -> assignment list/ordering unaffected (reference swallows this failure)');
+      return result;
+    }
+    const rows: RawExcellent[] = extractExcellentRows(listOutcome.body);
+    for (let i = 0; i < rows.length; i++) {
+      const entry: ExcellentHomework = parseExcellentHomework(rows[i]);
+      result.requests++;
+      const page: FetchOutcome = await this.port.get(this.session, {
+        url: excellentHomeworkPageUrl(courseId, entry.id)
+      });
+      if (page.ok && page.body.length > 0) {
+        const detail: AssignmentDetail = parseAssignmentDetail(page.body);
+        if (detail.gradeAttachment !== undefined) {
+          entry.gradeAttachment = detail.gradeAttachment;
+        }
+        if (detail.submittedAttachment !== undefined) {
+          entry.submittedAttachment = detail.submittedAttachment;
+        }
+      } else {
+        result.failures++;
+        this.logger.warn(ASSIGNMENTS_LOG_DOMAIN + ' excellent page failed course=' + courseId
+          + ' xszyid=' + entry.id + ' -> keeping the entry without attachment');
+      }
+      result.entries.push(entry);
+    }
+    return result;
   }
 
   private reportFailure(courseId: string, path: string, outcome: FetchOutcome): void {

@@ -1,8 +1,8 @@
 {
-  "total": 267,
+  "total": 270,
   "referenceCount": 180,
   "localCount": 6,
-  "uiCount": 81,
+  "uiCount": 84,
   "referenceKeys": [
     "back",
     "notices",
@@ -2620,6 +2620,37 @@
       "name": "ui_assignment_answer_mark_label",
       "zhValue": "含答案",
       "enValue": "Has answer",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_assignment_excellent",
+      "name": "ui_assignment_excellent",
+      "zhValue": "优秀作业",
+      "enValue": "Excellent homework",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_assignment_excellent_by",
+      "name": "ui_assignment_excellent_by",
+      "zhValue": "%1$s的优秀作业",
+      "enValue": "Excellent homework by %1$s",
+      "zhPlaceholders": [
+        "{0}"
+      ],
+      "enPlaceholders": [
+        "{0}"
+      ],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_assignment_excellent_mark_label",
+      "name": "ui_assignment_excellent_mark_label",
+      "zhValue": "含优秀作业",
+      "enValue": "Has excellent homework",
       "zhPlaceholders": [],
       "enPlaceholders": [],
       "origin": "ui"

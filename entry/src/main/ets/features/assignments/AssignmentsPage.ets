@@ -55,7 +55,7 @@ import { AssignmentDetailPage } from './AssignmentDetailPage';
 import { ROUTE_ASSIGNMENT_DETAIL } from './AssignmentRoutes';
 import {
   AssignmentFilter, countAssignments, countPastDue, filterAssignments, hasAnswer,
-  isAssignmentListEmpty, isPastDeadline
+  hasExcellentHomework, isAssignmentListEmpty, isPastDeadline
 } from './AssignmentFilter';
 import { deadlineText, dueStatusText, emptyStateKey } from './AssignmentText';
 import {
@@ -79,6 +79,7 @@ interface AssignmentRowSpec {
   submittedLabel: string;
   gradedLabel: string;
   answerLabel: string;
+  excellentLabel: string;
 }
 
 /** 一个筛选片的渲染参数。 */
@@ -346,6 +347,14 @@ export struct AssignmentsPage {
           .margin({ left: spec.theme.sizes.space1 })
           .accessibilityText(spec.answerLabel)
       }
+      // 优秀作业（ticket 10 补做）：参考实现 AssignmentCard.tsx:84-91 的黄色 medal。
+      if (hasExcellentHomework(spec.assignment)) {
+        Text('🏅')
+          .fontSize(spec.theme.sizes.iconSmall)
+          .fontColor(PLAIN_PALETTE.yellow500)
+          .margin({ left: spec.theme.sizes.space1 })
+          .accessibilityText(spec.excellentLabel)
+      }
     }
     .alignItems(VerticalAlign.Center)
   }
@@ -434,7 +443,8 @@ export struct AssignmentsPage {
               attachmentLabel: this.s($r('app.string.ui_assignment_attachment_label')),
               submittedLabel: this.s($r('app.string.ui_assignment_submitted_mark_label')),
               gradedLabel: this.s($r('app.string.ui_assignment_graded_mark_label')),
-              answerLabel: this.s($r('app.string.ui_assignment_answer_mark_label'))
+              answerLabel: this.s($r('app.string.ui_assignment_answer_mark_label')),
+              excellentLabel: this.s($r('app.string.ui_assignment_excellent_mark_label'))
             })
           }
         }, (item: Assignment) => item.id)

@@ -1065,6 +1065,18 @@
       "value": "Has answer"
     },
     {
+      "name": "ui_assignment_excellent",
+      "value": "Excellent homework"
+    },
+    {
+      "name": "ui_assignment_excellent_by",
+      "value": "Excellent homework by %1$s"
+    },
+    {
+      "name": "ui_assignment_excellent_mark_label",
+      "value": "Has excellent homework"
+    },
+    {
       "name": "ui_enrollment_fingerprint_not_ready",
       "value": "The browser fingerprint is not ready yet, so signing in now would not register this browser as trusted (the server would report a private/anonymous browser). Wait a few seconds and tap sign in again; if it keeps happening, close this page and sign in again."
     }

@@ -52,6 +52,36 @@ export interface Notice extends CourseOwned {
   attachment?: Attachment;
 }
 
+/**
+ * **优秀作业**（参考实现 `HomeworkExcellent`，thu-learn-lib `index.js:906-927`）。
+ *
+ * 一条记录 = **某位同学对某次作业**的一次优秀提交；同一次作业可以有多条
+ * （实测：2025-2026 春季 `…719` 课 18 条落在 12 个 `zyid` 上，其中 6 个 `zyid` 各 2 条）。
+ * 因此它挂成 `Assignment.excellentHomeworkList`（数组），不是单值。
+ *
+ * 附件同源两枚：参考实现渲染时取 `gradeAttachment || submittedAttachment`
+ * （AssignmentDetail.tsx:329-331），两者都来自优秀作业详情页 `viewYxzy?wlkcid=&xszyid=` 的
+ * 四类附件块（复用 `parseAssignmentDetail`，块序不变）。
+ */
+export interface ExcellentHomework {
+  /** `xszyid`：这一次优秀提交的标识（也是详情页地址的参数）。 */
+  id: string;
+  /** `zyid`：它属于哪一次作业（= `Assignment.baseId`，挂载的键）。 */
+  baseId: string;
+  title: string;
+  /** 作者（`cy` 形如 "`<学号> <姓名>`"；匿名时两者都为空）。 */
+  authorId: string;
+  authorName: string;
+  /** `sfzm === '是'`（thu-learn-lib `YES`）。 */
+  anonymous: boolean;
+  /** `zyfjid`：站点给出的优秀作业附件标识（诊断/兜底用，不直接当下载地址）。 */
+  attachmentId?: string;
+  /** 优秀作业详情页解析出的"批改附件"。 */
+  gradeAttachment?: Attachment;
+  /** 优秀作业详情页解析出的"已提交附件"。 */
+  submittedAttachment?: Attachment;
+}
+
 /** 作业。四类附件与三类正文对应参考实现的 `attachment` / `answerX` / `submittedX` / `gradeX`。 */
 export interface Assignment extends CourseOwned {
   id: string;
@@ -97,6 +127,12 @@ export interface Assignment extends CourseOwned {
   submittedAttachment?: Attachment;
   gradeAttachment?: Attachment;
   answerAttachment?: Attachment;
+  /**
+   * 本次作业的**优秀作业**（0..n 条）。参考实现的列表接口是**另一条**请求
+   * （`/b/wlxt/kczy/zy/student/yxzylist`，每门课一次），按 `zyid` 归到作业上；
+   * 列表成功但该作业没有优秀作业时为 `undefined`（不是空数组），界面据此决定是否显示 medal。
+   */
+  excellentHomeworkList?: ExcellentHomework[];
 }
 
 /** 课程文件（对应参考实现的 `File`；类名避开 ArkTS 全局 `File`）。 */

@@ -7,10 +7,11 @@
  *   - 详情页四类附件块（附件 / 答案 / 已提交 / 成绩）的顺序与 thu-learn-lib
  *     `parseHomeworkAtUrl` 一致（fileDivs[0..3]）；
  *   - 三类正文：描述（JSON 详情 `msg`）、已提交正文、答案正文；
- *   - 排序：截止时间倒序 + 标识倒序（参考实现 actions/assignments.ts）。
+ *   - 排序：截止时间倒序 + 标识倒序（参考实现 actions/assignments.ts）；
+ *   - **优秀作业**（`yxzylist`，每门课一次；按 `zyid` 挂到作业上）—— 见文件末尾那一节。
  */
 
-import { Assignment, Attachment } from '../model/ContentItem';
+import { Assignment, Attachment, ExcellentHomework } from '../model/ContentItem';
 import { decodeHtmlEntities, compareByTimeThenIdDesc, parseTimestamp } from './Text';
 import { splitAttachmentBlocks, extractAttachment } from './Attachment';
 import { CourseName, UNKNOWN_COURSE_NAME } from './CourseName';
@@ -310,6 +311,110 @@ export function compareAssignmentsByUpcoming(assignments: Assignment[], nowMs: n
     ordered.push(past[i]);
   }
   return ordered;
+}
+
+/* ------------------------------------------------------------------ *
+ * 优秀作业（ticket 10 补做）
+ *
+ * 参考实现：thu-learn-lib `getExcellentHomeworkListByHomework`（index.js:894-928）——
+ * 对**同一门课**再 POST 一次 `/b/wlxt/kczy/zy/student/yxzylist`（表单与作业列表同一个
+ * `aoData=[{"name":"wlkcid","value":<courseId>}]`），响应的 `object.aaData` 每条：
+ *   - `xszyid` → id；`zyid` → baseId（挂载键）；`bt` → title（解实体）；
+ *   - `cy` 形如 "<学号> <姓名>"（`split(' ')` 取 [0]/[1]）；`sfzm === '是'` → anonymous；
+ *   - 附件不在列表里：参考实现对每条再取优秀作业详情页
+ *     `/f/wlxt/kczy/zy/student/viewYxzy?wlkcid=&xszyid=`（`urls.js:71`）并解析四类附件块，
+ *     渲染时取 `gradeAttachment || submittedAttachment`（AssignmentDetail.tsx:329-331）。
+ *
+ * **实测原始形状**（2026-09-12 模拟器，`.scratch/assignments/evidence/P1-excellent-probe-spring.txt`）：
+ * `{"wlkcid":…,"bt":"作业（12）","xszyid":…,"zyid":…,"zywcfs":"1","cy":"","sfzm":"是","zyfjid":…,"id":null}`
+ * —— 春季 24 条**全部** `sfzm='是'`（匿名）、`cy=''`；`zyfjid` 是站点给的附件标识。
+ * ------------------------------------------------------------------ */
+
+/** 优秀作业列表响应里的一条原始记录。 */
+export interface RawExcellent {
+  wlkcid?: string;
+  bt?: string;
+  xszyid?: string;
+  zyid: string;
+  zywcfs?: string;
+  /** 作者：形如 "<学号> <姓名>"。 */
+  cy?: string;
+  /** 是否匿名：`'是'`。 */
+  sfzm?: string;
+  /** 站点给出的附件标识（诊断用）。 */
+  zyfjid?: string;
+}
+
+/** 优秀作业详情页地址（照 `urls.js:71` LEARN_HOMEWORK_EXCELLENT_PAGE）。 */
+export function excellentHomeworkPageUrl(courseId: string, studentHomeworkId: string): string {
+  return 'https://learn.tsinghua.edu.cn/f/wlxt/kczy/zy/student/viewYxzy?wlkcid=' + courseId
+    + '&xszyid=' + studentHomeworkId;
+}
+
+/** 作者字符串 → 学号（`cy` 的第一段）。 */
+export function excellentAuthorId(cy: string): string {
+  const parts: string[] = cy.split(' ');
+  return parts.length > 0 ? parts[0] : '';
+}
+
+/** 作者字符串 → 姓名（`cy` 的第二段；没有时为空串）。 */
+export function excellentAuthorName(cy: string): string {
+  const parts: string[] = cy.split(' ');
+  return parts.length > 1 ? parts[1] : '';
+}
+
+/** 一条优秀作业记录（不含附件；附件由调用方用详情页补齐）。 */
+export function parseExcellentHomework(raw: RawExcellent): ExcellentHomework {
+  const cy: string = text(raw.cy);
+  const entry: ExcellentHomework = {
+    id: text(raw.xszyid),
+    baseId: text(raw.zyid),
+    title: decodeHtmlEntities(text(raw.bt)),
+    authorId: excellentAuthorId(cy),
+    authorName: excellentAuthorName(cy),
+    anonymous: raw.sfzm === '是'
+  };
+  if (raw.zyfjid !== undefined && raw.zyfjid !== null && raw.zyfjid.length > 0) {
+    entry.attachmentId = raw.zyfjid;
+  }
+  return entry;
+}
+
+/**
+ * 渲染用的附件：**先批改附件、再已提交附件**（参考实现 `gradeAttachment || submittedAttachment`）。
+ * 两者都没有时返回 undefined（那一行只有作者与 medal）。
+ */
+export function excellentDisplayAttachment(entry: ExcellentHomework): Attachment | undefined {
+  if (entry.gradeAttachment !== undefined) {
+    return entry.gradeAttachment;
+  }
+  return entry.submittedAttachment;
+}
+
+/** 优秀作业列表（可能来自多门课）按 `baseId` 挂到作业上；没有的作业保持 `undefined`。 */
+export function attachExcellentHomework(assignments: Assignment[],
+  entries: ExcellentHomework[]): void {
+  if (entries.length === 0) {
+    return;
+  }
+  const byBaseId: Map<string, ExcellentHomework[]> = new Map<string, ExcellentHomework[]>();
+  const order: string[] = [];
+  for (let i = 0; i < entries.length; i++) {
+    const entry: ExcellentHomework = entries[i];
+    const list: ExcellentHomework[] | undefined = byBaseId.get(entry.baseId);
+    if (list === undefined) {
+      byBaseId.set(entry.baseId, [entry]);
+      order.push(entry.baseId);
+    } else {
+      list.push(entry);
+    }
+  }
+  for (let i = 0; i < assignments.length; i++) {
+    const list: ExcellentHomework[] | undefined = byBaseId.get(assignments[i].baseId);
+    if (list !== undefined) {
+      assignments[i].excellentHomeworkList = list;
+    }
+  }
 }
 
 /** 列表响应 → 已排序作业（截止时间倒序 + 标识倒序）。 */

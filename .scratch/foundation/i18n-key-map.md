@@ -17,8 +17,8 @@
 | --- | --- | --- |
 | 参考实现迁入 | 180 | `loh_` |
 | 本工程新增（学期季节词） | 6 | `loh_` |
-| 本工程新增（原生重写 UI 文案） | 81 | `ui_` |
-| 合计 | 267 | |
+| 本工程新增（原生重写 UI 文案） | 84 | `ui_` |
+| 合计 | 270 | |
 
 ## 参考实现迁入键（180）
 
@@ -205,7 +205,7 @@
 | 179 | `avoidFrontCameraDescription` | `loh_avoid_front_camera_description` | - | 在上部留出空间以避让挖孔区域，需要重启应用 | Leave top space to avoid the front camera cutout. App restart required. |
 | 180 | `pleaseRestartAppToApplyImmersive` | `loh_please_restart_app_to_apply_immersive` | - | 请重启应用以应用沉浸式模式设置。 | Please restart the app to apply immersive mode setting. |
 
-## 本工程新增键（87）
+## 本工程新增键（90）
 
 | # | 类别 | 资源名 | 占位符 | 中文 | 英文 |
 | --- | --- | --- | --- | --- | --- |
@@ -295,5 +295,8 @@
 | 84 | ui | `ui_assignment_submitted_mark_label` | - | 已提交 | Submitted |
 | 85 | ui | `ui_assignment_graded_mark_label` | - | 已评分 | Graded |
 | 86 | ui | `ui_assignment_answer_mark_label` | - | 含答案 | Has answer |
-| 87 | ui | `ui_enrollment_fingerprint_not_ready` | - | 浏览器指纹尚未就绪，此刻提交不会把该浏览器记为可信（服务端会提示"隐私或匿名模式"）。请稍等几秒后再次点击登录；若反复出现，请关闭本页重新登录。 | The browser fingerprint is not ready yet, so signing in now would not register this browser as trusted (the server would report a private/anonymous browser). Wait a few seconds and tap sign in again; if it keeps happening, close this page and sign in again. |
+| 87 | ui | `ui_assignment_excellent` | - | 优秀作业 | Excellent homework |
+| 88 | ui | `ui_assignment_excellent_by` | {0} | %1$s的优秀作业 | Excellent homework by %1$s |
+| 89 | ui | `ui_assignment_excellent_mark_label` | - | 含优秀作业 | Has excellent homework |
+| 90 | ui | `ui_enrollment_fingerprint_not_ready` | - | 浏览器指纹尚未就绪，此刻提交不会把该浏览器记为可信（服务端会提示"隐私或匿名模式"）。请稍等几秒后再次点击登录；若反复出现，请关闭本页重新登录。 | The browser fingerprint is not ready yet, so signing in now would not register this browser as trusted (the server would report a private/anonymous browser). Wait a few seconds and tap sign in again; if it keeps happening, close this page and sign in again. |
 

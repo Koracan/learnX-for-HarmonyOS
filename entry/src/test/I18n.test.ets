@@ -38,18 +38,19 @@ const LOCAL_ADDITION_COUNT: number = 6;
  * 星期词表 + 月份词表）；ticket 07 1 个（登记页的提交前自检提示）；
  * ticket 09 2 个（公告卡片两个状态图标的无障碍文案）；
  * ticket 12 8 个（课程三个计数标签 / 学期文案 / 空态 / 错误 / 覆盖标记）；
- * ticket 10 22 个（作业列表与详情）—— 见 scripts/i18n-ui-strings.mjs。
+ * ticket 10 25 个（作业列表与详情 22 + 优秀作业 3）—— 见 scripts/i18n-ui-strings.mjs。
  */
-const UI_STRING_COUNT: number = 81;
+const UI_STRING_COUNT: number = 84;
 /** 迁移后的资源键总数（也是 I18N_KEY_COUNT 的期望值）。 */
-const TOTAL_KEY_COUNT: number = 267;
+const TOTAL_KEY_COUNT: number = 270;
 
 const REFERENCE_SAMPLE: string[] = ['loh_back', 'loh_notices', 'loh_assignments', 'loh_files', 'loh_courses'];
 const LOCAL_ADDITIONS: string[] = ['loh_fall', 'loh_spring', 'loh_summer'];
 const UI_SAMPLES: string[] = [
   'ui_app_name', 'ui_language', 'ui_export_logs', 'ui_exported',
   'ui_notice_publish_time', 'ui_weekday_thursday', 'ui_month_sep',
-  'ui_assignments_empty', 'ui_assignment_past_due', 'ui_assignment_graded_by_at'
+  'ui_assignments_empty', 'ui_assignment_past_due', 'ui_assignment_graded_by_at',
+  'ui_assignment_excellent', 'ui_assignment_excellent_by', 'ui_assignment_excellent_mark_label'
 ];
 
 const SECOND: number = 1000;

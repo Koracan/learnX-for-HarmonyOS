@@ -125,6 +125,12 @@ export const UI_STRINGS = [
   ['ui_assignment_submitted_mark_label', '已提交', 'Submitted'],
   ['ui_assignment_graded_mark_label', '已评分', 'Graded'],
   ['ui_assignment_answer_mark_label', '含答案', 'Has answer'],
+  // --- ticket 10 补做（优秀作业：yxzylist 列表 + viewYxzy 详情页） ---
+  // 参考实现：卡片上 excellentHomeworkList.length > 0 时一枚黄色 medal（AssignmentCard.tsx:84-91）；
+  // 详情页每条显示 gradeAttachment || submittedAttachment 与作者（匿名时用 loh_anonymous）。
+  ['ui_assignment_excellent', '优秀作业', 'Excellent homework'],
+  ['ui_assignment_excellent_by', '{0}的优秀作业', 'Excellent homework by {0}'],
+  ['ui_assignment_excellent_mark_label', '含优秀作业', 'Has excellent homework'],
   ['ui_enrollment_fingerprint_not_ready',
     '浏览器指纹尚未就绪，此刻提交不会把该浏览器记为可信（服务端会提示"隐私或匿名模式"）。请稍等几秒后再次点击登录；若反复出现，请关闭本页重新登录。',
     'The browser fingerprint is not ready yet, so signing in now would not register this browser as trusted (the server would report a private/anonymous browser). Wait a few seconds and tap sign in again; if it keeps happening, close this page and sign in again.']

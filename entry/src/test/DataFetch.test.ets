@@ -207,8 +207,13 @@ export default function dataFetchTest() {
       // （参考实现也是先去重后合并，所以是 2 条 × 3 来源 = 6 次补详情），
       // 每次补详情 = 1 次描述 post + 1 次详情 get：
       //   post = 3 + 6 = 9，get = 6
-      expect(port.postUrls.length).assertEqual(9);
+      // ticket 10 补做：每门课再多一次优秀作业列表 post。本测试没有为 'yxzylist' 路由，
+      // 于是那一次 404 被当成"这门课没有优秀作业"吞掉（顺带覆盖了失败容错）；
+      // 列表为空 ⇒ 没有 viewYxzy get。
+      //   post = 9 + 1 = 10，get = 6
+      expect(port.postUrls.length).assertEqual(10);
       expect(port.getUrls.length).assertEqual(6);
+      expect(assignments[0].excellentHomeworkList === undefined).assertTrue();
       const first: Assignment = assignments[0];
       expect(first.title).assertEqual('大作业1');
       expect(first.attachment?.name).assertEqual('作业要求.pdf');
@@ -222,6 +227,59 @@ export default function dataFetchTest() {
       expect(first.courseName).assertEqual('通信与网络');
       assertHasItemsAndElapsed(latestLog(ASSIGNMENTS_LOG_DOMAIN, 'fetched'), 2);
     });
+
+    /*
+     * 优秀作业（ticket 10 补做）：每门课一次 `yxzylist` + 每条一次 `viewYxzy` 详情页，
+     * 按 `zyid`（= Assignment.baseId）挂到作业上。
+     * 夹具列表里"大作业1"的 zyid 是 26ef84e8937624450193ba443c9414aa。
+     */
+    it('assignmentsFetchAttachesExcellentHomeworkAndCountsRequests', 0, async () => {
+      const excellent: string = '{"result":"success","object":{"aaData":['
+        + '{"wlkcid":"c1","bt":"大作业1","xszyid":"exc-anon",'
+        + '"zyid":"26ef84e8937624450193ba443c9414aa","zywcfs":"1","cy":"","sfzm":"是","zyfjid":"fj-anon"},'
+        + '{"wlkcid":"c1","bt":"大作业1","xszyid":"exc-named",'
+        + '"zyid":"26ef84e8937624450193ba443c9414aa","zywcfs":"1","cy":"2021000000 张三","sfzm":"否",'
+        + '"zyfjid":"fj-named"}'
+        + ']}}';
+      const port: ScriptedFetchPort = new ScriptedFetchPort()
+        .routePost('zyList', ASSIGNMENT_LIST_RESPONSE_JSON)
+        .routePost('kczy/zy/student/detail', ASSIGNMENT_DESCRIPTION_RESPONSE_JSON)
+        .routePost('yxzylist', excellent)
+        .routeGetSeq('viewYxzy', [ASSIGNMENT_DETAIL_FOUR_BLOCKS_HTML])
+        .routeGetSeq('zy/student/view', [ASSIGNMENT_DETAIL_FOUR_BLOCKS_HTML]);
+      const assignments: Assignment[] = await new AssignmentsFetcher(
+        new Logger(ASSIGNMENTS_LOG_DOMAIN), port, SESSION, COURSES).fetch(['c1']);
+      expect(assignments.length).assertEqual(2);
+      // post = 3 个列表 + 6 次补详情 + 1 次优秀作业列表 = 10；get = 6 次详情 + 2 次优秀作业页 = 8
+      expect(port.postUrls.length).assertEqual(10);
+      expect(port.getUrls.length).assertEqual(8);
+      let withExcellent: Assignment | undefined = undefined;
+      let withoutExcellent: Assignment | undefined = undefined;
+      for (let i = 0; i < assignments.length; i++) {
+        if (assignments[i].baseId === '26ef84e8937624450193ba443c9414aa') {
+          withExcellent = assignments[i];
+        } else {
+          withoutExcellent = assignments[i];
+        }
+      }
+      expect(withExcellent !== undefined).assertTrue();
+      expect(withoutExcellent !== undefined).assertTrue();
+      expect(withExcellent?.excellentHomeworkList?.length).assertEqual(2);
+      expect(withExcellent?.excellentHomeworkList?.[0].anonymous).assertTrue();
+      expect(withExcellent?.excellentHomeworkList?.[1].anonymous).assertFalse();
+      expect(withExcellent?.excellentHomeworkList?.[1].authorName).assertEqual('张三');
+      // 附件来自 `viewYxzy` 详情页的四类附件块（块序不变）
+      expect(withExcellent?.excellentHomeworkList?.[0].gradeAttachment?.name).assertEqual('批改结果.pdf');
+      expect(withExcellent?.excellentHomeworkList?.[0].submittedAttachment?.name).assertEqual('我的提交.pdf');
+      // 没有优秀作业的那条保持 undefined（界面据此不显示 medal）
+      expect(withoutExcellent?.excellentHomeworkList === undefined).assertTrue();
+      // 消费点自证行 + 汇总行里的条数
+      expect(latestLog(ASSIGNMENTS_LOG_DOMAIN, 'excellent: course=c1').includes('items=2')).assertTrue();
+      expect(latestLog(ASSIGNMENTS_LOG_DOMAIN, 'excellent: course=c1').includes('anonymous=1')).assertTrue();
+      expect(latestLog(ASSIGNMENTS_LOG_DOMAIN, 'excellent: course=c1').includes('named=1')).assertTrue();
+      expect(latestLog(ASSIGNMENTS_LOG_DOMAIN, 'fetched').includes('excellent=2')).assertTrue();
+    });
+
 
     /*
      * 真实数据缺陷回归（2026-09-12，模拟器 Pura 90，2025-2026 春季 57 条）：

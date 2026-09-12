@@ -25,7 +25,7 @@
  * 它只是"把真实数据取不到的形态变成可截图"的工具。
  */
 import { Logger } from '../../core/log/Logger';
-import { Assignment, Attachment } from '../../domain/model/ContentItem';
+import { Assignment, Attachment, ExcellentHomework } from '../../domain/model/ContentItem';
 
 const logger: Logger = new Logger('features.assignments.evidence');
 
@@ -94,7 +94,22 @@ export function mockAssignments(nowMillis: number): Assignment[] {
     attachment: attachment('夹具作业要求.pdf', 'mock-att-main'),
     submittedAttachment: attachment('夹具我的提交.pdf', 'mock-att-submitted'),
     gradeAttachment: attachment('夹具批改结果.pdf', 'mock-att-grade'),
-    answerAttachment: attachment('夹具参考答案.pdf', 'mock-att-answer')
+    answerAttachment: attachment('夹具参考答案.pdf', 'mock-att-answer'),
+    // 优秀作业（ticket 10 补做）：真实数据 24 条**全部匿名**，所以"具名作者"这一支只能靠夹具。
+    excellentHomeworkList: [
+      {
+        id: 'mock-excellent-anon', baseId: 'mock-base-3', title: '夹具·已过期（已提交已评分，四类附件）',
+        authorId: '', authorName: '', anonymous: true,
+        attachmentId: 'mock-exc-att-grade',
+        gradeAttachment: attachment('夹具优秀作业-批改.pdf', 'mock-exc-att-grade')
+      },
+      {
+        id: 'mock-excellent-named', baseId: 'mock-base-3', title: '夹具·已过期（已提交已评分，四类附件）',
+        authorId: '2021000000', authorName: '夹具同学', anonymous: false,
+        attachmentId: 'mock-exc-att-submitted',
+        submittedAttachment: attachment('夹具优秀作业-提交.pdf', 'mock-exc-att-submitted')
+      }
+    ]
   };
   const past2: Assignment = {
     id: 'mock-past-2', baseId: 'mock-base-4', studentHomeworkId: 'mock-past-2',
@@ -116,6 +131,19 @@ export function evidenceAssignmentsOr(real: Assignment[], nowMillis: number): As
   return MOCK_ASSIGNMENTS_FOR_EVIDENCE ? mockAssignments(nowMillis) : real;
 }
 
+/** 夹具里优秀作业的条数（自证行里体现，便于判读"夹具是否真的带了优秀作业"）。 */
+export function mockExcellentCount(nowMillis: number): number {
+  const mock: Assignment[] = mockAssignments(nowMillis);
+  let count: number = 0;
+  for (let i = 0; i < mock.length; i++) {
+    const list: ExcellentHomework[] | undefined = mock[i].excellentHomeworkList;
+    if (list !== undefined) {
+      count += list.length;
+    }
+  }
+  return count;
+}
+
 /** 把开关的**实际生效值**与夹具形状打进 hilog（ticket 10 取证要求）。 */
 export function logAssignmentEvidenceState(): void {
   const now: number = Date.now();
@@ -130,5 +158,6 @@ export function logAssignmentEvidenceState(): void {
     + ' count=' + mock.length.toString()
     + ' unfinished=' + upcoming.toString()
     + ' past=' + (mock.length - upcoming).toString()
-    + ' hasDisplayMath=' + EVIDENCE_FORMULA_HTML.includes('$$').toString());
+    + ' hasDisplayMath=' + EVIDENCE_FORMULA_HTML.includes('$$').toString()
+    + ' excellent=' + mockExcellentCount(now).toString());
 }

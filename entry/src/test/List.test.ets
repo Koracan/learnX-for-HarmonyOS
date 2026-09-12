@@ -29,6 +29,7 @@ import noticeRepositoryTest from './NoticeRepository.test';
 import courseCountsTest from './CourseCounts.test';
 import courseDataTest from './CourseData.test';
 import assignmentListTest from './AssignmentList.test';
+import excellentHomeworkTest from './ExcellentHomework.test';
 
 export default function testsuite() {
   semesterTest();
@@ -58,4 +59,5 @@ export default function testsuite() {
   courseCountsTest();
   courseDataTest();
   assignmentListTest();
+  excellentHomeworkTest();
 }

@@ -13,6 +13,7 @@
  * | 已提交（附件 + 正文 + 提交时间） | :212-252 | 同 |
  * | 已评分（等级/分数 + 附件 + 评语 + 批改人与时间） | :253-298 | 同（等级本地化见 AssignmentText.gradeText） |
  * | 答案（附件 + 正文） | :299-326 | 同 |
+ * | **优秀作业**（medal + `gradeAttachment \|\| submittedAttachment` + "X的优秀作业"） | :327-363 | 同（🏅 + 附件行可点 → FileDetail；匿名用 `loh_anonymous`） |
  * | 描述（Web 容器渲染，含 KaTeX） | :122-130, :364-374 | 同：`ui/components/HtmlWebView` + `buildNoticeContent` |
  * | 附件点击 → `push('FileDetail')` | :132-145 | 同路由（`ROUTE_FILE_DETAIL`），参数逐项对齐 |
  *
@@ -23,11 +24,11 @@
  *    （真实账号、不可逆写入），本 ticket **全程只读**：页面上不渲染任何提交按钮，
  *    也不构造提交请求。`Assignment.submitUrl` 只随列表项带过来、不在此页使用。
  *
- * 2. **不显示"优秀作业"**：参考实现还有一段 `excellentHomeworkList`（:327-363），
- *    其数据来自**另一条接口**（thu-learn-lib `getExcellentHomeworkListByHomework`，
- *    每门课一次 POST）；ticket 05 已验收的 `AssignmentsFetcher` 语义里没有它，
- *    而课工单的四条验收标准也没有它。改那条取数属于改已验收前提（要两边写边界说明），
- *    因此本 ticket 不取、不显示，并在交付说明里登记为**未交付项**。
+ * 2. **优秀作业已交付**（ticket 10 补做）：数据来自参考实现那条**独立接口**
+ *    `/b/wlxt/kczy/zy/student/yxzylist`（每门课一次 POST）+ 每条一次
+ *    `viewYxzy?wlkcid=&xszyid=` 详情页（`AssignmentParser` 末尾那一节、
+ *    `AssignmentsFetcher.fetchExcellent`）；失败**整段被吞**（只 warn），
+ *    见 docs/reference-quirks.md 第 21 条。
  *
  * 3. **附件点击的落点**：参考实现 `handleFileOpen` 传的 `id` 是**附件 id**
  *    （AssignmentDetail.tsx:134；对比公告详情传的是公告 id，NoticeDetail.tsx:64）。
@@ -46,8 +47,9 @@ import { i18nService } from '../../core/i18n/I18n';
 import { formatRelativeTo } from '../../core/i18n/DateTimeUtil';
 import { COLOR_MODE_KEY } from '../../entryability/EntryAbility';
 import { Logger } from '../../core/log/Logger';
-import { Assignment, Attachment } from '../../domain/model/ContentItem';
+import { Assignment, Attachment, ExcellentHomework } from '../../domain/model/ContentItem';
 import { parseTimestamp } from '../../domain/parse/Text';
+import { excellentDisplayAttachment } from '../../domain/parse/AssignmentParser';
 import { buildNoticeContent, removeTags } from '../../domain/render/WebViewTemplate';
 import { getExtension, stripExtension } from '../../domain/render/FileNames';
 import { HtmlWebView } from '../../ui/components/HtmlWebView';
@@ -96,7 +98,8 @@ export struct AssignmentDetailPage {
       + (this.assignment.submittedAttachment === undefined ? '-' : 'submitted')
       + (this.assignment.gradeAttachment === undefined ? '-' : 'grade')
       + (this.assignment.answerAttachment === undefined ? '-' : 'answer')
-      + ' descriptionChars=' + this.assignment.description.length.toString());
+      + ' descriptionChars=' + this.assignment.description.length.toString()
+      + ' excellent=' + this.excellentList().length.toString());
   }
 
   private theme(): ThemeTokens {
@@ -433,6 +436,76 @@ export struct AssignmentDetailPage {
       .color(this.theme().colors.outlineVariant)
   }
 
+  /** 本次作业的优秀作业列表（`undefined` 时给空数组，供 ForEach 用）。 */
+  private excellentList(): ExcellentHomework[] {
+    const list: ExcellentHomework[] | undefined = this.assignment.excellentHomeworkList;
+    return list === undefined ? [] : list;
+  }
+
+  /** 优秀作业渲染用的附件：**批改附件优先、再已提交附件**（参考实现 :329-331）。 */
+  private excellentName(entry: ExcellentHomework): string {
+    const attachment: Attachment | undefined = excellentDisplayAttachment(entry);
+    return attachment === undefined ? '' : attachment.name;
+  }
+
+  /** "X的优秀作业"；匿名（或没有姓名）时用 `loh_anonymous`（参考实现 `t('anonymous')`）。 */
+  private excellentCaption(entry: ExcellentHomework): string {
+    const anonymous: boolean = entry.anonymous || entry.authorName.length === 0;
+    const who: string = anonymous ? this.s($r('app.string.loh_anonymous')) : entry.authorName;
+    return i18nService.t('ui_assignment_excellent_by', who);
+  }
+
+  /** 点优秀作业：有附件才跳 FileDetail（与四类附件同一条路由）。 */
+  private openExcellent(entry: ExcellentHomework): void {
+    const attachment: Attachment | undefined = excellentDisplayAttachment(entry);
+    if (attachment === undefined) {
+      logger.info('excellent tapped without attachment: xszyid=' + entry.id);
+      return;
+    }
+    this.openAttachment(attachment, 'excellent');
+  }
+
+  /**
+   * 一条优秀作业（参考实现 AssignmentDetail.tsx:327-363 的一段 Fragment）：
+   * 黄色 medal（这里用 🏅，理由同公告图标，见 docs/reference-quirks.md 第 16 条）
+   * + 附件名（可点 → FileDetail）+ "X的优秀作业"。
+   */
+  @Builder
+  excellentRow(entry: ExcellentHomework) {
+    Column() {
+      Row() {
+        Text('🏅')
+          .fontSize(this.theme().sizes.iconSmall)
+          .fontColor(PLAIN_PALETTE.yellow500)
+        Text(this.excellentName(entry))
+          .fontSize(this.theme().typography.bodyLarge.fontSize)
+          .fontColor(this.theme().colors.primary)
+          .layoutWeight(1)
+          .maxLines(2)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .margin({ left: this.theme().sizes.space2 })
+        Blank()
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Center)
+      Text(this.excellentCaption(entry))
+        .fontSize(this.theme().typography.labelSmall.fontSize)
+        .fontColor(this.theme().colors.onSurfaceVariant)
+        .margin({ top: this.theme().sizes.space1 })
+    }
+    .alignItems(HorizontalAlign.Start)
+    .width('100%')
+    .padding({
+      left: this.theme().sizes.contentPadding,
+      right: this.theme().sizes.contentPadding,
+      top: this.theme().sizes.space2,
+      bottom: this.theme().sizes.space2
+    })
+    .onClick(() => {
+      this.openExcellent(entry);
+    })
+  }
+
   /** 段标题（符号 + 语义文字）。 */
   @Builder
   sectionTitle(symbol: string, title: string) {
@@ -482,6 +555,16 @@ export struct AssignmentDetailPage {
           if (this.assignment.answerAttachment !== undefined
             || this.assignment.answerContent.trim().length > 0) {
             this.answerSection()
+          }
+          // 优秀作业（参考实现 :327-363，位于答案段之后、描述之前）。
+          if (this.excellentList().length > 0) {
+            this.sectionTitle('🏅', this.s($r('app.string.ui_assignment_excellent')))
+            ForEach(this.excellentList(), (entry: ExcellentHomework) => {
+              this.excellentRow(entry)
+            }, (entry: ExcellentHomework) => 'excellent|' + entry.id)
+            Divider()
+              .strokeWidth(this.theme().sizes.borderWidth)
+              .color(this.theme().colors.outlineVariant)
           }
           // 描述（含公式）交 Web 容器渲染（参考实现 :122-130, :364-374）。
           this.sectionTitle('📝', this.s($r('app.string.ui_assignment_description')))

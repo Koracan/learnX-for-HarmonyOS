@@ -102,6 +102,15 @@ export function isAssignmentListEmpty(visible: Assignment[], busy: boolean): boo
   return visible.length === 0 && !busy;
 }
 
+/**
+ * 是否有**优秀作业**（参考实现 AssignmentCard.tsx:84-91：`excellentHomeworkList.length > 0`
+ * 时显示一枚黄色 medal 图标）。`undefined` 与空数组都算没有。
+ */
+export function hasExcellentHomework(assignment: Assignment): boolean {
+  const list = assignment.excellentHomeworkList;
+  return list !== undefined && list.length > 0;
+}
+
 /** 已过截止时间的条数（表头摘要用）。 */
 export function countPastDue(items: Assignment[], nowMillis: number): number {
   let count: number = 0;
