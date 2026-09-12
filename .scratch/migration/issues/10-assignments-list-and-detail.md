@@ -398,5 +398,29 @@
   - 旧截图里的 emoji 形状与浅底色不再是基准（形状判据升级见第 16 条改判）。
 - **可观察量转移到哪里**：ticket 11.5 的逐屏对照证据与"作业页头无学期/无徽标/无未完成计数"的**证伪截图**。
 
+### 边界说明（2026-09-13，由 ticket 14 带入）—— 过滤视图收敛到 features/marks；作业默认视图改判为「未完成」
+
+- **变了什么**：
+  1. **过滤视图的实现位置**：`features/assignments/AssignmentFilter.ets` 里的
+     `AssignmentFilter` 枚举与 `matchesFilter` / `filterAssignments` / `countAssignments`
+     三个函数**已删除**，七个视图（all / unread / fav / archived / hidden / unfinished / finished）
+     统一到 `features/marks/FilteredContent.ets`（逐行对齐参考实现 `data/selectors/filteredData.ts`）——
+     参考实现里这三种视图与收藏 / 归档 / 屏蔽本来就是同一套 selector。
+     `AssignmentFilter.ets` 现在只留"单条作业怎么看"的规则（过期判定 / 答案 / 优秀作业 / 空态）。
+  2. **作业 tab 的默认过滤视图**：从 `全部` 改为 `未完成`。依据是参考实现
+     `data/reducers/settings.ts:24-29` 的 `tabFilterSelections.assignment = 'unfinished'`，
+     且该选择经 redux-persist 落盘（`data/reducers/root.ts:61-65`）。ticket 14 引入"按 tab 记住过滤选择"，
+     默认值就取参考实现那一份。
+  3. `AssignmentText.emptyStateKey` 的入参类型从 `AssignmentFilter` 换成 `ContentFilter`：
+     ALL / UNFINISHED / FINISHED 三档返回原来的键（一字未改），新增的三档（fav / archived / hidden）
+     返回参考实现 `Empty` 组件那句 `loh_empty`。
+- **你的证据还成立到哪一步**：ticket 10 关于**取数 / 排序 / 两份接口 / 优秀作业 / 计数 / 空态**的所有结论
+  **不受影响**；`AssignmentList.test.ets` 的断言**期望值一字未改**，只有 9 处调用点换成了新的等价实现
+  （外加三条"新视图空态键"的断言）。受影响的只有一条**界面**表述：
+  "冷启动时高亮的是`全部 57`" —— 现在冷启动高亮`未完成 0`（B1/B3 那张截图的状态仍然可达：点一下`全部`片）。
+  `F1-assignments-spring-unfinished-empty-final.png`（未完成视图空态）**反而更贴近提交态**（默认就是它）。
+- **可观察量转移到哪里**：ticket 14 交付的作业 tab 筛选条证据（六片、各自计数、默认高亮`未完成`）。
+
+
 
 

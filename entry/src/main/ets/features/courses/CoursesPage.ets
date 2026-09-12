@@ -10,6 +10,7 @@
  * | 头部副标题 | `getSemesterTextFromId(currentSemesterId)`（:49） | 同，且**可点**进学期切换（见下） |
  * | 点击卡片 | `navigate('CourseDetail', item)`（:34-43） | 同（推入本 tab 的 NavPathStack） |
  * | 下拉刷新 | `getCoursesForSemester(currentSemesterId)` | `store.refresh()`（一次刷新含三域，计数才与列表同源） |
+ * | 过滤（ticket 14） | FilterList 下拉（all / hidden） | 两个筛选片；屏蔽后课程从"全部"消失，可在"屏蔽"里取消 |
  *
  * **一处位置差异（有意，写进 ticket Comments）**：参考实现把"学期切换"放在设置栈
  * （`SemesterSelection` 路由在 `SettingsStackParams` 里），ticket 12 的交付物把它与课程
@@ -29,18 +30,25 @@ import { Logger } from '../../core/log/Logger';
 import { Assignment } from '../../domain/model/ContentItem';
 import { CourseRecord } from '../../data/courses/CourseRepository';
 import { EmptyState } from '../../ui/components/EmptyState';
+import { FilterChip } from '../../ui/components/FilterChip';
+import { ToastController, ToastOverlay } from '../../ui/components/Toast';
+import { CourseHideAction } from '../../ui/components/SwipeActions';
 import { updatedTimeText } from '../../ui/components/UpdatedTime';
 import { AppIcon } from '../../ui/icons/IconCatalog';
 import { IconGlyph } from '../../ui/icons/IconGlyph';
 import { SessionHeaderProvider, createSessionHeaderProvider } from '../../core/web/SessionHeaderProvider';
+import { ContentFilter } from '../../domain/marks/ContentFilter';
+import { MarksTab } from '../../domain/marks/CollectionFlags';
+import { CollectionFlagsStore } from '../../data/marks/CollectionFlagsStore';
+import { collectionFlagsStore } from '../marks/CollectionFlagsProvider';
+import { isHiddenCourse } from '../marks/FilteredContent';
 import { NoticeRecord } from '../../data/notices/NoticeRepository';
 import { NoticeDetailPage } from '../notices/NoticeDetailPage';
 import { ROUTE_NOTICE_DETAIL } from '../notices/NoticeRoutes';
 import { CourseListStore } from './CourseListStore';
 import { createCourseRepository } from './repository/CourseRepositoryProvider';
 import {
-  CourseDetailRouteParams, CourseFileDetailRouteParams,
-  SemesterSelectionRouteParams,
+  CourseDetailRouteParams, CourseFileDetailRouteParams, SemesterSelectionRouteParams,
   ROUTE_COURSE_DETAIL, ROUTE_COURSE_FILE_DETAIL, ROUTE_SEMESTER_SELECTION
 } from './CourseRoutes';
 
@@ -79,14 +87,26 @@ export struct CoursesPage {
   @StorageProp(COLOR_MODE_KEY) colorMode: number = ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT;
   @StorageLink(LOCALE_VERSION_KEY) localeVersion: number = 0;
   @State refreshing: boolean = false;
+  /** 当前过滤视图；初值 = 参考实现 settings.ts:28 的 course 默认值 all。 */
+  @State filter: ContentFilter = ContentFilter.ALL;
 
   private store: CourseListStore = new CourseListStore(createCourseRepository());
+  /** 进程内单例：屏蔽一门课要立刻影响公告 / 作业 / 文件三个列表。 */
+  private flags: CollectionFlagsStore = collectionFlagsStore();
+  private toast: ToastController = new ToastController();
   private stack: NavPathStack = new NavPathStack();
   private session: SessionHeaderProvider = createSessionHeaderProvider();
 
   aboutToAppear(): void {
     this.store.loadOnce();
+    this.loadFlags();
     logger.info('courses page appear');
+  }
+
+  private async loadFlags(): Promise<void> {
+    await this.flags.loadOnce();
+    this.filter = this.flags.filterFor(MarksTab.COURSE);
+    this.logApplied('initial');
   }
 
   private theme(): ThemeTokens {
@@ -99,6 +119,75 @@ export struct CoursesPage {
 
   private s(resource: Resource): string {
     return i18nService.tKey(resource);
+  }
+
+  /* ------------------------------------------------------------------ *
+   * ticket 14：屏蔽课程（参考实现 selectFilteredCourses 的 {all, hidden}）
+   * ------------------------------------------------------------------ */
+
+  /** "全部"视图：没被屏蔽的课程。 */
+  private visibleCourses(): CourseRecord[] {
+    const out: CourseRecord[] = [];
+    for (let i = 0; i < this.store.courses.length; i++) {
+      const course: CourseRecord = this.store.courses[i];
+      if (!isHiddenCourse(this.flags.hiddenCourseIds, course.id)) {
+        out.push(course);
+      }
+    }
+    return out;
+  }
+
+  /** "屏蔽"视图：被屏蔽的课程（屏蔽后仍能在这里取消）。 */
+  private hiddenCourses(): CourseRecord[] {
+    const out: CourseRecord[] = [];
+    for (let i = 0; i < this.store.courses.length; i++) {
+      const course: CourseRecord = this.store.courses[i];
+      if (isHiddenCourse(this.flags.hiddenCourseIds, course.id)) {
+        out.push(course);
+      }
+    }
+    return out;
+  }
+
+  private shownCourses(): CourseRecord[] {
+    return this.filter === ContentFilter.HIDDEN ? this.hiddenCourses() : this.visibleCourses();
+  }
+
+  /** 消费点自证：实际生效的过滤视图 + 课程数 + 屏蔽 id 集合（截图与日志两头可核）。 */
+  private logApplied(reason: string): void {
+    logger.info('courses applied: reason=' + reason
+      + ' semester=' + this.store.semesterId
+      + ' source=' + this.store.semesterSource
+      + ' filter=' + this.filter.toString()
+      + ' courses=' + this.store.courses.length.toString()
+      + ' all=' + this.visibleCourses().length.toString()
+      + ' hidden=' + this.hiddenCourses().length.toString()
+      + ' hiddenCourseIds=' + this.flags.hiddenCourseIds.length.toString());
+  }
+
+  /**
+   * 屏蔽 / 取消屏蔽（参考实现 FilterList.tsx:160-171 逐行对应）：
+   * 取消屏蔽那一支的提示是"已撤销屏蔽"、**没有**撤销按钮；屏蔽那一支有。
+   */
+  private handleHide(course: CourseRecord, isHidden: boolean): void {
+    this.flags.setHidden(course.id, !isHidden);
+    if (isHidden) {
+      this.toast.show(this.s($r('app.string.loh_undo_hide')), '', null);
+    } else {
+      this.toast.show(this.s($r('app.string.loh_hide_succeeded')), this.s($r('app.string.loh_undo')), () => {
+        this.handleHide(course, true);
+      });
+    }
+    this.logApplied('hide');
+  }
+
+  private selectFilter(next: ContentFilter): void {
+    if (this.filter === next) {
+      return;
+    }
+    this.filter = next;
+    this.flags.selectFilter(MarksTab.COURSE, next);
+    this.logApplied('filter');
   }
 
   /** 实际生效的学期文案（覆盖生效时界面上看到的就是它——验收要的"学期标识"）。 */
@@ -127,6 +216,7 @@ export struct CoursesPage {
     this.refreshing = true;
     await this.store.refresh();
     this.refreshing = false;
+    this.logApplied('refresh');
   }
 
   private openCourse(course: CourseRecord): void {
@@ -195,8 +285,62 @@ export struct CoursesPage {
       left: this.theme().sizes.contentPadding,
       right: this.theme().sizes.contentPadding,
       top: this.theme().sizes.space4,
-      bottom: this.theme().sizes.space3
+      bottom: this.theme().sizes.space2
     })
+  }
+
+  /** 过滤条（ticket 14）：课程只有 all / hidden 两个视图（参考实现 selectFilteredCourses）。 */
+  @Builder
+  filterRow() {
+    Flex({ wrap: FlexWrap.Wrap }) {
+      FilterChip({
+        label: this.s($r('app.string.loh_all')), count: this.visibleCourses().length,
+        active: this.filter === ContentFilter.ALL, isDark: this.isDark(),
+        onTap: () => {
+          this.selectFilter(ContentFilter.ALL);
+        }
+      })
+      FilterChip({
+        label: this.s($r('app.string.loh_hidden')), count: this.hiddenCourses().length,
+        active: this.filter === ContentFilter.HIDDEN, isDark: this.isDark(),
+        onTap: () => {
+          this.selectFilter(ContentFilter.HIDDEN);
+        }
+      })
+    }
+    .width('100%')
+    .padding({
+      left: this.theme().sizes.contentPadding,
+      right: this.theme().sizes.contentPadding,
+      bottom: this.theme().sizes.space2
+    })
+  }
+
+  /** 滑动操作：屏蔽 / 取消屏蔽（参考实现 CardWrapper.tsx:63-79）。 */
+  @Builder
+  swipeEnd(course: CourseRecord) {
+    CourseHideAction({
+      hidden: isHiddenCourse(this.flags.hiddenCourseIds, course.id),
+      label: this.s(isHiddenCourse(this.flags.hiddenCourseIds, course.id)
+        ? $r('app.string.ui_unhide_course') : $r('app.string.loh_hidden')),
+      onHide: () => {
+        this.handleHide(course, isHiddenCourse(this.flags.hiddenCourseIds, course.id));
+      }
+    })
+  }
+
+  /** 长按菜单（参考实现长按展开操作区 CardWrapper.tsx:161-166 的等价入口）。 */
+  @Builder
+  rowMenu(course: CourseRecord) {
+    Menu() {
+      MenuItem({
+        content: this.s(isHiddenCourse(this.flags.hiddenCourseIds, course.id)
+          ? $r('app.string.ui_unhide_course') : $r('app.string.loh_hidden'))
+      })
+        .onClick(() => {
+          this.handleHide(course, isHiddenCourse(this.flags.hiddenCourseIds, course.id));
+        })
+    }
   }
 
   /**
@@ -275,7 +419,7 @@ export struct CoursesPage {
   listBody() {
     Stack() {
       List({ space: 0 }) {
-        ForEach(this.store.courses, (item: CourseRecord) => {
+        ForEach(this.shownCourses(), (item: CourseRecord) => {
           ListItem() {
             this.courseRow({
               theme: this.theme(),
@@ -285,7 +429,10 @@ export struct CoursesPage {
               filesLabel: this.s($r('app.string.ui_course_new_files_label'))
             })
           }
-        }, (item: CourseRecord) => item.id)
+          .swipeAction({ end: this.swipeEnd(item) })
+          .bindContextMenu(this.rowMenu(item), ResponseType.LongPress)
+        }, (item: CourseRecord) =>
+          item.id + '|' + (isHiddenCourse(this.flags.hiddenCourseIds, item.id) ? 'hidden' : 'shown'))
       }
       .width('100%')
       .height('100%')
@@ -318,9 +465,10 @@ export struct CoursesPage {
         .height('100%')
         .justifyContent(FlexAlign.Center)
         .padding(this.theme().sizes.contentPadding)
-      } else if (this.store.isEmpty()) {
+      } else if (this.shownCourses().length === 0 && !this.store.isBusy()) {
         EmptyState({
-          message: this.s($r('app.string.ui_courses_empty')),
+          message: this.filter === ContentFilter.HIDDEN
+            ? this.s($r('app.string.loh_empty')) : this.s($r('app.string.ui_courses_empty')),
           isDark: this.isDark()
         })
       }
@@ -385,23 +533,30 @@ export struct CoursesPage {
 
   build() {
     Navigation(this.stack) {
-      Column() {
-        this.header()
-        Refresh({ refreshing: $$this.refreshing, promptText: this.s($r('app.string.loh_refresh')) }) {
-          this.listBody()
+      Stack() {
+        Column() {
+          this.header()
+          this.filterRow()
+          Refresh({ refreshing: $$this.refreshing, promptText: this.s($r('app.string.loh_refresh')) }) {
+            this.listBody()
+          }
+          .layoutWeight(1)
+          .width('100%')
+          .onRefreshing(() => {
+            this.handlePullRefresh();
+          })
+          .onStateChange((state: RefreshStatus) => {
+            logger.info('courses pull refresh state: ' + state.toString());
+          })
         }
-        .layoutWeight(1)
         .width('100%')
-        .onRefreshing(() => {
-          this.handlePullRefresh();
-        })
-        .onStateChange((state: RefreshStatus) => {
-          logger.info('courses pull refresh state: ' + state.toString());
-        })
+        .height('100%')
+        .backgroundColor(this.theme().colors.background)
+
+        ToastOverlay({ controller: this.toast, isDark: this.isDark() })
       }
       .width('100%')
       .height('100%')
-      .backgroundColor(this.theme().colors.background)
     }
     .navDestination(this.destinationBuilder)
     .hideTitleBar(true)

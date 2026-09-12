@@ -20,9 +20,14 @@ import { Assignment, Attachment } from '../main/ets/domain/model/ContentItem';
 import { RawAssignment, compareAssignmentsByUpcoming, gradeLevelOf, parseAssignment } from
   '../main/ets/domain/parse/AssignmentParser';
 import {
-  AssignmentFilter, countAssignments, countPastDue, filterAssignments, hasAnswer,
-  isAssignmentListEmpty, isPastDeadline, isUpcomingDeadline, matchesFilter
+  countPastDue, hasAnswer, isAssignmentListEmpty, isPastDeadline, isUpcomingDeadline
 } from '../main/ets/features/assignments/AssignmentFilter';
+// ticket 14：过滤视图的实现从 features/assignments/AssignmentFilter 收敛到
+// features/marks/FilteredContent（收藏 / 归档 / 屏蔽与这三种视图是同一套过滤语义）。
+// 本文件里原来的 matchesFilter / filterAssignments / countAssignments 断言**期望值一字未改**，
+// 只是调用点换成了新的等价实现（边界说明见 ticket 10 的追加节）。
+import { ContentFilter } from '../main/ets/domain/marks/ContentFilter';
+import { assignmentsForFilter, selectFilteredAssignments } from '../main/ets/features/marks/FilteredContent';
 import {
   dueStatusKey, emptyStateKey, gradeLevelKey, isGroupCompletion, isOfflineSubmission
 } from '../main/ets/features/assignments/AssignmentText';
@@ -54,6 +59,11 @@ function idsOf(items: Assignment[]): string {
   return out;
 }
 
+/** 某个过滤视图下可见的条目（等价于 ticket 10 的 filterAssignments）。 */
+function viewOf(items: Assignment[], filter: ContentFilter): Assignment[] {
+  return assignmentsForFilter(selectFilteredAssignments(items, [], [], []), filter);
+}
+
 export default function assignmentListTest() {
   describe('features.assignments.list', () => {
     it('filtersFollowTheReferenceSelectors', 0, () => {
@@ -61,15 +71,15 @@ export default function assignmentListTest() {
       const b: Assignment = makeAssignment('b', '2020-09-02 00:00', true, false);
       const c: Assignment = makeAssignment('c', '2020-09-03 00:00', true, true);
       const all: Assignment[] = [a, b, c];
-      expect(matchesFilter(a, AssignmentFilter.ALL)).assertTrue();
-      expect(matchesFilter(a, AssignmentFilter.UNFINISHED)).assertTrue();
-      expect(matchesFilter(a, AssignmentFilter.FINISHED)).assertFalse();
-      expect(matchesFilter(b, AssignmentFilter.UNFINISHED)).assertFalse();
-      expect(matchesFilter(b, AssignmentFilter.FINISHED)).assertTrue();
-      expect(idsOf(filterAssignments(all, AssignmentFilter.ALL))).assertEqual('a,b,c');
-      expect(idsOf(filterAssignments(all, AssignmentFilter.UNFINISHED))).assertEqual('a');
-      expect(idsOf(filterAssignments(all, AssignmentFilter.FINISHED))).assertEqual('b,c');
-      // 入参不被修改（filterAssignments 返回新数组）
+      expect(idsOf(viewOf([a], ContentFilter.ALL))).assertEqual('a');
+      expect(idsOf(viewOf([a], ContentFilter.UNFINISHED))).assertEqual('a');
+      expect(idsOf(viewOf([a], ContentFilter.FINISHED))).assertEqual('');
+      expect(idsOf(viewOf([b], ContentFilter.UNFINISHED))).assertEqual('');
+      expect(idsOf(viewOf([b], ContentFilter.FINISHED))).assertEqual('b');
+      expect(idsOf(viewOf(all, ContentFilter.ALL))).assertEqual('a,b,c');
+      expect(idsOf(viewOf(all, ContentFilter.UNFINISHED))).assertEqual('a');
+      expect(idsOf(viewOf(all, ContentFilter.FINISHED))).assertEqual('b,c');
+      // 入参不被修改（选择器返回新数组）
       expect(all.length).assertEqual(3);
     });
 
@@ -86,9 +96,9 @@ export default function assignmentListTest() {
       const ordered: Assignment[] = compareAssignmentsByUpcoming(items, now);
       expect(idsOf(ordered)).assertEqual('u2,u1,p1,p2');
       // 列表层只过滤：未到期在前、已过期在后，过滤不改变次序
-      expect(idsOf(filterAssignments(ordered, AssignmentFilter.ALL))).assertEqual('u2,u1,p1,p2');
-      expect(idsOf(filterAssignments(ordered, AssignmentFilter.UNFINISHED))).assertEqual('u2,u1');
-      expect(idsOf(filterAssignments(ordered, AssignmentFilter.FINISHED))).assertEqual('p1,p2');
+      expect(idsOf(viewOf(ordered, ContentFilter.ALL))).assertEqual('u2,u1,p1,p2');
+      expect(idsOf(viewOf(ordered, ContentFilter.UNFINISHED))).assertEqual('u2,u1');
+      expect(idsOf(viewOf(ordered, ContentFilter.FINISHED))).assertEqual('p1,p2');
       // 该次序也满足"按截止时间：未到期（由近及远）→ 已过期（由远及近）"
       expect(isPastDeadline(ordered[0].deadline, now)).assertFalse();
       expect(isPastDeadline(ordered[1].deadline, now)).assertFalse();
@@ -117,9 +127,9 @@ export default function assignmentListTest() {
         makeAssignment('p1', '2020-09-10 00:00', true, false),
         makeAssignment('p2', '2020-09-01 00:00', true, true)
       ];
-      expect(countAssignments(items, AssignmentFilter.ALL)).assertEqual(3);
-      expect(countAssignments(items, AssignmentFilter.UNFINISHED)).assertEqual(1);
-      expect(countAssignments(items, AssignmentFilter.FINISHED)).assertEqual(2);
+      expect(viewOf(items, ContentFilter.ALL).length).assertEqual(3);
+      expect(viewOf(items, ContentFilter.UNFINISHED).length).assertEqual(1);
+      expect(viewOf(items, ContentFilter.FINISHED).length).assertEqual(2);
       expect(countPastDue(items, now)).assertEqual(2);
     });
 
@@ -128,9 +138,13 @@ export default function assignmentListTest() {
       expect(isAssignmentListEmpty([], false)).assertTrue();
       expect(isAssignmentListEmpty([], true)).assertFalse();
       expect(isAssignmentListEmpty(one, false)).assertFalse();
-      expect(emptyStateKey(AssignmentFilter.ALL)).assertEqual('ui_assignments_empty');
-      expect(emptyStateKey(AssignmentFilter.UNFINISHED)).assertEqual('ui_assignments_none_unfinished');
-      expect(emptyStateKey(AssignmentFilter.FINISHED)).assertEqual('ui_assignments_none_finished');
+      expect(emptyStateKey(ContentFilter.ALL)).assertEqual('ui_assignments_empty');
+      expect(emptyStateKey(ContentFilter.UNFINISHED)).assertEqual('ui_assignments_none_unfinished');
+      expect(emptyStateKey(ContentFilter.FINISHED)).assertEqual('ui_assignments_none_finished');
+      // ticket 14 的三个新视图用参考实现 Empty 的那句（无内容），而不是"暂无作业"。
+      expect(emptyStateKey(ContentFilter.FAV)).assertEqual('loh_empty');
+      expect(emptyStateKey(ContentFilter.ARCHIVED)).assertEqual('loh_empty');
+      expect(emptyStateKey(ContentFilter.HIDDEN)).assertEqual('loh_empty');
     });
 
     it('allSubmittedAndPastShowsTheUnfinishedEmptyState', 0, () => {
@@ -141,10 +155,10 @@ export default function assignmentListTest() {
         makeAssignment('s1', '2026-05-01 23:59', true, false),
         makeAssignment('s2', '2026-05-31 23:59', true, true)
       ];
-      const visible: Assignment[] = filterAssignments(items, AssignmentFilter.UNFINISHED);
+      const visible: Assignment[] = viewOf(items, ContentFilter.UNFINISHED);
       expect(visible.length).assertEqual(0);
       expect(isAssignmentListEmpty(visible, false)).assertTrue();
-      expect(emptyStateKey(AssignmentFilter.UNFINISHED)).assertEqual('ui_assignments_none_unfinished');
+      expect(emptyStateKey(ContentFilter.UNFINISHED)).assertEqual('ui_assignments_none_unfinished');
       expect(countPastDue(items, now)).assertEqual(2);
     });
 
@@ -289,8 +303,8 @@ export default function assignmentListTest() {
       expect(mock.length).assertEqual(4);
       // 未到期在前（由近及远）→ 已过期在后
       expect(idsOf(mock)).assertEqual('mock-upcoming-1,mock-upcoming-2,mock-past-1,mock-past-2');
-      expect(countAssignments(mock, AssignmentFilter.UNFINISHED)).assertEqual(2);
-      expect(countAssignments(mock, AssignmentFilter.FINISHED)).assertEqual(2);
+      expect(viewOf(mock, ContentFilter.UNFINISHED).length).assertEqual(2);
+      expect(viewOf(mock, ContentFilter.FINISHED).length).assertEqual(2);
       expect(countPastDue(mock, now)).assertEqual(2);
       // 四类附件齐备的那一条（详情页四类附件可点的取证载体）
       const graded: Assignment = mock[2];

@@ -1,14 +1,16 @@
 /*
- * 作业列表的纯规则（features/assignments，ticket 10）：过滤、过期判定、空态判定。
+ * 作业列表/详情的纯规则（features/assignments，ticket 10）：过期判定、状态标记、空态判定。
  *
- * 这些是"界面怎么呈现"的规则，参考实现的对应物在 `data/selectors/filteredData.ts`：
+ * **过滤视图本身已不在本文件**（ticket 14）：all / unread / fav / archived / hidden /
+ * unfinished / finished 七个视图与收藏 / 归档 / 屏蔽是同一套语义，统一在
+ * `features/marks/FilteredContent.ets`（逐行对齐参考实现 data/selectors/filteredData.ts）。
+ * 这里只留"单条作业怎么看"的规则。
  *
  * | 规则 | 参考实现 | 这里 |
  * | --- | --- | --- |
- * | unfinished | `all.filter(i => !i.submitted)`（:116） | `matchesFilter(..., UNFINISHED)` |
- * | finished | `all.filter(i => i.submitted)`（:117） | `matchesFilter(..., FINISHED)` |
  * | 卡片上的"还剩 X / X 截止" | `dayjs().isAfter(dayjs(deadline))`（AssignmentCard.tsx:103-108） | `isPastDeadline`（`parseTimestamp` 对齐 dayjs：不可解析 = Invalid Date ⇒ 恒 false） |
  * | 卡片右上"答案"图标 | `answerContent \|\| answerAttachment`（AssignmentCard.tsx:76） | `hasAnswer` |
+ * | 优秀作业标记 | `excellentHomeworkList.length > 0`（AssignmentCard.tsx:84-91） | `hasExcellentHomework` |
  *
  * **本文件不做排序**：顺序由 `data/remote/AssignmentsFetcher` 用
  * `domain/parse/AssignmentParser.compareAssignmentsByUpcoming` 一次定好（ticket 05 已验收），
@@ -19,46 +21,6 @@
 
 import { Assignment } from '../../domain/model/ContentItem';
 import { parseTimestamp } from '../../domain/parse/Text';
-
-/** 列表过滤视图（参考实现 FilterList 给作业的三个选项：all / unfinished / finished）。 */
-export enum AssignmentFilter {
-  ALL = 'all',
-  UNFINISHED = 'unfinished',
-  FINISHED = 'finished'
-}
-
-/** 该作业是否属于某个过滤视图（"未完成/已完成"= 参考实现的 `!submitted` / `submitted`）。 */
-export function matchesFilter(assignment: Assignment, filter: AssignmentFilter): boolean {
-  if (filter === AssignmentFilter.UNFINISHED) {
-    return !assignment.submitted;
-  }
-  if (filter === AssignmentFilter.FINISHED) {
-    return assignment.submitted;
-  }
-  return true;
-}
-
-/** 过滤后的新数组；**保持入参顺序**（绝不在这里排序）。 */
-export function filterAssignments(items: Assignment[], filter: AssignmentFilter): Assignment[] {
-  const out: Assignment[] = [];
-  for (let i = 0; i < items.length; i++) {
-    if (matchesFilter(items[i], filter)) {
-      out.push(items[i]);
-    }
-  }
-  return out;
-}
-
-/** 某个过滤视图下的条数（过滤条上的计数）。 */
-export function countAssignments(items: Assignment[], filter: AssignmentFilter): number {
-  let count: number = 0;
-  for (let i = 0; i < items.length; i++) {
-    if (matchesFilter(items[i], filter)) {
-      count++;
-    }
-  }
-  return count;
-}
 
 /**
  * 是否**已过截止时间**。

@@ -10,6 +10,7 @@
  * | 卡片 | 课程名 / 标题（removeTags）/ 描述 2 行 / `TYPE SIZE` 一行 / 相对时间（:37-78） | 同（验收第 1 条"显示大小与类型"就是那一行） |
  * | 点击 | `navigate('FileDetail', item)` | 推本 tab 的 `ROUTE_FILE_DETAIL`（真身 FileDetailPage） |
  * | 下拉刷新 | `handleRefresh` | 同 |
+ * | 过滤（ticket 14） | FilterList 下拉（all / unread / fav / archived / hidden） | 五个筛选片，计数口径照 Filter.tsx:153-218 |
  *
  * 三种状态都显式呈现，**没有"失败就显示空列表"这条路**（与课程/公告列表同一口径）。
  */
@@ -25,9 +26,20 @@ import { CourseFile } from '../../domain/model/ContentItem';
 import { fileMetaLine } from '../../domain/files/FilePath';
 import { removeTags } from '../../domain/render/WebViewTemplate';
 import { EmptyState } from '../../ui/components/EmptyState';
+import { FilterChip } from '../../ui/components/FilterChip';
+import { ToastController, ToastOverlay } from '../../ui/components/Toast';
+import { ContentSwipeActions } from '../../ui/components/SwipeActions';
 import { updatedTimeText } from '../../ui/components/UpdatedTime';
 import { AppIcon } from '../../ui/icons/IconCatalog';
 import { IconGlyph } from '../../ui/icons/IconGlyph';
+import { ContentFilter } from '../../domain/marks/ContentFilter';
+import { MarksDomain, MarksTab } from '../../domain/marks/CollectionFlags';
+import { CollectionFlagsStore } from '../../data/marks/CollectionFlagsStore';
+import {
+  FileFilterCounts, FilteredFiles, fileCounts, filesForFilter, isInGroupFiles,
+  selectFilteredFiles
+} from '../marks/FilteredContent';
+import { collectionFlagsStore } from '../marks/CollectionFlagsProvider';
 import { FileListStore } from './FileListStore';
 import { fileRepository } from './repository/FileRepositoryProvider';
 import { FileDetailPage } from './FileDetailPage';
@@ -55,15 +67,28 @@ export struct FilesPage {
   @StorageProp(COLOR_MODE_KEY) colorMode: number = ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT;
   @StorageLink(LOCALE_VERSION_KEY) localeVersion: number = 0;
   @State refreshing: boolean = false;
+  /** 当前过滤视图；初值 = 参考实现 settings.ts:27 的 file 默认值 all。 */
+  @State filter: ContentFilter = ContentFilter.ALL;
 
   private store: FileListStore | null = null;
+  /** 进程内单例：与公告 / 作业 / 课程三个列表共用同一份收藏与屏蔽状态。 */
+  private flags: CollectionFlagsStore = collectionFlagsStore();
+  private toast: ToastController = new ToastController();
   private stack: NavPathStack = new NavPathStack();
 
   aboutToAppear(): void {
     const store: FileListStore = new FileListStore(fileRepository());
     this.store = store;
     store.loadOnce();
+    this.loadFlags();
     logger.info('files page appear');
+  }
+
+  /** 读一次收藏状态，并恢复记住的过滤视图。 */
+  private async loadFlags(): Promise<void> {
+    await this.flags.loadOnce();
+    this.filter = this.flags.filterFor(MarksTab.FILE);
+    this.logApplied('initial');
   }
 
   private theme(): ThemeTokens {
@@ -76,6 +101,78 @@ export struct FilesPage {
 
   private s(resource: Resource): string {
     return i18nService.tKey(resource);
+  }
+
+  /* ------------------------------------------------------------------ *
+   * ticket 14：收藏 / 归档 / 屏蔽
+   * ------------------------------------------------------------------ */
+
+  private sourceFiles(): CourseFile[] {
+    const store: FileListStore | null = this.store;
+    return store === null ? [] : store.files;
+  }
+
+  private filtered(): FilteredFiles {
+    return selectFilteredFiles(this.sourceFiles(), this.flags.fileFavorites,
+      this.flags.fileArchived, this.flags.hiddenCourseIds);
+  }
+
+  private visibleFiles(): CourseFile[] {
+    return filesForFilter(this.filtered(), this.filter);
+  }
+
+  private counts(): FileFilterCounts {
+    return fileCounts(this.filtered());
+  }
+
+  /** 消费点自证：实际生效的过滤视图 + 五组计数 + 收藏/归档/屏蔽的原始 id 数。 */
+  private logApplied(reason: string): void {
+    const counts: FileFilterCounts = this.counts();
+    logger.info('files applied: reason=' + reason
+      + ' semester=' + (this.store === null ? '' : this.store.semesterId)
+      + ' items=' + this.sourceFiles().length.toString()
+      + ' filter=' + this.filter.toString()
+      + ' all=' + counts.all.toString()
+      + ' unread=' + counts.unread.toString()
+      + ' fav=' + counts.fav.toString()
+      + ' archived=' + counts.archived.toString()
+      + ' hidden=' + counts.hidden.toString()
+      + ' favoriteIds=' + this.flags.fileFavorites.length.toString()
+      + ' archivedIds=' + this.flags.fileArchived.length.toString()
+      + ' hiddenCourses=' + this.flags.hiddenCourseIds.length.toString());
+  }
+
+  private handleFav(item: CourseFile, isFav: boolean): void {
+    this.flags.setFavorite(MarksDomain.FILE, item.id, !isFav);
+    if (isFav) {
+      this.toast.show(this.s($r('app.string.loh_remove_from_fav')), '', null);
+    } else {
+      this.toast.show(this.s($r('app.string.loh_add_to_fav')), this.s($r('app.string.loh_undo')), () => {
+        this.handleFav(item, true);
+      });
+    }
+    this.logApplied('favorite');
+  }
+
+  private handleArchive(item: CourseFile, isArchived: boolean): void {
+    this.flags.setArchived(MarksDomain.FILE, [item.id], !isArchived);
+    if (isArchived) {
+      this.toast.show(this.s($r('app.string.loh_undo_archive')), '', null);
+    } else {
+      this.toast.show(this.s($r('app.string.loh_archive_succeeded')), this.s($r('app.string.loh_undo')), () => {
+        this.handleArchive(item, true);
+      });
+    }
+    this.logApplied('archive');
+  }
+
+  private selectFilter(next: ContentFilter): void {
+    if (this.filter === next) {
+      return;
+    }
+    this.filter = next;
+    this.flags.selectFilter(MarksTab.FILE, next);
+    this.logApplied('filter');
   }
 
   /**
@@ -145,6 +242,7 @@ export struct FilesPage {
       await store.refresh();
     }
     this.refreshing = false;
+    this.logApplied('refresh');
   }
 
   /**
@@ -189,8 +287,93 @@ export struct FilesPage {
       left: this.theme().sizes.contentPadding,
       right: this.theme().sizes.contentPadding,
       top: this.theme().sizes.space4,
-      bottom: this.theme().sizes.space3
+      bottom: this.theme().sizes.space2
     })
+  }
+
+  /** 过滤条（ticket 14）：all → unread → fav → archived → hidden（Filter.tsx:153-218 的顺序）。 */
+  @Builder
+  filterRow() {
+    Flex({ wrap: FlexWrap.Wrap }) {
+      FilterChip({
+        label: this.s($r('app.string.loh_all')), count: this.counts().all,
+        active: this.filter === ContentFilter.ALL, isDark: this.isDark(),
+        onTap: () => {
+          this.selectFilter(ContentFilter.ALL);
+        }
+      })
+      FilterChip({
+        label: this.s($r('app.string.loh_unread')), count: this.counts().unread,
+        active: this.filter === ContentFilter.UNREAD, isDark: this.isDark(),
+        onTap: () => {
+          this.selectFilter(ContentFilter.UNREAD);
+        }
+      })
+      FilterChip({
+        label: this.s($r('app.string.loh_fav')), count: this.counts().fav,
+        active: this.filter === ContentFilter.FAV, isDark: this.isDark(),
+        onTap: () => {
+          this.selectFilter(ContentFilter.FAV);
+        }
+      })
+      FilterChip({
+        label: this.s($r('app.string.loh_archived')), count: this.counts().archived,
+        active: this.filter === ContentFilter.ARCHIVED, isDark: this.isDark(),
+        onTap: () => {
+          this.selectFilter(ContentFilter.ARCHIVED);
+        }
+      })
+      FilterChip({
+        label: this.s($r('app.string.loh_hidden')), count: this.counts().hidden,
+        active: this.filter === ContentFilter.HIDDEN, isDark: this.isDark(),
+        onTap: () => {
+          this.selectFilter(ContentFilter.HIDDEN);
+        }
+      })
+    }
+    .width('100%')
+    .padding({
+      left: this.theme().sizes.contentPadding,
+      right: this.theme().sizes.contentPadding,
+      bottom: this.theme().sizes.space2
+    })
+  }
+
+  @Builder
+  swipeEnd(item: CourseFile, fav: boolean, archived: boolean) {
+    ContentSwipeActions({
+      fav: fav,
+      archived: archived,
+      // 按钮无文字：无障碍文案要说明**点下去会发生什么**（参考实现的图标两态就是干这个）。
+      favLabel: this.s(fav ? $r('app.string.ui_remove_favorite') : $r('app.string.loh_fav')),
+      archiveLabel: this.s(archived ? $r('app.string.ui_unarchive') : $r('app.string.loh_archived')),
+      onFav: () => {
+        this.handleFav(item, fav);
+      },
+      onArchive: () => {
+        this.handleArchive(item, archived);
+      }
+    })
+  }
+
+  @Builder
+  rowMenu(item: CourseFile, fav: boolean, archived: boolean) {
+    Menu() {
+      if (!archived) {
+        MenuItem({
+          content: this.s(fav ? $r('app.string.ui_remove_favorite') : $r('app.string.loh_fav'))
+        })
+          .onClick(() => {
+            this.handleFav(item, fav);
+          })
+      }
+      MenuItem({
+        content: this.s(archived ? $r('app.string.ui_unarchive') : $r('app.string.loh_archived'))
+      })
+        .onClick(() => {
+          this.handleArchive(item, archived);
+        })
+    }
   }
 
   @Builder
@@ -261,7 +444,7 @@ export struct FilesPage {
   listBody() {
     Stack() {
       List({ space: 0 }) {
-        ForEach(this.store === null ? [] : this.store.files, (item: CourseFile) => {
+        ForEach(this.visibleFiles(), (item: CourseFile) => {
           ListItem() {
             this.fileRow({
               theme: this.theme(),
@@ -274,10 +457,19 @@ export struct FilesPage {
               newLabel: this.s($r('app.string.ui_course_new_files_label'))
             })
           }
+          .swipeAction({
+            end: this.swipeEnd(item, isInGroupFiles(this.filtered().fav, item.id),
+              isInGroupFiles(this.filtered().archived, item.id))
+          })
+          .bindContextMenu(this.rowMenu(item, isInGroupFiles(this.filtered().fav, item.id),
+            isInGroupFiles(this.filtered().archived, item.id)), ResponseType.LongPress)
           .onClick(() => {
             this.openFile(item);
           })
-        }, (item: CourseFile) => 'file|' + item.courseId + '|' + item.id)
+        }, (item: CourseFile) =>
+          'file|' + item.courseId + '|' + item.id
+          + '|' + (isInGroupFiles(this.filtered().fav, item.id) ? 'fav' : 'nofav')
+          + '|' + (isInGroupFiles(this.filtered().archived, item.id) ? 'arch' : 'noarch'))
       }
       .width('100%')
       .height('100%')
@@ -310,9 +502,10 @@ export struct FilesPage {
         .height('100%')
         .justifyContent(FlexAlign.Center)
         .padding(this.theme().sizes.contentPadding)
-      } else if (this.store !== null && this.store.isEmpty()) {
+      } else if (this.visibleFiles().length === 0 && this.store !== null && !this.store.isBusy()) {
         EmptyState({
-          message: this.s($r('app.string.ui_files_empty')),
+          message: this.filter === ContentFilter.ALL
+            ? this.s($r('app.string.ui_files_empty')) : this.s($r('app.string.loh_empty')),
           isDark: this.isDark()
         })
       }
@@ -338,23 +531,30 @@ export struct FilesPage {
 
   build() {
     Navigation(this.stack) {
-      Column() {
-        this.header()
-        Refresh({ refreshing: $$this.refreshing, promptText: this.s($r('app.string.loh_refresh')) }) {
-          this.listBody()
+      Stack() {
+        Column() {
+          this.header()
+          this.filterRow()
+          Refresh({ refreshing: $$this.refreshing, promptText: this.s($r('app.string.loh_refresh')) }) {
+            this.listBody()
+          }
+          .layoutWeight(1)
+          .width('100%')
+          .onRefreshing(() => {
+            this.handlePullRefresh();
+          })
+          .onStateChange((state: RefreshStatus) => {
+            logger.info('files pull refresh state: ' + state.toString());
+          })
         }
-        .layoutWeight(1)
         .width('100%')
-        .onRefreshing(() => {
-          this.handlePullRefresh();
-        })
-        .onStateChange((state: RefreshStatus) => {
-          logger.info('files pull refresh state: ' + state.toString());
-        })
+        .height('100%')
+        .backgroundColor(this.theme().colors.background)
+
+        ToastOverlay({ controller: this.toast, isDark: this.isDark() })
       }
       .width('100%')
       .height('100%')
-      .backgroundColor(this.theme().colors.background)
     }
     .navDestination(this.destinationBuilder)
     .hideTitleBar(true)

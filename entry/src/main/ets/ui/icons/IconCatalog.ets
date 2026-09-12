@@ -79,7 +79,19 @@ export enum AppIcon {
   /** MaterialIcons `arrow-back`：详情页左上角的返回（参考实现是导航栈默认返回箭头）。 */
   ARROW_BACK = 'arrow-back',
   /** MaterialIcons `file-upload`：作业详情页页头右侧的「提交」入口（参考实现 AssignmentDetail.tsx:105-120）。 */
-  FILE_UPLOAD = 'file-upload'
+  FILE_UPLOAD = 'file-upload',
+  /** MCI `heart`：滑动操作里的"收藏"（参考实现 CardWrapper.tsx:93-97）。 */
+  HEART = 'heart',
+  /** MCI `heart-off`：已收藏时那个按钮的另一态（CardWrapper.tsx:94）。 */
+  HEART_OFF = 'heart-off',
+  /** MCI `archive-arrow-down`：滑动操作里的"归档"（CardWrapper.tsx:110-114）。 */
+  ARCHIVE_ARROW_DOWN = 'archive-arrow-down',
+  /** MCI `archive-arrow-up`：已归档时那个按钮的另一态（CardWrapper.tsx:111）。 */
+  ARCHIVE_ARROW_UP = 'archive-arrow-up',
+  /** MaterialIcons `visibility`：已屏蔽的课程上那个"取消屏蔽"（CardWrapper.tsx:74-78）。 */
+  VISIBILITY = 'visibility',
+  /** MaterialIcons `visibility-off`：课程上那个"屏蔽"（CardWrapper.tsx:75）。 */
+  VISIBILITY_OFF = 'visibility-off'
 }
 
 /** 闭集 → 资源。没有 default 分支的"兜底语义"：未知枚举值按 attachment 渲染并保持可读。 */
@@ -119,6 +131,18 @@ export function iconSpec(icon: AppIcon): IconSpec {
       // 码位 58054 (0xE2C6) 抄自 react-native-vector-icons@10.2.0 的
       // glyphmaps/MaterialIcons.json 的 file-upload。
       return { family: IconFamily.MATERIAL, code: 0xE2C6, fallback: '[up]' };
+    case AppIcon.HEART:
+      return { family: IconFamily.MATERIAL_COMMUNITY, code: 0xF02D1, fallback: '[fav]' };
+    case AppIcon.HEART_OFF:
+      return { family: IconFamily.MATERIAL_COMMUNITY, code: 0xF0759, fallback: '[unfav]' };
+    case AppIcon.ARCHIVE_ARROW_DOWN:
+      return { family: IconFamily.MATERIAL_COMMUNITY, code: 0xF1259, fallback: '[arch]' };
+    case AppIcon.ARCHIVE_ARROW_UP:
+      return { family: IconFamily.MATERIAL_COMMUNITY, code: 0xF125B, fallback: '[unarch]' };
+    case AppIcon.VISIBILITY:
+      return { family: IconFamily.MATERIAL, code: 0xE8F4, fallback: '[show]' };
+    case AppIcon.VISIBILITY_OFF:
+      return { family: IconFamily.MATERIAL, code: 0xE8F5, fallback: '[hide]' };
     default:
       return { family: IconFamily.MATERIAL_COMMUNITY, code: 0xF0066, fallback: '[icon]' };
   }

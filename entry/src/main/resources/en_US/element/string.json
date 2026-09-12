@@ -1207,6 +1207,18 @@
     {
       "name": "ui_assignment_submission_time",
       "value": "[last submitted at] HH:mm, MMM D, YYYY"
+    },
+    {
+      "name": "ui_remove_favorite",
+      "value": "Remove from favorites"
+    },
+    {
+      "name": "ui_unarchive",
+      "value": "Unarchive"
+    },
+    {
+      "name": "ui_unhide_course",
+      "value": "Unhide course"
     }
   ]
 }

@@ -200,5 +200,13 @@ export const UI_STRINGS = [
   // 由 domain/render/NoticeDateText 的 formatNoticeDate 渲染 —— 与公告发布时间同一套机制。
   ['ui_assignment_submission_time',
     '上次提交于 YYYY 年 M 月 D 日 dddd HH:mm',
-    '[last submitted at] HH:mm, MMM D, YYYY']
+    '[last submitted at] HH:mm, MMM D, YYYY'],
+  // --- ticket 14（收藏 / 归档 / 隐藏课程）新增 ---
+  // 参考实现的滑动按钮**只换图标**（heart ↔ heart-off、archive-arrow-down ↔ archive-arrow-up、
+  // visibility-off ↔ visibility），没有任何文字（CardWrapper.tsx:63-117）。
+  // 本工程给按钮带 accessibilityText、并给"长按"那一支一个菜单（等价入口），
+  // 因此需要三个"反向动作"的说法；正向动作直接用参考实现已有的 loh_fav / loh_archived / loh_hidden。
+  ['ui_remove_favorite', '取消收藏', 'Remove from favorites'],
+  ['ui_unarchive', '取消归档', 'Unarchive'],
+  ['ui_unhide_course', '取消屏蔽', 'Unhide course']
 ];

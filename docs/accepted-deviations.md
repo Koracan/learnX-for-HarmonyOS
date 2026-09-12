@@ -397,7 +397,8 @@ ticket 11 的设备证据里保留了两段：`PdfView` 崩溃的 hilog（上文
    不得掉出页头区域或挤进正文），且学期文本仍可点进学期切换（点击后截图/日志与 ticket 12 一致）；
 3. 相对时间四档**边界**由单测钉住（`updatedTimeParts`：59s → `JUST_NOW`、60s → 1 分钟、59min → 59 分钟、60min → 1 小时、23h → 23 小时、24h → 1 天），
    设备侧用**注入快照时间戳**（改 `fetchedAtMillis`，不靠手速）拍 `刚刚更新` 与 `N 分钟前更新` 两帧；
-4. 公告页头仍有 `未读 n`、文件页头仍有条数（信息量计数未被"统一"删掉），两者与相对更新时间同行；
+4. ~~公告页头仍有 `未读 n`~~ **（ticket 14 起改判，见本条末的追记）**、文件页头仍有条数
+   （信息量计数未被"统一"删掉），两者与相对更新时间同行；
 5. **学期只出现在课程页头**（可复现的口径）：`grep -rn "getSemesterTextFromId(" entry/src/main/ets` 只有 3 处 ——
    `core/i18n/DateTimeUtil.ets:248`（**定义**）、`features/courses/CoursesPage.ets:110`（**课程页头**，经 `semesterText()` 渲染
    "实际生效学期"）、`features/courses/SemesterSelectionPage.ets:62`（**学期选择列表的每一行**，不是页头）。
@@ -405,6 +406,22 @@ ticket 11 的设备证据里保留了两段：`PdfView` 崩溃的 hilog（上文
    > 更正（ticket 11.5 复验）：这条判据原来写的是 `grep -n "ui_courses_semester_label" entry/src/main/ets/features`，
    > 但该键在 features 下**唯一**的引用是 `features/courses/SemesterSelectionPage.ets:141` —— 学期选择页那枚勾的
    > **无障碍文案**，与页头无关。原判据指向另一屏、且证明不了这件事，已换成上面的枚举口径。
+
+**【追记 · ticket 14，2026-09-13】公告页头的 `未读 n` 已移除（本条第 4 项对公告不再适用）**
+
+- **变了什么**：公告页头从「标题 + 相对更新时间 + `未读 n`」变成「标题 + 相对更新时间」；
+  未读数改由**过滤条上的"未读"片**承担（`未读 2` 与其余四片同排）。
+- **为什么**：本条第 4 项写它时就与参考实现不一致 —— 参考实现的公告未读数是**筛选条上的角标**
+  （`components/FilterList.tsx:246` 的 `unreadCount`、`components/Filter.tsx:181-187` 的 Badge），
+  页头（`HeaderTitle`）里**没有**这个元素；ticket 03 当初把它自造在页头，是为了在筛选条落地前
+  有个可见的未读信号。ticket 14 落地筛选条后，同一信息会**两处重复**，工单第 9 行要求二选一。
+- **保留的那一半**：文件页头的条数**仍在**（它不是筛选条上某一组的重复，见本条第 4 项后半）；
+  相对更新时间（本条主体）一字未动。
+- **原证据还成立到哪一步**：ticket 11.5 关于"作业页头无学期/无徽标/无未完成计数"的证伪截图不受影响；
+  `未读 n` 的那一类截图（若有）不再是提交态基准 —— 同一数字现在看过滤条的"未读"片。
+  可观察量转移到 **ticket 14 的公告页截图**（页头两段文字 + 过滤条五片）。
+- **取证**：`entry/src/main/ets/features/notices/NoticesPage.ets` 的 `header()` / `filterRow()`；
+  ticket 14 交付节第 1 条（与 ticket 03 自造页头的对账）。
 
 **与 ticket 12 的关系**：ticket 12 替代验收第 3 条"界面显示的 semester 就是实际生效值（课程 tab 头部那句）"**仍然成立**
 （学期文本还在，只是位置/版式变了）；**但"取证覆盖生效"这枚徽标被移除** ⇒ 覆盖生效的界面信号从此只有

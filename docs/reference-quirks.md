@@ -549,7 +549,7 @@ ticket 10 补做轮的 `G1/G1b/G5b/G8`（真实）、`H1/H3/H7`（夹具）、`G
 
 ---
 
-## 28. 【平台事实】本机模拟器清单：**只有 phone 镜像落到磁盘**，`emulator start` 不负责部署实例（ticket 16 侦察，2026-09-13）
+## 28. 【平台事实】模拟器**实例 ≠ 已部署镜像**；`emulator start` 不负责部署（ticket 16 侦察，2026-09-13）
 
 **这是什么**（不是参考实现的怪癖，**不构成保真约束**；是"模拟器实例 ≠ 已下载镜像"这一层工具行为）：
 
@@ -560,10 +560,10 @@ ticket 10 补做轮的 `G1/G1b/G5b/G8`（真实）、`H1/H3/H7`（夹具）、`G
 | Pura 90 | phone | `HarmonyOS-6.0.31/phone_all_x86/` | ✅ 有 | ✅ 5 个 `.img/.qcow2` |
 | Mate X7 | foldable | `HarmonyOS-6.0.31/phone_all_x86/` | ✅ 有（与 Pura 90 **同一个**） | ✅ 有（userdata 789 MB） |
 | MateBook Pro | 2in1 | `HarmonyOS-6.0.31/pc_all_x86/` | ❌ 无 | ❌ 只有 `config.ini` |
-| MatePad Pro 13 | tablet | `HarmonyOS-6.0.31/tablet_x86/` | ❌ 无 | ❌ 只有 `config.ini` |
+| MatePad Pro 13 | tablet | `HarmonyOS-6.0.31/tablet_x86/` | ✅ **有**（账号所有者当日下载） | ✅ **已铺开**（userdata 773 MB） |
 
-镜像库实况（`C:\Users\korac\AppData\Local\Huawei\Sdk\system-image\`）：**有且只有 `HarmonyOS-6.0.31\phone_all_x86\`**
-（`system.img` 3.67 GB、`sys_prod.img` 838 MB）。没有 `tablet_x86`、没有 `pc_all_x86`。
+镜像库实况（`C:\Users\korac\AppData\Local\Huawei\Sdk\system-image\`）：`phone_all_x86\`（`system.img` 3.67 GB / `sys_prod.img` 838 MB）与 **`tablet_x86\`**（`system.img` 3.67 GB / `sys_prod.img` 629 MB）
+（磁盘上还各有约 69 MB 的 `cache.img`，实例目录各约 773–790 MB）。**仍没有 `pc_all_x86`**（2in1）⇒ `MateBook Pro` 起不来（见上表）。
 
 **两个会骗人的地方**：
 
@@ -589,17 +589,26 @@ ticket 10 补做轮的 `G1/G1b/G5b/G8`（真实）、`H1/H3/H7`（夹具）、`G
   其 `config.ini`：折叠态 `hw.lcd.single.width=1080`/`density=500` ⇒ 1080/(500/160) = **345.6 vp**；
   `hw.lcd.number=2` ⇒ 展开态第二块屏（近方形），约 **1008 vp** ⇒ **高于 `spec.md` 第 149 行定的 750vp 断点**。
   折叠↔展开切换本身就是"窗口尺寸变化"的真实触发，可用于 ticket 16 的双栏与状态稳定判定。
-- **tablet 形态不可用**：本地无 tablet 镜像，且 `tablet` 在**任何** `--all` 行上都是 `downloaded: false`
-  （云端最接近的是 API 24 的 6.1.0.125，与本工程 `compatibleSdkVersion` 的 API 23 不同档）。
-  要换 tablet 得先下镜像 + 在 DevEco 里铺开实例，**在只是想要一块"宽屏"时收益为负**。
+- **tablet 形态（`MatePad Pro 13`）在镜像铺开后是能用的**（2026-09-13 实测）：启动成功并进 hdc 列表，
+  串口 `127.0.0.1:5557` —— **与 Pura 90 的 `5555` 同时在线**，即本机可并行两台模拟器。
+  横向 `hw.lcd.single.width=2880`/`density=320` ⇒ **1440 vp × 960 vp**，比 750vp 断点高近一倍。
+  代价：每台约占 4 GB 内存与 4 核（本机 31.5 GB / 14 核，容纳两台没问题），且**构建锁与设备锁仍各只有一把**。
+- **平板上跑登录前必须先放大数据分区**：其默认 6 GiB 会正好踩中第 12 条那个 `detectIncognito` 误判
+  （配额 < 2×堆上限 ⇒ 判成隐私模式 ⇒ 二次验证页**不渲染「信任该浏览器」**，页面显示
+  `二次验证成功` + 「您的浏览器目前处于隐私或匿名模式…无法将该浏览器设置为信任浏览器」）。
+  **改哪里（2026-09-13 实测，第一次改错了）**：真正被 qemu 读的是**同一目录下 `hardware-qemu.ini` 的 `disk.dataPartition.size`
+  （默认 `6g`）**，而 `config.ini` 里的 `hw.dataPartitionSize` **只是记录，改它不生效**——
+  只改 `config.ini` 时设备上 `df` 显示 `/data` 仍是 5.7G、used 788M/avail 4.6G，配额也就没上去。
+  正确步骤：① 停实例；② 把 `hardware-qemu.ini` 的 `disk.dataPartition.size` 改成 `16g`
+  （与 Pura 90 一致，它本来就是 `16g`）；③ **删掉 `userdata.img.qcow2`**（不删就继续按旧的 6g 续用，
+  `config.ini` 改了也没用）；④ 启动（会重建 userdata ⇒ **应用要重装、凭据要重来**）。
+  判据：启动后 `hdc -t <serial> shell df /data` 应显示约 15G。`config.ini` 那一项顺手也改成 `16384` 以免被 DevEco 覆盖回去。
 - **真机复验（`AGENTS.md`：真机只做最终一次性复验，时点卡在 ticket 18）不受影响**，也别拿 foldable 的验收去替代它。
 
 **取证**：`devecocli emulator list` / `device list` / `emulator image list [--all] [--device-type tablet]` 的原始输出；
 `...\Emulator\deployed\{Pura 90,Mate X7,MateBook Pro,MatePad Pro 13}\config.ini`；
 `...\deployed\MatePad Pro 13\Log\Emulator.log`（2026-09-13 00:02:20 起，783 字节，崩溃原因逐字）；
 `...\Sdk\system-image\HarmonyOS-6.0.31\` 的目录列举。
-
----
 
 ---
 
@@ -636,3 +645,27 @@ HarmonyOS 6.1.0(23)，2026-09-13），**不是**参考实现的行为，因此�
 
 **取证**：`.scratch/submission/evidence/README.md` 与其中的 `B4/B5/B6/B6b/B7/B8/B9-*.png`、
 `B-log-pickers-full.txt`；`entry/src/main/ets/features/assignments/AttachmentPickers.ets`。
+
+---
+
+## 30. 收藏 / 归档 / 屏蔽的**三个视图口径不对称**（fav ⊆ all；archived / hidden 用原始 items；置真 append 不去重）—— 锁定
+
+**参考实现行为**（全部逐字可查，行号是 `reference/learnOH-old/`）：
+
+| # | 行为 | 出处 |
+| --- | --- | --- |
+| A | `all = items.filter(i => !archived.includes(i.id) && !hidden.includes(i.courseId))` | `src/data/selectors/filteredData.ts:77-79`（公告）、`:111-113`（作业）、`:147-149`（文件） |
+| B | `fav = all.filter(i => fav.includes(i.id))` —— **在 all 之上再筛**，所以**已归档的条目不出现在收藏夹**、被屏蔽课程的条目同理 | `:83`、`:118`、`:153` |
+| C | `archived = items.filter(i => archived.includes(i.id))` 与 `hidden = items.filter(i => hidden.includes(i.courseId))` —— **用原始 `items`**，不套 A 的两条排除：归档视图里能看到被屏蔽课程的条目，屏蔽视图里也能看到已归档的条目 | `:84-85`、`:119-120`、`:154-155` |
+| D | **屏蔽（hidden）视图四个列表都有**，不只是课程页：`components/Filter.tsx:211-218` 无条件渲染该项，四个屏幕都传 `hidden`（`screens/Notices.tsx:58`、`Assignments.tsx:60`、`Files.tsx:59`、`Courses.tsx:52`）。**"隐藏课程的内容从列表里消失"指的是从 `all` 里消失**，不是"没有这个视图" | 同上 |
+| E | 收藏按钮的状态取的是**过滤后的 fav 分组**（`fav?.some(f => f.id === item.id)`），不是原始 `favorites` 数组 | `src/components/FilterList.tsx:210-215` |
+| F | reducer 置真一律 **append、不去重**（`[...state.favorites, id]` / `[...state.archived, ...ids]` / `[...state.hidden, courseId]`） | `src/data/reducers/notices.ts:59-72`、`assignments.ts:69-96`、`files.ts:67-94`、`courses.ts:65-70` |
+
+**E + F 合起来有一个可复现的后果**：先收藏一条公告 → 再到课程页屏蔽它所属的课程 → 打开公告页的"屏蔽"视图 → 该行显示为**未收藏**（因为它在 `all` 之外、不在 fav 分组里）→ 再点一次收藏，`favorites` 里就出现**重复 id**。代码路径逐行可推（不需要设备），本工程的单测 `favoriteAndArchiveTogglingFollowsTheReferenceReducers` 把"append 不去重"钉住。
+
+**为什么别急着"修好"**：这三条（统一三组口径、给 append 加去重、把 hidden 视图从内容三域删掉）都会让可观察行为偏离参考实现，而"移植是否正确"正是拿参考实现当基准的。曾经有一次口头转述把 D 说成"只有课程页有 hidden 视图、三域直接剔除不显示分组"，与源码不符——**以本条的 C/D 为准**（ticket 14 交付里也记了这次更正）。
+
+**新实现做法**：`entry/src/main/ets/features/marks/FilteredContent.ets`（三域分组与计数，逐行对齐 A-F）与 `entry/src/main/ets/domain/marks/CollectionFlags.ets`（迁移规则，含 append 不去重）照抄；隐藏课程的内容从 `all` 里剔除、并提供"屏蔽"视图，与参考实现一致。
+
+**取证**：上表的源文件行号；`entry/src/test/Favorites.test.ets`（`allExcludesArchivedItemsAndItemsOfHiddenCourses`、`favoriteIsASubsetOfAllSoArchivedItemsNeverShowUpInFavorites`、`archivedAndHiddenGroupsKeepTheOtherFilterOut`、`favoriteAndArchiveTogglingFollowsTheReferenceReducers`）；ticket 14 的交付节与 `.scratch/favorites/evidence/README.md`。
+

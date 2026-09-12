@@ -34,6 +34,7 @@ import assignmentSubmissionTest from './AssignmentSubmission.test';
 import fileDownloadTest from './FileDownload.test';
 import updatedTimeTest from './UpdatedTime.test';
 import iconCatalogTest from './IconCatalog.test';
+import favoritesTest from './Favorites.test';
 
 export default function testsuite() {
   semesterTest();
@@ -68,4 +69,5 @@ export default function testsuite() {
   fileDownloadTest();
   updatedTimeTest();
   iconCatalogTest();
+  favoritesTest();
 }

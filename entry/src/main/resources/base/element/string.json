@@ -1219,6 +1219,18 @@
     {
       "name": "ui_assignment_submission_time",
       "value": "上次提交于 YYYY 年 M 月 D 日 dddd HH:mm"
+    },
+    {
+      "name": "ui_remove_favorite",
+      "value": "取消收藏"
+    },
+    {
+      "name": "ui_unarchive",
+      "value": "取消归档"
+    },
+    {
+      "name": "ui_unhide_course",
+      "value": "取消屏蔽"
     }
   ]
 }

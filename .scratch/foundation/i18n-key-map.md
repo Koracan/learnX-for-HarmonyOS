@@ -17,8 +17,8 @@
 | --- | --- | --- |
 | 参考实现迁入 | 180 | `loh_` |
 | 本工程新增（学期季节词） | 6 | `loh_` |
-| 本工程新增（原生重写 UI 文案） | 116 | `ui_` |
-| 合计 | 302 | |
+| 本工程新增（原生重写 UI 文案） | 119 | `ui_` |
+| 合计 | 305 | |
 
 ## 参考实现迁入键（180）
 
@@ -205,7 +205,7 @@
 | 179 | `avoidFrontCameraDescription` | `loh_avoid_front_camera_description` | - | 在上部留出空间以避让挖孔区域，需要重启应用 | Leave top space to avoid the front camera cutout. App restart required. |
 | 180 | `pleaseRestartAppToApplyImmersive` | `loh_please_restart_app_to_apply_immersive` | - | 请重启应用以应用沉浸式模式设置。 | Please restart the app to apply immersive mode setting. |
 
-## 本工程新增键（122）
+## 本工程新增键（125）
 
 | # | 类别 | 资源名 | 占位符 | 中文 | 英文 |
 | --- | --- | --- | --- | --- | --- |
@@ -331,4 +331,7 @@
 | 120 | ui | `ui_updated_hours_ago` | {0} | %1$s 小时前更新 | Updated %1$s h ago |
 | 121 | ui | `ui_updated_days_ago` | {0} | %1$s 天前更新 | Updated %1$s d ago |
 | 122 | ui | `ui_assignment_submission_time` | - | 上次提交于 YYYY 年 M 月 D 日 dddd HH:mm | [last submitted at] HH:mm, MMM D, YYYY |
+| 123 | ui | `ui_remove_favorite` | - | 取消收藏 | Remove from favorites |
+| 124 | ui | `ui_unarchive` | - | 取消归档 | Unarchive |
+| 125 | ui | `ui_unhide_course` | - | 取消屏蔽 | Unhide course |
 

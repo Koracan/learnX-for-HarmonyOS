@@ -31,6 +31,34 @@ learnOH —— HarmonyOS 原生（ArkTS / ArkUI）应用，是原 React Native f
 
  - **需要独占时向统筹者申请窗口**，不要在共享资源上自行重试或抢占；拿到窗口的 agent 在收尾时明确回报"窗口关闭"。
 
+ - **多 worktree 并行：条件与代价（2026-09-13 实测，两台模拟器在线时）**
+
+   判据是"**有独立设备**"。worktree 只隔离文件系统，不给你第二台模拟器；没有独立设备就不要开 worktree——那只是把文件冲突换成设备冲突。两台模拟器在线时，可以给每条线配一棵 worktree + 一台设备。
+
+   - **worktree 解决的是**：每棵树有各自的 `entry/build` ⇒ **构建产物不再互相覆盖**（本文件上面记的那次"后者的产物让前者已装的 app 与源码对不上"就是这个）。
+     **它不解决的是**：构建锁与设备锁仍各只有一把——每台设备同一时刻仍只允许一个 agent 取证。跨树并行的是"改代码 + 各自构建 + 各自取证"。
+   - **实测（HEAD `0456055`，两棵 `--detach` worktree 同时 `assembleHap --no-incremental`）**：两棵各约 45s 且都 `BUILD SUCCESSFUL`（a `44s761ms` / exit 0，b `46s733ms` / exit 0），
+     **各自起自己的 hvigor 守护进程**（各约 2s 就绪），**没有出现** `no-daemon mode`，也没有 `Another build is already running`；主树产物时间戳**未被动**。
+     三份产物互异（4,259,881 / 4,259,876 / 主树 4,259,874 字节，SHA256 各不相同）= native 抖动，不是互相污染。
+     ⇒ **"构建成本翻倍"要收窄**：真正重复的是 **ohpm 安装与缓存构建**的一次性成本（本仓库 `oh_modules` 仅 **0.3 MB**、`.hvigor` 15.5 MB），
+     **不是每次构建的墙钟时间**——两棵并发与单棵基线（1m08s / 1m23s）相比几乎没有惩罚。
+   - **签名材料不用复制**：`build-profile.json5` 的 `signingConfigs` 指向**用户级** `C:\Users\<user>\.ohos\config\` 下的绝对路径，新 worktree 天然能读到。
+     （仓库里的 `keys/` 是历史遗留、未被 profile 引用；`keys/`、`.dsh/`、`oh_modules/`、`**/build` 都在 `.gitignore` 里，所以新树里不会有它们。）
+   - **收尾要清两样东西**：① `git worktree remove --force <path>`；② **先杀掉该树的 hvigor 守护进程**，否则目录会因文件占用删不掉
+     （现象：`failed to delete …: Permission denied`、`the file is being used by another process`）。定位方法：`Get-CimInstance Win32_Process -Filter "Name='node.exe'" | Where-Object { $_.CommandLine -like '*<worktree路径片段>*' }`。
+     **别误杀主树的守护进程**（按命令行里的路径片段筛，别按时间盲杀）。
+
+   本机可用模拟器（2026-09-13；每台约 4 GB 内存 + 4 核，本机 31.5 GB / 14 核）：
+
+   | 实例 | 形态 | 串口 | 视口 | 备注 |
+   | --- | --- | --- | --- | --- |
+   | Pura 90 | phone | `127.0.0.1:5555` | 电话 | 基准机 |
+   | MatePad Pro 13 | tablet | `127.0.0.1:5557` | **1440×960 vp** | 平板/大屏；**跑登录前必须先放大数据分区**（见 `docs/reference-quirks.md` 第 28 条） |
+   | Mate X7 | foldable | 未启动 | 折叠 345.6 vp / 展开约 1008 vp | 复用 phone 镜像，实例已铺开 |
+   | MateBook Pro | 2in1 | 起不来 | — | 缺 `pc_all_x86` 镜像 |
+
+   **多设备时必须显式传 `--device <serial>`**（`devecocli install/run/ui/log` 与任何 `hdc`）。
+
  - **工作区是共享的：任何"半成品"都会冻住别人的构建。** 实测过两次：ticket 05 留下 21 个编译错误挡住 ticket 03；ticket 07 给 `EnrollmentScriptSpec` 加了必填字段却没同步它的测试，挡住 ticket 08（对方 `COMPILE RESULT:FAIL {ERROR:2}`，一行自己的代码都没编到）。因此：
    - **加/改必填字段、改签名、改导出名，必须与所有构造点/调用点在**同一次编辑**里落地**——不要让工作区停留在编译不过的状态；
    - **并行只在文件与层都真正不重叠时才开。** 同一个 feature 目录（`features/auth`、`domain/auth` 之类）下的两条线应当串行；

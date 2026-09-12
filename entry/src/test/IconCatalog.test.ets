@@ -36,13 +36,20 @@ const EXPECTED: ExpectedGlyph[] = [
   { icon: AppIcon.INSERT_DRIVE_FILE, name: 'insert-drive-file', family: IconFamily.MATERIAL, code: 0xE24D },
   { icon: AppIcon.CHECK_CIRCLE, name: 'check-circle', family: IconFamily.MATERIAL, code: 0xE86C },
   { icon: AppIcon.ARROW_BACK, name: 'arrow-back', family: IconFamily.MATERIAL, code: 0xE5C4 },
-  { icon: AppIcon.FILE_UPLOAD, name: 'file-upload', family: IconFamily.MATERIAL, code: 0xE2C6 }
+  { icon: AppIcon.FILE_UPLOAD, name: 'file-upload', family: IconFamily.MATERIAL, code: 0xE2C6 },
+  // ticket 14（收藏 / 归档 / 隐藏课程）的滑动操作按钮：参考实现 CardWrapper.tsx 用的两族图标。
+  { icon: AppIcon.HEART, name: 'heart', family: IconFamily.MATERIAL_COMMUNITY, code: 0xF02D1 },
+  { icon: AppIcon.HEART_OFF, name: 'heart-off', family: IconFamily.MATERIAL_COMMUNITY, code: 0xF0759 },
+  { icon: AppIcon.ARCHIVE_ARROW_DOWN, name: 'archive-arrow-down', family: IconFamily.MATERIAL_COMMUNITY, code: 0xF1259 },
+  { icon: AppIcon.ARCHIVE_ARROW_UP, name: 'archive-arrow-up', family: IconFamily.MATERIAL_COMMUNITY, code: 0xF125B },
+  { icon: AppIcon.VISIBILITY, name: 'visibility', family: IconFamily.MATERIAL, code: 0xE8F4 },
+  { icon: AppIcon.VISIBILITY_OFF, name: 'visibility-off', family: IconFamily.MATERIAL, code: 0xE8F5 }
 ];
 
 export default function iconCatalogTest() {
   describe('ui.icons.IconCatalog', () => {
     it('maps every icon to the reference glyphmap code point and family', 0, () => {
-      expect(EXPECTED.length).assertEqual(16);
+      expect(EXPECTED.length).assertEqual(22);
       for (let i = 0; i < EXPECTED.length; i++) {
         const expected: ExpectedGlyph = EXPECTED[i];
         const spec: IconSpec = iconSpec(expected.icon);

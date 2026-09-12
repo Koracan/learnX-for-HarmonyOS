@@ -28,7 +28,7 @@
  * | 课程名 / 标题（removeTags）/ 描述预览（2 行） | :43-48, :94-98 | 同 |
  * | 状态标记 | 五个图标：附件(橙 MCI) / 已提交(绿勾 MCI) / 已评分(MaterialIcons grade) / 答案(蓝 MCI) / 优秀(MCI medal) | 同序同色，用**同一份字体的同一批码位**（ticket 11.5，见 docs/accepted-deviations.md 第 16 条改判） |
  * | 截止时间那句 | `dayjs().isAfter(deadline) ? fromNow()+'截止' : '还剩 '+to(deadline,true)`（:103-108） | **绝对时间**（站点原文 `YYYY-MM-DD HH:mm`）+ 状态标记"未到期 / 已截止" |
- * | 过滤 | FilterList 下拉（all / unfinished / finished / fav / archived / hidden） | 三个筛选片（全部 / 未完成 / 已完成）；收藏/归档/屏蔽归 ticket 14 |
+ * | 过滤 | FilterList 下拉（unfinished / finished / all / fav / archived / hidden） | 六个筛选片，**顺序与计数口径照 Filter.tsx:153-218**；默认视图 unfinished 照 settings.ts:26 |
  *
  * 截止时间那句为什么换措辞：dayjs 的 `humanize`（"5 个月前" / "还剩 3 天"）在平台侧没有等价物 ——
  * `Intl.RelativeTimeFormat` 只能给 "5个月前" / "3天后"，无法去掉/加上参考那句前后缀。
@@ -44,24 +44,30 @@ import { Logger } from '../../core/log/Logger';
 import { Assignment } from '../../domain/model/ContentItem';
 import { removeTags } from '../../domain/render/WebViewTemplate';
 import { EmptyState } from '../../ui/components/EmptyState';
+import { FilterChip } from '../../ui/components/FilterChip';
+import { ToastController, ToastOverlay } from '../../ui/components/Toast';
+import { ContentSwipeActions } from '../../ui/components/SwipeActions';
 import { AppIcon } from '../../ui/icons/IconCatalog';
 import { IconGlyph } from '../../ui/icons/IconGlyph';
 import { SessionHeaderProvider, createSessionHeaderProvider } from '../../core/web/SessionHeaderProvider';
+import { ContentFilter } from '../../domain/marks/ContentFilter';
+import { MarksDomain, MarksTab } from '../../domain/marks/CollectionFlags';
 import { CourseListStore } from '../courses/CourseListStore';
 import { createCourseRepository } from '../courses/repository/CourseRepositoryProvider';
+import { CollectionFlagsStore } from '../../data/marks/CollectionFlagsStore';
+import { collectionFlagsStore } from '../marks/CollectionFlagsProvider';
+import {
+  AssignmentFilterCounts, FilteredAssignments, assignmentsForFilter, assignmentCounts,
+  isInGroupAssignments, selectFilteredAssignments
+} from '../marks/FilteredContent';
 import { FileDetailPage } from '../files/FileDetailPage';
 import { FileDetailRouteParams, ROUTE_FILE_DETAIL } from '../notices/NoticeRoutes';
 import { AssignmentDetailPage } from './AssignmentDetailPage';
 import { AssignmentSubmissionPage } from './AssignmentSubmissionPage';
 import { ROUTE_ASSIGNMENT_DETAIL, ROUTE_ASSIGNMENT_SUBMISSION } from './AssignmentRoutes';
-import {
-  AssignmentFilter, countAssignments, countPastDue, filterAssignments, hasAnswer,
-  hasExcellentHomework, isAssignmentListEmpty, isPastDeadline
-} from './AssignmentFilter';
+import { countPastDue, hasAnswer, hasExcellentHomework, isPastDeadline } from './AssignmentFilter';
 import { deadlineText, dueStatusText, emptyStateKey } from './AssignmentText';
-import {
-  evidenceAssignmentsOr, logAssignmentEvidenceState
-} from './AssignmentEvidence';
+import { evidenceAssignmentsOr, logAssignmentEvidenceState } from './AssignmentEvidence';
 
 const logger: Logger = new Logger('features.assignments');
 
@@ -83,24 +89,18 @@ interface AssignmentRowSpec {
   excellentLabel: string;
 }
 
-/** 一个筛选片的渲染参数。 */
-interface FilterSpec {
-  theme: ThemeTokens;
-  label: string;
-  count: number;
-  active: boolean;
-  /** 该片对应的过滤视图；点击在 builder 内部转成 selectFilter（@Builder 的参数只传数据）。 */
-  value: AssignmentFilter;
-}
-
 @Component
 export struct AssignmentsPage {
   @StorageProp(COLOR_MODE_KEY) colorMode: number = ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT;
   @StorageLink(LOCALE_VERSION_KEY) localeVersion: number = 0;
   @State refreshing: boolean = false;
-  @State filter: AssignmentFilter = AssignmentFilter.ALL;
+  /** 当前过滤视图；初值 = 参考实现 settings.ts:26 的 assignment 默认值 unfinished。 */
+  @State filter: ContentFilter = ContentFilter.UNFINISHED;
 
   private store: CourseListStore = new CourseListStore(createCourseRepository());
+  /** 进程内单例：与公告 / 文件 / 课程三个列表共用同一份收藏与屏蔽状态。 */
+  private flags: CollectionFlagsStore = collectionFlagsStore();
+  private toast: ToastController = new ToastController();
   private stack: NavPathStack = new NavPathStack();
   private session: SessionHeaderProvider = createSessionHeaderProvider();
 
@@ -114,6 +114,8 @@ export struct AssignmentsPage {
   /** 首次取数完成后打一行消费点自证（不阻塞首帧）。 */
   private async loadAndLog(): Promise<void> {
     await this.store.loadOnce();
+    await this.flags.loadOnce();
+    this.filter = this.flags.filterFor(MarksTab.ASSIGNMENT);
     this.logApplied('initial');
   }
 
@@ -134,29 +136,77 @@ export struct AssignmentsPage {
     return evidenceAssignmentsOr(this.store.assignments, Date.now());
   }
 
+  /* ------------------------------------------------------------------ *
+   * ticket 14：收藏 / 归档 / 屏蔽（与公告 / 文件共用 features/marks 的同一套语义）
+   * ------------------------------------------------------------------ */
+
+  /** 过滤后的六个分组（逐行对齐参考实现 selectFilteredAssignments）。 */
+  private filtered(): FilteredAssignments {
+    return selectFilteredAssignments(this.sourceAssignments(), this.flags.assignmentFavorites,
+      this.flags.assignmentArchived, this.flags.hiddenCourseIds);
+  }
+
   /** 当前筛选下的可见列表；**顺序就是取数时的顺序**（不在这里排序）。 */
   private visibleAssignments(): Assignment[] {
-    return filterAssignments(this.sourceAssignments(), this.filter);
+    return assignmentsForFilter(this.filtered(), this.filter);
+  }
+
+  private counts(): AssignmentFilterCounts {
+    return assignmentCounts(this.filtered());
   }
 
   /**
-   * 消费点自证：把**实际生效的学期与来源**连同作业条数打进 hilog。
+   * 消费点自证：把**实际生效的学期与来源**连同作业条数、六组计数打进 hilog。
    * 作业线的取证要求"既要看到 data.courses effective semester=… source=override，
    * 也要看到作业消费点的行"（见 ticket 10 的统筹提示第 1 条）。
    */
   private logApplied(reason: string): void {
     const items: Assignment[] = this.sourceAssignments();
     const nowMillis: number = Date.now();
+    const counts: AssignmentFilterCounts = this.counts();
     logger.info('assignments applied: reason=' + reason
       + ' semester=' + this.store.semesterId
       + ' source=' + this.store.semesterSource
       + ' siteCurrent=' + this.store.siteCurrentSemesterId
       + ' items=' + items.length.toString()
       + ' visible=' + this.visibleAssignments().length.toString()
-      + ' filter=' + this.filter
-      + ' unfinished=' + countAssignments(items, AssignmentFilter.UNFINISHED).toString()
-      + ' finished=' + countAssignments(items, AssignmentFilter.FINISHED).toString()
+      + ' filter=' + this.filter.toString()
+      + ' all=' + counts.all.toString()
+      + ' unfinished=' + counts.unfinished.toString()
+      + ' finished=' + counts.finished.toString()
+      + ' fav=' + counts.fav.toString()
+      + ' archived=' + counts.archived.toString()
+      + ' hidden=' + counts.hidden.toString()
+      + ' favoriteIds=' + this.flags.assignmentFavorites.length.toString()
+      + ' archivedIds=' + this.flags.assignmentArchived.length.toString()
+      + ' hiddenCourses=' + this.flags.hiddenCourseIds.length.toString()
       + ' pastDue=' + countPastDue(items, nowMillis).toString());
+  }
+
+  /** 收藏 / 取消收藏（flag 语义与参考实现 FilterList.tsx:119-139 逐行对应）。 */
+  private handleFav(item: Assignment, isFav: boolean): void {
+    this.flags.setFavorite(MarksDomain.ASSIGNMENT, item.id, !isFav);
+    if (isFav) {
+      this.toast.show(this.s($r('app.string.loh_remove_from_fav')), '', null);
+    } else {
+      this.toast.show(this.s($r('app.string.loh_add_to_fav')), this.s($r('app.string.loh_undo')), () => {
+        this.handleFav(item, true);
+      });
+    }
+    this.logApplied('favorite');
+  }
+
+  /** 归档 / 取消归档（参考实现：取消归档那一支没有撤销按钮）。 */
+  private handleArchive(item: Assignment, isArchived: boolean): void {
+    this.flags.setArchived(MarksDomain.ASSIGNMENT, [item.id], !isArchived);
+    if (isArchived) {
+      this.toast.show(this.s($r('app.string.loh_undo_archive')), '', null);
+    } else {
+      this.toast.show(this.s($r('app.string.loh_archive_succeeded')), this.s($r('app.string.loh_undo')), () => {
+        this.handleArchive(item, true);
+      });
+    }
+    this.logApplied('archive');
   }
 
   /**
@@ -184,11 +234,12 @@ export struct AssignmentsPage {
     this.logApplied('refresh');
   }
 
-  private selectFilter(next: AssignmentFilter): void {
+  private selectFilter(next: ContentFilter): void {
     if (this.filter === next) {
       return;
     }
     this.filter = next;
+    this.flags.selectFilter(MarksTab.ASSIGNMENT, next);
     this.logApplied('filter');
   }
 
@@ -239,48 +290,55 @@ export struct AssignmentsPage {
     })
   }
 
-  /** 一个筛选片（参考实现 FilterList 的下拉被换成同一屏的三个片，行为一样：切视图）。 */
-  @Builder
-  filterChip(spec: FilterSpec) {
-    Text(spec.label + ' ' + spec.count.toString())
-      .fontSize(spec.theme.typography.labelMedium.fontSize)
-      .fontColor(spec.active ? spec.theme.colors.onPrimaryContainer : spec.theme.colors.onSurfaceVariant)
-      .backgroundColor(spec.active ? spec.theme.colors.primaryContainer : spec.theme.colors.surface)
-      .borderRadius(spec.theme.sizes.controlHeight / 2)
-      .padding({
-        left: spec.theme.sizes.space3,
-        right: spec.theme.sizes.space3,
-        top: spec.theme.sizes.space1,
-        bottom: spec.theme.sizes.space1
-      })
-      .margin({ right: spec.theme.sizes.space2 })
-      .onClick(() => {
-        this.selectFilter(spec.value);
-      })
-  }
-
+  /**
+   * 过滤条（ticket 14）：六个视图与计数，**顺序与参考实现 Filter.tsx:153-218 一致**
+   * （unfinished → finished → all → fav → archived → hidden；作业没有 unread 视图）。
+   */
   @Builder
   filterRow() {
-    Row() {
-      this.filterChip({
-        theme: this.theme(), label: this.s($r('app.string.loh_all')),
-        count: countAssignments(this.sourceAssignments(), AssignmentFilter.ALL),
-        active: this.filter === AssignmentFilter.ALL,
-        value: AssignmentFilter.ALL
+    Flex({ wrap: FlexWrap.Wrap }) {
+      FilterChip({
+        label: this.s($r('app.string.loh_unfinished')), count: this.counts().unfinished,
+        active: this.filter === ContentFilter.UNFINISHED, isDark: this.isDark(),
+        onTap: () => {
+          this.selectFilter(ContentFilter.UNFINISHED);
+        }
       })
-      this.filterChip({
-        theme: this.theme(), label: this.s($r('app.string.loh_unfinished')),
-        count: countAssignments(this.sourceAssignments(), AssignmentFilter.UNFINISHED),
-        active: this.filter === AssignmentFilter.UNFINISHED,
-        value: AssignmentFilter.UNFINISHED
+      FilterChip({
+        label: this.s($r('app.string.loh_finished')), count: this.counts().finished,
+        active: this.filter === ContentFilter.FINISHED, isDark: this.isDark(),
+        onTap: () => {
+          this.selectFilter(ContentFilter.FINISHED);
+        }
       })
-      this.filterChip({
-        theme: this.theme(), label: this.s($r('app.string.loh_finished')),
-        count: countAssignments(this.sourceAssignments(), AssignmentFilter.FINISHED),
-        active: this.filter === AssignmentFilter.FINISHED,
-        value: AssignmentFilter.FINISHED
+      FilterChip({
+        label: this.s($r('app.string.loh_all')), count: this.counts().all,
+        active: this.filter === ContentFilter.ALL, isDark: this.isDark(),
+        onTap: () => {
+          this.selectFilter(ContentFilter.ALL);
+        }
       })
-      Blank()
+      FilterChip({
+        label: this.s($r('app.string.loh_fav')), count: this.counts().fav,
+        active: this.filter === ContentFilter.FAV, isDark: this.isDark(),
+        onTap: () => {
+          this.selectFilter(ContentFilter.FAV);
+        }
+      })
+      FilterChip({
+        label: this.s($r('app.string.loh_archived')), count: this.counts().archived,
+        active: this.filter === ContentFilter.ARCHIVED, isDark: this.isDark(),
+        onTap: () => {
+          this.selectFilter(ContentFilter.ARCHIVED);
+        }
+      })
+      FilterChip({
+        label: this.s($r('app.string.loh_hidden')), count: this.counts().hidden,
+        active: this.filter === ContentFilter.HIDDEN, isDark: this.isDark(),
+        onTap: () => {
+          this.selectFilter(ContentFilter.HIDDEN);
+        }
+      })
     }
     .width('100%')
     .padding({
@@ -288,6 +346,45 @@ export struct AssignmentsPage {
       right: this.theme().sizes.contentPadding,
       bottom: this.theme().sizes.space2
     })
+  }
+
+  /** 滑动操作（右侧）：收藏（已归档的行不渲染）+ 归档。 */
+  @Builder
+  swipeEnd(item: Assignment, fav: boolean, archived: boolean) {
+    ContentSwipeActions({
+      fav: fav,
+      archived: archived,
+      // 按钮无文字：无障碍文案要说明**点下去会发生什么**（参考实现的图标两态就是干这个）。
+      favLabel: this.s(fav ? $r('app.string.ui_remove_favorite') : $r('app.string.loh_fav')),
+      archiveLabel: this.s(archived ? $r('app.string.ui_unarchive') : $r('app.string.loh_archived')),
+      onFav: () => {
+        this.handleFav(item, fav);
+      },
+      onArchive: () => {
+        this.handleArchive(item, archived);
+      }
+    })
+  }
+
+  /** 长按菜单（参考实现长按展开操作区 CardWrapper.tsx:161-166 的等价入口）。 */
+  @Builder
+  rowMenu(item: Assignment, fav: boolean, archived: boolean) {
+    Menu() {
+      if (!archived) {
+        MenuItem({
+          content: this.s(fav ? $r('app.string.ui_remove_favorite') : $r('app.string.loh_fav'))
+        })
+          .onClick(() => {
+            this.handleFav(item, fav);
+          })
+      }
+      MenuItem({
+        content: this.s(archived ? $r('app.string.ui_unarchive') : $r('app.string.loh_archived'))
+      })
+        .onClick(() => {
+          this.handleArchive(item, archived);
+        })
+    }
   }
 
   /**
@@ -428,7 +525,16 @@ export struct AssignmentsPage {
               excellentLabel: this.s($r('app.string.ui_assignment_excellent_mark_label'))
             })
           }
-        }, (item: Assignment) => item.id)
+          .swipeAction({
+            end: this.swipeEnd(item, isInGroupAssignments(this.filtered().fav, item.id),
+              isInGroupAssignments(this.filtered().archived, item.id))
+          })
+          .bindContextMenu(this.rowMenu(item, isInGroupAssignments(this.filtered().fav, item.id),
+            isInGroupAssignments(this.filtered().archived, item.id)), ResponseType.LongPress)
+        }, (item: Assignment) =>
+          item.id
+          + '|' + (isInGroupAssignments(this.filtered().fav, item.id) ? 'fav' : 'nofav')
+          + '|' + (isInGroupAssignments(this.filtered().archived, item.id) ? 'arch' : 'noarch'))
       }
       .width('100%')
       .height('100%')
@@ -461,7 +567,7 @@ export struct AssignmentsPage {
         .height('100%')
         .justifyContent(FlexAlign.Center)
         .padding(this.theme().sizes.contentPadding)
-      } else if (isAssignmentListEmpty(this.visibleAssignments(), this.store.isBusy())) {
+      } else if (this.visibleAssignments().length === 0 && !this.store.isBusy()) {
         EmptyState({
           message: i18nService.t(emptyStateKey(this.filter)),
           isDark: this.isDark()
@@ -506,24 +612,30 @@ export struct AssignmentsPage {
 
   build() {
     Navigation(this.stack) {
-      Column() {
-        this.header()
-        this.filterRow()
-        Refresh({ refreshing: $$this.refreshing, promptText: this.s($r('app.string.loh_refresh')) }) {
-          this.listBody()
+      Stack() {
+        Column() {
+          this.header()
+          this.filterRow()
+          Refresh({ refreshing: $$this.refreshing, promptText: this.s($r('app.string.loh_refresh')) }) {
+            this.listBody()
+          }
+          .layoutWeight(1)
+          .width('100%')
+          .onRefreshing(() => {
+            this.handlePullRefresh();
+          })
+          .onStateChange((state: RefreshStatus) => {
+            logger.info('assignments pull refresh state: ' + state.toString());
+          })
         }
-        .layoutWeight(1)
         .width('100%')
-        .onRefreshing(() => {
-          this.handlePullRefresh();
-        })
-        .onStateChange((state: RefreshStatus) => {
-          logger.info('assignments pull refresh state: ' + state.toString());
-        })
+        .height('100%')
+        .backgroundColor(this.theme().colors.background)
+
+        ToastOverlay({ controller: this.toast, isDark: this.isDark() })
       }
       .width('100%')
       .height('100%')
-      .backgroundColor(this.theme().colors.background)
     }
     .navDestination(this.destinationBuilder)
     .hideTitleBar(true)

@@ -22,7 +22,8 @@ import { Assignment } from '../../domain/model/ContentItem';
 import { i18nService } from '../../core/i18n/I18n';
 import { I18nKey } from '../../core/i18n/I18nKeys';
 import { parseTimestamp } from '../../domain/parse/Text';
-import { AssignmentFilter, isPastDeadline } from './AssignmentFilter';
+import { isPastDeadline } from './AssignmentFilter';
+import { ContentFilter } from '../../domain/marks/ContentFilter';
 
 /**
  * 成绩等级 → 资源键。**逐条对齐**参考实现 `helpers/i18n.ts:33-39` 的
@@ -86,14 +87,18 @@ export function dueStatusKey(deadline: string, nowMillis: number): I18nKey {
  *   - 已完成视图为空 = 一条都没提交。
  * 显示成同一句"暂无作业"会让"没有作业"与"都做完了"看起来一样。
  */
-export function emptyStateKey(filter: AssignmentFilter): I18nKey {
-  if (filter === AssignmentFilter.UNFINISHED) {
+export function emptyStateKey(filter: ContentFilter): I18nKey {
+  if (filter === ContentFilter.UNFINISHED) {
     return 'ui_assignments_none_unfinished';
   }
-  if (filter === AssignmentFilter.FINISHED) {
+  if (filter === ContentFilter.FINISHED) {
     return 'ui_assignments_none_finished';
   }
-  return 'ui_assignments_empty';
+  if (filter === ContentFilter.ALL) {
+    return 'ui_assignments_empty';
+  }
+  // 收藏 / 归档 / 屏蔽（与公告 / 文件同一口径：参考实现 Empty 组件的那句"无内容"）。
+  return 'loh_empty';
 }
 
 // ---------------------------------------------------------------------------
