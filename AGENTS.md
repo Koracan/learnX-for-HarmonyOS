@@ -56,6 +56,7 @@ learnOH —— HarmonyOS 原生（ArkTS / ArkUI）应用，是原 React Native f
  - **`read` 工具会截断超长行：minified 文件必须用 pwsh 取全文再搜。** 实测：一个 34,992 字符的单行站点 JS（`localstorageUtil.js`）用 `read` 只回来 **4,273 字符**，据此搜「文件里有没有 `location`」会得到**假阴性**。判据：读回来的字符数与文件大小/行数对不上（8 行却只有 4 千字符）就先怀疑工具，而不是内容。检查 minified 文件或超长日志行时，用 `Get-Content -Raw` + `.IndexOf()`。
 
  - **未提交的诊断补丁，唯一副本就是那个 patch 文件——还原前先另存。** 实测：`git checkout --` 把当时唯一一份探针代码清掉，事后只能靠 `.dsh/logs/*.patch` 找回。规矩：① 探针代码先落成 `.dsh/logs/<ticket>-probe.patch`（`.dsh/` 已 gitignore，`git checkout` 波及不到）；② 还原前再另存一份 `.keep`；③ **工作区脏的时候不要改 `AGENTS.md`**——那次编辑被卷进补丁，又被 `git checkout` 一起清掉。
+ - **在把失败归因给站点或架构之前，先证明我们自己发出去的请求是完备的。** 实测（ticket 08）：冷启动纯 HTTP 重登一直失败于「响应里没有票据」，一度被升级成「要不要改 ADR-0004」的决策；真因是 `CookieJar` 解析不了平台 `response.cookies` 的 Netscape 制表符格式 ⇒ **一个 cookie 都没入库** ⇒ POST 带着空 `JSESSIONID` 发出，服务端按「会话失效」回了一张通用报错页。教训：**在断言「站点给了奇怪的响应」之前，先把我们发了什么变成可观察量**（请求头、cookie 名与长度、表单字段），否则下游所有推断都建立在错误的前提上。
 
 ## 门禁（提交前都要真跑）
 
