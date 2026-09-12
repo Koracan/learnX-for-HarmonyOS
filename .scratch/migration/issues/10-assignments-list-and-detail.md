@@ -4,13 +4,13 @@
 
 **Blocked by:** 09（已完成）、12（已完成）——两者均已 `verified`
 
-**Status:** verified-partial（模拟器口径；第 1–4 条通过、第 5 条转 ticket 18；「优秀作业」补做中，见 Comments 末节）
+**Status:** verified（模拟器口径；第 1–4 条 + 「优秀作业」补做通过；第 5 条真机转 ticket 18）
 
-- [ ] 列表按截止时间排序（未到期在前），显示状态标记与截止时间
-- [ ] 详情正确显示描述（含公式）、本地化的成绩等级、四类附件
-- [ ] 附件可点，可预览或下载
-- [ ] 无作业或全部已过期时显示正确空态
-- [ ] 真机截图
+- [x] 列表按截止时间排序（未到期在前），显示状态标记与截止时间（模拟器：真实 57 条已核；「未到期在前」由夹具覆盖）
+- [x] 详情正确显示描述（含公式）、本地化的成绩等级、四类附件（「公式」为夹具证据：真实 57 条无一条带公式）
+- [x] 附件可点（四类均渲染并推 FileDetail 路由；**预览/下载真身归 ticket 11**，边界已在那边写明）
+- [x] 无作业或全部已过期时显示正确空态（秋季真实 0 条 + 「未完成」视图空态各有独立截图）
+- [ ] 真机截图（**转 ticket 18**；本 ticket 全部证据为模拟器口径）
 
 ## Comments
 
@@ -334,5 +334,51 @@
 - 真机截图仍转 ticket 18（本轮全部为**模拟器**口径）。
 - **取样代价**：探针 2 轮（春季 7 门课、秋季 2 门课）+ 补做后 2 轮（真实春季、夹具）+ 提交态 1 轮；
   每次全量抓取春季 `requests=166 / elapsedMs≈5.2–6.7s`。
+### 统筹验收（补做轮 · 2026-09-12，**模拟器** Pura 90 / HarmonyOS 6.1.0(23)）→ **Status: verified（模拟器口径；真机转 ticket 18）**
+
+**结论：「优秀作业」补做通过，第 4 节那条"缺口"关闭；五条验收标准第 1–4 条 + 补做项全部我独立复验通过。**
+（第 5 条真机截图按 AGENTS.md / spec 第 8 节转 ticket 18；本 ticket 至此在模拟器口径上全绿。）
+
+#### 1. 我独立重跑的（在 `ccee783` / 工作区干净上）
+
+| 检查 | 我跑的命令 | 我读到的结果 |
+| --- | --- | --- |
+| 全量单测 | 删 `entry/.test` 后 `hvigorw … test --no-incremental` | `Tests run: 302, Failure: 0, Error: 0, Pass: 302, Ignore: 0`（基线 294，+8；日志 `.dsh/logs/t10b-coord-test.log`） |
+| 四脚本 | 四个 `check-*.mjs` | `PASS`（17 领域）/ `PASS`（132 源文件）/ `RESULT: OK`（270 键）/ `PASS`；`git status` 干净 |
+| 产物级符号 | 我自己解 `entry-default-signed.hap`（2,242,094 B，18:04:40） | `ets/modules.abc` = 924,768 B；命中 `yxzylist / viewYxzy / ExcellentHomework / parseExcellentHomework / attachExcellentHomework / excellentHomeworkPageUrl / excellent=`；`ExcellentProbe / excellent-probe / PROBE-SWITCH / TEMP-EVIDENCE` 全 False |
+| **探针原始响应（我不看结论，看 bytes）** | 直接读 `.scratch/assignments/evidence/P1-excellent-probe-spring.txt` / `P2-…-autumn.txt` | 春季：`…719` = 200 / 7013 B / `aaData` 18 条、`…1080` = 200 / 2451 B / 6 条、其余 5 门 = 200 / 172 B / 0；`"zyid"` 出现 **24** 次、`"sfzm":"是"` **24** 次 ⇒ **真实存在 24 条、且 24/24 匿名**是站点原始响应说的，不是我们代码的分类。秋季 2 门 = 200 / 172 B / 0 |
+| **我自己的冷启动 + 覆盖 + 作业 tab** | `aa force-stop` → `aa start … --ps lohSemester 2025-2026-2` → `devecocli ui click … 396 2682` → `hilog -x` 全量拉回本地筛 | `effective semester=2025-2026-2 source=override` → **15 行** `data.assignments excellent: course=… zyid=… items=… anonymous=… named=0` → `data.assignments fetched courses=7 items=57 elapsedMs=6198 requests=166 failures=0 nonStringDeadlines=57 excellent=24` → `assignments applied: … items=57 … pastDue=57` |
+| **卡片 🏅（我自己滚动取证）** | `devecocli ui fling --device 127.0.0.1:5555 660 2200 660 700` ×6 → 两帧截图 | 第二帧：**离散数学方法 / 作业（10）与 作业（9）** 的图标行是 `📎 ✓ 🎓 🏅`（四枚齐、位置一致），而同一屏里没有优秀作业的条目**没有** 🏅 ⇒ 图标与数据是对应的，不是画死的 |
+| 交付证据抽看 | `G5b`（详情优秀作业段）/ `F1`（未完成视图空态） | G5b：`🏅 优秀作业` + `🏅 9.pdf` + `匿名的优秀作业`（同一张详情里"批改附件"与"优秀作业附件"是两段、两条不同的下载地址）；F1：筛选片"未完成 0"高亮 + 居中 `没有未完成的作业`（与秋季的 `暂无作业` **不同句**） |
+
+#### 2. 我对三条偏离的裁定（都登记在台账第 21 条）
+
+1. **不取 `getHomeworkDetail(baseId)`**：我读了参考实现的渲染（`AssignmentDetail.tsx:327-363`）——优秀作业段只显示 **附件名 + "X的优秀作业"**，
+   `description` 根本不参与渲染，而那个 `baseId` 的作业描述在同一次 fetch 里已经取过。**判定：接受**（请求 −24，可观察量不变）。
+2. **失败粒度比参考实现细一档**（单条失败保留该条 + warn，而不是整门课一起丢）：这是**更宽容**的偏离，且写了替代验收标准与单测（那次 404 就是第一条路径）。
+   **判定：接受**，但记一句：将来若有人"照抄参考实现"，要连这条一起改回去，别只改一半。
+3. **卡片/详情用 🏅 emoji 代替 MaterialCommunityIcons 的 medal**：沿用台账第 16 条的判断（替代验收标准 = 截图上的颜色/位置）。
+   我第一手看了：四枚图标在同一条状态位上、颜色可区分。**判定：接受。**
+
+#### 3. 我第一手测到的代价变化（记在案）
+
+| | 补做前（我 17:18 那次） | 补做后（我 18:14 那次） |
+| --- | --- | --- |
+| 请求数 | 135 | **166**（+7 列表 +24 详情页） |
+| 抓取耗时 | 3,878 / 3,979 ms | **6,198 ms** |
+
+⇒ 优秀作业让春季那次全量抓取**多了约 2.2 s**。这是"移植 fidelity"换来的成本，我接受；但它叠在"课程/作业两个 tab 各抓一次"之上时，
+一次冷启动两次全量抓取 ≈ 12 s ⇒ **性能收尾那一类 ticket 值得把"单例 store + 优秀作业是否懒加载"列进去**（本轮不做）。
+
+#### 4. 仍未验证（不影响本 ticket 定级，但记明）
+
+- **具名作者（非匿名）那一支**：春季真实数据 24/24 全匿名 ⇒ 只有**夹具**证据（`H3/H4`）。这是账号/数据门控，不是实现缺口。
+- **优秀作业附件的真身**（下载/预览/分享、以及它用的 `downloadFileyx` 路径与提交附件 `downloadFile` 不同）仍归 **ticket 11**（边界说明已在 ticket 11 里）。
+- 真机截图 → **ticket 18**。
+
+#### 5. 我这一轮的取样代价
+
+1 次全量单测（38 s 构建 + 测试）、1 次冷启动 + 1 次点击 + 6 次 fling + 2 帧截图 + 1 次全量 hilog（约 3 分钟设备窗口）、1 次 hap 解包。
+**设备锁与构建锁均已释放。**
 
 
