@@ -25,6 +25,7 @@ import enrollmentScriptTest from './EnrollmentScript.test';
 import enrollmentFlowTest from './EnrollmentFlow.test';
 import fingerprintDigestTest from './FingerprintDigest.test';
 import sessionRestoreTest from './SessionRestore.test';
+import noticeRepositoryTest from './NoticeRepository.test';
 
 export default function testsuite() {
   semesterTest();
@@ -50,4 +51,5 @@ export default function testsuite() {
   enrollmentFlowTest();
   fingerprintDigestTest();
   sessionRestoreTest();
+  noticeRepositoryTest();
 }

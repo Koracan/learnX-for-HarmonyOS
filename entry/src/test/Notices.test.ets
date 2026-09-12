@@ -1,21 +1,22 @@
 /*
- * 公告域单测（ticket 03）：排序（倒序）、未读判定、空态分支、Mock 与接口的一致性。
+ * 公告域单测（ticket 03；ticket 09 迁移过路径）：排序（倒序）、未读判定、空态分支。
  *
  * 覆盖面：
  *   1. NoticeOrder 的纯函数 —— 时间解析、发布时间倒序（含同一时间的 id 倒序、
  *      不改入参）、未读判定、空态判定；
- *   2. MockNoticeRepository 与一个"真实数据源替身"（FakeSnapshotNoticeRepository）
- *      实现同一个 NoticeRepository 接口，跑同一组契约断言 —— 这就是 ticket 09
- *      换实现不改界面的依据；
+ *   2. 数据源契约断言，跑在**接口替身**（FakeSnapshotNoticeRepository）上 ——
+ *      真实数据源（data/notices/RealNoticeRepository）的行为另有
+ *      entry/src/test/NoticeRepository.test.ets 覆盖；
  *   3. NoticeListStore 的快照先行 + 后台刷新时序、失败保留旧数据、空集合空态。
+ *
+ * 【ticket 09 迁移】接口与 Mock 已从 features/notices/repository/ 搬到
+ * data/notices/（Mock 从主源码树删除，7 条种子移进 test/fixtures/NoticeFixtures.ets）。
  */
 import { describe, it, expect } from '@ohos/hypium';
 import {
   NOTICE_SNAPSHOT_SCHEMA_VERSION, NoticeRecord, NoticeRepository, NoticeSnapshot
-} from '../main/ets/features/notices/repository/NoticeRepository';
-import {
-  MockNoticeRepository, mockNoticeRecords, rawMockNoticeIds
-} from '../main/ets/features/notices/repository/MockNoticeRepository';
+} from '../main/ets/data/notices/NoticeRepository';
+import { mockNoticeRecords, rawMockNoticeIds } from './fixtures/NoticeFixtures';
 import {
   compareNoticesDesc, countUnread, isNoticeListEmpty, isUnread, parseNoticeTime, sortNoticesDesc
 } from '../main/ets/features/notices/NoticeOrder';
@@ -186,8 +187,8 @@ export default function noticesTest() {
   });
 
   describe('features.notices.NoticeRepository', () => {
-    it('mockRefreshesSevenSortedNoticesWithSnapshotMetadata', 0, async () => {
-      const repository: NoticeRepository = new MockNoticeRepository(false, 1);
+    it('refreshesSevenSortedNoticesWithSnapshotMetadata', 0, async () => {
+      const repository: NoticeRepository = new FakeSnapshotNoticeRepository(mockNoticeRecords());
       await assertRepositoryContract(repository, 7);
       const snapshot: NoticeSnapshot = await repository.refresh();
       expect(join(snapshot.items)).assertEqual(
@@ -200,18 +201,11 @@ export default function noticesTest() {
       expect(snapshot.items[0].courseName).assertEqual('量子与统计');
     });
 
-    it('mockEmptyModeReturnsAnEmptySnapshot', 0, async () => {
-      const repository: NoticeRepository = new MockNoticeRepository(true, 1);
+    it('anEmptySourceProducesAnEmptySnapshotThatReadsAsEmptyState', 0, async () => {
+      const repository: NoticeRepository = new FakeSnapshotNoticeRepository([]);
       const snapshot: NoticeSnapshot = await repository.refresh();
       expect(snapshot.items.length).assertEqual(0);
       expect(isNoticeListEmpty(snapshot.items, false)).assertTrue();
-    });
-
-    it('mockAndSnapshotImplementationsHonourTheSameContract', 0, async () => {
-      const mock: NoticeRepository = new MockNoticeRepository(false, 1);
-      const fake: NoticeRepository = new FakeSnapshotNoticeRepository(mockNoticeRecords());
-      await assertRepositoryContract(mock, 7);
-      await assertRepositoryContract(fake, 7);
     });
   });
 
@@ -253,7 +247,7 @@ export default function noticesTest() {
     });
 
     it('reportsTheEmptyBranchForAnEmptySource', 0, async () => {
-      const store: NoticeListStore = new NoticeListStore(new MockNoticeRepository(true, 1));
+      const store: NoticeListStore = new NoticeListStore(new FakeSnapshotNoticeRepository([]));
       await store.loadOnce();
       expect(store.items.length).assertEqual(0);
       expect(store.isEmpty()).assertTrue();

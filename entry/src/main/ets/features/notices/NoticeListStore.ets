@@ -7,7 +7,7 @@
  */
 import { Logger } from '../../core/log/Logger';
 import { countUnread, isNoticeListEmpty, sortNoticesDesc } from './NoticeOrder';
-import { NoticeRecord, NoticeRepository, NoticeSnapshot } from './repository/NoticeRepository';
+import { NoticeRecord, NoticeRepository, NoticeSnapshot } from '../../data/notices/NoticeRepository';
 
 const logger: Logger = new Logger('features.notices.store');
 

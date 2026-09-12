@@ -20,6 +20,16 @@ export type Base64Decoder = (encoded: string) => string;
 
 /** 列表接口 `aaData` 里的一条公告原始记录（字段名照站点中文拼音缩写）。 */
 export interface RawNotice {
+  /**
+   * 站点给出的**主键**：`<ggid><学号>`（**不是** ggid 本身）。
+   *
+   * 2026-09-12 模拟器实测（ticket 09，见 .scratch/notices/evidence/）：
+   * `"id":"26ef84e8a00ef07901a0755e06e333502023011272"` 而
+   * `"ggid":"26ef84e8a00ef07901a0755e06e33350"` —— 前者是后者的**超串**（尾部接学号）。
+   * 参考实现 mock 数据里二者恰好相同，所以只取 ggid 看不出差别；真实数据里会显形。
+   * 取不到 id 时回落到 ggid（保持对旧夹具的兼容）。
+   */
+  id?: string;
   ggid: string;
   bt: string;
   fbrxm: string;
@@ -63,8 +73,10 @@ export function parseNotice(
 ): Notice {
   const known: CourseName | undefined = courseNames[courseId];
   let content: string = contentText === undefined ? decodeHtmlEntities(decodeBase64(text(raw.ggnr))) : contentText;
+  // 主键优先取站点的 id（<ggid><学号>），拿不到才回落 ggid。
+  const rawId: string = text(raw.id);
   const notice: Notice = {
-    id: text(raw.ggid),
+    id: rawId.length > 0 ? rawId : text(raw.ggid),
     title: decodeHtmlEntities(text(raw.bt)),
     publisher: text(raw.fbrxm),
     publishTime: raw.fbsj !== undefined ? raw.fbsj : text(raw.fbsjStr),

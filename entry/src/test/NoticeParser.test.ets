@@ -117,6 +117,35 @@ export default function noticeParserTest() {
       expect(notice.url).assertEqual(noticeDetailUrl('2019-2020-1139283212', RAW_NOTICE_WITH_BASE64.ggid));
     });
 
+    /**
+     * 真实记录（模拟器 Pura 90，2026-09-12，ticket 09 取证）：
+     * 站点的 `id` 是 `<ggid><学号>`，**不是** ggid 本身。参考实现只取 ggid，
+     * 而 mock 数据里两者恰好相同，所以这条差异只在真实数据上显形。
+     * 原始响应见 .scratch/notices/evidence/raw/learnoh_diag.txt（`C-c0-p0` 段）。
+     */
+    it('usesTheSiteIdWhichIsGgidPlusStudentNumber', 0, () => {
+      const real: RawNotice = {
+        id: '26ef84e8a00ef07901a0755e06e333502023011272',
+        ggid: '26ef84e8a00ef07901a0755e06e33350',
+        bt: 'Welcome message from the professor',
+        fbrxm: '张为民',
+        fbsj: '2026-09-10 13:07',
+        fbsjStr: '2026-09-10 13:07',
+        sfqd: '0',
+        sfyd: '否',
+        fjmc: undefined,
+        ggnr: 'PHA+RGVhciBhbGwsPC9wPiAKICA8cD5XZWxjb21lIHRvIHRoaXMgY291cnNlITwvcD4gCg=='
+      };
+      const notice: Notice = parseNotice(real, '2026-2027-1152226210', COURSES, strictPureBase64Decoder);
+      expect(notice.id).assertEqual('26ef84e8a00ef07901a0755e06e333502023011272');
+      expect(notice.id.startsWith(real.ggid)).assertTrue();
+      expect(notice.markedImportant).assertFalse();
+      expect(notice.hasRead).assertFalse();
+      expect(notice.content.includes('Welcome to this course!')).assertTrue();
+      // 详情页地址仍用 ggid（站点 beforeViewXs 的 id 参数）
+      expect(notice.url).assertEqual(noticeDetailUrl('2026-2027-1152226210', real.ggid));
+    });
+
     it('treatsSfqdAndSfydVariantsLikeTheReference', 0, () => {
       const important: Notice = parseNotice({ ggid: 'g2', bt: 't', fbrxm: 'p', fbsj: '2020-01-01 00:00', sfqd: '1' },
         'c', COURSES, strictPureBase64Decoder);

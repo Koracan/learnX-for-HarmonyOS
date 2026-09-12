@@ -6,7 +6,7 @@
  *
  * | 元素 | 参考实现 | 这里 |
  * | --- | --- | --- |
- * | 标题 = `removeTags(title)` | NoticeDetail.tsx:81 | 直接用 `notice.title`（渲染层实体解码见下） |
+ * | 标题 = `removeTags(title)` | NoticeDetail.tsx:81 | `removeTags(this.notice.title)`（ticket 09 补齐） |
  * | 副标题 = 发布者 + **绝对时间** | :84-92 | 同（模式走 i18n 资源，见 domain/render/NoticeDateText） |
  * | 正文上方独立一行的附件 | :95-109 `List.Item` | 同（下方 attachmentRow） |
  * | 空正文兜底 `content \|\| "<p>" + t('noNoticeContent') + "</p>"` | :54 | HtmlWebView 内做（传 emptyText） |
@@ -28,23 +28,22 @@
  *
  * 3. **正文不做实体解码**（`docs/reference-quirks.md` 第 4 条）：正文是 HTML，
  *    交给 Web 容器渲染即可；参考实现的 `removeTags`（去标签 + he.decode 全实体集）
- *    只用在**标题**上，而 mock 的标题里没有标签/实体。标题的 removeTags 等价物
- *    目前不存在（怪癖台账第 4 条已登记该缺口，挂在渲染层），本 ticket 不新造一个
- *    只在标题上生效的半成品 —— 与 ticket 03 的口径一致（挂 ticket 09）。
+ *    只用在**标题**上。ticket 09 已把 `removeTags` 等价物实现在
+ *    `domain/render/WebViewTemplate.ets`（标题用它，卡片正文预览也用它）。
  */
 import { common, ConfigurationConstant } from '@kit.AbilityKit';
 import { PLAIN_PALETTE, ThemeTokens, resolveTheme } from '../../ui/theme/Tokens';
 import { i18nService } from '../../core/i18n/I18n';
 import { COLOR_MODE_KEY } from '../../entryability/EntryAbility';
 import { Logger } from '../../core/log/Logger';
-import { buildNoticeContent } from '../../domain/render/WebViewTemplate';
+import { buildNoticeContent, removeTags } from '../../domain/render/WebViewTemplate';
 import { formatNoticeDate, NoticeDateText } from '../../domain/render/NoticeDateText';
 import { getExtension, stripExtension } from '../../domain/render/FileNames';
 import { Attachment } from '../../domain/model/ContentItem';
 import { HtmlWebView } from '../../ui/components/HtmlWebView';
 import { SessionHeaderProvider } from '../../core/web/SessionHeaderProvider';
 import { FileDetailRouteParams, ROUTE_FILE_DETAIL } from './NoticeRoutes';
-import { NoticeRecord } from './repository/NoticeRepository';
+import { NoticeRecord } from '../../data/notices/NoticeRepository';
 import {
   EVIDENCE_DARK_TOGGLE, evidenceContentOr, logEvidenceContentState
 } from './NoticeDetailEvidence';
@@ -235,7 +234,9 @@ export struct NoticeDetailPage {
   @Builder
   titleSection() {
     Column() {
-      Text(this.notice.title)
+      // 标题过 removeTags（参考实现 NoticeDetail.tsx:81 就是 removeTags(title)）：
+      // 解析层刻意不解码实体（docs/reference-quirks.md 第 4 条上半），解码在渲染层。
+      Text(removeTags(this.notice.title))
         .fontSize(this.theme().typography.headlineSmall.fontSize)
         .lineHeight(this.theme().typography.headlineSmall.lineHeight)
         .fontColor(this.theme().colors.onSurface)

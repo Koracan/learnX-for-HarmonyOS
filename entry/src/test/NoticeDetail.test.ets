@@ -16,14 +16,14 @@
 import { describe, it, expect } from '@ohos/hypium';
 import {
   DEFAULT_DARK_BACKGROUND, MEASURE_SCRIPT, TemplateAssets, buildNoticeContent, buildCsrfScript,
-  escapeScriptEndTags, getWebViewTemplate, jsStringLiteral, sanitizeColor
+  escapeScriptEndTags, getWebViewTemplate, jsStringLiteral, removeTags, sanitizeColor
 } from '../main/ets/domain/render/WebViewTemplate';
 import {
   NoticeDateText, formatNoticeDate
 } from '../main/ets/domain/render/NoticeDateText';
 import { getExtension, stripExtension } from '../main/ets/domain/render/FileNames';
-import { mockNoticeRecords } from '../main/ets/features/notices/repository/MockNoticeRepository';
-import { NoticeRecord } from '../main/ets/features/notices/repository/NoticeRepository';
+import { mockNoticeRecords } from './fixtures/NoticeFixtures';
+import { NoticeRecord } from '../main/ets/data/notices/NoticeRepository';
 import { Attachment } from '../main/ets/domain/model/ContentItem';
 
 const LEARN_URL: string = 'https://learn.tsinghua.edu.cn';
@@ -254,7 +254,7 @@ export default function noticeDetailTest() {
     });
   });
 
-  describe('features.notices.detail.MockAttachment', () => {
+  describe('features.notices.detail.SeedAttachment', () => {
     it('carries the reference attachment exactly once', 0, () => {
       const items: NoticeRecord[] = mockNoticeRecords();
       const withAttachment: NoticeRecord[] = [];
@@ -274,6 +274,49 @@ export default function noticeDetailTest() {
       expect(withAttachment[0].id).assertEqual('26ef84e76db3f55b016db4c4e8832da6');
       expect(withAttachment[0].courseName).assertEqual('基于数字信号处理器的系统设计');
       expect(withAttachment[0].courseTeacherName).assertEqual('窦维蓓');
+    });
+  });
+
+  /**
+   * removeTags —— 参考实现 helpers/html.ts:11-22 的等价物（docs/reference-quirks.md 第 4 条
+   * 的**渲染层**那半）。ticket 09 补齐；它同时服务卡片标题、卡片正文预览与详情页标题。
+   */
+  describe('features.notices.detail.RemoveTags', () => {
+    it('stripsCommentsTagsDecodesEntitiesAndCollapsesWhitespace', 0, () => {
+      expect(removeTags('<!-- c --><p>Hello</p>')).assertEqual('Hello');
+      expect(removeTags('<p>a</p>\n  <p>b</p>')).assertEqual('a b');
+      expect(removeTags('  <span>  x  </span>  ')).assertEqual('x');
+      expect(removeTags('<p>&nbsp;&nbsp;</p>')).assertEqual('');
+    });
+
+    it('decodesTheFullEntitySetIncludingNumericOnes', 0, () => {
+      // 参考实现用 he.decode（全实体集）：命名实体 + &#39; / &#x27; 数字实体。
+      expect(removeTags('a &amp; b &lt;c&gt; &quot;d&quot; &#39;e&#39; &#x27;f&#x27;'))
+        .assertEqual(`a & b <c> "d" 'e' 'f'`);
+      expect(removeTags('x&nbsp;y')).assertEqual('x y');
+      expect(removeTags('r&eacute;sum&eacute;')).assertEqual('résumé');
+    });
+
+    it('keepsUnknownEntitiesVerbatimInsteadOfDroppingThem', 0, () => {
+      // he 对未知实体名也是原样保留——照做，不要"顺手清掉"。
+      expect(removeTags('a &notanentity; b')).assertEqual('a &notanentity; b');
+      expect(removeTags('100% & &;')).assertEqual('100% & &;');
+    });
+
+    it('returnsAnEmptyStringForEmptyInputAndForUnclosedMarkup', 0, () => {
+      expect(removeTags('')).assertEqual('');
+      expect(removeTags(undefined)).assertEqual('');
+      // 未闭合的 '<' 与未闭合的注释：参考实现的正则匹配不到 ⇒ 原样保留。
+      expect(removeTags('a < b')).assertEqual('a < b');
+      expect(removeTags('a <!-- b')).assertEqual('a <!-- b');
+    });
+
+    it('makesTheRealNoticeTitleReadable', 0, () => {
+      // 真实公告形状：标题含标签与实体（ticket 09 的模拟器取证里 ggnrStr 就是这个形态）。
+      // 单层解码：&amp;nbsp; → &nbsp;（**不再二次解码**，与 he.decode 一致）。
+      // 真实记录的 ggnrStr 就是把正文实体化成这个样子；卡片拿到的是 ggnr 解码后的 HTML。
+      expect(removeTags('&lt;p&gt;课程信息&amp;nbsp;与微信群&lt;/p&gt;'))
+        .assertEqual('<p>课程信息&nbsp;与微信群</p>');
     });
   });
 }

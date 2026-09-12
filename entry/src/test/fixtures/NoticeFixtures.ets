@@ -1,26 +1,21 @@
 /*
- * MockNoticeRepository —— ticket 03 的临时数据源，内容逐条取自参考实现
- * reference/learnOH-old/src/data/mock.ts 的 state.notices.items（7 条）。
+ * 公告测试夹具（entry/src/test/fixtures）：参考实现 mock.ts 的 7 条公告，逐字保留。
  *
- * 两处刻意的处理：
- *  1. 时间保留参考实现的字符串形状（'2020-09-25 07:21'），由 NoticeOrder.parseNoticeTime
- *     换算成 epoch 毫秒 —— 与参考实现同一条解析路径，避免手抄时间戳出错；
- *  2. 字面量数组写成**非时间顺序**（见 MOCK_NOTICE_SEEDS）：界面上呈现的倒序只可能
- *     来自 NoticeOrder.sortNoticesDesc，而不是数据恰好有序。单测里有一条用例断言
- *     “原始数组不是排好序的”，守住这一点。
+ * 【ticket 09 迁移】这个数组原来长在 features/notices/repository/MockNoticeRepository.ets
+ * 里（ticket 03 的过渡位置）。本 ticket 把 Mock 从主源码树删掉（组装点已切真实数据源），
+ * 但**测试仍然需要一份确定性的公告集合**，所以把它搬到测试夹具：
+ *   - 时间保留参考实现的字符串形状（'YYYY-MM-DD HH:mm'），由 parseNoticeTime 换算成
+ *     epoch 毫秒——与参考实现同一条解析路径，避免手抄时间戳出错；
+ *   - 字面量数组写成**非时间顺序**：界面上呈现的倒序只可能来自 sortNoticesDesc，
+ *     而不是数据恰好有序。单测里有一条用例断言"原始数组不是排好序的"，守住这一点。
  *
- * 行为对齐接口契约（NoticeRepository）：loadSnapshot() 首次返回 null（还没有快照），
- * refresh() 造出带 fetchedAtMillis 的新快照并（内存里）存下来，且带一段人为延迟，
- * 让下拉刷新的动效可见。
+ * 【与 ticket 17 的边界】ticket 17（设置 + 正式 Mock 模式）要求"guest/guest 登录进入
+ * Mock 模式"，届时会有一个**主源码树里的** Mock 数据源；本文件不是它的替代品，
+ * ticket 17 可以复用这 7 条种子（或直接搬过去）。此处只服务单测。
  */
-import { Logger } from '../../../core/log/Logger';
-import { Attachment } from '../../../domain/model/ContentItem';
-import { parseNoticeTime, sortNoticesDesc } from '../NoticeOrder';
-import {
-  NOTICE_SNAPSHOT_SCHEMA_VERSION, NoticeRecord, NoticeRepository, NoticeSnapshot
-} from './NoticeRepository';
-
-const logger: Logger = new Logger('features.notices.mock');
+import { Attachment } from '../../main/ets/domain/model/ContentItem';
+import { NoticeRecord } from '../../main/ets/data/notices/NoticeRepository';
+import { parseNoticeTime } from '../../main/ets/data/notices/NoticeTime';
 
 /** 参考实现里的公告形状（时间是原样的 'YYYY-MM-DD HH:mm' 字符串）。 */
 interface MockNoticeSeed {
@@ -35,7 +30,6 @@ interface MockNoticeSeed {
   hasRead: boolean;
   markedImportant: boolean;
   url: string;
-  /** 参考实现 mock.ts 里只有"第一次大作业"这条带 attachment（:290-296）。 */
   attachment?: Attachment;
 }
 
@@ -164,6 +158,9 @@ export function mockNoticeRecords(): NoticeRecord[] {
   return records;
 }
 
+/** 一次性构造好的 7 条记录（多处断言用它，避免每次重算时间戳）。 */
+export const NOTICE_SEED_RECORDS: NoticeRecord[] = mockNoticeRecords();
+
 /** Mock 原始字面量顺序（乱序）——给单测用来证明排序确实发生。 */
 export function rawMockNoticeIds(): string[] {
   const ids: string[] = [];
@@ -171,41 +168,4 @@ export function rawMockNoticeIds(): string[] {
     ids.push(seed.id);
   }
   return ids;
-}
-
-/** 延时（官方 FAQ 的 sleep 写法：new Promise(resolve => setTimeout(resolve, ms))）。 */
-function delay(millis: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, millis));
-}
-
-/** Mock 数据源：与真实实现同一个 NoticeRepository 接口。 */
-export class MockNoticeRepository implements NoticeRepository {
-  private readonly empty: boolean;
-  private readonly latencyMillis: number;
-  private stored: NoticeSnapshot | null = null;
-
-  constructor(empty: boolean, latencyMillis: number) {
-    this.empty = empty;
-    this.latencyMillis = latencyMillis;
-  }
-
-  async loadSnapshot(): Promise<NoticeSnapshot | null> {
-    return this.stored;
-  }
-
-  async refresh(): Promise<NoticeSnapshot> {
-    await delay(this.latencyMillis);
-    const items: NoticeRecord[] = this.empty ? [] : mockNoticeRecords();
-    // 契约要求倒序；这里排一次，UI 侧 NoticeListStore 再排一次（防御性）。
-    const snapshot: NoticeSnapshot = {
-      items: sortNoticesDesc(items),
-      fetchedAtMillis: Date.now(),
-      schemaVersion: NOTICE_SNAPSHOT_SCHEMA_VERSION,
-      fromSnapshot: false
-    };
-    this.stored = snapshot;
-    logger.info('mock notices refreshed: count=' + snapshot.items.length.toString()
-      + ' emptyMode=' + this.empty.toString());
-    return snapshot;
-  }
 }
