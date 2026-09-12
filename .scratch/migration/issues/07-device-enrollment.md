@@ -499,3 +499,61 @@ ID 登录页 → /do/off/ui/auth/login/check → /do/off/ui/auth/login/redirect2
   `check-i18n-keys.mjs` → `RESULT: OK`（235 键，未新增文案）；
   `check-generated-fresh.mjs` → `PASS`。
 
+### 2026-09-12 armed 探针构建 + 设备侧正样本（取证态，**未提交**；诊断补丁是唯一副本）
+
+**提交点**：`b2fa79e`（本节所有产物都对应它；出 armed 构建时工作区是"提交态 + 未提交补丁"）。
+
+- **armed 补丁**：`.dsh/logs/ticket07-armed-probe.patch`
+  （31,110 B，SHA256 `2C0A32DF7EFEFCB860CA5E0BCA0B3D34FD1C2EA1F4B0234A70905C5E3F9662C3`）
+  = 页面侧诊断（`.dsh/logs/diagnostics.patch`，备份 `.dsh/logs/diagnostics.patch.keep`）
+  + adopt 探针（`data/auth/EnrollmentSession.ets`）+ `pageUserAgent` 桥值（`domain/auth/EnrollmentScript.ets`）
+  + `AuthStore` 把 UA 传给 `adopt()`。`git apply --check --reverse` 通过 ⇒ 补丁与当时工作区非空 diff 完全一致。
+- **armed hap**：`entry-default-signed.hap` **1,596,495 B @11:21:14**，
+  SHA256 `2CFD1A0A0F9522B86A3A002E3A665944086A8F8D570BA070FB84A058C3D48B5E`（删 `entry/build` 后的全量构建）。
+  **已安装**在模拟器 Pura 90（`127.0.0.1:5555`）。
+- **产物级复核**（解包 hap → 在 `ets/modules.abc` 里字节检索，**不是**对 hap 直接搜）：
+  `adopt probe armed` / `enrollment http login` / `secondAuthOrCaptcha` / `pageProvidedFingerprint` /
+  `pageUserAgent` / `resolveEnrollmentFingerPrint` / `doubleAuthMentions` / `diagIncognito` / `pageScripts` /
+  `nativeAllCookies` / `lastReport=` **全部命中**；`EnrollmentProbe` / `TEMP-EVIDENCE` **0 命中**。
+
+**探针清单**（每次真实登记的 adopt 都会打；判读写在每条的括号里）：
+
+1. `adopt probe armed=1 stage=body urlPath=… status= bytes= csrfEqOccurrences= csrfParsedChars=
+   loginTimeoutInBody= loginTimeoutByParsers= idLoginPage= csrfAtLineStart= hasScriptTag=
+   contentType= contentLengthHeader= locationPath= headerNames=[…]`
+2. `adopt probe armed=1 stage=sent cookieNames=[…] cookieHeaderChars=… pinnedUa=Chrome/120.0.0.0 webviewUa=Chrome/132…`
+   （**只记名字，不记值**）
+3. `adopt probe armed=1 stage=jsessionidRetry jsessionidChars=… status= bytes= csrfEqOccurrences= …`
+   （或 `skipped=no-jsessionid-cookie`）
+4. `adopt probe armed=1 stage=uaRetry ua=webview(Chrome/132…) …`（或 `skipped=no-page-user-agent`）
+5. `adopt probe armed=1 stage=uaRetry ua=pinned(Chrome/120.0.0.0) …`
+
+判读规则：① 里 `csrfEqOccurrences>0` 而 `csrfParsedChars=0` ⇒ **根因 2（CSRF 正则失配：服务端其实给了令牌）**；
+`loginTimeoutInBody=true` ⇒ **根因 1(a)（会话没被服务端认）**；③ 与 ① 的差异 ⇒ **根因 1(c)（会话靠 URL 重写）**；
+④ 与 ⑤ 的差异 ⇒ **根因 1(b)（会话与 UA 绑定）**。`contentType/locationPath/hasScriptTag` 用来判"是不是 JS 跳转页"。
+
+**设备侧持久化日志 + 正样本自证**：
+`hdc -t 127.0.0.1:5555 shell "hilog -w start -f learnoh_armed -l 8M -n 20"` → `Persist task [jobid:1] start successfully`；
+`hilog -w query` → `1 init,core,app,only_prerelease zlib /data/log/hilog/learnoh_armed 8.0M 20`。
+装机启动后把设备文件取回（`hdc file recv`）：`learnoh_armed.000.20260912-113053.gz`
+（**190,278 B 拉回**，SHA256 `5B26D1980BD1F7A453E35B44109BDB2DA7209202877EEC7F6B0DE0BFC327374A`），
+gunzip 后 **10,839 行、应用域 `A04c4f` 12 行**，原文行例如：
+
+```
+09-12 11:30:55.379 17852 17852 I A04c4f/data.auth.credentials: … [data.auth.credentials] no persisted credentials
+09-12 11:30:55.392 17852 17852 I A04c4f/features.auth.store: … startup(startup): no persisted credentials -> login page
+```
+
+**未验证（写明）**：armed 构建的**运行时**开关自证行
+`enrollment webview starting: … diagnostics=true` **本轮没有拿到**——它只在登记 WebView 挂载时打印，
+而"点登录"被本轮纪律禁止（不点登录、不提交表单、不消耗短信）。替代证据是产物级：
+armed 补丁的符号在 `modules.abc` 里命中，且该补丁把 `ENROLLMENT_DIAGNOSTICS_FOR_EVIDENCE` 置 true。
+**统筹安排第 4 次登记时，第一眼看这一行**（它是诊断开关生效的唯一运行时判据）。
+
+**工作区已还原到提交态**：`git status --porcelain` 为空、HEAD = `b2fa79e`；
+`git show HEAD:entry/src/main/ets/domain/auth/EnrollmentScript.ets` 的开关 = `false`；
+`EnrollmentSession.ets` 里 `ADOPT_PROBE`/`adopt probe` **0 命中**。
+**设备状态**：模拟器上装的是 armed 构建，应用停在登录页；持久化任务 `learnoh_armed`（jobid 1）**仍在运行**，
+第 4 次登记前**不要重复** `hilog -w start`（会把任务重启、丢掉已经抓到的正样本段）。
+
+
