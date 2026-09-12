@@ -15,6 +15,10 @@
  *
  * 界面只依赖 NoticeRepository 接口（经 createNoticeRepository() 注入）。
  *
+ * 【ticket 16】断点分栏：本页多了一个**详情栈**（`detailStack`）。单栏时详情照旧压在主栈上
+ *   （ticket 03/04 的行为一字未改）；双栏时列表留在 393vp 的左栏、详情进右栏，
+ *   进/出分栏时两栈之间的迁移见 features/shell/SplitView.ets 的文件头与台账第 28 条。
+ *
  * 【ticket 09】数据源已从 Mock 换成真实仓库（data/notices/RealNoticeRepository）。
  * 【ticket 14】加了收藏 / 归档 / 屏蔽：过滤条 + 滑动操作 + 撤销 Toast。
  *   - 过滤语义逐行对齐参考实现 data/selectors/filteredData.ts（见 features/marks/FilteredContent）；
@@ -52,6 +56,10 @@ import {
 import { FileDetailPage } from '../files/FileDetailPage';
 import { FileDetailRouteParams, ROUTE_FILE_DETAIL, ROUTE_NOTICE_DETAIL } from './NoticeRoutes';
 import { NoticeDetailPage } from './NoticeDetailPage';
+import {
+  SPLIT_VIEW_ACTIVE_KEY, SPLIT_VIEW_DIVIDER_WIDTH, SPLIT_VIEW_MASTER_HIDDEN_KEY,
+  SPLIT_VIEW_MASTER_WIDTH, migrateDetailRoutesBack, migrateDetailRoutesInto, pushDetailFromMaster
+} from '../shell/SplitView';
 
 const logger: Logger = new Logger('features.notices');
 
@@ -67,6 +75,8 @@ interface NoticeRowSpec {
   /** 状态图标的无障碍文案（参考实现在图标上有 name，本工程的矢量图标同样需要它）。 */
   attachmentLabel: string;
   importantLabel: string;
+  /** 双栏时这一行是不是"右栏正在显示的那一条"（主栏保留高亮，验收第 2 条）。 */
+  selected: boolean;
 }
 
 @Component
@@ -85,8 +95,16 @@ export struct NoticesPage {
   private flags: CollectionFlagsStore = collectionFlagsStore();
   private toast: ToastController = new ToastController();
   private listScroller: Scroller = new Scroller();
-  /** 公告 tab 自己的导航栈（ticket 04）。 */
+  /** 公告 tab 自己的导航栈（ticket 04）—— **单栏**时详情压在这里，也就是左栏。 */
   private stack: NavPathStack = new NavPathStack();
+  /** 右栏（详情）的栈（ticket 16）：只在双栏时用；进/出分栏时与主栈互相迁移。 */
+  private detailStack: NavPathStack = new NavPathStack();
+  /** 双栏开关：来源是根布局实测尺寸（features/shell/SplitView.ets），消费点就是这个版式。 */
+  @StorageProp(SPLIT_VIEW_ACTIVE_KEY) @Watch('onSplitViewChanged') splitActive: boolean = false;
+  /** 主栏是否被隐藏（参考实现的 showMaster 取反；由文件详情的全屏按钮翻转）。 */
+  @StorageProp(SPLIT_VIEW_MASTER_HIDDEN_KEY) masterHidden: boolean = false;
+  /** 主栏当前高亮的那一条（= 右栏正在显示的那一条）。 */
+  @State selectedId: string = '';
   /** Web 容器的会话注入端口（Mock 阶段是空实现，见 core/web/SessionHeaderProvider.ets）。 */
   private session: SessionHeaderProvider = createSessionHeaderProvider();
 
@@ -224,10 +242,39 @@ export struct NoticesPage {
     this.logApplied('refresh');
   }
 
-  /** 点一行 → 把整个公告压进本 tab 的详情栈（对齐参考实现 navigation.push）。 */
+  /** 点一行 → 压进详情栈（单栏=主栈，双栏=右栏），对齐参考实现 NoticeDetail 的 push/navigate 两态。 */
   private openDetail(notice: NoticeRecord): void {
-    logger.info('notice tapped: id=' + notice.id + ' title=' + notice.title);
-    this.stack.pushPath({ name: ROUTE_NOTICE_DETAIL, param: notice });
+    logger.info('notice tapped: id=' + notice.id + ' title=' + notice.title
+      + ' split=' + this.splitActive.toString());
+    this.selectedId = notice.id;
+    pushDetailFromMaster(this.stack, this.detailStack, this.splitActive, ROUTE_NOTICE_DETAIL, notice);
+  }
+
+  /**
+   * 分栏开关翻转（消费点自证）：进分栏把主栈上的详情段搬到右栏、左栏回列表；
+   * 退出分栏把右栏的详情搬回主栈（**本工程补做**，见台账第 28 条），这样正在浏览的详情不丢。
+   */
+  onSplitViewChanged(): void {
+    if (this.splitActive) {
+      AppStorage.setOrCreate(SPLIT_VIEW_MASTER_HIDDEN_KEY, false);
+      const moved: number = migrateDetailRoutesInto(this.stack, this.detailStack);
+      logger.info('split view enter: tab=notices moved=' + moved.toString()
+        + ' masterRoutes=' + this.stack.getAllPathName().length.toString()
+        + ' detailRoutes=' + this.detailStack.getAllPathName().length.toString());
+    } else {
+      const moved: number = migrateDetailRoutesBack(this.detailStack, this.stack);
+      logger.info('split view exit: tab=notices moved=' + moved.toString()
+        + ' masterRoutes=' + this.stack.getAllPathName().length.toString()
+        + ' detailRoutes=' + this.detailStack.getAllPathName().length.toString());
+    }
+  }
+
+  /** 左栏宽度：单栏铺满；双栏定宽 393（参考实现 Numbers.splitViewMasterWidth），全屏态收成 0。 */
+  private masterPaneWidth(): Length {
+    if (!this.splitActive) {
+      return '100%';
+    }
+    return this.masterHidden ? 0 : SPLIT_VIEW_MASTER_WIDTH;
   }
 
   /**
@@ -460,7 +507,9 @@ export struct NoticesPage {
       top: spec.theme.sizes.space3,
       bottom: spec.theme.sizes.space3
     })
-    .backgroundColor(spec.theme.colors.surface)
+    // 双栏时把"右栏正在显示的那一条"高亮出来（主栏保留高亮状态，验收第 2 条）；
+    // 单栏不改变既有观感（selected 恒为 false）。
+    .backgroundColor(spec.selected ? spec.theme.colors.surfaceVariant : spec.theme.colors.surface)
     .onClick(() => {
       this.openDetail(spec.notice);
     })
@@ -493,7 +542,8 @@ export struct NoticesPage {
               titleText: removeTags(item.title),
               contentText: removeTags(item.content),
               attachmentLabel: this.s($r('app.string.ui_attachment_label')),
-              importantLabel: this.s($r('app.string.ui_marked_important_label'))
+              importantLabel: this.s($r('app.string.ui_marked_important_label')),
+              selected: this.splitActive && this.selectedId === item.id
             })
           }
           .swipeAction({
@@ -505,7 +555,9 @@ export struct NoticesPage {
         }, (item: NoticeRecord) =>
           item.id + '|' + (item.hasRead ? 'read' : 'unread')
           + '|' + (isInGroupNotices(this.filtered().fav, item.id) ? 'fav' : 'nofav')
-          + '|' + (isInGroupNotices(this.filtered().archived, item.id) ? 'arch' : 'noarch'))
+          + '|' + (isInGroupNotices(this.filtered().archived, item.id) ? 'arch' : 'noarch')
+          // 高亮态要进 key：否则 ForEach 认为这一项没变、不会重建行（选中态就不会跟着变）。
+          + '|' + (this.splitActive && this.selectedId === item.id ? 'sel' : 'nosel'))
       }
       .width('100%')
       .height('100%')
@@ -539,59 +591,134 @@ export struct NoticesPage {
     .height('100%')
   }
 
-  /** 详情栈的出栈目标：公告详情 / 文件详情真身（ticket 11 起不再是占位页）。 */
+  /**
+   * 详情目标的**真身**：同一份路由表被两个导航容器共用。
+   *
+   * `stack` 决定"返回 / 继续压栈"落到哪个栈 —— 左栏传主栈，右栏传详情栈。
+   * 两个 `Navigation` 因此各自独立（对应参考实现的两个 `NavigationContainer`，
+   * 见 features/shell/SplitView.ets 的文件头），而不是一个现成的主从组件。
+   */
   @Builder
-  destinationBuilder(name: string, param: object) {
+  routeTo(name: string, param: object, stack: NavPathStack) {
     if (name === ROUTE_NOTICE_DETAIL) {
       NavDestination() {
         NoticeDetailPage({
           notice: param as NoticeRecord,
-          stack: this.stack,
+          stack: stack,
           session: this.session
         })
       }
       .hideTitleBar(true)
     } else if (name === ROUTE_FILE_DETAIL) {
       NavDestination() {
-        FileDetailPage({ params: param as FileDetailRouteParams, stack: this.stack })
+        FileDetailPage({ params: param as FileDetailRouteParams, stack: stack })
       }
       .hideTitleBar(true)
     }
   }
 
-  build() {
-    Navigation(this.stack) {
-      Stack() {
-        Column() {
-          this.header()
-          this.filterRow()
-          Refresh({ refreshing: $$this.refreshing, promptText: this.s($r('app.string.loh_refresh')) }) {
-            this.listBody()
-          }
-          .layoutWeight(1)
-          .width('100%')
-          .onRefreshing(() => {
-            this.handlePullRefresh();
-          })
-          // 把 Refresh 的状态机打进 hilog：Inactive/Drag/OverDrag/Refresh/Done。
-          // 这是"下拉刷新确实被触发并进入刷新态"的确定性证据（截图只能尽力抓时机）。
-          .onStateChange((state: RefreshStatus) => {
-            logger.info('pull refresh state: ' + state.toString());
-          })
-        }
-        .width('100%')
-        .height('100%')
-        .backgroundColor(this.theme().colors.background)
+  /** 左栏的 `navDestination`（详情栈 = 主栈）。 */
+  @Builder
+  masterDestination(name: string, param: object) {
+    this.routeTo(name, param, this.stack)
+  }
 
-        // 撤销浮层（ticket 14）：3 秒窗口，逐字对齐参考实现 Toast.tsx:51-54。
-        ToastOverlay({ controller: this.toast, isDark: this.isDark() })
+  /** 右栏的 `navDestination`（详情栈 = 本页的 detailStack）。 */
+  @Builder
+  detailDestination(name: string, param: object) {
+    this.routeTo(name, param, this.detailStack)
+  }
+
+  /** 左栏内容 = 列表（单栏时它就是整屏，双栏时定宽 393vp）。 */
+  @Builder
+  masterPane() {
+    Stack() {
+      Column() {
+        this.header()
+        this.filterRow()
+        Refresh({ refreshing: $$this.refreshing, promptText: this.s($r('app.string.loh_refresh')) }) {
+          this.listBody()
+        }
+        .layoutWeight(1)
+        .width('100%')
+        .onRefreshing(() => {
+          this.handlePullRefresh();
+        })
+        // 把 Refresh 的状态机打进 hilog：Inactive/Drag/OverDrag/Refresh/Done。
+        // 这是"下拉刷新确实被触发并进入刷新态"的确定性证据（截图只能尽力抓时机）。
+        .onStateChange((state: RefreshStatus) => {
+          logger.info('pull refresh state: ' + state.toString());
+        })
       }
       .width('100%')
       .height('100%')
+      .backgroundColor(this.theme().colors.background)
+
+      // 撤销浮层（ticket 14）：3 秒窗口，逐字对齐参考实现 Toast.tsx:51-54。
+      ToastOverlay({ controller: this.toast, isDark: this.isDark() })
     }
-    .navDestination(this.destinationBuilder)
-    .hideTitleBar(true)
-    .mode(NavigationMode.Stack)
+    .width('100%')
+    .height('100%')
+  }
+
+  /**
+   * 右栏的栈根：还没选中条目时的空态。
+   *
+   * 对应参考实现 `DetailStack` 的 `EmptyDetail`（`App.tsx:573-577` 用同一个 `Empty` 组件），
+   * 所以这里复用本工程同源的 `EmptyState`（图标也是参考实现那颗 check-circle）。
+   */
+  @Builder
+  detailPane() {
+    Column() {
+      EmptyState({ message: this.s($r('app.string.loh_empty')), isDark: this.isDark() })
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor(this.theme().colors.background)
+  }
+
+  /**
+   * 版式（ticket 16）：`Row` = 左栏 + **1px `Divider`** + 右栏，逐项对齐参考实现
+   * `SplitView.tsx:109-135`（`flexDirection:'row'` + `Divider` 100% 高 + mount 393 / detail flex:1）。
+   * 单栏时右栏整段不渲染、分隔线 `Visibility.None`（不占位）—— 电话形态因此与改动前一致。
+   */
+  build() {
+    Row() {
+      Column() {
+        Navigation(this.stack) {
+          this.masterPane()
+        }
+        .navDestination(this.masterDestination)
+        .hideTitleBar(true)
+        .mode(NavigationMode.Stack)
+        .width('100%')
+        .height('100%')
+      }
+      .width(this.masterPaneWidth())
+      .height('100%')
+
+      Divider()
+        .vertical(true)
+        .strokeWidth(SPLIT_VIEW_DIVIDER_WIDTH)
+        .color(this.theme().colors.outlineVariant)
+        .height('100%')
+        .visibility(this.splitActive ? Visibility.Visible : Visibility.None)
+
+      if (this.splitActive) {
+        Column() {
+          Navigation(this.detailStack) {
+            this.detailPane()
+          }
+          .navDestination(this.detailDestination)
+          .hideTitleBar(true)
+          .mode(NavigationMode.Stack)
+          .width('100%')
+          .height('100%')
+        }
+        .layoutWeight(1)
+        .height('100%')
+      }
+    }
     .width('100%')
     .height('100%')
   }

@@ -20,7 +20,7 @@
  * Regenerate:  node scripts/generate-i18n-resources.mjs && node scripts/gen-i18n-keys.mjs
  * Verify:      node scripts/check-i18n-keys.mjs
  *
- * 305 keys; project-local additions: 6.
+ * 307 keys; project-local additions: 8.
  */
 export type I18nKey = 'loh_back'
   | 'loh_notices'
@@ -208,6 +208,8 @@ export type I18nKey = 'loh_back'
   | 'loh_session_expired'
   | 'loh_network_unavailable'
   | 'loh_retry'
+  | 'loh_fullscreen'
+  | 'loh_exit_fullscreen'
   | 'ui_app_name'
   | 'ui_app_tagline'
   | 'ui_self_check_card_title'
@@ -515,6 +517,8 @@ const ALL_KEYS: string[] = [
   'loh_session_expired',
   'loh_network_unavailable',
   'loh_retry',
+  'loh_fullscreen',
+  'loh_exit_fullscreen',
   'ui_app_name',
   'ui_app_tagline',
   'ui_self_check_card_title',
@@ -644,4 +648,4 @@ export function isI18nKey(value: string): boolean {
 }
 
 /** Total number of known keys; scripts/check-i18n-keys.mjs asserts this. */
-export const I18N_KEY_COUNT: number = 305;
+export const I18N_KEY_COUNT: number = 307;

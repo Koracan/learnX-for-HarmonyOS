@@ -1,0 +1,22 @@
+=== 本环境下无法触发旋转/缩放的原始证据（ticket 16 取证记录）===
+
+--- 1) devecocli emulator rotate --target 127.0.0.1:5557 left（02:07 左右）---
+Emulator scene control commands require Emulator 7.0 or later. Current Emulator version is 6.1.1.300. Please upgrade DevEco Studio or the Emulator SDK.
+
+--- 2) devecocli emulator fold --target 127.0.0.1:5557 close（同一行，scene 命令整组不可用）---
+Emulator scene control commands require Emulator 7.0 or later. Current Emulator version is 6.1.1.300. Please upgrade DevEco Studio or the Emulator SDK.
+
+--- 3) hdc -t 127.0.0.1:5557 shell aa start -a EntryAbility -b com.koracan.learnOH --ww 1200 --wh 1600 --wl 200 --wt 100 ---
+start ability successfully.   （窗口参数被忽略：随后的 layout dump 仍是 [0,0,2880,1920]，见 D1-*.json）
+
+--- 4) hdc -t 127.0.0.1:5557 shell wm size / wm --help ---
+/bin/sh: wm: inaccessible or not found
+
+--- 5) hdc -t 127.0.0.1:5557 shell hidumper -s WindowManagerService -a -h ---
+Usage: -h | -a | -w {window id} [ArkUI Option]   （只有只读 dump，没有设置方向的命令）
+
+--- 6) hdc -t 127.0.0.1:5557 shell param get | Select-String density|orient|rotation ---
+（没有 display density / orientation 这类可写参数）
+
+--- 7) 底部上滑意图打开多任务（devecocli ui swipe --speed 200 1440 1900 1440 1100）---
+应用仍在前后台前台：D2-*.png 与 A2 同态（多任务未打开）

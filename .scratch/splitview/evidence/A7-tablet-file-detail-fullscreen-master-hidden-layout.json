@@ -1,0 +1,706 @@
+- Dumping layout…
+[
+  {
+    "bounds": [
+      0,
+      0,
+      2880,
+      1920
+    ],
+    "children": [
+      {
+        "type": "Text",
+        "text": "4",
+        "bounds": [
+          211,
+          140,
+          224,
+          166
+        ],
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "文件设置",
+        "bounds": [
+          248,
+          133,
+          361,
+          166
+        ],
+        "clickable": true,
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "收藏 0",
+        "bounds": [
+          0,
+          182,
+          22,
+          226
+        ],
+        "clickable": true,
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "归档 0",
+        "bounds": [
+          38,
+          182,
+          155,
+          226
+        ],
+        "clickable": true,
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "屏蔽 0",
+        "bounds": [
+          171,
+          182,
+          288,
+          226
+        ],
+        "clickable": true,
+        "children": []
+      },
+      {
+        "type": "Refresh",
+        "bounds": [
+          0,
+          242,
+          393,
+          1752
+        ],
+        "scrollable": true,
+        "children": [
+          {
+            "type": "Text",
+            "text": "刷新",
+            "bounds": [
+              0,
+              306,
+              29,
+              339
+            ],
+            "children": []
+          },
+          {
+            "type": "ListItem",
+            "bounds": [
+              0,
+              242,
+              393,
+              394
+            ],
+            "clickable": true,
+            "longClickable": true,
+            "children": [
+              {
+                "type": "Text",
+                "text": "英语听说交流（A）",
+                "bounds": [
+                  0,
+                  268,
+                  329,
+                  296
+                ],
+                "children": []
+              },
+              {
+                "type": "Text",
+                "text": "󰄯",
+                "bounds": [
+                  329,
+                  266,
+                  361,
+                  298
+                ],
+                "children": []
+              },
+              {
+                "type": "Text",
+                "text": "Listening 3-2 (Extra Listening)",
+                "bounds": [
+                  0,
+                  298,
+                  361,
+                  336
+                ],
+                "children": []
+              },
+              {
+                "type": "Text",
+                "text": "ZIP 212.0M",
+                "bounds": [
+                  0,
+                  344,
+                  288,
+                  370
+                ],
+                "children": []
+              },
+              {
+                "type": "Text",
+                "text": "2周前",
+                "bounds": [
+                  304,
+                  344,
+                  361,
+                  370
+                ],
+                "children": []
+              }
+            ]
+          },
+          {
+            "type": "ListItem",
+            "bounds": [
+              0,
+              396,
+              393,
+              548
+            ],
+            "clickable": true,
+            "longClickable": true,
+            "children": [
+              {
+                "type": "Text",
+                "text": "英语听说交流（A）",
+                "bounds": [
+                  0,
+                  422,
+                  329,
+                  450
+                ],
+                "children": []
+              },
+              {
+                "type": "Text",
+                "text": "󰄯",
+                "bounds": [
+                  329,
+                  420,
+                  361,
+                  452
+                ],
+                "children": []
+              },
+              {
+                "type": "Text",
+                "text": "Listening 3-1 (Extra Listening)",
+                "bounds": [
+                  0,
+                  452,
+                  361,
+                  490
+                ],
+                "children": []
+              },
+              {
+                "type": "Text",
+                "text": "ZIP 166.0M",
+                "bounds": [
+                  0,
+                  498,
+                  288,
+                  524
+                ],
+                "children": []
+              },
+              {
+                "type": "Text",
+                "text": "2周前",
+                "bounds": [
+                  304,
+                  498,
+                  361,
+                  524
+                ],
+                "children": []
+              }
+            ]
+          },
+          {
+            "type": "ListItem",
+            "bounds": [
+              0,
+              550,
+              393,
+              698
+            ],
+            "clickable": true,
+            "longClickable": true,
+            "children": [
+              {
+                "type": "Text",
+                "text": "英语听说交流（A）",
+                "bounds": [
+                  0,
+                  574,
+                  361,
+                  602
+                ],
+                "children": []
+              },
+              {
+                "type": "Text",
+                "text": "Listening 2 (Video)",
+                "bounds": [
+                  0,
+                  602,
+                  361,
+                  640
+                ],
+                "children": []
+              },
+              {
+                "type": "Text",
+                "text": "ZIP 700.0M",
+                "bounds": [
+                  0,
+                  648,
+                  288,
+                  674
+                ],
+                "children": []
+              },
+              {
+                "type": "Text",
+                "text": "2周前",
+                "bounds": [
+                  304,
+                  648,
+                  361,
+                  674
+                ],
+                "children": []
+              }
+            ]
+          },
+          {
+            "type": "ListItem",
+            "bounds": [
+              0,
+              700,
+              393,
+              848
+            ],
+            "clickable": true,
+            "longClickable": true,
+            "children": [
+              {
+                "type": "Text",
+                "text": "英语听说交流（A）",
+                "bounds": [
+                  0,
+                  724,
+                  361,
+                  752
+                ],
+                "children": []
+              },
+              {
+                "type": "Text",
+                "text": "Listening 1",
+                "bounds": [
+                  0,
+                  752,
+                  361,
+                  790
+                ],
+                "children": []
+              },
+              {
+                "type": "Text",
+                "text": "ZIP 196.0M",
+                "bounds": [
+                  0,
+                  798,
+                  288,
+                  824
+                ],
+                "children": []
+              },
+              {
+                "type": "Text",
+                "text": "2周前",
+                "bounds": [
+                  304,
+                  798,
+                  361,
+                  824
+                ],
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Text",
+        "text": "返回",
+        "bounds": [
+          34,
+          110,
+          91,
+          143
+        ],
+        "clickable": true,
+        "children": []
+      },
+      {
+        "type": "Row",
+        "bounds": [
+          2638,
+          102,
+          2686,
+          150
+        ],
+        "clickable": true,
+        "children": [
+          {
+            "type": "Text",
+            "text": "",
+            "bounds": [
+              2638,
+              102,
+              2686,
+              150
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "type": "Text",
+        "text": "刷新",
+        "bounds": [
+          2710,
+          110,
+          2767,
+          143
+        ],
+        "clickable": true,
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "分享",
+        "bounds": [
+          2791,
+          110,
+          2848,
+          143
+        ],
+        "clickable": true,
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "Listening 3-2 (Extra Listening)",
+        "bounds": [
+          34,
+          748,
+          2848,
+          800
+        ],
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "类型",
+        "bounds": [
+          34,
+          832,
+          210,
+          860
+        ],
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "ZIP",
+        "bounds": [
+          210,
+          832,
+          2848,
+          865
+        ],
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "大小",
+        "bounds": [
+          34,
+          881,
+          210,
+          909
+        ],
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "212.87 MB",
+        "bounds": [
+          210,
+          881,
+          2848,
+          914
+        ],
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "上传时间",
+        "bounds": [
+          34,
+          930,
+          210,
+          958
+        ],
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "2026-08-29 12:31",
+        "bounds": [
+          210,
+          930,
+          2848,
+          963
+        ],
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "课程",
+        "bounds": [
+          34,
+          979,
+          210,
+          1007
+        ],
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "英语听说交流（A）",
+        "bounds": [
+          210,
+          979,
+          2848,
+          1012
+        ],
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "无文件描述",
+        "bounds": [
+          34,
+          1044,
+          2848,
+          1077
+        ],
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "保存位置：/data/storage/el2/base/haps/entry/cache/learnX-files/英语听说交流（A）/1991990059_KJ_17879778841806161be53f8-c7b9-4f91-8bd9-3ebf4ef1a85e/英语听说交流（A）-Listening 3-2 (Extra Listening).zip",
+        "bounds": [
+          34,
+          1101,
+          2848,
+          1127
+        ],
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "该文件类型不支持应用内预览，可下载后分享给其他应用。",
+        "bounds": [
+          34,
+          1151,
+          2848,
+          1179
+        ],
+        "children": []
+      },
+      {
+        "type": "Column",
+        "bounds": [
+          0,
+          1754,
+          576,
+          1864
+        ],
+        "clickable": true,
+        "children": [
+          {
+            "type": "Text",
+            "text": "",
+            "bounds": [
+              264,
+              1767,
+              312,
+              1815
+            ],
+            "children": []
+          },
+          {
+            "type": "Text",
+            "text": "公告",
+            "bounds": [
+              264,
+              1823,
+              312,
+              1851
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "type": "Column",
+        "bounds": [
+          576,
+          1754,
+          1152,
+          1864
+        ],
+        "clickable": true,
+        "children": [
+          {
+            "type": "Text",
+            "text": "",
+            "bounds": [
+              840,
+              1767,
+              888,
+              1815
+            ],
+            "children": []
+          },
+          {
+            "type": "Text",
+            "text": "作业",
+            "bounds": [
+              840,
+              1823,
+              888,
+              1851
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "type": "Column",
+        "bounds": [
+          1152,
+          1754,
+          1728,
+          1864
+        ],
+        "clickable": true,
+        "children": [
+          {
+            "type": "Text",
+            "text": "",
+            "bounds": [
+              1416,
+              1767,
+              1464,
+              1815
+            ],
+            "children": []
+          },
+          {
+            "type": "Text",
+            "text": "文件",
+            "bounds": [
+              1416,
+              1823,
+              1464,
+              1851
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "type": "Column",
+        "bounds": [
+          1728,
+          1754,
+          2304,
+          1864
+        ],
+        "clickable": true,
+        "children": [
+          {
+            "type": "Text",
+            "text": "",
+            "bounds": [
+              1992,
+              1767,
+              2040,
+              1815
+            ],
+            "children": []
+          },
+          {
+            "type": "Text",
+            "text": "课程",
+            "bounds": [
+              1992,
+              1823,
+              2040,
+              1851
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "type": "Column",
+        "bounds": [
+          2304,
+          1754,
+          2880,
+          1864
+        ],
+        "clickable": true,
+        "children": [
+          {
+            "type": "Text",
+            "text": "",
+            "bounds": [
+              2568,
+              1767,
+              2616,
+              1815
+            ],
+            "children": []
+          },
+          {
+            "type": "Text",
+            "text": "设置",
+            "bounds": [
+              2568,
+              1823,
+              2616,
+              1851
+            ],
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -533,3 +533,57 @@ previewUrl: attachmentResult.uri, size, type })` —— 即用**本地 URI**（`
 
 
 
+
+---
+
+## 28. 分栏的详情路由迁移：**整段迁移与参考实现一致**；仅额外补上**退出分栏时的对称回迁**（且不移植右栏空屏栈底）—— 已复审（ticket 16；2026-09-13 统筹更正定性）
+
+**参考实现行为**（`reference/learnOH-old/`）：
+
+| 项 | 参考实现 | 出处 |
+| --- | --- | --- |
+| 迁移在分栏态下**每次详情入栈都会触发** | 原判据是 `splitEnabled && !lastSplitEnabled.current && showDetail && …`；但 `showMain` **恒为 true**（全仓只有定义与引用、**无 setter**）⇒ 分栏后 `showDetail` 恒真。触发面因此比`只在进分栏那一次`大得多 | `src/App.tsx:720,873,904`（`grep -n showMain App.tsx` 只这三处）；`SplitView.tsx:43-50` |
+| 迁移的**粒度 = 栈顶连续详情段**（**与本工程一致，不是偏离**） | `do { goBack() } while (白名单里)` 是**循环**：剥掉整个顶部详情链；而 `navigate` 一次只送**栈顶**那条进右栏，其余几级在**后续详情入栈**时被继续迁走 ⇒ 累积起来右栏拿到的就是**整段** | `SplitView.tsx:66-85` 的 `do…while` + `:43` 的恒真判据 |
+| 退出分栏时**不回迁** | `splitEnabled` 为假时只渲染 `masterChild`（详情容器整段不渲染），而左栏此刻已回到列表根 | `SplitView.tsx:109,136-138`、`App.tsx:873,885-896` |
+| 右栏迁移前的栈底 | 详情容器自带一个 `EmptyDetail` 根屏（`Empty` 组件），所以迁过去的那条详情"返回"落到**空白页** | `App.tsx:570-577,927-934` |
+
+**更正与真正的偏离范围（2026-09-13 统筹复验时改写；初版定性有误）**
+
+初版本条把“只迁栈顶一条”写成偏离理由、并称“中间几级详情会被丢掉”。**逐行复核后该定性是错的**：
+上表第 2 行已给出——`do…while` 剥掉整段，且判据因 `showMain` 恒真而在每次详情入栈时触发，
+所以“**整段迁移与参考实现一致，不构成偏离**”。
+
+**真正的偏离只有一处：退出分栏时的对称回迁。** 参考实现那句“退出时详情容器整段卸载”是隐式的，
+并没有把右栏内容搬回主栈的动作。为什么仍要补：“验收第 3 条要求旋转/缩放时正在浏览的详情不丢失”，
+而参考实现那套在竖屏回退时会让左栏停在列表、右栏整段卸载 ⇒ 正在看的详情消失。补回迁后窄窗下详情仍在屏上
+（从“右栏”变成“整屏”），**更接近验收第 3 条**；代价是页面组件被重建（其可观察后果由替代验收第 2/3 条钉住）。
+
+**另一处不属于偏离、而是“修复漏移植”**：参考实现右栏栈底是 `EmptyDetail` 空屏（`App.tsx:570-577`），
+本工程**不移植**它，而是把整段详情搬过去 ⇒ 右栏“返回”回到**上一级详情**而非空白（替代验收第 4 条）。
+按移植完成定义这一条本应照抄，本工程选择不照抄（理由：手机形态下不存在空屏的对应物，且它会让“返回”产生一个不可解释的空白页），故一并登记。
+
+**新实现做法**（`entry/src/main/ets/features/shell/SplitView.ets`）：
+
+1. `splitMigrationPlan(pathNames)` 取**栈顶连续详情段**（按参考实现同一份 9 条白名单判定），
+   `migrateDetailRoutesInto` 把这一段**自底向顶**整段搬到右栏，左栏用 `clear/popToIndex` 逐级回到列表根；
+   右栏的 `push` 延后 `SPLIT_VIEW_MIGRATION_DELAY_MS`（100ms，与参考实现 `SplitView.tsx:69-76` 同值同因）。
+2. `migrateDetailRoutesBack` 在**退出分栏**时把右栏那一段同步搬回主栈 —— 于是竖屏/窄窗下详情仍在屏上，
+   只是从"右栏"变成"整屏"；页面组件被重建，但三个详情页都是**参数驱动**（详情内容随 `NavPathStack` 的
+   `param` 走），文件详情还会走下载缓存（`fromCache=true`，不发第二次网络请求）。
+3. 两个 tab 栈的其余行为与参考实现一致：单栏时详情照旧压**主栈**（ticket 03/04 的行为一字未改），
+   分栏时列表项点击进**右栏**、同名路由替换（对齐参考实现的 `navigate` 语义，`screens/Notices.tsx:33-45`）。
+
+**替代验收标准**：
+
+1. 双栏（≥750vp 且横向）下点列表项：详情出现在**右栏**，左栏仍在列表页且该行保留高亮；
+2. 旋转/缩放窗口（平板 1440×960 ↔ 960×1440）后**正在浏览的详情仍在屏上**（竖屏变成整屏），
+   且 hilog 里有 `split view exit/enter: moved=N masterRoutes=… detailRoutes=…` 给出来回迁移的条数；
+3. **不重复请求**：迁移后不出现第二次取数 —— 文件详情走缓存（`file detail ready … fromCache=true`），
+   公告详情只重放同一份 `param` 生成的 HTML（不发起应用侧 HTTP）；
+4. 多级详情（课程详情 → 附件文件详情）迁移到右栏后，右栏的"返回"回到**上一级详情**（不是空白）；
+5. 电话形态（<750vp）版式与 ticket 03/04 完全一致：详情整屏、返回回到列表、切 tab 保留浏览位置。
+
+**取证**：`reference/learnOH-old/src/components/SplitView.tsx:41-98,109-138`、`src/App.tsx:570-577,864-896,927-934`、
+`src/screens/Notices.tsx:33-45`；`entry/src/main/ets/features/shell/SplitView.ets`；
+`entry/src/test/SplitView.test.ets`；ticket 16 交付节与 `.scratch/splitview/evidence/README.md`。
+

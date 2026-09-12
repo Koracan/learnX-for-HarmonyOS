@@ -1,7 +1,7 @@
 {
-  "total": 305,
+  "total": 307,
   "referenceCount": 180,
-  "localCount": 6,
+  "localCount": 8,
   "uiCount": 119,
   "referenceKeys": [
     "back",
@@ -1856,6 +1856,24 @@
       "name": "loh_retry",
       "zhValue": "重试",
       "enValue": "Retry",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "local"
+    },
+    {
+      "key": "__loh_fullscreen",
+      "name": "loh_fullscreen",
+      "zhValue": "全屏",
+      "enValue": "Full screen",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "local"
+    },
+    {
+      "key": "__loh_exit_fullscreen",
+      "name": "loh_exit_fullscreen",
+      "zhValue": "退出全屏",
+      "enValue": "Exit full screen",
       "zhPlaceholders": [],
       "enPlaceholders": [],
       "origin": "local"

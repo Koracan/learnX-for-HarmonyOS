@@ -91,7 +91,14 @@ export enum AppIcon {
   /** MaterialIcons `visibility`：已屏蔽的课程上那个"取消屏蔽"（CardWrapper.tsx:74-78）。 */
   VISIBILITY = 'visibility',
   /** MaterialIcons `visibility-off`：课程上那个"屏蔽"（CardWrapper.tsx:75）。 */
-  VISIBILITY_OFF = 'visibility-off'
+  VISIBILITY_OFF = 'visibility-off',
+  /**
+   * MaterialIcons `fullscreen`：文件详情页页头那个"全屏"（隐藏左栏），
+   * 逐字对齐参考实现 `screens/FileDetail.tsx:110-111` 的 `icon="fullscreen"`。
+   */
+  FULLSCREEN = 'fullscreen',
+  /** MaterialIcons `fullscreen-exit`：同一按钮的另一态（参考实现 :111）。 */
+  FULLSCREEN_EXIT = 'fullscreen-exit'
 }
 
 /** 闭集 → 资源。没有 default 分支的"兜底语义"：未知枚举值按 attachment 渲染并保持可读。 */
@@ -143,6 +150,13 @@ export function iconSpec(icon: AppIcon): IconSpec {
       return { family: IconFamily.MATERIAL, code: 0xE8F4, fallback: '[show]' };
     case AppIcon.VISIBILITY_OFF:
       return { family: IconFamily.MATERIAL, code: 0xE8F5, fallback: '[hide]' };
+    case AppIcon.FULLSCREEN:
+      // 码位 58832 (0xE5D0) 抄自 react-native-vector-icons@10.2.0 的
+      // glyphmaps/MaterialIcons.json 的 fullscreen。
+      return { family: IconFamily.MATERIAL, code: 0xE5D0, fallback: '[fs]' };
+    case AppIcon.FULLSCREEN_EXIT:
+      // 码位 58833 (0xE5D1)，同上表的 fullscreen-exit。
+      return { family: IconFamily.MATERIAL, code: 0xE5D1, fallback: '[fsx]' };
     default:
       return { family: IconFamily.MATERIAL_COMMUNITY, code: 0xF0066, fallback: '[icon]' };
   }

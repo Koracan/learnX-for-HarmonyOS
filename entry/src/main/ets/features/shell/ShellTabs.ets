@@ -16,8 +16,19 @@
  *
  * 位置保留的取证方式：滚动公告列表 → 切到课程 → 切回公告，截图与无障碍树里
  * 仍是同一批条目。
+ *
+ * ## ticket 16（断点分栏）：本壳只负责**量尺寸与发布判据**
+ *
+ * 参考实现把断点判据放在根布局上（`App.tsx:864-873` 的 `onLayout` 实测 + window/frame 退路），
+ * 这里照做：根 `Column` 的 `onAreaChange` 量到的就是**本应用的渲染区**，比屏幕尺寸更贴近真实
+ * 可用宽度（2in1 窗口化时两者会分叉）。判据与常量在 `./SplitView`，结果写进 AppStorage，
+ * **消费点是每个 tab 页**（它们订阅 `SPLIT_VIEW_ACTIVE_KEY` 决定单栏/双栏版式）。
+ *
+ * `Tabs + TabContent` 的选型**一字未改**：双栏只改每个 tab 内部的版式，
+ * 五个 `TabContent` 子树照样不销毁（ticket 03 的"切 tab 保留浏览位置"因此不受影响）。
  */
 import { ConfigurationConstant, common } from '@kit.AbilityKit';
+import { display } from '@kit.ArkUI';
 import { ThemeTokens, resolveTheme } from '../../ui/theme/Tokens';
 import { i18nService } from '../../core/i18n/I18n';
 import { Logger } from '../../core/log/Logger';
@@ -30,6 +41,7 @@ import {
   FORCE_DARK_FOR_EVIDENCE, FORCE_ENGLISH_FOR_EVIDENCE, logEvidenceSwitchState
 } from '../notices/repository/NoticeRepositoryProvider';
 import { PlaceholderTab } from './PlaceholderTab';
+import { SPLIT_VIEW_BREAKPOINT_VP, publishSplitViewDecision } from './SplitView';
 import { AppIcon } from '../../ui/icons/IconCatalog';
 import { IconGlyph } from '../../ui/icons/IconGlyph';
 
@@ -152,13 +164,40 @@ export struct ShellTabs {
     }
   }
 
+  /**
+   * 退路尺寸（vp）：屏幕像素 ÷ 屏幕密度。
+   *
+   * 对应参考实现的 `useWindowDimensions()` / `useSafeAreaFrame()` 退路（`App.tsx:707-708`）。
+   * 为什么需要退路：`onAreaChange` 要等首帧布局之后才回调，而五个 tab 页是在**首帧**里建的，
+   * 那时如果还没量到尺寸，判据就只能靠它——否则大屏首帧会先按单栏建一次，再翻成双栏。
+   */
+  private fallbackSizeVp(): number[] {
+    try {
+      const info: display.Display = display.getDefaultDisplaySync();
+      const density: number = info.densityPixels > 0 ? info.densityPixels : 1;
+      return [info.width / density, info.height / density];
+    } catch (error) {
+      logger.warn('display size unavailable: ' + (error as Error).message);
+      return [0, 0];
+    }
+  }
+
+  /** 发布判据（实测优先、退路兜底）。消费点在各个 tab 页，见文件头。 */
+  private publishSize(measuredWidth: number, measuredHeight: number): void {
+    const fallback: number[] = this.fallbackSizeVp();
+    publishSplitViewDecision(measuredWidth, measuredHeight, fallback[0], fallback[1]);
+  }
+
   aboutToAppear(): void {
+    // 先把退路尺寸发出去：五个 tab 页在紧随其后的 build 里就会读它。
+    this.publishSize(0, 0);
     // 延后一帧：aboutToAppear 时组件可能还没挂到 UI 实例上。
     setTimeout(() => {
       this.applyEvidenceOverrides();
     }, 0);
     logger.info('shell ready: tabs=notices,assignments,files,courses,settings'
-      + ' locale=' + i18nService.locale());
+      + ' locale=' + i18nService.locale()
+      + ' splitBreakpointVp=' + SPLIT_VIEW_BREAKPOINT_VP.toString());
   }
 
   private switchTo(index: number): void {
@@ -279,5 +318,10 @@ export struct ShellTabs {
     .width('100%')
     .height('100%')
     .backgroundColor(this.theme().colors.background)
+    // 断点判据的**尺寸来源**：根布局实测（旋转/缩放窗口时会跟着变）。
+    // 对应参考实现根 View 的 onLayout（App.tsx:878-883）。
+    .onAreaChange((_oldArea: Area, newArea: Area) => {
+      this.publishSize(newArea.width as number, newArea.height as number);
+    })
   }
 }

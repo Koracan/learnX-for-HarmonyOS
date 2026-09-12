@@ -106,6 +106,11 @@ learnOH —— HarmonyOS 原生（ArkTS / ArkUI）应用，是原 React Native f
 
  - **改设备上的二进制 / 带缓存文件前先 `aa force-stop`**：应用会把内存中的旧内容 flush 回去覆盖你的改动（实测 `preferences` 里的快照）；改定长字段要**逐字节等长替换**（`dd … bs=1 seek=<偏移> count=1 conv=notrunc`），用文本读写会把文件头弄坏。
 
+ - **本机 `devecocli emulator` 的 scene 组命令全部不可用**（rotate / fold / power / volume / battery / sensor / geolocation / shake）：
+   一律返回 `Emulator scene control commands require Emulator 7.0 or later. Current Emulator version is 6.1.1.300.`（ticket 16 逐条实测，见 `docs/reference-quirks.md` 第 31 条）。
+   所以**旋转 / 折叠 / 缩放窗口 / 灭亮屏这些都别再用 CLI 试**——想改视口只有三条路：换机型（如 tablet 1440vp）、升 Emulator 到 ≥7.0、或用 **DevEco 模拟器窗口上的旋转按钮**（GUI，不在 CLI 可达范围）。
+   顺带一个会骗人的现象：设备锁屏时 `devecocli ui screenshot` 可能给**竖屏尺寸的黑帧**，别把它读成“设备转到竖屏了”——先 `power-shell wakeup` 再上滑解锁后重拍。
+
 ## 门禁（提交前都要真跑）
 
  - **先设 `DEVECO_SDK_HOME`**，否则 hvigor 一旦重建守护进程就会失败、**一条测试都不跑**：

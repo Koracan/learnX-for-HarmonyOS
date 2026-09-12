@@ -50,3 +50,13 @@
 15. **冷启动是否出现 `LIFECYCLE_TIMEOUT`**：ticket 14 取证期间应用被环境事件终止数次（01:07 / 01:14 / 01:40），其中 01:15 那次留痕 `reason=LIFECYCLE_TIMEOUT` + `[ARR1101]terminate EntryAbility`，但 `hilog -x` 内**无** `FIX THIS APPLICATION ERROR` / `jscrash`，重启后不复现。同时段宿主上有并行构建与第二台模拟器 ⇒ 记为**未定因环境事件**。
     真机上**冷启动、无并行负载**时观察是否仍出现该标记：**仍出现** ⇒ 与本机的并行负载无关，需单独查（可能与冷启动要跑完 166 个请求有关）；**不出现** ⇒ 记为负载相关，本条闭合。
 
+来自 **ticket 16**（验收 `verified-partial`，2026-09-13）：
+16. **★ 旋转 / 窗口缩放下的分栏状态稳定（本 ticket 最高优先级的一项）**：ticket 16 的验收第 3 条在本机模拟器上**完全取不到运行期证据** —— `devecocli emulator rotate|fold` 整组 scene 命令要求 **Emulator ≥ 7.0**（当前 6.1.1.300），`aa start --ww/--wh` 被全屏 stage 应用忽略，设备无 `wm`、WMS 只读（台账第 31 条）。**真实平板/2in1 的旋转与窗口拖边是系统能力，真机是唯一能补这一格的地方。**
+    **判据**：① 平板横屏（1440vp）进入双栏、主栏 393vp；② **旋转到竖屏（960vp，低于 750vp 断点）后正在浏览的详情仍在屏上**（从右栏变为整屏），不是回到列表也不是空白；③ **转回横屏后仍是双栏**且刚才那条详情还在；④ 全程**不出现第二次取数**（文件详情应有 `fromCache=true`，公告详情不发起应用侧 HTTP）。
+    **依据**：`docs/accepted-deviations.md` 第 28 条（退出分栏的对称回迁就是为这一条加的）；`entry/src/test/SplitView.test.ets` 已用单测钉住迁移计划边界，真机补的是**运行期**那一半。
+17. **登录页横向不整屏拉伸**：ticket 16 已在模拟器上按参考实现 `src/screens/Login.tsx:127-130` 的 `maxWidth: 480` 修复（模拟器实测输入框 960px=480vp 居中，修复前 `w=2848`）。真机（MatePad Air）横向复核一眼，确认同样是 480vp 居中且**不触发 750vp 分栏**。
+18. **分栏下的主栏宽度**：真机上确认主栏就是 **393vp**（与参考实现 `constants/Numbers.ts:2` 同值），不是按比例缩放。
+19. **深色 / 英文下的双栏**：ticket 16 未单独截图，真机补一张双栏的深色（判据沿用第 8 条 `R=G=B`）。
+
+> **工具能力备注（写给将来的取证）**：本机 `devecocli emulator` 的 scene 组命令（rotate / fold / power / volume / battery / sensor / geolocation / shake）**全部**要求 Emulator ≥ 7.0。若将来要在这类模拟器上做旋转类验收，先升 Emulator，或用 **DevEco 模拟器窗口上的旋转按钮**（GUI 操作，不在 CLI 可达范围内）。
+

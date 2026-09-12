@@ -35,6 +35,7 @@ import fileDownloadTest from './FileDownload.test';
 import updatedTimeTest from './UpdatedTime.test';
 import iconCatalogTest from './IconCatalog.test';
 import favoritesTest from './Favorites.test';
+import splitViewTest from './SplitView.test';
 
 export default function testsuite() {
   semesterTest();
@@ -70,4 +71,5 @@ export default function testsuite() {
   updatedTimeTest();
   iconCatalogTest();
   favoritesTest();
+  splitViewTest();
 }

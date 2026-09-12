@@ -61,6 +61,10 @@ import { fileDetailParamsFromCourseFile } from '../files/FileRoutes';
 import { FileDetailRouteParams, ROUTE_FILE_DETAIL } from '../notices/NoticeRoutes';
 import { CourseDetailPage } from './CourseDetailPage';
 import { SemesterSelectionPage } from './SemesterSelectionPage';
+import {
+  SPLIT_VIEW_ACTIVE_KEY, SPLIT_VIEW_DIVIDER_WIDTH, SPLIT_VIEW_MASTER_HIDDEN_KEY,
+  SPLIT_VIEW_MASTER_WIDTH, migrateDetailRoutesBack, migrateDetailRoutesInto, pushDetailFromMaster
+} from '../shell/SplitView';
 
 const logger: Logger = new Logger('features.courses');
 
@@ -71,6 +75,8 @@ interface CourseRowSpec {
   noticesLabel: string;
   assignmentsLabel: string;
   filesLabel: string;
+  /** 双栏时这一行是不是"右栏正在显示的那一条"（主栏保留高亮，验收第 2 条）。 */
+  selected: boolean;
 }
 
 /** 一个计数单元的渲染参数。 */
@@ -94,7 +100,16 @@ export struct CoursesPage {
   /** 进程内单例：屏蔽一门课要立刻影响公告 / 作业 / 文件三个列表。 */
   private flags: CollectionFlagsStore = collectionFlagsStore();
   private toast: ToastController = new ToastController();
+  /** 主栈（ticket 12）：单栏时详情压在这里，也就是左栏。 */
   private stack: NavPathStack = new NavPathStack();
+  /** 右栏（详情）的栈（ticket 16）：见 features/shell/SplitView.ets 的文件头。 */
+  private detailStack: NavPathStack = new NavPathStack();
+  /** 双栏开关：来源是根布局实测尺寸（features/shell/SplitView.ets），消费点就是这个版式。 */
+  @StorageProp(SPLIT_VIEW_ACTIVE_KEY) @Watch('onSplitViewChanged') splitActive: boolean = false;
+  /** 主栏是否被隐藏（参考实现的 showMaster 取反；由文件详情的全屏按钮翻转）。 */
+  @StorageProp(SPLIT_VIEW_MASTER_HIDDEN_KEY) masterHidden: boolean = false;
+  /** 主栏当前高亮的那一条（= 右栏正在显示的那一条）。 */
+  @State selectedId: string = '';
   private session: SessionHeaderProvider = createSessionHeaderProvider();
 
   aboutToAppear(): void {
@@ -220,20 +235,51 @@ export struct CoursesPage {
   }
 
   private openCourse(course: CourseRecord): void {
-    logger.info('course tapped: id=' + course.id + ' name=' + course.name);
+    logger.info('course tapped: id=' + course.id + ' name=' + course.name
+      + ' split=' + this.splitActive.toString());
     const params: CourseDetailRouteParams = {
       courseId: course.id,
       courseName: course.name,
       courseTeacherName: course.teacherName
     };
-    this.stack.pushPath({ name: ROUTE_COURSE_DETAIL, param: params });
+    this.selectedId = course.id;
+    pushDetailFromMaster(this.stack, this.detailStack, this.splitActive, ROUTE_COURSE_DETAIL, params);
   }
 
   private openSemesterSelection(): void {
     logger.info('semester picker opened: effective=' + this.store.semesterId
       + ' source=' + this.store.semesterSource);
     const params: SemesterSelectionRouteParams = { activeSemesterId: this.store.semesterId };
-    this.stack.pushPath({ name: ROUTE_SEMESTER_SELECTION, param: params });
+    // 学期切换也在参考实现的**详情**白名单里（SplitView.tsx:61），双栏时同样进右栏。
+    pushDetailFromMaster(this.stack, this.detailStack, this.splitActive,
+      ROUTE_SEMESTER_SELECTION, params);
+  }
+
+  /**
+   * 分栏开关翻转（消费点自证）：进分栏把主栈上的详情段搬到右栏、左栏回列表；
+   * 退出分栏把右栏的详情搬回主栈（**本工程补做**，见台账第 28 条）。
+   */
+  onSplitViewChanged(): void {
+    if (this.splitActive) {
+      AppStorage.setOrCreate(SPLIT_VIEW_MASTER_HIDDEN_KEY, false);
+      const moved: number = migrateDetailRoutesInto(this.stack, this.detailStack);
+      logger.info('split view enter: tab=courses moved=' + moved.toString()
+        + ' masterRoutes=' + this.stack.getAllPathName().length.toString()
+        + ' detailRoutes=' + this.detailStack.getAllPathName().length.toString());
+    } else {
+      const moved: number = migrateDetailRoutesBack(this.detailStack, this.stack);
+      logger.info('split view exit: tab=courses moved=' + moved.toString()
+        + ' masterRoutes=' + this.stack.getAllPathName().length.toString()
+        + ' detailRoutes=' + this.detailStack.getAllPathName().length.toString());
+    }
+  }
+
+  /** 左栏宽度：单栏铺满；双栏定宽 393（参考实现 Numbers.splitViewMasterWidth），全屏态收成 0。 */
+  private masterPaneWidth(): Length {
+    if (!this.splitActive) {
+      return '100%';
+    }
+    return this.masterHidden ? 0 : SPLIT_VIEW_MASTER_WIDTH;
   }
 
   /**
@@ -409,7 +455,8 @@ export struct CoursesPage {
       top: spec.theme.sizes.space3,
       bottom: spec.theme.sizes.space3
     })
-    .backgroundColor(spec.theme.colors.surface)
+    // 双栏时把"右栏正在显示的那一条"高亮出来（主栏保留高亮状态，验收第 2 条）。
+    .backgroundColor(spec.selected ? spec.theme.colors.surfaceVariant : spec.theme.colors.surface)
     .onClick(() => {
       this.openCourse(spec.course);
     })
@@ -426,13 +473,16 @@ export struct CoursesPage {
               course: item,
               noticesLabel: this.s($r('app.string.ui_course_unread_notices_label')),
               assignmentsLabel: this.s($r('app.string.ui_course_unfinished_assignments_label')),
-              filesLabel: this.s($r('app.string.ui_course_new_files_label'))
+              filesLabel: this.s($r('app.string.ui_course_new_files_label')),
+              selected: this.splitActive && this.selectedId === item.id
             })
           }
           .swipeAction({ end: this.swipeEnd(item) })
           .bindContextMenu(this.rowMenu(item), ResponseType.LongPress)
         }, (item: CourseRecord) =>
-          item.id + '|' + (isHiddenCourse(this.flags.hiddenCourseIds, item.id) ? 'hidden' : 'shown'))
+          item.id + '|' + (isHiddenCourse(this.flags.hiddenCourseIds, item.id) ? 'hidden' : 'shown')
+          // 高亮态要进 key：否则 ForEach 认为这一项没变、不会重建行（选中态就不会跟着变）。
+          + '|' + (this.splitActive && this.selectedId === item.id ? 'sel' : 'nosel'))
       }
       .width('100%')
       .height('100%')
@@ -477,20 +527,27 @@ export struct CoursesPage {
     .height('100%')
   }
 
+  /**
+   * 详情目标的**真身**：同一份路由表被两个导航容器共用。
+   *
+   * `stack` 决定"返回 / 继续压栈"落到哪个栈 —— 左栏传主栈，右栏传详情栈。
+   * 两个 `Navigation` 因此各自独立（对应参考实现的两个 `NavigationContainer`，
+   * 见 features/shell/SplitView.ets 的文件头），而不是一个现成的主从组件。
+   */
   @Builder
-  destinationBuilder(name: string, param: object) {
+  routeTo(name: string, param: object, stack: NavPathStack) {
     if (name === ROUTE_COURSE_DETAIL) {
       NavDestination() {
         CourseDetailPage({
           params: param as CourseDetailRouteParams,
           store: this.store,
-          stack: this.stack
+          stack: stack
         })
       }
       .hideTitleBar(true)
     } else if (name === ROUTE_SEMESTER_SELECTION) {
       NavDestination() {
-        SemesterSelectionPage({ store: this.store, stack: this.stack })
+        SemesterSelectionPage({ store: this.store, stack: stack })
       }
       .hideTitleBar(true)
     } else if (name === ROUTE_NOTICE_DETAIL) {
@@ -498,7 +555,7 @@ export struct CoursesPage {
       NavDestination() {
         NoticeDetailPage({
           notice: param as NoticeRecord,
-          stack: this.stack,
+          stack: stack,
           session: this.session
         })
       }
@@ -508,7 +565,7 @@ export struct CoursesPage {
       NavDestination() {
         AssignmentDetailPage({
           assignment: param as Assignment,
-          stack: this.stack,
+          stack: stack,
           session: this.session
         })
       }
@@ -516,7 +573,7 @@ export struct CoursesPage {
     } else if (name === ROUTE_FILE_DETAIL) {
       // 作业详情里的附件点击 → 文件详情真身（ticket 11）。
       NavDestination() {
-        FileDetailPage({ params: param as FileDetailRouteParams, stack: this.stack })
+        FileDetailPage({ params: param as FileDetailRouteParams, stack: stack })
       }
       .hideTitleBar(true)
     } else if (name === ROUTE_COURSE_FILE_DETAIL) {
@@ -524,43 +581,106 @@ export struct CoursesPage {
       NavDestination() {
         FileDetailPage({
           params: fileDetailParamsFromCourseFile(param as CourseFileDetailRouteParams),
-          stack: this.stack
+          stack: stack
         })
       }
       .hideTitleBar(true)
     }
   }
 
-  build() {
-    Navigation(this.stack) {
-      Stack() {
-        Column() {
-          this.header()
-          this.filterRow()
-          Refresh({ refreshing: $$this.refreshing, promptText: this.s($r('app.string.loh_refresh')) }) {
-            this.listBody()
-          }
-          .layoutWeight(1)
-          .width('100%')
-          .onRefreshing(() => {
-            this.handlePullRefresh();
-          })
-          .onStateChange((state: RefreshStatus) => {
-            logger.info('courses pull refresh state: ' + state.toString());
-          })
-        }
-        .width('100%')
-        .height('100%')
-        .backgroundColor(this.theme().colors.background)
+  /** 左栏的 `navDestination`（详情栈 = 主栈）。 */
+  @Builder
+  masterDestination(name: string, param: object) {
+    this.routeTo(name, param, this.stack)
+  }
 
-        ToastOverlay({ controller: this.toast, isDark: this.isDark() })
+  /** 右栏的 `navDestination`（详情栈 = 本页的 detailStack）。 */
+  @Builder
+  detailDestination(name: string, param: object) {
+    this.routeTo(name, param, this.detailStack)
+  }
+
+  /** 左栏内容 = 课程列表。 */
+  @Builder
+  masterPane() {
+    Stack() {
+      Column() {
+        this.header()
+        this.filterRow()
+        Refresh({ refreshing: $$this.refreshing, promptText: this.s($r('app.string.loh_refresh')) }) {
+          this.listBody()
+        }
+        .layoutWeight(1)
+        .width('100%')
+        .onRefreshing(() => {
+          this.handlePullRefresh();
+        })
+        .onStateChange((state: RefreshStatus) => {
+          logger.info('courses pull refresh state: ' + state.toString());
+        })
       }
       .width('100%')
       .height('100%')
+      .backgroundColor(this.theme().colors.background)
+
+      ToastOverlay({ controller: this.toast, isDark: this.isDark() })
     }
-    .navDestination(this.destinationBuilder)
-    .hideTitleBar(true)
-    .mode(NavigationMode.Stack)
+    .width('100%')
+    .height('100%')
+  }
+
+  /** 右栏的栈根：还没选中条目时的空态（对应参考实现 `DetailStack` 的 `EmptyDetail`）。 */
+  @Builder
+  detailPane() {
+    Column() {
+      EmptyState({ message: this.s($r('app.string.loh_empty')), isDark: this.isDark() })
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor(this.theme().colors.background)
+  }
+
+  /**
+   * 版式（ticket 16）：`Row` = 左栏 + **1px `Divider`** + 右栏，逐项对齐参考实现
+   * `SplitView.tsx:109-135`。单栏时右栏整段不渲染、分隔线 `Visibility.None`（不占位）。
+   */
+  build() {
+    Row() {
+      Column() {
+        Navigation(this.stack) {
+          this.masterPane()
+        }
+        .navDestination(this.masterDestination)
+        .hideTitleBar(true)
+        .mode(NavigationMode.Stack)
+        .width('100%')
+        .height('100%')
+      }
+      .width(this.masterPaneWidth())
+      .height('100%')
+
+      Divider()
+        .vertical(true)
+        .strokeWidth(SPLIT_VIEW_DIVIDER_WIDTH)
+        .color(this.theme().colors.outlineVariant)
+        .height('100%')
+        .visibility(this.splitActive ? Visibility.Visible : Visibility.None)
+
+      if (this.splitActive) {
+        Column() {
+          Navigation(this.detailStack) {
+            this.detailPane()
+          }
+          .navDestination(this.detailDestination)
+          .hideTitleBar(true)
+          .mode(NavigationMode.Stack)
+          .width('100%')
+          .height('100%')
+        }
+        .layoutWeight(1)
+        .height('100%')
+      }
+    }
     .width('100%')
     .height('100%')
   }

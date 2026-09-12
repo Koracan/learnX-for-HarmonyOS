@@ -745,6 +745,14 @@
       "value": "Retry"
     },
     {
+      "name": "loh_fullscreen",
+      "value": "Full screen"
+    },
+    {
+      "name": "loh_exit_fullscreen",
+      "value": "Exit full screen"
+    },
+    {
       "name": "ui_app_name",
       "value": "learnOH"
     },

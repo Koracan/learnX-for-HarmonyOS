@@ -28,9 +28,10 @@ import {
 const REFERENCE_KEY_COUNT: number = 180;
 /**
  * 本工程新增：参考实现没有对应字符串的本地追加。
- * 学期季节词 3 个（ticket 01/02）+ 会话失效/网络不可用/重试 3 个（ticket 08）= 6。
+ * 学期季节词 3 个（ticket 01/02）+ 会话失效/网络不可用/重试 3 个（ticket 08）= 6；
+ * ticket 16 追加 2 个（文件详情页头的"全屏 / 退出全屏"无障碍文案）= 8。
  */
-const LOCAL_ADDITION_COUNT: number = 6;
+const LOCAL_ADDITION_COUNT: number = 8;
 /**
  * 本工程新增：原生重写 UI 文案（ui_ 命名空间）。
  * ticket 01/02 24 个（自检卡片 / 令牌 / 导出日志 / 语言切换等基础界面）；
@@ -45,7 +46,7 @@ const LOCAL_ADDITION_COUNT: number = 6;
  */
 const UI_STRING_COUNT: number = 119;
 /** 迁移后的资源键总数（也是 I18N_KEY_COUNT 的期望值）。 */
-const TOTAL_KEY_COUNT: number = 305;
+const TOTAL_KEY_COUNT: number = 307;
 
 const REFERENCE_SAMPLE: string[] = ['loh_back', 'loh_notices', 'loh_assignments', 'loh_files', 'loh_courses'];
 const LOCAL_ADDITIONS: string[] = ['loh_fall', 'loh_spring', 'loh_summer'];

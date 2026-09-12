@@ -669,3 +669,42 @@ HarmonyOS 6.1.0(23)，2026-09-13），**不是**参考实现的行为，因此�
 
 **取证**：上表的源文件行号；`entry/src/test/Favorites.test.ets`（`allExcludesArchivedItemsAndItemsOfHiddenCourses`、`favoriteIsASubsetOfAllSoArchivedItemsNeverShowUpInFavorites`、`archivedAndHiddenGroupsKeepTheOtherFilterOut`、`favoriteAndArchiveTogglingFollowsTheReferenceReducers`）；ticket 14 的交付节与 `.scratch/favorites/evidence/README.md`。
 
+
+---
+
+## 31. 【平台事实】本环境的模拟器**不能旋转、也不能缩放窗口**（Emulator 6.1.1.300 的 scene 命令要 ≥ 7.0）—— ticket 16 新增
+
+**这是什么**（不是参考实现的怪癖，**不构成保真约束**；是"本机模拟器工具链能做什么"这一层事实）：
+
+ticket 16 的验收第 3 条要的是"**旋转或缩放窗口**时正在浏览的详情不丢、不重复请求"。本机两台模拟器
+（Pura 90 / MatePad Pro 13）上**没有任何可用的触发手段**，逐条实测如下（原始输出见
+`.scratch/splitview/evidence/D-log-rotate-resize-unavailable.txt`）：
+
+| 试过的办法 | 原始结果 | 结论 |
+| --- | --- | --- |
+| `devecocli emulator rotate --target 127.0.0.1:5557 left` | `Emulator scene control commands require Emulator 7.0 or later. Current Emulator version is 6.1.1.300.` | 整组 scene 命令（rotate / fold / power / volume / battery / sensor / scene / geolocation / shake）都不可用 |
+| `devecocli emulator fold --target 127.0.0.1:5557 close` | 同一句版本错误 | 折叠机切换展开/折叠态也不可用（Mate X7 那条路同样走不通） |
+| `hdc … shell aa start -a EntryAbility -b … --ww 1200 --wh 1600 --wl 200 --wt 100` | `start ability successfully.`，但随后的 layout dump 仍是 `[0,0,2880,1920]` | 全屏 stage 应用忽略窗口尺寸参数，窗口没被缩放 |
+| `hdc … shell wm size` / `wm --help` | `/bin/sh: wm: inaccessible or not found` | 设备上没有 `wm` |
+| `hdc … shell hidumper -s WindowManagerService -a '-h'` | `Usage: -h \| -a \| -w {window id} [ArkUI Option]` | WMS 只提供只读 dump，没有设置方向/尺寸的子命令 |
+| `hdc … shell param get \| Select-String density\|orient\|rotation` | 没有任何可写的 display density / orientation 参数 | 也没有"改密度换 vp 尺寸"这条后门 |
+| `devecocli ui swipe --speed 200 1440 1900 1440 1100`（想开多任务再进分屏） | 应用仍在前台，画面与操作前同态 | 手势进不了多任务/分屏 |
+| `devecocli emulator power` 等 | 同版本错误 | 连"灭屏/亮屏"都不可编程 |
+
+**还有一个会骗人的地方**：设备锁屏时 `devecocli ui screenshot` 可能返回**竖屏尺寸**的黑帧
+（实测一次：`1920×2880` 全黑，而同时刻的 layout dump 明明是 `[0,0,2880,1920]`）。
+**别把那张黑帧当"设备转到竖屏了"** ——它只是锁屏/息屏；先 `hdc … shell power-shell wakeup` 再上滑解锁，
+然后重新截图。
+
+**对本工程的影响**：
+
+- ticket 16 验收第 3 条的**运行期**那一半在本环境取不到证据（见该 ticket 交付节的未验证项第 1 条）；
+  可迁移的判据只有单测（`entry/src/test/SplitView.test.ets` 的 `splitMigrationPlan` 边界）。
+- **真机不受影响**：真实平板/2in1 的旋转与窗口缩放是系统能力（ticket 18 的最终一次性复验正好可以补这一格）。
+- 将来要在这类模拟器上做旋转类验收，先确认 Emulator ≥ 7.0（或改用 DevEco 模拟器窗口上的旋转按钮，
+  那是 GUI 操作、不在 CLI 可达范围内）。
+
+**取证**：`.scratch/splitview/evidence/D-log-rotate-resize-unavailable.txt`（逐条原始输出）、
+`D1-tablet-aa-start-window-params-ignored-layout.json`（`aa start --ww/--wh` 后仍是 2880×1920）、
+`D2-tablet-recents-swipe-left-app-foreground.png`（上滑后应用仍在前台）；ticket 16 的交付节。
+

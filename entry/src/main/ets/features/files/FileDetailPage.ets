@@ -37,6 +37,9 @@ import { FileDownloadReport } from '../../data/files/FileRepository';
 import { describeFileSettings } from '../../data/settings/FileSettings';
 import { FileDetailRouteParams } from '../notices/NoticeRoutes';
 import { fileRepository, fileSettingsStore } from './repository/FileRepositoryProvider';
+import { AppIcon } from '../../ui/icons/IconCatalog';
+import { IconGlyph } from '../../ui/icons/IconGlyph';
+import { SPLIT_VIEW_ACTIVE_KEY, SPLIT_VIEW_MASTER_HIDDEN_KEY } from '../shell/SplitView';
 
 const logger: Logger = new Logger('features.files.detail');
 
@@ -59,6 +62,13 @@ interface InfoRowSpec {
 export struct FileDetailPage {
   @StorageProp(COLOR_MODE_KEY) colorMode: number = ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT;
   @StorageLink(LOCALE_VERSION_KEY) localeVersion: number = 0;
+  /**
+   * 双栏是否生效：全屏按钮**只在双栏时**渲染，对齐参考实现 `FileDetail.tsx:108` 的 `showDetail &&`。
+   * 读的是根布局判据的消费点值（features/shell/SplitView.ets）。
+   */
+  @StorageProp(SPLIT_VIEW_ACTIVE_KEY) splitActive: boolean = false;
+  /** 主栏是否被隐藏（参考实现的 `showMaster` 取反，`FileDetail.tsx:110-111` 翻转它）。 */
+  @StorageProp(SPLIT_VIEW_MASTER_HIDDEN_KEY) masterHidden: boolean = false;
 
   /** 由 NavDestination 传入的参数（公告/作业附件、课程文件都走它）。 */
   params: FileDetailRouteParams = {
@@ -359,6 +369,21 @@ export struct FileDetailPage {
     return removeTags(description);
   }
 
+  /**
+   * 全屏切换：翻转**全局**的"主栏隐藏"标志（AppStorage，取值点在各 tab 页的版式里）。
+   *
+   * 为什么走 AppStorage 而不是新加两个 @Prop：参考实现的 `showMaster` 就在 `SplitViewProvider`
+   * 里、全局一份（`SplitView.tsx:40,106,117`），用 AppStorage 与它同粒度，也不用改
+   * 四处 `FileDetailPage(...)` 构造点与它们的测试。日志打在**消费点**（各 tab 页的
+   * `masterPaneWidth`）之外的那一行 setter 上，便于把"点了按钮"与"版式真的变了"分开核对。
+   */
+  private toggleMaster(): void {
+    const next: boolean = !this.masterHidden;
+    AppStorage.setOrCreate(SPLIT_VIEW_MASTER_HIDDEN_KEY, next);
+    logger.info('file detail fullscreen toggle: masterHidden=' + next.toString()
+      + ' split=' + this.splitActive.toString());
+  }
+
   /** 顶部工具栏。**不叫 toolbar**：那是 CustomComponent 继承来的属性方法名，重名会编译失败。 */
   @Builder
   topBar() {
@@ -372,6 +397,33 @@ export struct FileDetailPage {
           }
         })
       Blank()
+      // 全屏切换（ticket 16）：隐藏左栏、把详情铺满 —— 参考实现 FileDetail.tsx:108-113 的
+      // headerRight 首个 IconButton（fullscreen / fullscreen-exit），只在双栏时出现。
+      // 点击与外边距加在**外层 Row** 上：IconGlyph 是本工程的自定义组件，
+      // 不给它链式挂通用属性（见 ui/icons/IconGlyph.ets 文件头那条说明）。
+      if (this.splitActive) {
+        Row() {
+          if (this.masterHidden) {
+            IconGlyph({
+              icon: AppIcon.FULLSCREEN_EXIT,
+              glyphSize: this.theme().sizes.iconMedium,
+              color: this.theme().colors.primary,
+              label: this.s($r('app.string.loh_exit_fullscreen'))
+            })
+          } else {
+            IconGlyph({
+              icon: AppIcon.FULLSCREEN,
+              glyphSize: this.theme().sizes.iconMedium,
+              color: this.theme().colors.primary,
+              label: this.s($r('app.string.loh_fullscreen'))
+            })
+          }
+        }
+        .margin({ left: this.theme().sizes.space3 })
+        .onClick(() => {
+          this.toggleMaster();
+        })
+      }
       Text(this.s($r('app.string.loh_refresh')))
         .fontSize(this.theme().typography.labelLarge.fontSize)
         .fontColor(this.theme().colors.primary)

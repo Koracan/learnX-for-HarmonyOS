@@ -23,6 +23,17 @@ import { EnrollmentWebView } from './EnrollmentWebView';
 
 const logger: Logger = new Logger('features.login');
 
+/**
+ * 登录表单的最大宽度（vp）。
+ *
+ * **出处：参考实现 `screens/Login.tsx:127-130`** —— `inputs: { width: '100%', maxWidth: 480 }`，
+ * 外层 `root` 是 `alignItems: 'center'`。ticket 16 在平板上实测（模拟器 MatePad Pro 13，
+ * 1440vp 横向）本页**整屏拉伸**（两个输入框与按钮各 2848px / 2880px ⇒ 约 1424vp），
+ * 是移植时漏掉了这条约束，不是有意偏离 —— 所以这里是**补回参考实现的行为**。
+ * 单栏（电话）本来就是 100% < 480vp，加上限后观感不变。
+ */
+const LOGIN_FORM_MAX_WIDTH_VP: number = 480;
+
 @Component
 export struct LoginPage {
   @StorageProp(COLOR_MODE_KEY) colorMode: number = ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT;
@@ -132,60 +143,66 @@ export struct LoginPage {
   @Builder
   form() {
     Column() {
-      Text('learnOH')
-        .fontSize(this.theme().typography.headlineSmall.fontSize)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(this.theme().colors.onSurface)
-        .margin({ bottom: this.theme().sizes.space4 })
+      // 表单本体：宽度上限 480vp（参考实现 Login.tsx:127-130 的 inputs.maxWidth），居中。
+      Column() {
+        Text('learnOH')
+          .fontSize(this.theme().typography.headlineSmall.fontSize)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(this.theme().colors.onSurface)
+          .margin({ bottom: this.theme().sizes.space4 })
 
-      TextInput({ text: this.username, placeholder: this.s($r('app.string.loh_username_or_id')) })
-        .type(InputType.Normal)
-        .maxLines(1)
-        .width('100%')
-        .margin({ bottom: this.theme().sizes.space3 })
-        .onChange((value: string) => {
-          this.username = value;
-        })
-
-      TextInput({ text: this.password, placeholder: this.s($r('app.string.loh_password')) })
-        .type(InputType.Password)
-        .maxLines(1)
-        .width('100%')
-        .margin({ bottom: this.theme().sizes.space3 })
-        .onChange((value: string) => {
-          this.password = value;
-        })
-
-      Button(this.s($r('app.string.loh_login')))
-        .width('100%')
-        .enabled(!this.store.isRestoring())
-        .backgroundColor(this.theme().colors.primary)
-        .fontColor(this.theme().colors.onPrimary)
-        .onClick(() => {
-          this.handleLoginTap();
-        })
-
-      if (this.canRetryRestore()) {
-        Button(this.s($r('app.string.loh_retry')))
+        TextInput({ text: this.username, placeholder: this.s($r('app.string.loh_username_or_id')) })
+          .type(InputType.Normal)
+          .maxLines(1)
           .width('100%')
-          .backgroundColor(this.theme().colors.secondaryContainer)
-          .fontColor(this.theme().colors.onSecondaryContainer)
-          .margin({ top: this.theme().sizes.space2 })
-          .onClick(() => {
-            this.handleRetryTap();
+          .margin({ bottom: this.theme().sizes.space3 })
+          .onChange((value: string) => {
+            this.username = value;
           })
-      }
 
-      if (this.messageText().length > 0) {
-        Text(this.messageText())
-          .fontSize(this.theme().typography.labelMedium.fontSize)
-          .fontColor(this.theme().colors.error)
-          .margin({ top: this.theme().sizes.space3 })
+        TextInput({ text: this.password, placeholder: this.s($r('app.string.loh_password')) })
+          .type(InputType.Password)
+          .maxLines(1)
+          .width('100%')
+          .margin({ bottom: this.theme().sizes.space3 })
+          .onChange((value: string) => {
+            this.password = value;
+          })
+
+        Button(this.s($r('app.string.loh_login')))
+          .width('100%')
+          .enabled(!this.store.isRestoring())
+          .backgroundColor(this.theme().colors.primary)
+          .fontColor(this.theme().colors.onPrimary)
+          .onClick(() => {
+            this.handleLoginTap();
+          })
+
+        if (this.canRetryRestore()) {
+          Button(this.s($r('app.string.loh_retry')))
+            .width('100%')
+            .backgroundColor(this.theme().colors.secondaryContainer)
+            .fontColor(this.theme().colors.onSecondaryContainer)
+            .margin({ top: this.theme().sizes.space2 })
+            .onClick(() => {
+              this.handleRetryTap();
+            })
+        }
+
+        if (this.messageText().length > 0) {
+          Text(this.messageText())
+            .fontSize(this.theme().typography.labelMedium.fontSize)
+            .fontColor(this.theme().colors.error)
+            .margin({ top: this.theme().sizes.space3 })
+        }
       }
+      .width('100%')
+      .constraintSize({ maxWidth: LOGIN_FORM_MAX_WIDTH_VP })
     }
     .width('100%')
     .height('100%')
     .justifyContent(FlexAlign.Center)
+    .alignItems(HorizontalAlign.Center)
     .padding({ left: this.theme().sizes.contentPadding, right: this.theme().sizes.contentPadding })
     .backgroundColor(this.theme().colors.background)
   }

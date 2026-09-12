@@ -63,7 +63,12 @@ const LOCAL_ADDITIONS = [
   ['loh_summer', '夏季学期', 'Summer'],
   ['loh_session_expired', '登录状态已失效，需要重新验证。', 'Your session has expired. Please sign in again to verify.'],
   ['loh_network_unavailable', '网络不可用，请检查网络后重试。', 'Network unavailable. Check your connection and try again.'],
-  ['loh_retry', '重试', 'Retry']
+  ['loh_retry', '重试', 'Retry'],
+  // ticket 16 追加两条：文件详情页头那个「全屏 / 退出全屏」按钮的无障碍文案。
+  // 参考实现的 IconButton 只有图标、没有文字（screens/FileDetail.tsx:108-113），
+  // 本工程的矢量图标同样需要一条可读的无障碍文案（与 ticket 11.5 的图标口径一致）。
+  ['loh_fullscreen', '全屏', 'Full screen'],
+  ['loh_exit_fullscreen', '退出全屏', 'Exit full screen']
 ];
 
 function buildLocalRows() {
