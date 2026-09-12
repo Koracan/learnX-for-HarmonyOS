@@ -234,3 +234,15 @@ enrollment page report [diag:env] … jsCookieNames=[] cookieChars=0 …
 **复现**：`hilog -w start -f <name> -l 8M -n 20` → 用户操作 → `hilog -w stop` → `hdc file recv` → `.dsh/logs/merge-success.js`（合并）。
 冷启动：`aa force-stop` → `aa start -a EntryAbility -b com.koracan.learnOH` → `hilog -x -D 0x4C4F`。
 
+## 逐次取证目录（**本地保留，不入库**）
+
+本目录下**只有这份 `README.md` 入库**——可用 `git ls-files -- .scratch/enrollment/evidence` 核实；其余子目录与文件是**本地证据**（被 `.gitignore` 忽略），随工作区存档但不进版本库。引用它们时请把它们当「取样现场」，**不要**默认它们 tracked（ticket 08 统筹验收里已更正过一次这个说法）。
+
+| 目录 | 内容 | 头条结论 |
+| --- | --- | --- |
+| `experiment-0918/` | 首次失败轮（站点以「隐私/匿名模式」拒绝授予信任） | 方案 A 的动机与三条证据 |
+| `experiment-1057/` | 第 3 次真实登记（12.8M 行全量 + `.gz` 原件） | `saveFinger` → `msg=已增加`（信任登记**被调用过**）；D1 缺陷（登记值 = 36 字符兜底 UUID） |
+| `experiment-success/` | 第 4 次真实登记（**免短信成功**）＋ 冷启动复验 | `via=browser-cookie-adopt`；三点等式 ①=③；冷启动**失败**（`no ticket anchor`） |
+| `experiment-w12/` | W1/W2 判别探针轮（`E1`–`E8`） | 原前提被**推翻**：那张 1280 字节不是 genprint 页而是**报错页**；发现平台 `response.cookies` 是 **Netscape 制表符行** |
+| `experiment-w12b/` | cookie 吸收修复轮（`F1`–`F5`）＋ **统筹独立复验**（`F6`） | 纯 HTTP 冷启动重登**跑通**；`F6` = 统筹在**提交态产物**上的独立冷启动（含截图） |
+

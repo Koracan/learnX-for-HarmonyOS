@@ -244,9 +244,11 @@ sm2.doDecrypt(该 wire, sk, 1) = ""   (不兼容)
 - [ ] **SM2 加密输出能被服务端接受（以登录成功为证）** —— **未验证（凭据门控）**。
   本地能做的那半已做且证据强：用**模拟器产出的真实上线密文**（`.scratch/migration/sm2-verify/arkts-wire.txt`）锁定纯组装 `'04'+X+Y+C3+C2` 与左补零（`core.Sm2Cipher` 6 条）。
   「服务端接受」这半只能靠 `AuthProbe` 的真跑（`ERROR_ROAMING` 就是它的反证出口）。
-- [x] **cookie jar 在请求之间保持与拼接 Cookie 头，且有可诊断日志** —— `core.CookieJar` 8 条：多 cookie 拆分（含 `Expires` 里的逗号）、
-  域/路径匹配（`learn` 的 cookie 不发往 `id`；`.tsinghua.edu.cn` 两者都发）、头拼接顺序、同名覆盖、过期删除（`Max-Age=0` 与 1970 `Expires`）、
-  `resetIdDomainSession`（URL 与 host 两种入参）、`describe()` **不泄漏值**。
+- [ ] **cookie jar 在请求之间保持与拼接 Cookie 头，且有可诊断日志** —— **原判"已勾选"；ticket 08 第二轮改判为未达成**。
+  机制与单测都在（`core.CookieJar` 8 条：多 cookie 拆分（含 `Expires` 里的逗号）、域/路径匹配（`learn` 的 cookie 不发往 `id`；
+  `.tsinghua.edu.cn` 两者都发）、头拼接顺序、同名覆盖、过期删除（`Max-Age=0` 与 1970 `Expires`）、`resetIdDomainSession`、
+  `describe()` **不泄漏值**），但**"吸收"这一步从未在真实平台上工作过**：平台 `HttpResponse.cookies` 给的是
+  **Netscape 制表符行**，而解析器只认 `name=value` ⇒ 一条 cookie 都不入库。**边界说明见文末「ticket 08 第二轮边界说明」。**
 - [ ] **若证伪（服务端强制要求浏览器），记录证据并提请复审 ADR-0004** —— **未触发**（无账号）。
   判定出口已就绪：`NO_TICKET_IN_RESPONSE` + `diagnostic` 里的 `idLoginPage=true`（`LoginClient` 3 条单测覆盖），
   且 `RequiresEnrollment()` 对所有失败返回 true（spec 第 5 节的降级在代码里可见，不是注释）。
@@ -343,3 +345,38 @@ sm2.doDecrypt(该 wire, sk, 1) = ""   (不兼容)
 #### 与参考实现的有意差异
 
 你登记的五条我认可。两条值得留档：`noLogin` 判据**补上"响应体含 login_timeout"后取并集**（平台不暴露重定向后的最终 URL，这是能力缺口下的等价补偿，不是放宽）；`CookieJar` 域参数同时接受 URL 与 host。`FailReason.NO_TICKET_IN_RESPONSE` 是验收第 5 条唯一可判读的出口，新增合理。
+---
+
+### ticket 08 第二轮边界说明（2026-09-12，模拟器口径）—— **06 交付的 cookie 吸收路径从未真正工作过**
+
+**变了什么**：本轮（ticket 08）用设备实测判定，`06` 交付的「由响应 Set-Cookie 写入 jar」这条路径
+**在真实平台上一次都没有成功吸收过 cookie**：
+
+- 平台 `HttpResponse.cookies`（`HttpClient.ets:163` → `HttpFetchPort.ets:77` 的 `setCookie`）在
+  **模拟器 Pura 90 / HarmonyOS 6.1.0(23)** 上返回的是 **Netscape 制表符行**
+  （`#HttpOnly_id.tsinghua.edu.cn<TAB>FALSE<TAB>/<TAB>FALSE<TAB>0<TAB>JSESSIONID<TAB>FB9C…`），
+  而 `CookieJar.parseSetCookie` 只认 `name=value; attrs`（`first.indexOf('=') <= 0 ⇒ undefined`）；
+- ⇒ `setFromResponse` 吸收 0 条；jar 里那条 `JSESSIONID` 是 `login()` 第 1 步
+  `resetIdDomainSession`（`CookieJar.ets:287`）预置的**空值**；空值又被 `cookieHeaderFor` 丢掉
+  ⇒ 发出去的请求**连 `Cookie` 头都没有**（`cookieNamesSent=[]`）。
+
+**原证据还成立到哪一步**：`06` 的**机制证据与 8 条单测全部仍然有效**——拆分 / 域路径匹配 / 同名覆盖 /
+过期删除 / `resetIdDomainSession` / `describe()` 不泄漏值，这些逻辑本身没有错，
+错的是**入口形态假设**（「响应只有 `name=value` 一种形态」）。用**标准形态夹具**跑，它们至今全绿；
+用**设备真实形态**跑，它们一次都没被覆盖到。**因此 `06` 里那条「cookie jar 在请求之间保持与拼接
+Cookie 头」的勾选必须撤回**（本次已改判为未勾选），`06` 的凭据门控验收
+（真机真实账号纯 HTTP 登录）也因此**不能勾**——它依赖的正是这条路径。
+
+**可观察量转移到哪里**：转由 **ticket 08 本轮**关闭：
+`core/http/CookieJar.ets` 新增 `looksLikeNetscapeCookieLine` / `parseNetscapeCookieLine` /
+`parseSetCookieResponse`（**标准形态与 Netscape 形态两条入口并存**），吸收时落一行自证
+（来源 `netscape|standard|mixed|empty` + 吸收数 + 跳过行数），登录路径再落一行
+**实际发出去的 Cookie 头**（`login: id form request sent=…` / `login: check request sent=…`）。
+判据从「jar 里有几条」变成「**这一次请求到底带了什么**」。
+
+**为什么这不是「悄悄改前提」**：本说明同时写在 `06`（被影响方）与 `08`（改方），
+并已在 `docs/reference-quirks.md` 第 15 条登记为【平台事实】（附 SDK 文档不给格式的事实）。
+
+**取证**：`.scratch/enrollment/evidence/experiment-w12/` 的 `E5-page-cookie-format.txt`
+（设备原文逐字）、`E3-cookie-parse-failure.txt`（离线复刻两段纯函数 ⇒ `undefined`）、
+`E4-known-url-probe.txt`（`cookieNamesSent=[]`、`jarAfterProbe … valueChars=0`、两个漫游 URL 都 401）。

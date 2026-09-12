@@ -442,6 +442,23 @@ inline script 正文、form action、`location.href` 赋值、`ticket` / `getFin
 **取证**：`.scratch/enrollment/evidence/experiment-success/`；ticket 07 Comments「第 4 次真实登记」第 8 节；ticket 08 Comments 末节；
 静态资源副本 `.dsh/logs/genprint.js.txt` / `.dsh/logs/static-1.js` / `.dsh/logs/static-2.js`。
 
+**后续（ticket 08 第二轮，2026-09-12）—— 本条的前提被推翻，W1/W2 退回"待重新定义"**：
+
+带着 W12 探针的 armed 构建实测（模拟器 Pura 90，HEAD `66a06e3`）证明：**纯 HTTP 的
+`POST /do/off/ui/auth/login/check` 拿回来的那张 1280 字节页，根本不是上面那张 genprint 页。** 它的
+`counts` 是 `anchorTag=0 metaTag=1 httpEquiv=1 refresh=0 location.href=0 location.replace=0
+location.assign=0 scriptTag=0 formTag=0 actionEq=0`、`inlineScriptCount=0`、`candidateUrlCount=0`
+⇒ 全正文里**没有任何 `<script>`、没有 `<a>`、没有 `<form>`、没有任何 URL**；形态是**一张 GBK 通用报错页**
+（`<meta … charset=gb2312>` + 一句红字 + 一个 `window.close()` 按钮）。
+
+⇒ 上面那条"跳转指令**只可能**在那张 1280 字节页自身的 inline script / meta refresh 里"的**排除法没有对象**：
+它建立在"两张页是同一张"这个未经检验的假设上。**已确证**的只是"**这张**响应里没有跳转目标"；
+"纯 HTTP 拿不到票据"**未确证**。真正的下一步不是解析页面，而是先证明**我们发出去的请求是完备的**
+（见第 15 条：cookie 吸收从来没成功过）。
+
+**取证**：`.scratch/enrollment/evidence/experiment-w12/` 的 `E2-w12-raw-lines.txt`（counts 原文）、
+`E7-response-body.txt`（整张正文还原）、`README.md`（判定与未验证项）。
+
 ---
 
 ## 14. 【未证·强线索】`adopt()` 在 10:57 失败于"收割时机偏早"（ticket 07）
@@ -460,6 +477,44 @@ inline script 正文、form action、`location.href` 赋值、`ticket` / `getFin
 要分开需要"逐次 `enrollment cookies` 记录 + 收割时刻的 cookie 全集"。
 **为什么别急着改**：`adopt` 本身就是我们对 ADR-0004 的偏离（ADR 要的是纯 HTTP 重登），所以"修 `adopt` 的时机"
 **不是** ticket 08 的解法，最多算 ticket 07 的稳健性改进；在 W1/W2 判清之前动它属于改错地方。
+
+## 15. 【平台事实】`HttpResponse.cookies` 给的是 **Netscape 制表符行**，不是 `Set-Cookie`（不是参考实现的怪癖，**不构成保真约束**）—— ticket 08 新增
+
+**这是什么**：`@ohos.net.http` 的 `HttpResponse.cookies`（`HttpClient.ets:163` 直接把它当 `setCookie` 往上传）
+在**模拟器 Pura 90 / HarmonyOS 6.1.0(23)** 上返回的不是 `name=value; attrs`，而是 **Netscape cookie-file 的一整行**：
+**制表符分隔的 7 个字段** —— `domain / includeSubdomains / path / secure / expiry / name / value`：
+
+```
+#HttpOnly_id.tsinghua.edu.cn<TAB>FALSE<TAB>/<TAB>FALSE<TAB>0<TAB>JSESSIONID<TAB>FB9C…authweb1
+```
+
+- `#HttpOnly_` 前缀表示 httpOnly，**域要剥掉这个前缀**；以 `#` 开头的行通常是注释，但**这一种不是注释，不能跳过**；
+- `expiry=0` ⇒ 会话 cookie；域可能带前导点；**值里可能有 `=`**（只切第 6 个制表符，其余并回值）；
+- 多条 cookie ⇒ **多行**（`\n` 分隔），不是逗号拼接。
+
+**官方文档不给格式**：本地 SDK 的 `@ohos.net.http.d.ts` 里 `HttpResponse.cookies` 只有一句
+`Cookies returned by the server. @type {string}`。**没有格式说明**，只能实测。
+
+**为什么这条值钱**：只认 `name=value` 的解析器（`parseSetCookie` 的 `first.indexOf('=') <= 0 ⇒ undefined`）
+在这行上**静默落空**——一条 cookie 都不入库。于是后续所有请求都带着**空 JSESSIONID**（空值又被
+`cookieHeaderFor` 丢掉 ⇒ 连 `Cookie` 头都没有）打到服务端，服务端按"会话失效"回一张通用报错页。
+ticket 08 曾把这张页误读成"站点改了登录页 / 需要改 ADR-0004"，真因却在我们自己的解析器。
+
+**规矩（比这条事实本身更重要）**：**看到 `name=value` 之外的形态时，先怀疑平台/我们自己的解析，而不是站点。**
+把"我们发出去的请求"（请求头、cookie 名与长度、表单字段）变成可观察量，再谈服务端行为。
+
+**新实现做法**：`core/http/CookieJar.ets` 新增 `looksLikeNetscapeCookieLine()` /
+`parseNetscapeCookieLine()` / `parseSetCookieResponse()`——**逐行**判定形态，**标准 `Set-Cookie` 与
+Netscape 行两条入口都保留**（`response.header['set-cookie']` 那边给的是标准形态）。吸收时按来源
+（`netscape` / `standard` / `mixed` / `empty`）+ 吸收数 + 跳过行数落一行自证。
+**注意**：这条不属于"参考实现的怪癖"，因此**不构成保真约束**——参考实现依赖
+`@react-native-cookies/cookies`（平台 WebView 的 cookie 存储），根本没有等价物可比。
+
+**取证**：`.scratch/enrollment/evidence/experiment-w12/E5-page-cookie-format.txt`（设备原文，逐字）、
+`E3-cookie-parse-failure.txt`（离线复刻两段纯函数：`splitSetCookieHeader`→1 段、`parseSetCookie`→undefined）、
+`E4-known-url-probe.txt`（`cookieNamesSent=[]`、`jarAfterProbe … valueChars=0`、已知漫游 URL 两个都 401）。
+
+---
 
 ## 待查
 

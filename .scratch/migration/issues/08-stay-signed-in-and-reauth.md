@@ -4,9 +4,9 @@
 
 **Blocked by:** 05（移植数据处理器 + 解析单测）、07（设备登记 Enrollment）
 
-**Status:** in-progress —— 2026-09-12 冷启动复验**未通过**（提交态复现），正在跑 W1/W2 判别探针轮；见 Comments 末节「统筹：状态改为 in-progress」
+**Status:** verified-partial —— 验收第 1 条**通过**（模拟器口径；代码在 `fe3a473`，统筹已独立复验）；第 4 条将由 ticket 09 的真实取数自然关闭；第 2、3 条（断网启动 / 信任过期降级）仍欠设备侧实操，排到 ticket 09 之后的一轮「会话生命周期」；真机（API 24）留给 ticket 18 之前。见 Comments 末尾「统筹验收（第三轮）」。
 
-- [ ] 杀掉应用重启后无需输入即进入主界面，日志证明会话由纯 HTTP 重建 —— **2026-09-12 用真实凭据实测：未通过**（`no ticket anchor in id login check response`；见 Comments 末节）
+- [x] 杀掉应用重启后无需输入即进入主界面，日志证明会话由纯 HTTP 重建 —— **2026-09-12 用真实凭据在模拟器上实测：通过**（第一轮 `no ticket anchor` 失败 → 定位 cookie 吸收 + 修复 → 第三轮 `restore: session rebuilt via pure HTTP (no webview)`；见 Comments 末节三轮记录）。**真机（API 24）未验证**，留给 ticket 18 之前的一次性复验
 
 - [ ] 断网启动不卡在加载态，给出可理解提示；网络恢复后重试能成功
 - [ ] 会话失效或信任过期时显式回到登录页并说明需要重新验证，不出现空列表
@@ -185,3 +185,135 @@ hdc -t 127.0.0.1:5555 shell "hilog -x -D 0x4C4F" | Select-String 'restore|reauth
 - 正在跑**只读探针轮**：把 `/login/check` 那张 1280 字节响应的正文（含 inline script）落进 hilog，并跟一跳，用来判别 **W1**（跳转信息在 HTTP 正文里 ⇒ 纯 HTTP 路线成立，补解析即可）还是 **W2**（票据由站点 JS 运行时生成 ⇒ 必须改 ADR-0004，属决策变更，需用户签字）。
 - **W1/W2 判清之前不许改 `extractTicket()`**：在 W2 下放宽解析不会让它工作，却会让"取不到票据"这个**正确的失败信号**消失。
 - 触发方式：装探针构建后**冷启动一次** —— 应用自己的 `SessionRestorer` 会发出**唯一一次**登录 POST，那就是探针；不需用户动手机、不走登记、不发短信。
+
+---
+
+### 第二轮：cookie 吸收修复（2026-09-12，模拟器口径）—— 先证明「我们发出去的请求是完备的」
+
+**这一轮的转折**：W1/W2 探针（armed 构建，HEAD `66a06e3`）证明**原前提是错的**——
+纯 HTTP 的 `POST /do/off/ui/auth/login/check` 拿回来的那张 1280 字节页**不是** genprint 页
+（`anchorTag=0 · scriptTag=0 · formTag=0 · candidateUrlCount=0 · inlineScriptCount=0`；
+形态是 GBK 通用报错页 + `window.close()` 按钮）。⇒「跳转指令只可能在那张页里」这条排除法**没有对象**，
+W1/W2 退回**待重新定义**。真正的第一性问题变成：**我们发出去的请求是不是完备的？**
+
+**答案是"不完备"，而且原因在我们自己**：
+
+| 观察（设备侧，模拟器 Pura 90 / 127.0.0.1:5555） | 原文 |
+| --- | --- |
+| 平台 `response.cookies` 的形态 | `#HttpOnly_id.tsinghua.edu.cn<TAB>FALSE<TAB>/<TAB>FALSE<TAB>0<TAB>JSESSIONID<TAB>FB9C…` |
+| 吸收了两条响应的 Set-Cookie 之后 jar 的状态 | `jarAfterProbe cookies=1 domains=[id.tsinghua.edu.cn] names=[JSESSIONID] valueChars=0` |
+| 发往 learn 域的请求带了多少 cookie | `probeKnownReq … cookieNamesSent=[]` |
+| 已知漫游 URL 直打（`/f/` 与 `/b/`，同一次运行，未重复登录） | `status=401 bytes=2628 csrfChars=0 sessionEstablished=false` |
+
+**根因**：平台给的是 **Netscape cookie-file 制表符行**，而 `CookieJar.parseSetCookie` 只认
+`name=value; attrs`（`first.indexOf('=') <= 0 ⇒ undefined`）⇒ `setFromResponse` **一条都不存**；
+jar 里那条 `JSESSIONID` 是 `login()` 第 1 步 `resetIdDomainSession` 预置的**空值**，
+空值又被 `cookieHeaderFor` 丢掉 ⇒ 请求**连 `Cookie` 头都没有**。
+服务端于是按"会话失效"回一张通用报错页——**不是站点改版，也不是需要改 ADR-0004。**
+
+**本轮实现**（`entry/src/main/ets/core/http/CookieJar.ets` + `data/auth/LoginClient.ets`）：
+
+1. 新增 `looksLikeNetscapeCookieLine()` / `parseNetscapeCookieLine()` / `parseSetCookieResponse()`：
+   **逐行**判定形态；`#HttpOnly_` 前缀 ⇒ httpOnly 且域剥前缀；7 个制表符字段
+   （domain / includeSubdomains / path / secure / expiry / name / value）；`expiry=0` ⇒ 会话 cookie；
+   域可带前导点；**值里可有 `=`**；多行 ⇒ 多 cookie；`#` 注释行仍跳过（但 `#HttpOnly_` **不跳**）。
+2. **标准 `Set-Cookie` 形态保留**（`response.header['set-cookie']` 那边给的是标准形态）——
+   两条入口并存，`source` 取 `netscape | standard | mixed | empty`。
+3. **可观察量**：`setFromResponseDetailed()` 返回「来源 / 吸收数 / 跳过行数」，
+   `absorbCookies()` **无论吸收到几条都落一行**（原来只在 `stored > 0` 才打，
+   于是"一条都没吸收到"这种最该看见的情况恰好无声——这次静默正是误判的来源）；
+   新增 `cookieSummaryFor(url)`，登录路径在**表单 GET / login-check POST / 漫游 GET / 课程页 GET**
+   四处各落一行 `sent=N names=[NAME(len),…]`。**只落名字与长度，绝不落值。**
+
+**单测**（`entry/src/test/CookieJar.test.ets` +7 条，夹具在 `fixtures/AuthFixtures.ets`）：
+设备逐字行、多行多 cookie + 前导点域 + `secure=TRUE` + expiry、值含 `=` + 自定义 path、
+标准形态与混发、**预置空 JSESSIONID 不得覆盖已吸收的真实值**、以及"标准形态不得被误判成 Netscape"。
+全量 **242 条全绿**（原 235 + 7）。
+
+**未验证项**
+
+1. **修复是否让冷启动重登成功**——见下方「第三轮：设备验证」。
+2. **登录表单响应是否也曾被丢**：本轮的吸收自证日志会直接给出答案（第一次真实取值时确认）。
+3. **平台 `expectDataType: ARRAY_BUFFER` 是否真能拿到原始 GBK 字节**（那张报错页的可读文本仍未知）——
+   **未试**，需要改 `HttpClient` 端口，超出本轮边界。平台给 JS 的字符**不是**逐字节 Latin-1 映射
+   （码点实测 `U+00B9 U+0631 U+0562`），两种候选复原法都失败。
+4. **同一个 POST 为什么给 ArkWeb 与我们两份不同响应**——本轮**未定论**；cookie 修好后这条可能自然消失，
+   也可能暴露出第二个原因（UA / 信任 cookie）。**不换 UA、不发第二次 POST**（未获批准）。
+
+**复现命令**
+
+```powershell
+$env:DEVECO_SDK_HOME='C:\Program Files\Huawei\DevEco Studio\sdk'
+Remove-Item -Recurse -Force entry/build; & devecocli build *> .dsh/logs/T08b-build-cookiefix.log
+hdc install -r entry/build/default/outputs/default/entry-default-signed.hap
+hdc shell "aa force-stop com.koracan.learnOH"
+hdc shell "hilog -w start -f learnoh_w12b -l 8M -n 5"
+hdc shell "aa start -a EntryAbility -b com.koracan.learnOH"
+# 判据行：login: absorb … source=netscape stored=1 / login: check request sent=1 names=[JSESSIONID(41)]
+#         / restore: session rebuilt via pure HTTP（成功时）
+# 离线复刻（不需要设备）：
+node .dsh/logs/T08-e3-cookie-v2.cjs
+```
+
+**取证**：`.scratch/enrollment/evidence/experiment-w12/`（探针轮：`E3`/`E4`/`E5`/`E7`/README）、
+`.scratch/enrollment/evidence/experiment-w12b/`（本轮：修复后设备验证）。
+
+**第三轮：设备验证（2026-09-12 13:08:44，模拟器 Pura 90 / 127.0.0.1:5555）—— 通过**
+
+修复后的构建（hap 1,582,091 B，SHA256 `9B082C4F08256D2AB5B11784BF97199EC6FC635E39AE52F4FE7295F2F5EF6BC7`）
+装到模拟器后 `aa force-stop` + `aa start` **一次冷启动 = 一次登录 POST**，7 步全部走通：
+
+```
+login: id form request sent=0 names=[] url=…/login/form/bb5df85216504820be7bba2b0ae1535b/0
+login: absorb setCookie=present rawChars=97 source=netscape stored=1 skippedLines=0 path=/do/off/ui/auth/login/form/… cookies=1 domains=[id.tsinghua.edu.cn] names=[JSESSIONID] valueChars=41
+login: id form ok status=200 publicKeyChars=130 jar=… valueChars=41
+login: check request sent=1 names=[JSESSIONID(41)] … fields=[i_user,i_pass,singleLogin,fingerPrint,fingerGenPrint,fingerGenPrint3,i_captcha]
+login: absorb setCookie=present rawChars=61 source=netscape stored=1 skippedLines=0 path=/do/off/ui/auth/login/check cookies=1 … valueChars=41
+login: ticket ok status=200 ticketChars=36 doubleAuthMentions=0
+login: roam request sent=0 names=[]
+login: absorb setCookie=present rawChars=197 source=netscape stored=2 skippedLines=0 path=/b/j_spring_security_thauth_roaming_entry cookies=3 domains=[id.tsinghua.edu.cn,learn.tsinghua.edu.cn] names=[JSESSIONID,XSRF-TOKEN] valueChars=119
+login: roam ok status=200 jar=… valueChars=119
+login: course list request sent=2 names=[JSESSIONID(42),XSRF-TOKEN(36)]
+login: success status=200 csrfChars=36 cookieChars=102 language=zh jar=… valueChars=119
+re-auth session adopted: language=zh cookies=3 … valueChars=119
+reAuth: login ok
+restore: session rebuilt via pure HTTP (no webview) kind=restored language=zh reason=none diag=ok
+startup(startup): session rebuilt via pure HTTP, zero webview language=zh … diag=reason=none diag=ok
+features.shell: shell ready: tabs=notices,assignments,files,courses,settings locale=zh-Hans
+```
+
+**验收第 1 条（杀掉应用重启后无需输入即进入主界面，日志证明会话由纯 HTTP 重建）：达成**
+——模拟器口径、真实凭据、零 WebView。视觉级辅助证据：冷启动后五 tab 主壳、公告列表有内容
+（截图 `08b-cookiefix-coldstart-shell.jpeg`；公告 tab 的 `source=mock` 是既定计划，与会话无关）。
+**真机（MatePad Air，API 24）仍未验证**——留给 ticket 18 之前的一次性复验。
+
+**这一轮最重要的教训（比修复本身值钱）**：我们一度把"响应里没有票据"升级成"要不要改 ADR-0004"的决策，
+真因却是 `CookieJar` 解析不了平台的 Netscape 制表符行 ⇒ 请求带着**空 JSESSIONID**（等于没有 `Cookie` 头）
+发出。**在断言"站点给了奇怪的响应"之前，先证明我们发出去的请求是完备的。**
+本轮把那件事变成了常设可观察量：`source=netscape|standard|mixed|empty stored=N skippedLines=M` 与
+逐请求的 `sent=N names=[NAME(len)]`。已同步登记到 `docs/reference-quirks.md` 第 15 条与 `AGENTS.md`。
+
+**取证**：`.scratch/enrollment/evidence/experiment-w12b/`（`README.md` + `F1`–`F5` + `E9` + 原始 gz + 截图 + 解压全文）。
+
+### 统筹验收（第三轮，2026-09-12，模拟器口径）→ Status: verified-partial
+
+**结论：验收第 1 条（杀进程重启无需输入即进主界面，日志证明会话由纯 HTTP 重建）通过。** 我在**提交态产物**上**独立复跑过一次冷启动**，下列不是转述：
+
+- 现场：`HEAD=fe3a4737ca8191857cca8c2558c96b68e5283e38`；工作区只有三份文档改动（`entry/` 干净 ⇒ 现场产物对应 HEAD）；hap `1,582,091 B @12:59:42`，SHA256 `9B082C4F08256D2AB5B11784BF97199EC6FC635E39AE52F4FE7295F2F5EF6BC7`；设备 = **模拟器** Pura 90 / `127.0.0.1:5555` / HarmonyOS 6.1.0(23)。
+- 命令：`aa force-stop` → `aa start -a EntryAbility -b com.koracan.learnOH` → 15s → `hilog -x -D 0x4C4F`（PID 27073，13:13:59）。
+- 判据行：`login: check request sent=1 names=[JSESSIONID(41)]` → `login: ticket ok … ticketChars=36 doubleAuthMentions=0` → `login: roam ok` → `login: success … csrfChars=36 language=zh` → `restore: session rebuilt via pure HTTP (no webview) kind=restored` → `shell ready: tabs=notices,assignments,files,courses,settings`。全程 **325 ms**，**只发过一次登录 POST**。
+- 视觉证据：`F6-coordinator-coldstart-verify.jpeg`（SHA256 `ABB90FAD92FCA4D29E1C84668D3AC2B4F3910E9DFCBDC6706982D874291E6F75`）落在**主壳「公告」页**（五 tab、更新于 13:14:00），**不是**登录页。
+- 证据文件：`.scratch/enrollment/evidence/experiment-w12b/F6-coordinator-coldstart-verify.txt`（一论断一文件）。
+
+**我另外独立核过的**：`git show --stat fe3a473`（4 个文件全在 `entry/`，+434/−25）；hap 的 SHA256 与产物时间戳；`test_result.txt` 最后一行 **242/242**；平台 `response.cookies` 的 Netscape 形态与 `parseSetCookie` 的 `first.indexOf("=") <= 0` 签名落空（读 `CookieJar.ets:200-206` 与调用链 `HttpFetchPort:77 → HttpClient:163 → LoginClient:253`）；`fe3a473` 之后 `entry/` 相对 HEAD 无改动。
+
+**未关闭项（本 ticket 因此不是 `verified`）：**
+
+| # | 项 | 处置 |
+| --- | --- | --- |
+| 2 | 断网启动不卡在加载态、网络恢复后重试能成功 | **仍欠设备侧实操**（单测只覆盖超时与分类）⇒ 排到 ticket 09 之后的一轮「会话生命周期」 |
+| 3 | 会话失效 / 信任过期显式回登录页 | 有**真实凭据**下的降级实测（修复前那两次冷启动）＋ 单测，但**未在当前产物上**复现 ⇒ 与 #2 同轮关闭 |
+| 4 | 并发请求只触发一次重登 | **由 ticket 09 的真实取数自然关闭**（本轮日志已显示 `silent re-auth #`=1 / `check request`=1；单飞单测全绿） |
+| — | 真机（MatePad Air，API 24） | ticket 18 之前一次性复验 |
+
+**一处更正（撤回一个说法）**：`CookieJar.test.ets:123` 与 `fixtures/AuthFixtures.ets:102` 的注释把 `.scratch/enrollment/evidence/experiment-w12/E5` 说成「tracked 目录」——**不对**：`git ls-files -- .scratch/enrollment/evidence` 只有顶层 `README.md`，逐次取证的子目录是**本地保留、不入库**（沿用本仓库既有约定）。引用本身没问题（夹具已把设备逐字行内联进 `AuthFixtures`），但「tracked」这个词要撤回；清单改在顶层 `README.md` 维护（已补）。
