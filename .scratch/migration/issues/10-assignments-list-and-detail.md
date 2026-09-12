@@ -4,7 +4,7 @@
 
 **Blocked by:** 09（已完成）、12（已完成）——两者均已 `verified`
 
-**Status:** ready-for-agent
+**Status:** verified-partial（模拟器口径；第 1–4 条通过、第 5 条转 ticket 18；「优秀作业」补做中，见 Comments 末节）
 
 - [ ] 列表按截止时间排序（未到期在前），显示状态标记与截止时间
 - [ ] 详情正确显示描述（含公式）、本地化的成绩等级、四类附件
@@ -178,4 +178,63 @@
 1. 已过期段没有排序（少了参考实现排序的第一步）——台账第 19 条；边界说明已写进 **ticket 05**。
 2. `scsj`/`pysj`/`bjjzsj` 三个时间字段没有规范化（详情页出现 `提交于 1780143131000`）——
    边界说明已写进 **ticket 05**。
+### 统筹验收（2026-09-12，**模拟器** Pura 90 / HarmonyOS 6.1.0(23)）→ Status: verified-partial
+
+**结论：五条验收标准里第 1–4 条我独立复验通过**（不是采信转述）；第 5 条（真机）按 AGENTS.md 转 ticket 18。
+另外我裁定「优秀作业」**构成缺口**（工单 What-to-build 有它，参考实现的**卡片**也依赖它），已派同一 agent 补做
+⇒ **补做落地前本 ticket 不置 `verified`**（见第 4 节）。
+
+#### 1. 我独立重跑的（在 `0d69fc0` / 工作区干净上）
+
+| 检查 | 我跑的命令 | 我读到的结果 |
+| --- | --- | --- |
+| 全量单测 | 删 `entry/.test` 后 `hvigorw … test --no-incremental` | `Tests run: 294, Failure: 0, Error: 0, Pass: 294, Ignore: 0`（我自己跑，日志 `.dsh/logs/t10-coord-test.log`） |
+| 四脚本 | `check-domain-purity / -import-graph / -i18n-keys / -generated-fresh` | `PASS`（17 领域源文件）/ `PASS`（131 源文件，孤儿仅两个入口）/ `RESULT: OK`（267 键）/ `PASS`；跑完 `git status` 干净 ⇒ 生成物无漂移 |
+| 产物级符号 | 我自己把 `entry-default-signed.hap`（2,215,842 B，17:06:40）当 zip 解开 | `ets/modules.abc` = 905,968 B；命中 `AssignmentsPage / AssignmentDetailPage / AssignmentFilter / AssignmentText / gradeLevelOf / compareAssignmentsByUpcoming / sortAssignments / assignments applied / normalizeDeadline`；`PROBE-SWITCH` / `TEMP-EVIDENCE` 为 False |
+| **我自己的冷启动 + 覆盖 + 点两个 tab** | `aa force-stop` → `aa start … --ps lohSemester 2025-2026-2` → `devecocli ui click … 924 2682`（课程）→ `… 396 2682`（作业）→ `hilog -x` 全量拉回本地筛 | `effective semester=2025-2026-2 source=override` → `data.assignments fetched courses=7 items=57 elapsedMs=3878 requests=135 failures=0 nonStringDeadlines=57` → `features.assignments assignments applied: reason=initial semester=2025-2026-2 source=override siteCurrent=2026-2027-1 items=57 visible=57 filter=all unfinished=0 finished=57 pastDue=57`（原始输出 `.scratch/assignments/evidence/coord/`） |
+| 我自己截图核对排序 | 同上，作业 tab 截图 | 顶部 `2026-06-28 23:59 → 06-20 → 06-15 → 06-14 → 06-11`，全部「已截止」，筛选片 `全部 57 / 未完成 0 / 已完成 57`，头部「当前学期 2025-2026 学年春季学期 + 取证覆盖生效」 |
+| 交付证据抽看 | A1（秋季空态）/ B5（真实详情）/ C3（公式夹具）逐张看过 | A1 = `暂无作业` + 0/0/0、不白屏不报错；B5 = 独立完成/在线提交、截止+「2个月前」、作业附件、已提交+我的提交附件+提交于、成绩 10+批改于、作业内容正文；C3 = `$$E=mc^2$$` 渲染成**行间公式**（KaTeX 链路） |
+
+**第 3 条（附件可点）我认账的部分**：四类附件行都渲染且都推 `ROUTE_FILE_DETAIL`；实际点击过的 kind = main / submitted / answer，
+`grade` 未单独点（同一 handler / 同一路由，参数不同）—— 这一条属于**替代验收**（布局树证明该行存在且标了"批改附件"），
+我接受，但记在这里：它**不是**"四类各点一次"的直接证据。
+
+#### 2. 我核对过的参考语义（判断"是不是真缺陷"）
+
+- **排序（台账第 19 条）**：参考实现确实是两步 —— 每门课先 `sort(deadline 降序, id 降序)`（`actions/assignments.ts:49-53`），
+  全局那条在 processor 里排完再切（`:122-128`）。**ticket 05 只搬了切分那一步**，所以已过期段是接口顺序 ——
+  这是真缺陷，`compareAssignmentsByUpcoming(sortAssignments(collected), now)` 与参考行为等价。**判定：认可。**
+- **数字时间字段（`scsj`/`pysj`/`bjjzsj`）**：与 ticket 12 的 `jzsj` 同源；`bjjzsj` 那条 `.length > 0` 判空在数字形态下永不赋值，属**真 bug**。**判定：认可**，
+  且 ticket 05 已在两处（ticket 12 带入的那段 + 本轮追加）留有"原证据成立范围"的说明。
+- **`completionType/submissionType` 数字枚举（台账第 20 条）**：参考实现比较的就是数字（`AssignmentDetail.tsx:153,158`），
+  而它自己的**夹具**里是中文标签 ⇒ 两种形状都认是正确的收口方式。**判定：认可**（这正是"反推夹具与真实形状不一致"的典型）。
+
+#### 3. 一处我第一手观察到的**代价**（不是缺陷，但要记住）
+
+作业 tab 与课程 tab **各建一个 store**，都访问时**各抓一次**：我的 hilog 里两次完整抓取分别是
+`17:18:24`–`17:18:29` 与 `17:18:51`–`17:18:56`（各 135 请求 / ~4 s）。交付方已在未验证项第 6 条写明；
+我确认属实。合并成单例 store 属跨 ticket 改造（会动 ticket 12 的 `CoursesPage`），本轮**不做**，
+留给"性能/架构"那一类收尾 ticket 判断。
+
+#### 4. 我这一轮的裁定（补做项）
+
+1. **「优秀作业」算缺口，已派原 agent 补做**（探针优先：先对春季 7 门课 + 秋季 2 门课 POST `yxzylist`，逐课记 `status/bytes/aaData.length`；
+   全空则停下回报，非空则按参考语义补完取数/解析/卡片 medal/详情段/单测并用真实数据出证据）。
+   理由：不只是详情页少一段 —— 参考实现的**作业卡片**在 `excellentHomeworkList.length > 0` 时显示黄色 medal（`AssignmentCard.tsx:84-91`），
+   属**卡片保真**缺口。补做会动 ticket 05 已验收的 `AssignmentsFetcher`（加字段 + 每门课多一次 POST），
+   已要求同一次编辑内更新 `DataFetch.test.ets` 的请求计数断言，并在 ticket 05 追加边界说明。
+2. **"未完成视图空态"的界面证据**（交付方自己列的未验证项第 2 条）一并补：春季下点"未完成"筛选片 → 截图 + 布局。
+3. **`.scratch/.gitignore` 的来历**：ticket 10 期间（16:57）该文件被改成 `**/evidence`，交付方报告"不是它改的"。
+   我不追究来源，只做事实核验后**单独收编**（提交 `238b211`）：已跟踪的 4 个 `evidence/README.md` 仍被跟踪，
+   只有未跟踪的证据文件被忽略 —— 与"证据本地保留、不入库"的约定一致。**若将来要提交新证据文件需 `git add -f`。**
+
+#### 5. 未验证 / 转出（与交付第 4 节一致，我逐条认账）
+
+真机截图 → ticket 18；"描述含公式"的真实样本仍缺（真实 57 条无一条带 KaTeX，公式那一半是夹具证据，走的是与公告详情同一条 `HtmlWebView` 链路）；
+**附件 `id` 为空**（真实提交附件是路径形态）⇒ 已写进 ticket 11 要求兜底；跨 tab 重复抓取见第 3 节；"优秀作业"与"未完成空态截图"见第 4 节。
+
+#### 6. 我这一轮的取样代价
+
+1 次全量单测（38 s 构建 + 测试）、1 次冷启动 + 2 次 ui 点击 + 1 次全量 hilog + 1 次截图（约 2.5 分钟设备窗口）、1 次 hap 解包。
+**设备锁与构建锁均已释放**（补做轮已把两把锁交回原 agent）。
 
