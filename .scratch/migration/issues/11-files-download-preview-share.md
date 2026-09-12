@@ -47,3 +47,68 @@ ticket 10 的作业详情把**四类附件**（attachment / submittedAttachment 
    `features/notices/FileDetailPlaceholderPage.ets`；导航契约（字段名、参数形状、路由名）原样未动。
 
 （工单里的"验收第 6 条 真机截图"同样按 AGENTS.md 转 ticket 18 的一次性复验。）
+
+
+### ticket 11 交付
+
+**Status 留给统筹。** 来源：模拟器 Pura 90 / `127.0.0.1:5555` / HarmonyOS 6.1.0(23)，2026-09-12；
+源码版本 `HEAD=ac2e2a0` + 脏工作区（`git status --porcelain` sha1 `0a04f68f…`）。
+**证据总入口**：`.scratch/files/evidence/README.md`（本地保留、不入库）。
+
+#### 落地清单
+
+| 层 | 文件 | 作用 |
+| --- | --- | --- |
+| domain | `domain/files/FilePath.ets` | 落盘根（文档/缓存）、缓存键（**空 id 兜底**）、文件名形状（省略课程名）、`formatSize`、`TYPE SIZE` 一行、pdf/图片分档 |
+| domain | `domain/files/FileDownloadPolicy.ets` | **落盘前**判定（状态码 / `text/html` / JSON）、会话失效原因分类、`appendCsrfToken`（按 `searchParams.set` 语义）、`redactCsrfToken` |
+| data | `data/remote/DownloadPort.ets` + `HttpDownloadPort.ets` | 新的**兄弟**端口（`FetchPort` 一行未动）：`requestInStream` + `dataReceive`，真字节进度；头到达即判、拒绝即刻 `destroy`（**一个字节都不写**） |
+| data | `data/files/FileStorePort.ets` + `DeviceFileStore.ets` | 文件系统端口（`@ohos.file.fs`）：写 sink、递归删目录 |
+| data | `data/files/FileDownloader.ets` | 编排：缓存命中 → 建目录 → 头判定 → 写 → 状态码复核 → 收尾（失败一律删目标路径）；`clearCache()` |
+| data | `data/files/FileRepository.ets` / `FileFetchSource.ets` / `RealFileRepository.ets` | 文件 tab 自己的取数（学期 → 课程列表 → `FilesFetcher`）与下载，二者都走 `AuthedTaskRunner` |
+| data | `data/settings/FileSettings.ets` + `PreferencesFileSettings.ets` | 两个设置项的值/语义/持久化 + 取证用运行时覆盖（**界面入口归 ticket 17**） |
+| features | `features/files/FilesPage.ets` / `FileDetailPage.ets` / `FileSettingsPage.ets` / `FileListStore.ets` / `FileRoutes.ets` / `repository/FileRepositoryProvider.ets` | 列表（上传时间倒序 + 类型/大小）、详情（下载进度 / 应用内预览 / 分享）、文件设置（两个开关 + 清理缓存） |
+| 接线 | `features/shell/ShellTabs.ets`、`notices/NoticesPage.ets`、`assignments/AssignmentsPage.ets`、`courses/CoursesPage.ets` | 文件 tab 换成真身；三条 `ROUTE_FILE_DETAIL` 与 `ROUTE_COURSE_FILE_DETAIL` 都渲染 `FileDetailPage`；**删掉两个占位页** |
+| i18n | `scripts/i18n-ui-strings.mjs` + 3 个 `string.json` + `I18nKeys.ets` | 新增 27 条 `ui_*`（含 PDF 翻页 3 条），键总数 270 → 297 |
+
+#### 逐条验收
+
+| # | 验收 | 结论 | 独立证据 | 可重跑命令 |
+| --- | --- | --- | --- | --- |
+| 1 | 列表按上传时间倒序、显示大小与类型 | **达成** | `evidence/A1-files-tab-autumn-list.png`（4 条；每行 `ZIP 212.0M` = 类型 + 大小） | `aa start`（无覆盖）→ `devecocli ui click --device 127.0.0.1:5555 660 2640` → `hilog -x` 里 `data.files fetched courses=2 items=4 … failures=0`、`files refresh done: items=4` |
+| 2 | 下载显示进度，完成后可预览；PDF / 图片应用内 | **一半：进度达成；PDF 未达成（平台缺口）；图片未抓到样本** | 进度：`evidence/D1-progress-layout-during-download.json`（`下载中` / `330.64 MB / 700.48 MB` / `47.000000`）+ `D2-download-completed-info-panel.png`；PDF 缺口：`B2-pdfview-crash-hilog.txt`（`does not provide an export name 'pdfViewManager'`）与 `B4-pdf-preview-unsupported-note.png`（如实提示，不崩不跳第三方） | 点第 3 行（700 MB ZIP）→ 立刻 `devecocli ui layout --device 127.0.0.1:5555 --format json`（应见"下载中"与已接收/总量） |
+| 3 | 会话过期下载到登录页 → 识别 + 提示 + 无损坏文件 | **机制达成（注入替身单测）；设备侧未抓到** | `entry/src/test/FileDownload.test.ets` 的 `neverOpensTheFileGateWhenTheResponseIsALoginPage`（`openCalls===0`、无文件、原因 `html-login-page`）与 `turnsALoginPageIntoRequiresEnrollmentWithoutLeavingAFile`（任务两次都 403、`requiresEnrollment=true`、无文件） | `hvigorw … test --no-incremental` |
+| 4 | 分享面板可调起；含中文与空格的路径可用 | **达成** | `evidence/C2-share-panel.png`（系统分享面板 + 文件卡片）+ hilog `file detail share uri: file://…/%E8%BD%AF%E4%BB%B6…-16%20abstractio%20and%20refinement.pdf`（中文百分号编码、空格 `%20`） | 打开该 PDF → 点"分享"（1074,206）→ `hilog -x` 里 `file detail share uri/utd/calling show` |
+| 5 | 清理缓存后文件真正消失；两个设置均生效 | **达成** | 设置：`file download plan: useDocumentDir=true omitCourseName=true root=…/files/learnX-files … path=…/期末复习.pdf`（根=文档、文件名不含课程名）+`E2-file-settings-page.png`；清理：`E3/E4` + `file cache cleared: … removed=true` + **清理后重开同一文件 `fromCache=false`**（`E5-redownload-after-clear.png`） | `aa start … --ps lohFileUseDocumentDir 1 --ps lohFileOmitCourseName 1`；随后在文件设置页点"清空文件缓存"→"确定" |
+| 6 | 真机截图 | **转 ticket 18** | — | — |
+
+#### 门禁（原始数字）
+
+- 单测：**`Tests run: 325, Failure: 0, Error: 0, Pass: 325, Ignore: 0`**（基线 302，本 ticket +23 条）。
+  命令：先删 `entry/.test`，再 `hvigorw --mode module -p module=entry@default -p product=default test --no-incremental`（`DEVECO_SDK_HOME` 已设）。
+- 四个脚本：`check-domain-purity` **PASS**；`check-import-graph` **PASS**（仅入口文件在孤儿 WARN 列表）；`check-i18n-keys` **RESULT: OK**；`check-generated-fresh` **PASS**。
+- 产物：`entry-default-signed.hap` 2,526,579 B @ 19:57:22；解包 `ets/modules.abc` 检索到新符号、检索不到已删占位页符号与 `officeservice.PdfView`（详见证据 README）。
+
+#### 未验证项
+
+1. **PDF 应用内预览**：模拟器上 HMS PDFKit 的两条入口都不可用（`PdfView` 运行期缺 `pdfViewManager`；`pdfservice` 原生模块加载失败）⇒ 本轮**未达成**，真机复验归 ticket 18。
+2. **图片应用内预览**：本账号文件只有 PDF/ZIP（春季 95 条里扫过的大部分都是 PDF），**没有图片样本**。
+3. **会话过期到登录页**：设备侧未抓到（只有注入替身单测）。
+4. **进度条的像素截图**：未抓到（只有 layout dump 文本）。
+
+#### 取样代价
+
+约 10 次冷启动（含 `--ps` 覆盖）、3 次 `hdc install`、约 20 次 `devecocli ui`、6 次 `devecocli build`（1 次因 `@Builder toolbar` 与 `CustomComponent` 属性方法重名失败、1 次为 `PdfView` 崩溃修复）、2 次全量单测、1 次 700 MB 下载（已清）。
+
+#### 有意偏离（台账）
+
+- **`docs/accepted-deviations.md` 第 22 条**（本 ticket 新增）：文件详情的"预览 / 打开"。
+  先摆正参考实现的实际行为（**它本来就有应用内预览**：pdf 走 react-native-pdf、图片走 WebView；
+  真正外跳的只有"打开"那个按钮的 `FileViewer.open`），再登记两条偏离：
+  **B1 渲染器替换**（PDFKit 的 `pdfService` / ArkUI `Image`）、**B2 不再提供外跳"打开"动作**。
+- **`docs/reference-quirks.md` 第 23 条【平台事实】**（本 ticket 新增）：`PdfView` 组件在模拟器上运行期不可用，
+  以及改用 `pdfService` 的处置与证据。
+  *流程说明（诚实记录）*：第 22 条的正文是在**同一轮**里先写台账、再改代码落地本 ticket 的文件详情页；
+  严格意义上的"先改台账再改代码"在时间上并非"台账提交在前"，但台账文本先于代码定稿。
+- **边界说明**（两边都写了）：ticket 04（占位页被真身取代 + 三个**可选**参数）、ticket 05/06（新增兄弟端口 `DownloadPort`，`FetchPort` 一行未动）、
+  ticket 12（课程文件的占位页被真身取代）、ticket 17（文件设置：值/语义在我这儿，界面入口归你）。
+- **未改的前提**：`FileDetailRouteParams.noticeId` 字段名与语义、三个 `ROUTE_*` 常量、`CourseFileDetailRouteParams` 形状都原样保留（只**追加可选字段**）。

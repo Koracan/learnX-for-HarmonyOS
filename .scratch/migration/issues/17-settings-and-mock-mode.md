@@ -14,3 +14,24 @@
 - [ ] 真机截图
 
 ## Comments
+
+
+### 边界说明（2026-09-12，由 ticket 11 带入）—— 文件设置：值与语义在 ticket 11，界面入口归你
+
+ticket 11 落地了参考实现 `screens/FileSettings.tsx` 的两个设置项与"清理缓存"：
+
+- **值 / 语义 / 持久化在 `entry/src/main/ets/data/settings/`**：
+  - `FileSettings.ets`：`FileSettings`（`useDocumentDir` / `omitCourseName`，默认值照 `data/reducers/settings.ts:22` 都是 `false`）、
+    `FileSettingsStore`（`load()` / `set()` / `current()` / `stored()`）、持久化端口 `FileSettingsPort`、内存实现，
+    以及**取证用的运行时覆盖**（`--ps lohFileUseDocumentDir` / `lohFileOmitCourseName`，`describeFileSettingsOverride()` 自证）；
+  - `PreferencesFileSettings.ets`：`@ohos.data.preferences` 实现（独立的 preferences 文件 `learnoh_file_settings`）；
+  - 组装点 / 进程内单例：`features/files/repository/FileRepositoryProvider.ets` 的 `fileSettingsStore()`。
+- **消费点**：`data/files/FileDownloader`（落盘根目录 = 文档 / 缓存；文件名 = `课程名-文件名` / `文件名`）、
+  `FileDownloader.clearCache()`（删整个 `learnX-files` 根，对应参考实现 `removeFileDir()`）。
+
+**归属**：**值、语义、生效逻辑归 ticket 11**；**全局设置页的入口与外观归 ticket 17**。
+ticket 11 另有一个**文件 tab 自己**的设置入口页（`features/files/FileSettingsPage.ets`，两个开关 + 清理缓存），
+那是文件功能的入口、不是全局设置页。你要在设置 tab 里复用，直接
+`import { fileSettingsStore } from '../files/repository/FileRepositoryProvider'` 与 `FileSettingsPage` 即可 ——
+**不要另造一套设置存储**。
+**合并时注意**：`ShellTabs.ets` 的"文件 tab"内容已换成 `FilesPage`；设置 tab 仍是 `PlaceholderTab`（归你）。

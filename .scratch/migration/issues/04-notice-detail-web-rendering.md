@@ -291,3 +291,18 @@ theme audit native.isDark=true defined=true enabled=true bodyBg=rgb(30, 26, 29) 
 #### 关于 `f4c07f2` 的历史
 
 该提交里票据正文被 JS 的 `$` 展开破坏（`$&`-类替换语义），`f11c325` 已修复，标记唯一性我已核对。**提交历史保留了这个中间态**，看那个 commit 时请以 `f11c325` 之后为准。实现方主动报备这一点值得肯定——这类"我搞坏了、已修、但历史里有"若不报，后来人 checkout 到该提交会看到一份复制两遍的票据。
+
+### 边界说明（2026-09-12，由 ticket 11 带入）—— `FileDetailPlaceholderPage` 已被真身取代
+
+ticket 11 交付了文件详情真身 `features/files/FileDetailPage`（下载 / 应用内预览 / 分享），因此：
+
+1. **`features/notices/FileDetailPlaceholderPage.ets` 已删除**；`NoticesPage` 的 `ROUTE_FILE_DETAIL` 目标改为 `FileDetailPage`；
+2. **路由名与参数形状保持兼容**：`ROUTE_FILE_DETAIL` 与 `FileDetailRouteParams` 仍在 `NoticeRoutes.ets`，
+   公告详情的构造点（`NoticeDetail.tsx:63-71` 的等价物）**一行未改**；
+3. ticket 11 给 `FileDetailRouteParams` **追加了三个可选字段** `size?` / `uploadTime?` / `description?`
+   （课程详情那条文件来源要用），既有构造点无需改动 ⇒ 你这条验收第 4 条"附件可点、行为明确"的**可观察量升级**为
+   "点进去真的能下载 / 预览 / 分享"。
+
+**你的证据还成立到哪一步**：ticket 04 关于"导航契约与附件参数"的证据仍成立（字段名、形状、路由名未动）；
+只有"占位页逐项显示参数"这一**形式**的截图不再可复现（页面已被真身取代）。
+**可观察量转移到哪里**：ticket 11 的详情页截图与 hilog（`file detail appear: … noticeId=…`）。

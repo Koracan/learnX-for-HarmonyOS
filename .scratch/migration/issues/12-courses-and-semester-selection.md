@@ -217,3 +217,17 @@ E14 = 从课程 tab 的「通知」进入的是 ticket 04 的**真详情**（陆
 1 次全量单测（38 s 构建 + 测试）、2 次冷启动 + 1 次 ui 点击 + 2 次全量 hilog（约 3 分钟设备窗口）、1 次 hap 解包。
 **设备锁与构建锁均已释放，无后台作业在跑。**
 
+
+### 边界说明（2026-09-12，由 ticket 11 带入）—— 课程详情的文件详情占位页已被真身取代
+
+1. **`features/courses/CourseDetailPlaceholder.ets` 已删除**（ticket 10 换掉作业详情后，该文件只剩 `CourseFileDetailPlaceholderPage` 一个）；
+2. `ROUTE_COURSE_FILE_DETAIL` 与 `CourseFileDetailRouteParams` **保留在 `CourseRoutes.ets` 未动**
+   （`CourseDetailPage.openFile` 的构造点一行未改），只是 `CoursesPage` 的目的地渲染改为
+   `FileDetailPage({ params: fileDetailParamsFromCourseFile(param as CourseFileDetailRouteParams), stack })`
+   （转换函数在 `features/files/FileRoutes.ets`）；
+3. 于是课程详情"文件"标签页点进去不再是"该页面将在后续迭代中实现"。
+
+**你的证据还成立到哪一步**：ticket 12 关于课程列表 / 详情 / 学期切换的证据不受影响；
+只有"文件标签页 → 占位页"这一处的截图不再可复现。
+**可观察量转移到哪里**：ticket 11 的文件详情截图。
+

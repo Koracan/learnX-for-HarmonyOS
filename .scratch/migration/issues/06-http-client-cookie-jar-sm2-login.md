@@ -380,3 +380,13 @@ Cookie 头」的勾选必须撤回**（本次已改判为未勾选），`06` 的
 **取证**：`.scratch/enrollment/evidence/experiment-w12/` 的 `E5-page-cookie-format.txt`
 （设备原文逐字）、`E3-cookie-parse-failure.txt`（离线复刻两段纯函数 ⇒ `undefined`）、
 `E4-known-url-probe.txt`（`cookieNamesSent=[]`、`jarAfterProbe … valueChars=0`、两个漫游 URL 都 401）。
+
+
+### 边界说明（2026-09-12，由 ticket 11 带入）—— `RawFetchPort` 的先例被复用到下载
+
+ticket 11 需要"分块响应 + 响应头 + 状态码"，于是**照本 ticket 给登录流加 `RawFetchPort` 的同一先例**新增了兄弟接口
+`DownloadPort`（`data/remote/DownloadPort.ets`）与设备实现 `HttpDownloadPort`（`@ohos.net.http` 的 `requestInStream`）。
+
+**没有**改 `FetchPort` / `RawFetchPort` / `HttpFetchPort` 的任何签名或语义；cookie 仍由 `Session.cookie` 注入；
+`_csrf` 由 domain 的 `appendCsrfToken` 按 `searchParams.set` 语义拼上（**日志里脱敏**：`redactCsrfToken`，凭证不进 hilog）。
+**你的证据还成立到哪一步**：全部成立。

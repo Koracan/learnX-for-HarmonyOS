@@ -303,3 +303,15 @@ ticket 10 在真实数据上又发现两类同源问题，都在同一次编辑�
 **可观察量转移到哪里**：汇总行的 `excellent=` 与 `data.assignments excellent: course=… zyid=… items=… anonymous=… named=…`
 自证行；界面见 ticket 10 补做轮的 G/H 系列证据（列表 🏅、详情"优秀作业"段、附件 → FileDetail）。
 **本 ticket 的 `verified-partial` 不变**（两项仍由账号门控）。
+### 边界说明（2026-09-12，由 ticket 11 带入）—— 新增了一个**兄弟**端口，`FetchPort` 一行未动
+
+ticket 11 的下载需要"响应头 + 分块字节 + 状态码"，`FetchPort` 的形状（`postForm`/`get`/`upload`，args 已收敛）不适合承载它，
+于是照 ticket 06 给登录流加 `RawFetchPort` 的**同一先例**新增同级接口：
+
+- `entry/src/main/ets/data/remote/DownloadPort.ets`（`DownloadHeaders` / `DownloadSink` / `DownloadStreamResult` / `DownloadPort`）；
+- `entry/src/main/ets/data/remote/HttpDownloadPort.ets`（设备实现：`@ohos.net.http` 的 `requestInStream` + `dataReceive`，**不是** `@ohos.request` 下载库，见台账第 1 条）。
+
+**变了什么**：没有任何既有签名/语义变化 —— `FetchPort`、`RawFetchPort`、三个 `*Fetcher` 与 `HttpFetchPort` 全部原样；
+`DataFetch.test.ets` 的 post/get 计数也原样（下载**不经过** `FetchPort`，所以三域计数不受影响）。
+**你的证据还成立到哪一步**：全部成立（本条只是新增，不改任何前提）。
+**可观察量转移到哪里**：下载链路的 `data.files.download` / `data.files.downloader` hilog 行（见 ticket 11 交付说明）。

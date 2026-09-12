@@ -539,3 +539,36 @@ ticket 05 的移植正是这样，而它的单测 `ordersUpcomingFirstLikeTheRef
 ticket 10 补做轮的 `G1/G1b/G5b/G8`（真实）、`H1/H3/H7`（夹具）、`G4/I2`（hilog）、`E2`（产物检索）。
 
 ---
+
+## 23. 【平台事实】PDFKit 的 `PdfView` **组件**在本模拟器上运行期没有 `pdfViewManager`——应用内 PDF 预览必须走 `pdfService`（ticket 11 新增）
+
+**这是什么**（不是参考实现的怪癖，**不构成保真约束**；是"d.ts 与真实实现不一致"的平台缺口）：
+
+- **编译期**：`@hms.officeservice.PdfView.d.ets` 写的是 `export { pdfViewManager, PdfView }`，`devecocli build` **BUILD SUCCESSFUL**；
+- **运行期**（模拟器 Pura 90 / HarmonyOS 6.1.0(23) / `127.0.0.1:5555`，2026-09-12）：点开任意 pdf 文件的瞬间，
+  组件构造失败并**崩溃重启**：
+
+      FIX THIS APPLICATION ERROR: @Component 'FilesPage'[119] has error in update func:
+      the requested module '@hms:officeservice.PdfView' does not provide an export name 'pdfViewManager'
+      which imported by '&entry/src/main/ets/features/files/FileDetailPage&'
+
+  ⇒ 典型的"编译通过、运行期炸"：**门禁全绿也不能证明这条链路可用**。
+
+**新实现做法**：改用**同一套 PDFKit** 的 `pdfService` 命名空间（`@hms.officeservice.pdfservice`），
+同步 API、不依赖组件：
+
+    new pdfService.PdfDocument() → loadDocument(path): ParseResult
+      → getPageCount() / getPage(i) → PdfPage.getPagePixelMap(): image.PixelMap → ArkUI Image
+
+只渲染当前页（内存有界），界面配"上一页 / 下一页"（`ui_file_prev_page` / `ui_file_next_page` / `ui_file_page_of`）。
+**行为仍是"应用内渲染 PDF"**，与参考实现的 `<Pdf>`（react-native-pdf）等价；偏离登记在
+`docs/accepted-deviations.md` 第 22 条（渲染器替换 + 不再外跳）。
+
+**为什么别急着改回去**：不要因为 d.ts 里有 `PdfView` 就再把组件装回来——它在**这台模拟器**上会让详情页直接崩。
+若将来在别的设备/版本上要复验，先**点开一个 pdf** 看是否崩，而不是只看编译结果。
+
+**取证**：`.scratch/files/evidence/B2-pdfview-crash-hilog.txt`（崩溃原文，模拟器）；
+`entry/src/main/ets/features/files/FileDetailPage.ets` 的 `pdfDocument` 字段与 `renderPdfPage`；
+`.scratch/files/evidence/` 里 `pdfService` 渲染成功的截图。
+
+---
