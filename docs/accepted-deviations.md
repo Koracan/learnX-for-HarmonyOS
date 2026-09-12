@@ -243,6 +243,24 @@ ticket 07 Comments 的「方案 A」；`.scratch/enrollment/evidence/07-diag-pre
 `entry/src/main/ets/features/notices/NoticesPage.ets` 的 `statusIcons`；
 ticket 09 的模拟器截图（`.scratch/notices/evidence/`）。
 
+**执行结果（2026-09-12，ticket 11.5 交付）**：约束落地为**内嵌同一份字体**——
+`reference/learnOH-old/node_modules/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf`（1,147,844 B）
+与 `MaterialIcons.ttf`（356,840 B）拷进 `entry/src/main/resources/rawfile/fonts/`，
+运行时用 `font.registerFont` 注册（`ui/icons/IconFont.ets`），字形码位照 `react-native-vector-icons@10.2.0`
+的 glyphmap 抄成**闭集枚举**（`ui/icons/IconCatalog.ets`），渲染走**唯一的** `IconGlyph` 组件
+（`ui/icons/IconGlyph.ets`）。**没有用 `SymbolGlyph`**。
+- 代价：hap 体积 **+1,504,684 B ≈ +1.44 MiB**（两个 TTF 的字节和；单 MCI 是 +1,147,844 B ≈ +1.09 MiB），
+  加上许可证文本；逐屏对照证据、码位表与 hap 体积实测都在 ticket 11.5 的交付节。
+- **许可证口径的一处更正**：本 ticket 的原话是"Material Design Icons 为 OFL-1.1"。
+  实测：`react-native-vector-icons@10.2.0` 打包的那份字体来自 `@mdi/font ^6.5.95`，
+  而该版本仓库（`Templarian/MaterialDesign-Webfont@v6.5.95`）的 LICENSE 写的是
+  **"Fonts: Apache 2.0"**（Pictogrammers Free License）；`MaterialIcons.ttf` 是 Google 的 Apache-2.0。
+  ⇒ 仓库里**两份许可证都随附**（Apache-2.0 为主、OFL-1.1 一并留存），出处与字节数写在文件头，
+  不擅自把口径改成其中一种（见 ticket 11.5 的"未验证/更正"一节）。
+- 回退口径：注册失败（`font.registerFont` 抛错或 `getFontByName` 取不到 path）时，
+  `IconFont.markNotReady` 落一条 `error` hilog，界面渲染**可读文本**（无障碍文案 / 短名）而不是空白——
+  设备实证（故意把 rawfile 改名）见 ticket 11.5 的回退证据。
+
 ---
 
 ---
@@ -338,3 +356,108 @@ ticket 11 的设备证据里保留了两段：`PdfView` 崩溃的 hilog（上文
 `reference/learnOH-old/src/helpers/fs.ts:171-179`；`reference/learnOH-old/src/helpers/html.ts:123-127`；
 `entry/src/main/ets/features/files/FileDetailPage.ets` 的 `loadPreview` / `previewBody`；
 入口单测 `entry/src/test/FileDownload.test.ets`（`classifiesPreviewableTypesAndMetaLine`）；ticket 11 的模拟器截图与 hilog。
+
+
+---
+
+---
+
+## 24. 页头信息架构：**左对齐自绘页头 + 相对更新时间**（参考是居中 `HeaderTitle(title, subtitle)`，且没有"更新时间"元素）—— 已复审（ticket 11.5，账号所有者点名）
+
+**参考实现行为**：
+
+| 项 | 参考实现 | 出处 |
+| --- | --- | --- |
+| 页头版式 | **居中** `HeaderTitle(title, subtitle)`：20px 粗体标题 + 12px / 行高 0.6 / 半透明副标题 | `src/App.tsx:118-135`（`getTitleOptions`，`headerTitleAlign:'center'`）、`src/components/HeaderTitle.tsx` |
+| 副标题槽位 | **选了筛选时**显示筛选名（`FilterList.tsx:191-201` 把它交给 `headerTitle`）；列表页默认只给课程页传学期 | `src/components/FilterList.tsx:185-201` |
+| 学期出现的位置 | **只有 Courses** 传 `defaultSubtitle = getSemesterTextFromId(currentSemesterId)` | `src/screens/Courses.tsx:48-50` |
+| "更新时间" | **不存在这个元素**（任何页面都没有"更新于 / 刚刚更新"） | 全仓 grep 无对应 UI |
+| 页头背景 | 走导航主题的 `card` 色（浅色 = `rgb(255,251,255)`，即品红偏色） | `App.tsx:220-222,244` |
+
+**为什么偏离**（账号所有者 2026-09-12 点名，原话见 ticket 11.5 的 Part B）：
+
+> "当前学期我希望只在'课程'页面显示，'取证覆盖生效'对用户无意义，更新实现应该写相对时间（刚刚更新、1 分钟前更新等），'未完成n'是多余的。背景我希望不继续使用微品红色，用白色即可。总的来说这四项应该只保留更新时间，并和标题压缩到同一行……课程页则把标题、学期、更新时间压缩在同一行"
+
+本工程的页头是**自绘**的（`hideTitleBar(true)`，左对齐、无系统导航栏），所以"居中 + 副标题槽位"这套版式在移植后本来就不存在；
+本 ticket 要做的是**信息架构**：把参考实现"只有课程页显示学期"这一条**明确保留**，同时把"更新时间"这个**参考实现没有的元素**加进来。
+
+**新实现做法**：
+
+1. **作业页**：页头只剩「标题 + 相对更新时间」**同一行**。移除 `当前学期 <学期>`、`取证覆盖生效` 徽标、`未完成 n`
+   （未完成数在筛选片里已有，不重复）。
+2. **课程页**：页头 = 「课程 + 学期 + 相对更新时间」，学期与更新时间在标题右侧上下两行；
+   **学期文本仍可点** → 学期切换页（ticket 12 的行为一字未改）。
+3. **公告 / 文件页**：同一原则（标题 + 相对更新时间同一行），**保留**有信息量的计数
+   （公告 `未读 n`、文件 `文件条数`）——不为了统一而删信息。
+4. **相对时间**：数据源 = 快照的 `fetchedAtMillis`（`snapshot.fetchedAt`）。措辞四档：
+   `<60s → 刚刚更新` / `N 分钟前更新` / `N 小时前更新` / `N 天前更新`（英文同义）；
+   **不每秒重算**（只在进入页面 / 刷新后取一次），实现见 `ui/components/UpdatedTime.ets`。
+5. **学期不再出现在作业 / 文件页头**（`当前学期：…` 那一行删掉；文件列表每行本来就有课程名，学期冗余）。
+
+**替代验收标准（本表"已复审"档要求写明的那一条）**：
+
+1. 作业页头截图里**不出现**学期文本、`取证覆盖生效`、`未完成 n`（一屏一对文件）；只剩「作业 + 刚刚更新」这一类两段文字；
+2. 课程页头截图里有「课程 + 学期 + 相对更新时间」三项，且学期文本仍可点进学期切换（点击后截图/日志与 ticket 12 一致）；
+3. 相对时间四档**边界**由单测钉住（`updatedTimeParts`：59s → `JUST_NOW`、60s → 1 分钟、59min → 59 分钟、60min → 1 小时、23h → 23 小时、24h → 1 天），
+   设备侧用**注入快照时间戳**（改 `fetchedAtMillis`，不靠手速）拍 `刚刚更新` 与 `N 分钟前更新` 两帧；
+4. 公告页头仍有 `未读 n`、文件页头仍有条数（信息量计数未被"统一"删掉），两者与相对更新时间同行；
+5. 学期**只**出现在课程页头：`grep -n "ui_courses_semester_label" entry/src/main/ets/features` 只剩课程页一处调用点。
+
+**与 ticket 12 的关系**：ticket 12 替代验收第 3 条"界面显示的 semester 就是实际生效值（课程 tab 头部那句）"**仍然成立**
+（学期文本还在，只是位置/版式变了）；**但"取证覆盖生效"这枚徽标被移除** ⇒ 覆盖生效的界面信号从此只有
+"课程页头的学期文本"，其余靠 hilog 的消费点行（`data.courses effective semester=… source=override`）。
+本 ticket **没有**用构建期开关把它加回取证构建（默认界面不许出现；需要时按 ticket 11.5 的说明重开）。
+
+**取证**：`reference/learnOH-old/src/App.tsx:118-135`、`src/components/HeaderTitle.tsx`、`src/components/FilterList.tsx:185-201`、
+`src/screens/Courses.tsx:48-50`；`entry/src/main/ets/features/{assignments/AssignmentsPage,courses/CoursesPage,notices/NoticesPage,files/FilesPage}.ets` 的 `header()`；
+`entry/src/main/ets/ui/components/UpdatedTime.ets`；`entry/src/test/UpdatedTime.test.ets`；ticket 11.5 的逐屏截图。
+
+---
+
+---
+
+## 25. 全应用底色去品红：M3 紫种子的**底色族 + 中性族**改中性灰（参考实现是 `rgb(255,251,255)` 那一套）—— 已复审（ticket 11.5，账号所有者裁定）
+
+**参考实现行为**（我们的 `ui/theme/Tokens.ets` 是**一比一**抄过来的）：
+
+| 令牌 | 参考实现值（浅色） | 出处 |
+| --- | --- | --- |
+| `background` / `surface` | `rgb(255,251,255)` | `src/App.tsx:220-222` |
+| `card` | `rgb(255,251,255)` | `src/App.tsx:244` |
+| `elevation.level1..5` | 品红偏色逐级加深（我们逐值抄成 `#FAF0FB / #F7EAF9 / #F4E4F6 / #F3E1F5 / #F1DDF4`） | `src/App.tsx:235-239` |
+| 深色 `background/surface/card` | `rgb(30,26,29)` = `#1E1A1D`（紫调中性） | `src/App.tsx:206-230` |
+
+**为什么偏离**：账号所有者 2026-09-12 用取色器测得**整个 APP 界面底色**是 `254,250,254`
+（即 `#FFFBFF` 经截图色彩配置转换后每通道 −1），明确要求"用白色即可"；深色一并去紫调。
+这条**推翻了 ticket 01 验收里"主题令牌与参考实现一致"**对底色类令牌的适用（语义色不受影响）。
+
+**新实现做法**（三段式，逐令牌"改前 → 改后"见 ticket 11.5 交付）：
+
+1. **底色家族（必须改）**：`background` / `surface` / `card` → `#FFFFFF`；
+   `elevation.level1..5` → 中性阶梯 `#FAFAFA / #F5F5F5 / #F0F0F0 / #EDEDED / #EAEAEA`（**保持 level1 最浅、level5 最深**的方向）。
+2. **中性家族（一并去紫调）**：`onBackground` / `onSurface` / `surfaceVariant` / `onSurfaceVariant` /
+   `outline` / `outlineVariant` / `inverseSurface` / `inverseOnSurface` / `backdrop` /
+   `surfaceDisabled` / `onSurfaceDisabled` → 全部 `R=G=B`。
+3. **绝对不动（品牌与语义强调色）**：`primary` / `onPrimary` / `primaryContainer` / `onPrimaryContainer` /
+   `secondary` / `onSecondary` / `secondaryContainer` / `onSecondaryContainer` / `tertiary*` / `error*` / `inversePrimary`。
+   tab 选中态与筛选片的粉底（`primaryContainer`）因此**一字未动**。
+
+**页面级不需要各改各的**：真正画出界面底色的只有 `colors.background`（`ShellTabs.ets:266` 与各页面
+`*.backgroundColor(this.theme().colors.background)`），所以改令牌即全应用生效；
+排查结果：仓库内**没有**硬编码的底色（`grep "#FFFBFF"` 只剩令牌表与文档）。
+
+**替代验收标准（本表"已复审"档要求写明的那一条）**：
+
+1. **浅色**：设备截图里多屏（作业 / 课程 / 公告 / 文件 / 详情）的**空白底色**像素满足 `R=G=B` 且每通道 `≥254`
+   （判据**不写死** `==255`：截图色彩配置会把纯白量成 254）；源码侧另有 `LIGHT_COLORS.background === '#FFFFFF'` 的单测；
+2. **深色**：同一批屏（切到深色后）空白底色满足 `R=G=B` 且每通道 `<60`，并保留 elevation 明度阶梯（源码断言 level1 与 level5 的明度差）；
+3. 令牌单测钉住：深浅两套的**中性族全为 `R=G=B`**、`primary` 家族与 `PLAIN_PALETTE` **逐值不变**、
+   两套的 `background` 仍然不同（深浅仍是两套）。
+
+**为什么这次可以偏离**：这是**账号所有者点名的**改动（原话："背景不仅仅是页头，我用取色器测得**整个 APP 界面底色**都是 254,250,254"），
+且偏离面被限定在**中性色**：所有承载语义的颜色（品牌紫、成功/错误/警告）一字未动，
+所以"哪些颜色代表什么"这一层与参考实现仍然可比。
+
+**取证**：`reference/learnOH-old/src/App.tsx:206-244`；`entry/src/main/ets/ui/theme/Tokens.ets` 的 `LIGHT_COLORS` / `DARK_COLORS`；
+`entry/src/test/Tokens.test.ets`；ticket 11.5 的设备取色（模拟器 Pura 90）。
+

@@ -114,4 +114,21 @@
 - ArkTS 编译 **WARN 未清零**（`LogBuffer.ets` 的 fs 调用、`Semester.ets:145` may-throw），非 ERROR；本版本 `check lint`/`check arkts` 均不可用，静态门禁这一路无证据。
 
 ### 主要交付文件
-`entry/src/main/ets/core/log/{Logger,LogBuffer,LogFormat}.ets`、`entry/src/main/ets/ui/theme/Tokens.ets`、`entry/src/main/ets/domain/model/Semester.ets`、`entry/src/main/ets/pages/Index.ets`、`entry/src/main/ets/entryability/EntryAbility.ets`、`scripts/check-domain-purity.mjs`、`entry/src/test/{List,Semester,Tokens,LogFormat}.test.ets`。
+`entry/src/main/ets/core/log/{Logger,LogBuffer,LogFormat}.ets`、`entry/src/main/ets/ui/theme/Tokens.ets`、`entry/src/main/ets/domain/model/Semester.ets`、`entry/src/main/ets/pages/Index.ets`、`entry/src/main/ets/entryability/EntryAbility.ets`、`scripts/check-domain-purity.mjs`、
+
+### 边界说明（2026-09-12，由 ticket 11.5 带入）—— 底色类令牌不再与参考实现一致
+
+- **变了什么**：`LIGHT_COLORS` / `DARK_COLORS` 里的**底色家族**（`background` / `surface` / `card` / `elevation.level1..5`）
+  与**中性家族**（`onBackground` / `onSurface` / `surfaceVariant` / `onSurfaceVariant` / `outline` / `outlineVariant` /
+  `inverseSurface` / `inverseOnSurface` / `backdrop` / `surfaceDisabled` / `onSurfaceDisabled`）改成 `R=G=B` 中性色
+  （浅色底色 = `#FFFFFF`，深色底色 = `#1C1C1C`）。逐令牌"改前 → 改后"见 ticket 11.5 交付节，
+  理由与替代验收标准见 `docs/accepted-deviations.md` 第 25 条（账号所有者 2026-09-12 裁定）。
+- **哪些仍然一致**：`primary` / `onPrimary` / `primaryContainer` / `onPrimaryContainer` / `secondary` / `onSecondary` /
+  `secondaryContainer` / `onSecondaryContainer` / `tertiary*` / `error*` / `inversePrimary` / `shadow` / `scrim`
+  **一字未动**；`PLAIN_PALETTE`（`Colors.ts` 那一份 500 系）一字未动；`TYPOGRAPHY` 与 `SIZES` 一字未动。
+- **你的证据还成立到哪一步**：ticket 01 的令牌单测（值存在、字面量形状、深浅两套同键名、"未定义即失败"）
+  **全部仍然成立**；被推翻的只有"**逐值取自参考实现**"这一句在底色/中性族上的适用
+  （`Tokens.test.ets` 里那条断言已按新值更新，并新增"中性族 R=G=B"与"品牌色与 `PLAIN_PALETTE` 逐值相等"两条）。
+- **可观察量转移到哪里**：ticket 11.5 —— 设备截图**取色**（浅色 `R=G=B` 且 `≥254`；深色 `R=G=B` 且 `<60`）
+  与"源码令牌字面量 = `#FFFFFF`"的 grep；旧截图里的浅底色 `254,250,254` 不再是基准。
+
