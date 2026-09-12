@@ -1,0 +1,401 @@
+- Dumping layout…
+[
+  {
+    "bounds": [
+      0,
+      0,
+      1320,
+      2856
+    ],
+    "children": [
+      {
+        "type": "Text",
+        "text": "公告",
+        "bounds": [
+          56,
+          220,
+          225,
+          332
+        ],
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "刚刚更新",
+        "bounds": [
+          253,
+          287,
+          408,
+          332
+        ],
+        "children": []
+      },
+      {
+        "type": "Row",
+        "bounds": [
+          1124,
+          192,
+          1264,
+          332
+        ],
+        "clickable": true,
+        "children": [
+          {
+            "type": "Text",
+            "text": "",
+            "bounds": [
+              1152,
+              220,
+              1236,
+              304
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "type": "Text",
+        "text": "全部 0",
+        "bounds": [
+          56,
+          360,
+          260,
+          437
+        ],
+        "clickable": true,
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "未读 0",
+        "bounds": [
+          288,
+          360,
+          492,
+          437
+        ],
+        "clickable": true,
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "收藏 0",
+        "bounds": [
+          520,
+          360,
+          724,
+          437
+        ],
+        "clickable": true,
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "归档 1",
+        "bounds": [
+          752,
+          360,
+          956,
+          437
+        ],
+        "clickable": true,
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "屏蔽 1",
+        "bounds": [
+          984,
+          360,
+          1188,
+          437
+        ],
+        "clickable": true,
+        "children": []
+      },
+      {
+        "type": "Refresh",
+        "bounds": [
+          0,
+          465,
+          1320,
+          2562
+        ],
+        "scrollable": true,
+        "children": [
+          {
+            "type": "Text",
+            "text": "刷新",
+            "bounds": [
+              611,
+              577,
+              710,
+              634
+            ],
+            "children": []
+          },
+          {
+            "type": "ListItem",
+            "bounds": [
+              0,
+              465,
+              1320,
+              930
+            ],
+            "longClickable": true,
+            "children": [
+              {
+                "type": "Column",
+                "bounds": [
+                  0,
+                  465,
+                  1320,
+                  930
+                ],
+                "clickable": true,
+                "children": [
+                  {
+                    "type": "Text",
+                    "text": "英语听说交流（A）",
+                    "bounds": [
+                      56,
+                      507,
+                      420,
+                      563
+                    ],
+                    "children": []
+                  },
+                  {
+                    "type": "Text",
+                    "text": "Welcome message from the professor",
+                    "bounds": [
+                      56,
+                      577,
+                      1194,
+                      661
+                    ],
+                    "children": []
+                  },
+                  {
+                    "type": "Text",
+                    "text": "󰄯",
+                    "bounds": [
+                      1208,
+                      577,
+                      1264,
+                      633
+                    ],
+                    "children": []
+                  },
+                  {
+                    "type": "Text",
+                    "text": "Dear all, Welcome to this course! I'm truly excited to work with each of you in the coming semester. I am confident that with your consistent effort and my guidance, you will make remarkable progress in your English listening and speaking skills, and gradually build greater confidence in using English effectively. In this course, I will also help you refine your understanding of how to use English appropriately as a Tsinghua student, which is essential for your future academic and professional development. I have already uploaded the listening and speaking materials (MP3/MP4) we will use this semester on our Web‑School platform. Textbooks will be distributed to you in class. A gentle reminder: Please check and update your contact information (phone number and email address) on our Web‑School platform if necessary, so that I can reach you individually when needed. I hope you will enjoy this course and I'm looking forward to a productive semester with all of you. Weimin ---------------------------------- Weimin Zhang, PhD Professor of Applied Linguistics Tsinghua University Email: zhangwm2024@qq.com Mobile: 13020047216",
+                    "bounds": [
+                      56,
+                      675,
+                      1264,
+                      815
+                    ],
+                    "children": []
+                  },
+                  {
+                    "type": "Text",
+                    "text": "张为民",
+                    "bounds": [
+                      56,
+                      843,
+                      172,
+                      888
+                    ],
+                    "children": []
+                  },
+                  {
+                    "type": "Text",
+                    "text": "前天",
+                    "bounds": [
+                      200,
+                      843,
+                      278,
+                      888
+                    ],
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Column",
+        "bounds": [
+          0,
+          2565,
+          264,
+          2758
+        ],
+        "clickable": true,
+        "children": [
+          {
+            "type": "Text",
+            "text": "",
+            "bounds": [
+              90,
+              2588,
+              174,
+              2672
+            ],
+            "children": []
+          },
+          {
+            "type": "Text",
+            "text": "公告",
+            "bounds": [
+              90,
+              2686,
+              175,
+              2735
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "type": "Column",
+        "bounds": [
+          264,
+          2565,
+          528,
+          2758
+        ],
+        "clickable": true,
+        "children": [
+          {
+            "type": "Text",
+            "text": "",
+            "bounds": [
+              354,
+              2588,
+              438,
+              2672
+            ],
+            "children": []
+          },
+          {
+            "type": "Text",
+            "text": "作业",
+            "bounds": [
+              354,
+              2686,
+              439,
+              2735
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "type": "Column",
+        "bounds": [
+          528,
+          2565,
+          792,
+          2758
+        ],
+        "clickable": true,
+        "children": [
+          {
+            "type": "Text",
+            "text": "",
+            "bounds": [
+              618,
+              2588,
+              702,
+              2672
+            ],
+            "children": []
+          },
+          {
+            "type": "Text",
+            "text": "文件",
+            "bounds": [
+              618,
+              2686,
+              703,
+              2735
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "type": "Column",
+        "bounds": [
+          792,
+          2565,
+          1056,
+          2758
+        ],
+        "clickable": true,
+        "children": [
+          {
+            "type": "Text",
+            "text": "",
+            "bounds": [
+              882,
+              2588,
+              966,
+              2672
+            ],
+            "children": []
+          },
+          {
+            "type": "Text",
+            "text": "课程",
+            "bounds": [
+              882,
+              2686,
+              967,
+              2735
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "type": "Column",
+        "bounds": [
+          1056,
+          2565,
+          1320,
+          2758
+        ],
+        "clickable": true,
+        "children": [
+          {
+            "type": "Text",
+            "text": "",
+            "bounds": [
+              1146,
+              2588,
+              1230,
+              2672
+            ],
+            "children": []
+          },
+          {
+            "type": "Text",
+            "text": "设置",
+            "bounds": [
+              1146,
+              2686,
+              1231,
+              2735
+            ],
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -30,6 +30,7 @@ import { Logger } from '../../core/log/Logger';
 import { Assignment } from '../../domain/model/ContentItem';
 import { CourseRecord } from '../../data/courses/CourseRepository';
 import { EmptyState } from '../../ui/components/EmptyState';
+import { SearchButton } from '../../ui/components/SearchButton';
 import { FilterChip } from '../../ui/components/FilterChip';
 import { ToastController, ToastOverlay } from '../../ui/components/Toast';
 import { CourseHideAction } from '../../ui/components/SwipeActions';
@@ -47,6 +48,7 @@ import { NoticeDetailPage } from '../notices/NoticeDetailPage';
 import { ROUTE_NOTICE_DETAIL } from '../notices/NoticeRoutes';
 import { CourseListStore } from './CourseListStore';
 import { createCourseRepository } from './repository/CourseRepositoryProvider';
+import { openSearch } from '../search/SearchEntry';
 import {
   CourseDetailRouteParams, CourseFileDetailRouteParams, SemesterSelectionRouteParams,
   ROUTE_COURSE_DETAIL, ROUTE_COURSE_FILE_DETAIL, ROUTE_SEMESTER_SELECTION
@@ -323,6 +325,14 @@ export struct CoursesPage {
       .margin({ left: this.theme().sizes.space3 })
       .onClick(() => {
         this.openSemesterSelection();
+      })
+      // ticket 15：页头最右侧的搜索入口（参考实现的 headerRight）。
+      SearchButton({
+        isDark: this.isDark(),
+        label: this.s($r('app.string.loh_search')),
+        onTap: () => {
+          openSearch('');
+        }
       })
     }
     .width('100%')

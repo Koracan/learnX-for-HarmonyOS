@@ -35,8 +35,24 @@ ohpm 上 `fuzzysearch`/`lunr`/`minisearch`/`elasticlunr`/`tantivy`/`全文检索
 
 ## 结论与理由
 
-1. **首选 `@ohos/flexsearch`**：官方 TPC 移植、Apache-2.0、38 KB、零依赖、无原生码、2025-04 维护、文档明确支持 CJK 与多字段索引。**待验证**：`main: ./src/flexsearch.js` 这种 `.js` 入口能否在 API 23 工程中成功导入（未跑 smoke build）。**需自写**跨字段加权（它返回分字段结果集）。
+1. ~~**首选 `@ohos/flexsearch`**~~ **【2026-09-13 冒烟结论：不可用，已改用第 4 条兜底】**：官方 TPC 移植、Apache-2.0、38 KB、零依赖、无原生码、2025-04 维护、文档明确支持 CJK 与多字段索引。
+   **原待验证项已验完**：`main: ./src/flexsearch.js` 这个 `.js` 入口**能**被解析（错误信息里的模块名就是 `&@ohos/flexsearch/src/flexsearch&2.0.1`，说明入口找到了），
+   但**包的运行时导出与它的 `index.d.ts` 不一致**：`index.d.ts` 声明了一批具名导出（`Document` / `Index` / `create` / …），
+   而真实入口 `src/flexsearch.js` **只有** `export default FlexSearch`（该文件末行）。
+   冒烟模块 `import { Document } from '@ohos/flexsearch'` 被可达的单测 import 后，**编译期**即失败：
+
+   ```
+   ErrorCode: 00507015
+   Description: the requested module '&@ohos/flexsearch/src/flexsearch&2.0.1'
+   does not provide an export name 'Document' which imported by '&entry/src/main/ets/features/search/FlexSearchProbe&'
+   ```
+
+   取证：`.scratch/search/evidence/15-flexsearch-smoke-failure.txt`（原始日志）、该包解包后的 `index.d.ts` 与 `src/flexsearch.js`。
+   **未验证**：改用 `import FlexSearch from '@ohos/flexsearch'`（default 导入，与真实 `.js` 一致但与其 `.d.ts` 冲突）这条路**没有试** ——
+   按工单"不在这上面耗超过一轮构建"的约定停在第一轮（结论：**该包以发布态不可用**，不引依赖）。
 2. **不用 `@isrc/fuse.js`**：近 3 年未维护、5.6 MB、`Fuse.version` 未替换，且是 fuse v6 移植——迁移过去很可能**原样重现旧版"漏掉明显匹配"的现象**。
 3. **CJK 关键事实（决定设计）**：fuse 的 Bitap 对 CJK **按码点逐字**切分，"模糊"只到单字级，匹配不了拼音/同音字；flexsearch 的 `cjk` charset 同样先剥 ASCII 再逐字切分。因此旧版 `hooks/useSearch.ts` 里的**手工精确匹配合并是 CJK 语料下的必要行为，不是 bug 的权宜之计**，移植时必须保留。若要支持拼音检索，需**独立拼音索引字段**（`@ohos/pinyin4js` / `@nutpi/pinyin`），而不是换模糊库。
-4. 兜底方案：`fastest-levenshtein`（4.4 KB，真实可读 `.ets` 源码，MIT）作编辑距离内核 + 自写加权评分，可完全避开混淆字节码与失维护移植。
+4. **兜底方案（2026-09-13 采用）**：`fastest-levenshtein`（4.4 KB，真实可读 `.ets` 源码，MIT）作编辑距离内核 + 自写加权评分，可完全避开混淆字节码与失维护移植。
+   **实际落地时连这个依赖也没引**：编辑距离内核是**带上界早退的两行 DP**（约 30 行，`features/search/SearchCore.ets` 的 `withinEditDistance`），
+   于是本次交付**没有新增任何 ohpm 依赖**（`entry/oh-package.json5` 与 HEAD 一致）。
 5. 视为不可用：`@ohos-rs/pinyin`、`@ohos-rs/jieba`、`@devzeng/tokenizer`、`sqlite3-simple`、`simple-native-ohos`（全为原生）；`pinyin-pro`（npm 白名单项）；`wuzzy`/`dice-string-comparison`/`string-similarity`（**混淆字节码，无可读源码**）。

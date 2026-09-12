@@ -33,6 +33,7 @@ import { formatDateTimeShort, formatRelativeTo } from '../../core/i18n/DateTimeU
 import { Logger } from '../../core/log/Logger';
 import { COLOR_MODE_KEY, LOCALE_VERSION_KEY } from '../../entryability/EntryAbility';
 import { EmptyState } from '../../ui/components/EmptyState';
+import { SearchButton } from '../../ui/components/SearchButton';
 import { FilterChip } from '../../ui/components/FilterChip';
 import { ToastController, ToastOverlay } from '../../ui/components/Toast';
 import { ContentSwipeActions } from '../../ui/components/SwipeActions';
@@ -56,6 +57,7 @@ import {
 import { FileDetailPage } from '../files/FileDetailPage';
 import { FileDetailRouteParams, ROUTE_FILE_DETAIL, ROUTE_NOTICE_DETAIL } from './NoticeRoutes';
 import { NoticeDetailPage } from './NoticeDetailPage';
+import { openSearch } from '../search/SearchEntry';
 import {
   SPLIT_VIEW_ACTIVE_KEY, SPLIT_VIEW_DIVIDER_WIDTH, SPLIT_VIEW_MASTER_HIDDEN_KEY,
   SPLIT_VIEW_MASTER_WIDTH, migrateDetailRoutesBack, migrateDetailRoutesInto, pushDetailFromMaster
@@ -302,6 +304,14 @@ export struct NoticesPage {
           .margin({ left: this.theme().sizes.space2 })
           .maxLines(1)
         Blank()
+        // ticket 15：页头右侧的搜索入口（参考实现 App.tsx:137-158 的 headerRight）。
+        SearchButton({
+          isDark: this.isDark(),
+          label: this.s($r('app.string.loh_search')),
+          onTap: () => {
+            openSearch('');
+          }
+        })
       }
       .width('100%')
       .alignItems(VerticalAlign.Bottom)

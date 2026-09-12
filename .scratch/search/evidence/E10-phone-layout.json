@@ -1,0 +1,132 @@
+- Dumping layout…
+[
+  {
+    "bounds": [
+      0,
+      0,
+      1320,
+      2856
+    ],
+    "children": [
+      {
+        "type": "Row",
+        "bounds": [
+          28,
+          164,
+          168,
+          304
+        ],
+        "clickable": true,
+        "children": [
+          {
+            "type": "Text",
+            "text": "",
+            "bounds": [
+              56,
+              192,
+              140,
+              276
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "type": "Text",
+        "text": "搜索",
+        "bounds": [
+          196,
+          178,
+          365,
+          290
+        ],
+        "children": []
+      },
+      {
+        "id": "learnoh-search-input",
+        "type": "Search",
+        "bounds": [
+          0,
+          318,
+          1320,
+          458
+        ],
+        "clickable": true,
+        "children": [
+          {
+            "id": "__SearchField__learnoh-search-input",
+            "type": "SearchField",
+            "text": "课程",
+            "bounds": [
+              126,
+              318,
+              1208,
+              458
+            ],
+            "clickable": true,
+            "longClickable": true,
+            "scrollable": true,
+            "children": []
+          },
+          {
+            "id": "__SearchField__Image__learnoh-search-input",
+            "type": "SymbolGlyph",
+            "bounds": [
+              42,
+              360,
+              98,
+              416
+            ],
+            "clickable": true,
+            "children": []
+          },
+          {
+            "id": "__SearchField__CancelImage__learnoh-search-input",
+            "type": "SymbolGlyph",
+            "bounds": [
+              1222,
+              360,
+              1278,
+              416
+            ],
+            "children": []
+          },
+          {
+            "id": "__SearchField__CancelButton__learnoh-search-input",
+            "type": "Button",
+            "bounds": [
+              1194,
+              332,
+              1306,
+              444
+            ],
+            "clickable": true,
+            "children": []
+          }
+        ]
+      },
+      {
+        "type": "Text",
+        "text": "",
+        "bounds": [
+          604,
+          1671,
+          716,
+          1783
+        ],
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "无内容",
+        "bounds": [
+          576,
+          1839,
+          744,
+          1923
+        ],
+        "children": []
+      }
+    ]
+  }
+]

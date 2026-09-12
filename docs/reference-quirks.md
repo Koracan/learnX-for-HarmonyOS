@@ -38,6 +38,8 @@
 | 25 | 全应用底色去品红：底色族 + 中性族改中性灰（参考是 `rgb(255,251,255)` 那一套） | 已复审（ticket 11.5，账号所有者裁定） |
 | 26 | 提交页不移植「之前分享的」（`pendingAssignmentData`） | 已复审（ticket 13；参考实现自己也没写过非 null 值） |
 | 27 | 新选中附件那一行不可点（参考实现用上传前的本地 URI 进 FileDetail） | 已复审（ticket 13） |
+| 28 | 分栏的详情路由迁移：整段迁移与参考一致；补上退出分栏的对称回迁 | 已复审（ticket 16；本条原来漏登记索引，ticket 15 补上） |
+| 29 | 搜索的三处偏离：引擎换自写评分 / 结果排除被屏蔽课程 / 分栏下自成一左一右 | 已复审（ticket 15） |
 
 > 流程：发现新怪癖 → 追加到本文件；决定偏离 → 写清理由与替代验收，**复审通过后迁到 `docs/accepted-deviations.md`**（保持编号），本文件留一行索引。
 
@@ -707,4 +709,34 @@ ticket 16 的验收第 3 条要的是"**旋转或缩放窗口**时正在浏览�
 **取证**：`.scratch/splitview/evidence/D-log-rotate-resize-unavailable.txt`（逐条原始输出）、
 `D1-tablet-aa-start-window-params-ignored-layout.json`（`aa start --ww/--wh` 后仍是 2880×1920）、
 `D2-tablet-recents-swipe-left-app-foreground.png`（上滑后应用仍在前台）；ticket 16 的交付节。
+
+---
+
+## 32. 搜索字段表里有 **4 个恒不命中的键**（`*AttachmentName` 系列）—— 锁定
+
+**参考实现行为**：`src/hooks/useSearch.ts:5-42` 交给 fuse 的键表里，公告与作业各含若干
+`*AttachmentName` 字段，但参考实现的类型里**根本没有这些属性**：
+
+| 域 | 键 | 参考实现里有这个字段吗 |
+| --- | --- | --- |
+| 公告 | `attachmentName` | ❌ `Notice.attachment` 是**对象**（文件名在 `attachment.name`），没有扁平的 `attachmentName`（`src/data/types/state.ts:104-118`；`thu-learn-lib` 的 `Notification` 同） |
+| 作业 | `attachmentName` / `submittedAttachmentName` / `gradeAttachmentName` / `answerAttachmentName` | ❌ 同上：`Assignment` 只有 `attachment` / `submittedAttachment` / `gradeAttachment` / `answerAttachment` 四个**对象**字段（`state.ts:135-166`） |
+
+fuse 按路径取到 `undefined` ⇒ 这 5 个键（公告 1 + 作业 4）**恒不命中**，是字段表里的死权重。
+**文件的 `category.title` 不是死键**：参考实现的 `File.category` 是对象（`state.ts:177-190`、`components/FileCard.tsx:72`），那一格是活的。
+
+**为什么别急着「修好」**：把 `attachment.name` 接进检索看起来是「白捡的召回」，
+但参考实现**没有**这个行为（附件名从来搜不到），补上就是**行为增强**：
+同一个查询会多返回一批参考实现不会返回的条目，「移植是否与参考实现一致」因此失去可比对的基准。
+要加就走「新增验收标准」（例如「附件名可检索」）并单独记一笔，不要混进移植。
+
+**新实现做法**：`entry/src/main/ets/features/search/SearchCore.ets` 的字段表**逐字抄权重、
+但不含这四个死键**（列在 `REFERENCE_INERT_KEYS`，单测断言它们不在索引字段里）。
+另记一条**本工程的数据模型缺口**（不是有意口径）：`MODEL_MISSING_KEYS = ['category.title']` ——
+`CourseFile` 没有 `category`（ticket 11/12 的文件模型没取它），所以那一格在本工程里也取不到值。
+
+**取证**：`reference/learnOH-old/src/hooks/useSearch.ts:10,20,22,25,27,40`；
+`reference/learnOH-old/src/data/types/state.ts:104-118,135-166,177-190`；
+`entry/src/main/ets/features/search/SearchCore.ets`；`entry/src/test/Search.test.ets`（`keeps the reference field tables and weights verbatim`）。
+
 

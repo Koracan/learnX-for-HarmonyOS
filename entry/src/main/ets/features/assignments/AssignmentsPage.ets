@@ -44,6 +44,7 @@ import { Logger } from '../../core/log/Logger';
 import { Assignment } from '../../domain/model/ContentItem';
 import { removeTags } from '../../domain/render/WebViewTemplate';
 import { EmptyState } from '../../ui/components/EmptyState';
+import { SearchButton } from '../../ui/components/SearchButton';
 import { FilterChip } from '../../ui/components/FilterChip';
 import { ToastController, ToastOverlay } from '../../ui/components/Toast';
 import { ContentSwipeActions } from '../../ui/components/SwipeActions';
@@ -72,6 +73,7 @@ import {
 import { countPastDue, hasAnswer, hasExcellentHomework, isPastDeadline } from './AssignmentFilter';
 import { deadlineText, dueStatusText, emptyStateKey } from './AssignmentText';
 import { evidenceAssignmentsOr, logAssignmentEvidenceState } from './AssignmentEvidence';
+import { openSearch } from '../search/SearchEntry';
 
 const logger: Logger = new Logger('features.assignments');
 
@@ -321,6 +323,14 @@ export struct AssignmentsPage {
           .margin({ left: this.theme().sizes.space2 })
           .maxLines(1)
         Blank()
+        // ticket 15：页头右侧的搜索入口（参考实现 App.tsx:137-158 的 headerRight）。
+        SearchButton({
+          isDark: this.isDark(),
+          label: this.s($r('app.string.loh_search')),
+          onTap: () => {
+            openSearch('');
+          }
+        })
       }
       .width('100%')
       .alignItems(VerticalAlign.Bottom)

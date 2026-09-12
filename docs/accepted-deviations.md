@@ -587,3 +587,57 @@ previewUrl: attachmentResult.uri, size, type })` —— 即用**本地 URI**（`
 `src/screens/Notices.tsx:33-45`；`entry/src/main/ets/features/shell/SplitView.ets`；
 `entry/src/test/SplitView.test.ets`；ticket 16 交付节与 `.scratch/splitview/evidence/README.md`。
 
+---
+
+## 29. 搜索的三处偏离：**引擎换成自写加权评分** / 结果**排除被屏蔽课程** / 分栏下搜索页自成一左一右 —— 已复审（ticket 15）
+
+**参考实现行为**（`reference/learnOH-old/`）：
+
+| 项 | 参考实现 | 出处 |
+| --- | --- | --- |
+| 检索引擎 | **fuse.js@7.1.0**（npm 包）：Bitap 模糊 + `keys` 权重 | `src/hooks/useSearch.ts:2,69-74` |
+| 手工合并层 | 标题/课程名 `toUpperCase().includes(query.trim().toUpperCase())` 的结果与 fuse 结果**手工合并**（手工在前、`Set` 按 id 去重） | `:44-61,107-116` |
+| 喂进检索的条目 | `state.X.items`（**原始 items**，不是列表用的 `all`）⇒ **归档项仍会被搜到** | `src/screens/Search.tsx:35-37` |
+| 被屏蔽课程 | **不排除**：没有任何按 `hidden` 过滤的动作 ⇒ 屏蔽课程的内容**仍会出现在搜索结果里** | 同上（`items` 是原始集合） |
+| 进详情 | 有右栏引用 → `navigate` 进**根分栏的右栏**并补 `disableAnimation:true`；否则 `navigation.push` | `Search.tsx:54-63`、`src/hooks/useDetailNavigator.ts` |
+| 分栏下右栏内容 | 搜索页挂在根容器的**主栏**里（`SplitView.tsx:109-135` 把 masterChild 收成 393vp），右栏仍是"进搜索页之前那个详情容器" | `src/App.tsx:885-896` |
+
+**三处偏离**：
+
+| # | 项 | 参考实现 | 新实现 | 为什么 |
+| --- | --- | --- | --- | --- |
+| D1 | 引擎 | fuse.js@7.1.0 | **自写加权评分**（`features/search/SearchCore.ets`）：字段表与权重逐字照抄；分档 = 精确 > 前缀 > 子串 > ASCII 词编辑距离 | 平台没有 fuse.js 的 ArkTS 移植。评估文档的首选 `@ohos/flexsearch@2.0.1` **实测不可用**（`index.d.ts` 声明具名导出 `Document`，真实入口 `src/flexsearch.js` 只有 `export default` ⇒ 编译期 `00507015 … does not provide an export name 'Document'`）。改用兜底方案后**没有新增任何 ohpm 依赖**（`entry/oh-package.json5` 与 HEAD 一致） |
+| D2 | 屏蔽课程 | 不排除 | **排除**（复用 `features/marks/FilteredContent` 的 hidden 判据） | 工单 15 验收第 5 条「隐藏课程的内容不出现」+ ticket 14 转来的那半。**归档项仍照参考实现保留可搜** |
+| D3 | 分栏右栏 | 复用根分栏的右栏（进搜索页前那个详情容器） | 搜索页内部自成一左一右（左栏 = 结果、右栏 = 详情），右栏**起始为空态** | 本工程的搜索页是盖在 ShellTabs 之上的根级 NavDestination，没有"外面那个右栏"可用（ShellTabs 的分栏在**每个 tab 内部**，见台账第 28 条） |
+
+**替代验收标准**：
+
+1. **大小写不敏感；标题或课程名的精确与前缀匹配必定命中** —— 由手工合并层独立保证（与参考实现同一判据、
+   同一 `includes('')` 空查询语义）；单测 `matches titles and course names case-insensitively…` /
+   `puts manual title/course hits first and deduplicates by id` 钉住；设备证据 `E3-phone-search-prefix-cjk-query.png`；
+2. 其余字段（发布人 / 正文 / 描述 / 成绩与答案正文 / 文件类型）**大小写不敏感子串**命中
+   （单测 `searches the extra reference fields of all three domains`；设备证据 `E4-phone-search-content-only-cjk-query.png`、
+   `E4b-phone-search-case-insensitive-ascii.png`）。**不声称与 fuse 的召回等价**：② 层的边界是
+   "子串 + ASCII 词的 ≤1/≤2 编辑距离"，CJK 只有子串/前缀（与 `.scratch/migration/search-package-eval.md` 第 3 条一致）；
+3. 手工结果在前、按 id 去重、**手工组内保持输入顺序**（单测 `ranks higher-weight fields first…` 的后半段）；
+4. **空查询 = 三个域的全量**（参考实现 `includes('')` 的后果；单测 `lists everything… for an empty query`）；
+5. 搜索结果里**看不到被屏蔽课程**的条目（`E10-phone-search-hidden-course-empty.png`）而**取消屏蔽后同一查询立刻命中**
+   （`E11-phone-search-after-unhide-hit.png`）；**归档项仍搜得到**（单测 `keeps archived items searchable` +
+   `E9-phone-notices-archived-view.png` 与 `E3-…png` 这一对）；
+6. 分栏（≥750vp 且横向，平板模拟器）下点搜索结果：详情出现在**右栏**、左栏保留查询与结果高亮（`T1/T2/T3-tablet-*.png`）。
+
+**未验证 / 降级边界（如实登记）**：
+
+- D1：`@ohos/flexsearch` 的 **default 导入**这条路**没有试**（按工单"不在这上面耗超过一轮构建"的约定停在第一轮）；
+  已实测的只有"具名导入在该包上失败"这一条 —— 见工单 15 交付节的未验证项；
+- 参考实现 fuse 的**排序细节**（score 降序、`ignoreLocation` / 阈值等默认项）没有被逐值复刻：
+  ② 层的排序是"加权分降序 + 同分保持输入顺序"；
+- D3 的右栏起始空态：参考实现里右栏会**保留**进搜索页之前的那个详情，本工程不会（见上表）。
+
+**取证**：`reference/learnOH-old/src/hooks/useSearch.ts:2,5-116`、`src/screens/Search.tsx:35-63`、
+`src/hooks/useDetailNavigator.ts`、`src/components/SplitView.tsx:109-135`、`src/App.tsx:885-896`；
+`entry/src/main/ets/features/search/SearchCore.ets`；`entry/src/test/Search.test.ets`；
+`.scratch/search/evidence/README.md`、`.scratch/search/evidence/15-flexsearch-smoke-failure.txt`；
+`.scratch/migration/search-package-eval.md`。
+
+

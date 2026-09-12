@@ -46,13 +46,16 @@ const EXPECTED: ExpectedGlyph[] = [
   { icon: AppIcon.VISIBILITY_OFF, name: 'visibility-off', family: IconFamily.MATERIAL, code: 0xE8F5 },
   // ticket 16（断点分栏）：文件详情页头的全屏/退出全屏，参考实现 FileDetail.tsx:110-111。
   { icon: AppIcon.FULLSCREEN, name: 'fullscreen', family: IconFamily.MATERIAL, code: 0xE5D0 },
-  { icon: AppIcon.FULLSCREEN_EXIT, name: 'fullscreen-exit', family: IconFamily.MATERIAL, code: 0xE5D1 }
+  { icon: AppIcon.FULLSCREEN_EXIT, name: 'fullscreen-exit', family: IconFamily.MATERIAL, code: 0xE5D1 },
+  // ticket 15（搜索）：页头右侧的入口与搜索页的关闭，参考实现 App.tsx:113-121,137-158。
+  { icon: AppIcon.SEARCH, name: 'search', family: IconFamily.MATERIAL, code: 0xE8B6 },
+  { icon: AppIcon.CLOSE, name: 'close', family: IconFamily.MATERIAL, code: 0xE5CD }
 ];
 
 export default function iconCatalogTest() {
   describe('ui.icons.IconCatalog', () => {
     it('maps every icon to the reference glyphmap code point and family', 0, () => {
-      expect(EXPECTED.length).assertEqual(24);
+      expect(EXPECTED.length).assertEqual(26);
       for (let i = 0; i < EXPECTED.length; i++) {
         const expected: ExpectedGlyph = EXPECTED[i];
         const spec: IconSpec = iconSpec(expected.icon);

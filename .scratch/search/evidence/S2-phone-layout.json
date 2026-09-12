@@ -1,0 +1,412 @@
+- Dumping layout…
+[
+  {
+    "bounds": [
+      0,
+      0,
+      1320,
+      2856
+    ],
+    "children": [
+      {
+        "type": "Row",
+        "bounds": [
+          28,
+          164,
+          168,
+          304
+        ],
+        "clickable": true,
+        "children": [
+          {
+            "type": "Text",
+            "text": "",
+            "bounds": [
+              56,
+              192,
+              140,
+              276
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "type": "Text",
+        "text": "搜索",
+        "bounds": [
+          196,
+          178,
+          365,
+          290
+        ],
+        "children": []
+      },
+      {
+        "id": "learnoh-search-input",
+        "type": "Search",
+        "bounds": [
+          0,
+          318,
+          1320,
+          458
+        ],
+        "clickable": true,
+        "children": [
+          {
+            "id": "__SearchField__learnoh-search-input",
+            "type": "SearchField",
+            "bounds": [
+              126,
+              318,
+              1208,
+              458
+            ],
+            "clickable": true,
+            "longClickable": true,
+            "scrollable": true,
+            "children": []
+          },
+          {
+            "id": "__SearchField__Image__learnoh-search-input",
+            "type": "SymbolGlyph",
+            "bounds": [
+              42,
+              360,
+              98,
+              416
+            ],
+            "clickable": true,
+            "children": []
+          }
+        ]
+      },
+      {
+        "type": "List",
+        "bounds": [
+          0,
+          486,
+          1320,
+          2856
+        ],
+        "scrollable": true,
+        "children": [
+          {
+            "type": "ListItem",
+            "bounds": [
+              0,
+              486,
+              1320,
+              555
+            ],
+            "clickable": true,
+            "children": [
+              {
+                "type": "Text",
+                "text": "陆玫 · 6个月前",
+                "bounds": [
+                  56,
+                  486,
+                  1264,
+                  513
+                ],
+                "children": []
+              }
+            ]
+          },
+          {
+            "type": "ListItem",
+            "bounds": [
+              0,
+              559,
+              1320,
+              1017
+            ],
+            "clickable": true,
+            "children": [
+              {
+                "type": "Text",
+                "text": "离散数学方法",
+                "bounds": [
+                  56,
+                  601,
+                  1264,
+                  650
+                ],
+                "children": []
+              },
+              {
+                "type": "Text",
+                "text": "答疑安排",
+                "bounds": [
+                  56,
+                  664,
+                  1264,
+                  748
+                ],
+                "children": []
+              },
+              {
+                "type": "Text",
+                "text": "答疑时间：每周三15:00--16:00 答疑地点：双清综合楼10层C1007",
+                "bounds": [
+                  56,
+                  762,
+                  1264,
+                  902
+                ],
+                "children": []
+              },
+              {
+                "type": "Text",
+                "text": "陆玫 · 6个月前",
+                "bounds": [
+                  56,
+                  930,
+                  1264,
+                  975
+                ],
+                "children": []
+              }
+            ]
+          },
+          {
+            "type": "ListItem",
+            "bounds": [
+              0,
+              1021,
+              1320,
+              1479
+            ],
+            "clickable": true,
+            "children": [
+              {
+                "type": "Text",
+                "text": "离散数学方法",
+                "bounds": [
+                  56,
+                  1063,
+                  1264,
+                  1112
+                ],
+                "children": []
+              },
+              {
+                "type": "Text",
+                "text": "总成绩构成",
+                "bounds": [
+                  56,
+                  1126,
+                  1264,
+                  1210
+                ],
+                "children": []
+              },
+              {
+                "type": "Text",
+                "text": "总成绩由以下四部分组成：作业15%, 期中30%，期末50%，平时5%",
+                "bounds": [
+                  56,
+                  1224,
+                  1264,
+                  1364
+                ],
+                "children": []
+              },
+              {
+                "type": "Text",
+                "text": "陆玫 · 6个月前",
+                "bounds": [
+                  56,
+                  1392,
+                  1264,
+                  1437
+                ],
+                "children": []
+              }
+            ]
+          },
+          {
+            "type": "ListItem",
+            "bounds": [
+              0,
+              1483,
+              1320,
+              1941
+            ],
+            "clickable": true,
+            "children": [
+              {
+                "type": "Text",
+                "text": "偏微分方程",
+                "bounds": [
+                  56,
+                  1525,
+                  1264,
+                  1574
+                ],
+                "children": []
+              },
+              {
+                "type": "Text",
+                "text": "2026年春 偏微分方程课程群",
+                "bounds": [
+                  56,
+                  1588,
+                  1264,
+                  1672
+                ],
+                "children": []
+              },
+              {
+                "type": "Text",
+                "text": "各位同学好，2026年春偏微分方程课程群二维码见附件，请大家扫码入群",
+                "bounds": [
+                  56,
+                  1686,
+                  1264,
+                  1826
+                ],
+                "children": []
+              },
+              {
+                "type": "Text",
+                "text": "高琦玉 · 6个月前",
+                "bounds": [
+                  56,
+                  1854,
+                  1264,
+                  1899
+                ],
+                "children": []
+              }
+            ]
+          },
+          {
+            "type": "Text",
+            "text": "作业",
+            "bounds": [
+              0,
+              1945,
+              1320,
+              2072
+            ],
+            "children": []
+          },
+          {
+            "type": "ListItem",
+            "bounds": [
+              0,
+              2076,
+              1320,
+              2534
+            ],
+            "clickable": true,
+            "children": [
+              {
+                "type": "Text",
+                "text": "软件分析与验证",
+                "bounds": [
+                  56,
+                  2118,
+                  1264,
+                  2167
+                ],
+                "children": []
+              },
+              {
+                "type": "Text",
+                "text": "演绎验证编程作业",
+                "bounds": [
+                  56,
+                  2181,
+                  1264,
+                  2265
+                ],
+                "children": []
+              },
+              {
+                "type": "Text",
+                "text": "本次作业的目标是在提供的验证器框架内实现演绎验证算法，关于任务的详细描述见压缩包内的readme和任务说明文档(task-doc.md)。 DDL为第十八周周日（6.28日），毕业班同学由于需在21日前提交成绩，请注意在此时间前提交作业。",
+                "bounds": [
+                  56,
+                  2279,
+                  1264,
+                  2419
+                ],
+                "children": []
+              },
+              {
+                "type": "Text",
+                "text": "贺飞 · 2026-06-28 23:59",
+                "bounds": [
+                  56,
+                  2447,
+                  1264,
+                  2492
+                ],
+                "children": []
+              }
+            ]
+          },
+          {
+            "type": "ListItem",
+            "bounds": [
+              0,
+              2538,
+              1320,
+              2856
+            ],
+            "clickable": true,
+            "children": [
+              {
+                "type": "Text",
+                "text": "算法分析与设计基础",
+                "bounds": [
+                  56,
+                  2580,
+                  1264,
+                  2629
+                ],
+                "children": []
+              },
+              {
+                "type": "Text",
+                "text": "第十二次作业",
+                "bounds": [
+                  56,
+                  2643,
+                  1264,
+                  2727
+                ],
+                "children": []
+              },
+              {
+                "type": "Text",
+                "text": "第十二次作业",
+                "bounds": [
+                  56,
+                  2741,
+                  1264,
+                  2811
+                ],
+                "children": []
+              },
+              {
+                "type": "Text",
+                "text": "王斌 · 2026-06-15 23:59",
+                "bounds": [
+                  56,
+                  2839,
+                  1264,
+                  2856
+                ],
+                "children": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

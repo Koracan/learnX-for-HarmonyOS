@@ -325,3 +325,60 @@ export function isHiddenCourse(hiddenCourseIds: string[], courseId: string): boo
   return hiddenCourseIds.includes(courseId);
 }
 
+/* ------------------------------------------------------------------ *
+ * 搜索页的数据口径（ticket 15）：**原始条目只排除被屏蔽课程**
+ * ------------------------------------------------------------------ */
+
+/**
+ * 搜索页喂给检索的条目 = **原始 items 减去被屏蔽课程的条目**。
+ *
+ * 为什么用原始 items：参考实现 `screens/Search.tsx:35-37` 取的是 `state.X.items`
+ * （**不是**列表用的 `all` 分组）⇒ **已归档的条目仍会被搜到**。这一条照做，
+ * 见 ticket 15 交付节的「归档是否进搜索」。
+ *
+ * 为什么还要减一次：工单验收第 5 条「隐藏课程的内容不出现」——被屏蔽课程的内容
+ * 在四个列表里已经消失，搜索里也必须消失，否则同一门课会从搜索这个入口漏出来。
+ *
+ * 实现方式 = **复用本模块既有的 hidden 分组**（判据仍是
+ * `hiddenCourseIds.includes(item.courseId)`，见三个 selector 的第三段循环）+
+ * 既有的 `isInGroupXxx` 成员判断，**不另写一套过滤谓词**。
+ */
+export function noticesExcludingHiddenCourses(items: NoticeRecord[],
+  hiddenCourseIds: string[]): NoticeRecord[] {
+  const hiddenGroup: NoticeRecord[] = selectFilteredNotices(items, [], [], hiddenCourseIds).hidden;
+  const out: NoticeRecord[] = [];
+  for (let i = 0; i < items.length; i++) {
+    if (!isInGroupNotices(hiddenGroup, items[i].id)) {
+      out.push(items[i]);
+    }
+  }
+  return out;
+}
+
+/** 作业：原始 items 减去被屏蔽课程（口径同上）。 */
+export function assignmentsExcludingHiddenCourses(items: Assignment[],
+  hiddenCourseIds: string[]): Assignment[] {
+  const hiddenGroup: Assignment[] = selectFilteredAssignments(items, [], [], hiddenCourseIds).hidden;
+  const out: Assignment[] = [];
+  for (let i = 0; i < items.length; i++) {
+    if (!isInGroupAssignments(hiddenGroup, items[i].id)) {
+      out.push(items[i]);
+    }
+  }
+  return out;
+}
+
+/** 文件：原始 items 减去被屏蔽课程（口径同上）。 */
+export function filesExcludingHiddenCourses(items: CourseFile[],
+  hiddenCourseIds: string[]): CourseFile[] {
+  const hiddenGroup: CourseFile[] = selectFilteredFiles(items, [], [], hiddenCourseIds).hidden;
+  const out: CourseFile[] = [];
+  for (let i = 0; i < items.length; i++) {
+    if (!isInGroupFiles(hiddenGroup, items[i].id)) {
+      out.push(items[i]);
+    }
+  }
+  return out;
+}
+
+

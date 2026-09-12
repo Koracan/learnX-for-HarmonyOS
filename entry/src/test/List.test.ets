@@ -36,6 +36,7 @@ import updatedTimeTest from './UpdatedTime.test';
 import iconCatalogTest from './IconCatalog.test';
 import favoritesTest from './Favorites.test';
 import splitViewTest from './SplitView.test';
+import searchTest from './Search.test';
 
 export default function testsuite() {
   semesterTest();
@@ -72,4 +73,5 @@ export default function testsuite() {
   iconCatalogTest();
   favoritesTest();
   splitViewTest();
+  searchTest();
 }

@@ -1,0 +1,412 @@
+- Dumping layout…
+[
+  {
+    "bounds": [
+      0,
+      0,
+      1320,
+      2856
+    ],
+    "children": [
+      {
+        "type": "Text",
+        "text": "公告",
+        "bounds": [
+          56,
+          220,
+          225,
+          332
+        ],
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "刚刚更新",
+        "bounds": [
+          253,
+          287,
+          408,
+          332
+        ],
+        "children": []
+      },
+      {
+        "type": "Row",
+        "bounds": [
+          1124,
+          192,
+          1264,
+          332
+        ],
+        "clickable": true,
+        "children": [
+          {
+            "type": "Text",
+            "text": "",
+            "bounds": [
+              1152,
+              220,
+              1236,
+              304
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "type": "Text",
+        "text": "全部 0",
+        "bounds": [
+          56,
+          360,
+          260,
+          437
+        ],
+        "clickable": true,
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "未读 0",
+        "bounds": [
+          288,
+          360,
+          492,
+          437
+        ],
+        "clickable": true,
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "收藏 0",
+        "bounds": [
+          520,
+          360,
+          724,
+          437
+        ],
+        "clickable": true,
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "归档 1",
+        "bounds": [
+          752,
+          360,
+          956,
+          437
+        ],
+        "clickable": true,
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "屏蔽 1",
+        "bounds": [
+          984,
+          360,
+          1188,
+          437
+        ],
+        "clickable": true,
+        "children": []
+      },
+      {
+        "type": "Refresh",
+        "bounds": [
+          0,
+          465,
+          1320,
+          2562
+        ],
+        "scrollable": true,
+        "children": [
+          {
+            "type": "Text",
+            "text": "刷新",
+            "bounds": [
+              611,
+              577,
+              710,
+              634
+            ],
+            "children": []
+          },
+          {
+            "type": "ListItem",
+            "bounds": [
+              0,
+              465,
+              1320,
+              930
+            ],
+            "longClickable": true,
+            "children": [
+              {
+                "type": "Column",
+                "bounds": [
+                  0,
+                  465,
+                  1320,
+                  930
+                ],
+                "clickable": true,
+                "children": [
+                  {
+                    "type": "Text",
+                    "text": "形式语言与自动机",
+                    "bounds": [
+                      56,
+                      507,
+                      393,
+                      563
+                    ],
+                    "children": []
+                  },
+                  {
+                    "type": "Text",
+                    "text": "课程信息和微信群",
+                    "bounds": [
+                      56,
+                      577,
+                      1124,
+                      661
+                    ],
+                    "children": []
+                  },
+                  {
+                    "type": "Text",
+                    "text": "󰈻",
+                    "bounds": [
+                      1138,
+                      577,
+                      1194,
+                      633
+                    ],
+                    "children": []
+                  },
+                  {
+                    "type": "Text",
+                    "text": "󰄯",
+                    "bounds": [
+                      1208,
+                      577,
+                      1264,
+                      633
+                    ],
+                    "children": []
+                  },
+                  {
+                    "type": "Text",
+                    "text": "各位同学大家好： 欢迎大家选修本学期的《形式语言与自动机》课程。我们的上课时间是每周二第二大节（09:50-12:15），地点是五教5201。为了良好的教学秩序与学习效果，在此就一些重要的问题加以说明，请大家知悉： 1. 本课程要求大家到教室线下上课。如临时因故无法到教室上课的，请提前向助教请假（详见第三条）；除因突发生病外，不接受事后请假。 2. 本课程以PPT授课为主，不要求大家准备教材。 3. 如有问题需要联系助教（包括但不限于请假、补交作业、请求答疑等），请通过微信或邮件与助教联系： 赵乙宁 zhaoyn22@mails.tsinghua.edu.cn 微信群中第一个 4. 本课程的考核方式包括课堂参与、小作业、编程实验、期中随堂小测和期末闭卷考试，并可选参加慕课考试。成绩以等级制给出。具体的评分标准细则将由老师在第一节课上给出。 5. 为了方便大家与老师、助教的沟通，进行答疑等活动，请大家扫下面的二维码加入我们的课程微信群，并在进群后将群内昵称修改为自己的姓名。如发现二维码过期或无法扫描等情况，请邮件联系助教(zhaoyn22@mails.tsinghua.edu.cn)申请加入。 期待大家的到来！",
+                    "bounds": [
+                      56,
+                      675,
+                      1264,
+                      815
+                    ],
+                    "children": []
+                  },
+                  {
+                    "type": "Text",
+                    "text": "赵乙宁",
+                    "bounds": [
+                      56,
+                      843,
+                      172,
+                      888
+                    ],
+                    "children": []
+                  },
+                  {
+                    "type": "Text",
+                    "text": "昨天",
+                    "bounds": [
+                      200,
+                      843,
+                      278,
+                      888
+                    ],
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Column",
+        "bounds": [
+          0,
+          2565,
+          264,
+          2758
+        ],
+        "clickable": true,
+        "children": [
+          {
+            "type": "Text",
+            "text": "",
+            "bounds": [
+              90,
+              2588,
+              174,
+              2672
+            ],
+            "children": []
+          },
+          {
+            "type": "Text",
+            "text": "公告",
+            "bounds": [
+              90,
+              2686,
+              175,
+              2735
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "type": "Column",
+        "bounds": [
+          264,
+          2565,
+          528,
+          2758
+        ],
+        "clickable": true,
+        "children": [
+          {
+            "type": "Text",
+            "text": "",
+            "bounds": [
+              354,
+              2588,
+              438,
+              2672
+            ],
+            "children": []
+          },
+          {
+            "type": "Text",
+            "text": "作业",
+            "bounds": [
+              354,
+              2686,
+              439,
+              2735
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "type": "Column",
+        "bounds": [
+          528,
+          2565,
+          792,
+          2758
+        ],
+        "clickable": true,
+        "children": [
+          {
+            "type": "Text",
+            "text": "",
+            "bounds": [
+              618,
+              2588,
+              702,
+              2672
+            ],
+            "children": []
+          },
+          {
+            "type": "Text",
+            "text": "文件",
+            "bounds": [
+              618,
+              2686,
+              703,
+              2735
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "type": "Column",
+        "bounds": [
+          792,
+          2565,
+          1056,
+          2758
+        ],
+        "clickable": true,
+        "children": [
+          {
+            "type": "Text",
+            "text": "",
+            "bounds": [
+              882,
+              2588,
+              966,
+              2672
+            ],
+            "children": []
+          },
+          {
+            "type": "Text",
+            "text": "课程",
+            "bounds": [
+              882,
+              2686,
+              967,
+              2735
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "type": "Column",
+        "bounds": [
+          1056,
+          2565,
+          1320,
+          2758
+        ],
+        "clickable": true,
+        "children": [
+          {
+            "type": "Text",
+            "text": "",
+            "bounds": [
+              1146,
+              2588,
+              1230,
+              2672
+            ],
+            "children": []
+          },
+          {
+            "type": "Text",
+            "text": "设置",
+            "bounds": [
+              1146,
+              2686,
+              1231,
+              2735
+            ],
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+]

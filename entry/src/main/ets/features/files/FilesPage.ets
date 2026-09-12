@@ -26,6 +26,7 @@ import { CourseFile } from '../../domain/model/ContentItem';
 import { fileMetaLine } from '../../domain/files/FilePath';
 import { removeTags } from '../../domain/render/WebViewTemplate';
 import { EmptyState } from '../../ui/components/EmptyState';
+import { SearchButton } from '../../ui/components/SearchButton';
 import { FilterChip } from '../../ui/components/FilterChip';
 import { ToastController, ToastOverlay } from '../../ui/components/Toast';
 import { ContentSwipeActions } from '../../ui/components/SwipeActions';
@@ -46,6 +47,7 @@ import { FileDetailPage } from './FileDetailPage';
 import { FileSettingsPage } from './FileSettingsPage';
 import { FileSettingsRouteParams, ROUTE_FILE_SETTINGS } from './FileRoutes';
 import { FileDetailRouteParams, ROUTE_FILE_DETAIL } from '../notices/NoticeRoutes';
+import { openSearch } from '../search/SearchEntry';
 import {
   SPLIT_VIEW_ACTIVE_KEY, SPLIT_VIEW_DIVIDER_WIDTH, SPLIT_VIEW_MASTER_HIDDEN_KEY,
   SPLIT_VIEW_MASTER_WIDTH, migrateDetailRoutesBack, migrateDetailRoutesInto, pushDetailFromMaster
@@ -324,6 +326,14 @@ export struct FilesPage {
           .onClick(() => {
             this.openSettings();
           })
+        // ticket 15：页头最右侧的搜索入口（参考实现的 headerRight）。
+        SearchButton({
+          isDark: this.isDark(),
+          label: this.s($r('app.string.loh_search')),
+          onTap: () => {
+            openSearch('');
+          }
+        })
       }
       .width('100%')
       .alignItems(VerticalAlign.Bottom)

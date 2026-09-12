@@ -98,7 +98,14 @@ export enum AppIcon {
    */
   FULLSCREEN = 'fullscreen',
   /** MaterialIcons `fullscreen-exit`：同一按钮的另一态（参考实现 :111）。 */
-  FULLSCREEN_EXIT = 'fullscreen-exit'
+  FULLSCREEN_EXIT = 'fullscreen-exit',
+  /**
+   * MaterialIcons `search`：**四个 tab 页头右侧**的搜索入口
+   * （参考实现 `App.tsx:137-158` 的 `headerRight`；设置页显式关掉）。
+   */
+  SEARCH = 'search',
+  /** MaterialIcons `close`：搜索页页头左上角的关闭（参考实现 `App.tsx:113-121` 的 BackButton）。 */
+  CLOSE = 'close'
 }
 
 /** 闭集 → 资源。没有 default 分支的"兜底语义"：未知枚举值按 attachment 渲染并保持可读。 */
@@ -157,6 +164,12 @@ export function iconSpec(icon: AppIcon): IconSpec {
     case AppIcon.FULLSCREEN_EXIT:
       // 码位 58833 (0xE5D1)，同上表的 fullscreen-exit。
       return { family: IconFamily.MATERIAL, code: 0xE5D1, fallback: '[fsx]' };
+    case AppIcon.SEARCH:
+      // 码位 59574 (0xE8B6)，同表的 search（ticket 15 的页头搜索入口）。
+      return { family: IconFamily.MATERIAL, code: 0xE8B6, fallback: '[?]' };
+    case AppIcon.CLOSE:
+      // 码位 58829 (0xE5CD)，同表的 close（ticket 15 搜索页的关闭按钮）。
+      return { family: IconFamily.MATERIAL, code: 0xE5CD, fallback: '[x]' };
     default:
       return { family: IconFamily.MATERIAL_COMMUNITY, code: 0xF0066, fallback: '[icon]' };
   }

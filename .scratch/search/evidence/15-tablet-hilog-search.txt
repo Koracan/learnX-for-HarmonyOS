@@ -1,0 +1,4 @@
+09-13 04:46:37.102 12753 12753 I A04c4f/features.search: 2026-09-13 04:46:37.101 INFO  [features.search] search applied: reason=initial query="" candidates=2/0/4 hits=2/0/4 hiddenCourses=0 items=2/0/4
+09-13 04:47:27.091 12753 12753 I A04c4f/features.search: 2026-09-13 04:47:27.091 INFO  [features.search] search result tapped: type=notice id=26ef84e8a00ef07901a0755e06e333502023011272 split=true
+09-13 04:48:21.266 12753 12753 I A04c4f/features.search: 2026-09-13 04:48:21.266 INFO  [features.search] search result tapped: type=file id=26ef84e7a00ef02001a04bc964616ede type=zip split=true
+09-13 04:48:21.366 12753 12753 I A04c4f/features.search: 2026-09-13 04:48:21.365 INFO  [features.search] search input blurred: query=""

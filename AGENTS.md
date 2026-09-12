@@ -130,6 +130,10 @@ learnOH —— HarmonyOS 原生（ArkTS / ArkUI）应用，是原 React Native f
 
  - **不要用作业退出码判断成败**：把命令写成 `cmd *> log; ('EXIT=' + $LASTEXITCODE) | Out-File ...` 时，进程退出码会变成 **0**（最后一条是 `Out-File`）。必须读日志/产物。
 
+ - **"看到 BUILD SUCCESSFUL"不等于编译成功**（实测，ticket 15）：引入 `@ohos/flexsearch` 做冒烟时，日志里先是
+   `> hvigor ERROR: ErrorCode: 00507015 … does not provide an export name 'Document'`，**紧接着仍打印 `BUILD SUCCESSFUL`**。
+   判编译成败必须搜 `ERROR`/`ErrorCode`/`COMPILE RESULT`，**不能只看最后一行**。这与上面"退出码不可信"是同一族坑。
+
  - **`devecocli build` 报 BUILD SUCCESSFUL 也可能是陈旧产物**（ticket 07 实测）：探针用完后把模块删掉，增量构建仍返回成功、**产物时间戳不变**，而 hap 里的 `ets/modules.abc` **仍引用已删除的模块**，装机启动即 `ReferenceError`。判定与修法：
    1. **时间戳不变 = 没重新构建**——这是必要条件，但不充分；
    2. 还需要**内容级检查**：把 hap 当 zip 解开（`Copy-Item x.hap x.zip; Expand-Archive x.zip out`），在解出来的 `ets/modules.abc` 里搜「应当消失的符号」（探针名）与「应当存在的符号」（本轮新增的桥名）。**不要直接对 `.hap` 做字节检索**——zip 条目是压缩的，搜不到不等于没有，会给出**假阴性**；

@@ -42,6 +42,9 @@ import {
 } from '../notices/repository/NoticeRepositoryProvider';
 import { PlaceholderTab } from './PlaceholderTab';
 import { SPLIT_VIEW_BREAKPOINT_VP, publishSplitViewDecision } from './SplitView';
+import { SearchPage } from '../search/SearchPage';
+import { SearchRouteParams, ROUTE_SEARCH } from '../search/SearchRoutes';
+import { bindSearchRootStack } from '../search/SearchEntry';
 import { AppIcon } from '../../ui/icons/IconCatalog';
 import { IconGlyph } from '../../ui/icons/IconGlyph';
 
@@ -109,6 +112,12 @@ export struct ShellTabs {
   @State activeIndex: number = ShellTab.NOTICES;
 
   private tabsController: TabsController = new TabsController();
+  /**
+   * **根导航栈**（ticket 15）：搜索页是盖在主壳之上的一个根级屏幕
+   * （参考实现 `App.tsx:913-917` 把 SearchStack 挂在 RootNavigator 上），
+   * 四个 tab 页头那颗 search 图标经 `openSearch()` 往这里压一条 `Search` 路由。
+   */
+  private rootStack: NavPathStack = new NavPathStack();
 
   private theme(): ThemeTokens {
     return resolveTheme(this.colorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK);
@@ -189,6 +198,8 @@ export struct ShellTabs {
   }
 
   aboutToAppear(): void {
+    // 搜索入口的根栈引用：必须早于任何页头按钮被点击（页头在首帧就渲染）。
+    bindSearchRootStack(this.rootStack);
     // 先把退路尺寸发出去：五个 tab 页在紧随其后的 build 里就会读它。
     this.publishSize(0, 0);
     // 延后一帧：aboutToAppear 时组件可能还没挂到 UI 实例上。
@@ -268,60 +279,81 @@ export struct ShellTabs {
     .border({ width: { top: this.theme().sizes.borderWidth }, color: this.theme().colors.outlineVariant })
   }
 
-  build() {
-    Column() {
-      Tabs({ barPosition: BarPosition.End, index: this.activeIndex, controller: this.tabsController }) {
-        TabContent() {
-          NoticesPage()
-        }
-        .tabBar(this.s($r('app.string.ui_tab_notices')))
-
-        // 作业 tab（ticket 10）：真实作业列表 + 详情栈。
-        TabContent() {
-          AssignmentsPage()
-        }
-        .tabBar(this.s($r('app.string.loh_assignments')))
-
-        // 文件 tab（ticket 11）：真实文件列表 + 详情栈（下载 / 应用内预览 / 分享）+ 文件设置。
-        TabContent() {
-          FilesPage()
-        }
-        .tabBar(this.s($r('app.string.loh_files')))
-
-        // 课程 tab（ticket 12）：真实课程列表 + 详情栈 + 学期切换。
-        TabContent() {
-          CoursesPage()
-        }
-        .tabBar(this.s($r('app.string.loh_courses')))
-
-        TabContent() {
-          PlaceholderTab({
-            title: this.s($r('app.string.loh_settings')),
-            message: this.s($r('app.string.ui_tab_placeholder')),
-            isDark: this.isDark()
-          })
-        }
-        .tabBar(this.s($r('app.string.loh_settings')))
+  /**
+   * 根栈的目标表：目前只有搜索页。参考实现的 RootNavigator 上还挂着 CourseXStack /
+   * AssignmentSubmissionStack（本工程把它们做成各 tab 栈内的路由，见 ticket 10/12/13）。
+   */
+  @Builder
+  rootDestination(name: string, param: object) {
+    if (name === ROUTE_SEARCH) {
+      NavDestination() {
+        SearchPage({ initialQuery: (param as SearchRouteParams).query })
       }
-      .barHeight(0)
-      .barMode(BarMode.Fixed)
-      .scrollable(false)
-      .animationDuration(0)
-      .layoutWeight(1)
-      .width('100%')
-      .onChange((index: number) => {
-        this.activeIndex = index;
-      })
-
-      this.tabBar()
+      .hideTitleBar(true)
     }
+  }
+
+  build() {
+    Navigation(this.rootStack) {
+      Column() {
+        Tabs({ barPosition: BarPosition.End, index: this.activeIndex, controller: this.tabsController }) {
+          TabContent() {
+            NoticesPage()
+          }
+          .tabBar(this.s($r('app.string.ui_tab_notices')))
+
+          // 作业 tab（ticket 10）：真实作业列表 + 详情栈。
+          TabContent() {
+            AssignmentsPage()
+          }
+          .tabBar(this.s($r('app.string.loh_assignments')))
+
+          // 文件 tab（ticket 11）：真实文件列表 + 详情栈（下载 / 应用内预览 / 分享）+ 文件设置。
+          TabContent() {
+            FilesPage()
+          }
+          .tabBar(this.s($r('app.string.loh_files')))
+
+          // 课程 tab（ticket 12）：真实课程列表 + 详情栈 + 学期切换。
+          TabContent() {
+            CoursesPage()
+          }
+          .tabBar(this.s($r('app.string.loh_courses')))
+
+          TabContent() {
+            PlaceholderTab({
+              title: this.s($r('app.string.loh_settings')),
+              message: this.s($r('app.string.ui_tab_placeholder')),
+              isDark: this.isDark()
+            })
+          }
+          .tabBar(this.s($r('app.string.loh_settings')))
+        }
+        .barHeight(0)
+        .barMode(BarMode.Fixed)
+        .scrollable(false)
+        .animationDuration(0)
+        .layoutWeight(1)
+        .width('100%')
+        .onChange((index: number) => {
+          this.activeIndex = index;
+        })
+
+        this.tabBar()
+      }
+      .width('100%')
+      .height('100%')
+      .backgroundColor(this.theme().colors.background)
+      // 断点判据的**尺寸来源**：根布局实测（旋转/缩放窗口时会跟着变）。
+      // 对应参考实现根 View 的 onLayout（App.tsx:878-883）。
+      .onAreaChange((_oldArea: Area, newArea: Area) => {
+        this.publishSize(newArea.width as number, newArea.height as number);
+      })
+    }
+    .navDestination(this.rootDestination)
+    .hideTitleBar(true)
+    .mode(NavigationMode.Stack)
     .width('100%')
     .height('100%')
-    .backgroundColor(this.theme().colors.background)
-    // 断点判据的**尺寸来源**：根布局实测（旋转/缩放窗口时会跟着变）。
-    // 对应参考实现根 View 的 onLayout（App.tsx:878-883）。
-    .onAreaChange((_oldArea: Area, newArea: Area) => {
-      this.publishSize(newArea.width as number, newArea.height as number);
-    })
   }
 }

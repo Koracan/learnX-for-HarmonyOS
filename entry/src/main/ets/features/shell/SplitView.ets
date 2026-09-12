@@ -186,7 +186,7 @@ export function migrateDetailRoutesBack(detail: NavPathStack, master: NavPathSta
  * 对栈顶同名路由是"换参数、不再压栈"——这里对齐这个可观察行为）。
  */
 export function pushDetailFromMaster(master: NavPathStack, detail: NavPathStack,
-  split: boolean, name: string, param: Object): void {
+  split: boolean, name: string, param: Object, animated: boolean = true): void {
   if (!split) {
     master.pushPath({ name: name, param: param });
     return;
@@ -195,7 +195,10 @@ export function pushDetailFromMaster(master: NavPathStack, detail: NavPathStack,
   if (names.length > 0 && names[names.length - 1] === name) {
     detail.pop(false);
   }
-  detail.pushPath({ name: name, param: param });
+  // animated 默认 true（四个 tab 页的行为一字未改）。搜索页传 false，对应参考实现
+  // `Search.tsx:54-63` 给进右栏的那次 navigate 补 `disableAnimation: true`（单栏的 push 不补）。
+  // 注意：动画开关是 pushPath 的**第二个参数**（NavigationOptions），不是 NavPathInfo 的字段。
+  detail.pushPath({ name: name, param: param }, animated);
 }
 
 /**
