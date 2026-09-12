@@ -105,3 +105,16 @@
 导航只有 登录页 → `/do/off/ui/auth/login/check`（二次验证页，3 个脚本）。
 
 **未验证**：包装配额后站点是否授予信任；真机上该检测器是否自然通过（都是预测）。
+
+## 【取证环境变更】模拟器 Pura 90 数据分区 6 GiB → 16 GB（2026-09-12）
+
+为验证「站点 detectIncognito 误判隐私模式」的根因，把模拟器数据分区放大（`hw.dataPartitionSize` 6144→16384、
+`disk.dataPartition.size` 6g→16g、`isCustomize` false→true；`hw.ramSize` 未动）。
+
+- 备份与**一键回退**：`.dsh/logs/emulator-backup/`（含两份 ini 的改前副本 + SHA256 + `RECOVERY.md`）。
+- `/data`：`5.7G total / 4.4G avail` → **`15G total / 14G avail`**（原文见 `RECOVERY.md`）。
+- 因数据分区重建，**guest 数据被清空**（应用重装；设备侧 hilog 已在此之前全部 `hdc file recv` 取回）。
+- **此前所有模拟器证据（A/B/C/D 四批）都出自 6 GiB 的旧配置**；本目录的 `revision.txt` 记录的是 A–D 批的版本，
+  本节的变更点用于解释「为什么同一台模拟器前后的失败/通过不同」。
+- 验证结果：探针 `quotaMb` 3504 → **9347**、`isPrivateByChromeRule` true → **false**
+  （`experiment-0918/07-incognito-probe.txt` 与 `07-incognito-probe-after-resize.txt`，后者 SHA256 `86C8DB3B…3D1078`）。

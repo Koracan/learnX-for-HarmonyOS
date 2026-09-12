@@ -312,6 +312,52 @@ ticket 07 Comments 的「方案 A」；`.scratch/enrollment/evidence/07-diag-pre
 
 ---
 
+## 12. 【平台事实】站点自带的 detectIncognito@1.5.1 在 ArkWeb 上会**误判隐私模式**（不是参考实现的怪癖，**不构成保真约束**）—— ticket 07 新增
+
+**这是什么**：ID 登录页提交成功后的**二次验证页**（`id.tsinghua.edu.cn/do/off/ui/auth/login/check`）
+内置 `detectIncognito@1.5.1`（`doubleAuth.bundle.js`，bundle 里 `e.VERSION="1.5.1"`）。Chromium 分支的判据是
+（bundle 原文）：
+
+```js
+navigator.webkitTemporaryStorage.queryUsageAndQuota(function (usage, quota) {
+  isPrivate = Math.round(quota / 1048576) < 2 * Math.round((performance.memory?.jsHeapSizeLimit ?? 1073741824) / 1048576);
+}, err);
+```
+
+即 **"临时存储配额 < 2 × JS 堆上限" 就算隐私模式**。而该页 `render` 的分支是
+`this.state.isPrivate ? messages.double_sfjbsbbjwxrsb3 : messages.double_sfjbsbbjwxrsb`，
+且 `isPrivate` 时**只渲染 `<Input type="hidden" name="type" value="否">`——「信任该浏览器」选项根本不出现**。
+出现 rsb3 那句文案 ⇔ `isPrivate === true`（演绎，不是推测）。
+
+**设备实测（模拟器 Pura 90，HarmonyOS 6.1.0(23)，2026-09-12）**：
+
+| 环境 | heapMb | thresholdMb | quotaMb | `isPrivateByChromeRule` |
+| --- | --- | --- | --- | --- |
+| 数据分区 6 GiB（可用 4.4 GiB）——**用户那次失败时的配置** | 2089 | 4178 | **3504** | **true** |
+| 数据分区 16 GB（可用 15 GiB）——本轮把 `hw.dataPartitionSize` 6144→16384 后 | 2089 | 4178 | **9347** | **false** |
+
+⇒ 用户 2026-09-12 那次"您的浏览器目前处于隐私或匿名模式…"**不是被服务端拒绝，也不是我们注入的错**：
+该判据只用到引擎上报的**两个数**（临时配额、JS 堆上限），我们的注入（fingerPrint / fingerGenPrint /
+saveFinger / singleLogin）**在它之外**。**参考实现在这台模拟器上今天同样会失败。**
+
+**是否影响真实设备**：**未验证**——真机（MatePad Air，API 24）数据分区通常几十 GB，`quota` 预计远大于
+`2 × jsHeapSizeLimit`（约 4.2 GB），即**自然通过**；但这是**预测**。该问题已并入 **ticket 18 之前的真机
+一次性复验**：真机上若同样出现"隐私/匿名模式"，带着证据重新决策。
+
+**明确不做的"修法"（决策留档）**：**不**把 `navigator.webkitTemporaryStorage.queryUsageAndQuota` /
+`navigator.storage.estimate` 包一层去上报一个更大的配额。那是**欺骗站点的一个反欺诈/隐私启发式**，
+而且只对"小数据分区"这类测试环境有意义（真实设备天然满足），收益为负、风险为正。参考实现也没有这东西。
+
+**新实现做法**：**不动代码**。这是取证环境的属性；要复现用户那次现象，把模拟器的
+`hw.dataPartitionSize` / `disk.dataPartition.size` 调小即可（6 GB 就会踩中）。
+
+**取证**：`.scratch/enrollment/evidence/experiment-0918/` 的 `07-incognito-probe.txt`（改前，`isPrivateByChromeRule=TRUE`）、
+`07-incognito-probe-after-resize.txt`（改后，`isPrivateByChromeRule=false`，quota 9801080832 / 9347 MB）、
+`doubleAuth.bundle.js`（`e.VERSION="1.5.1"` 与该判据、该 render 分支）、
+`experiment-0918-full.txt`（用户会话：三次 `/b/doubleAuth/login` 全部 `result=success`、无 `saveFingerRequest`、无 roaming）。
+
+---
+
 ## 待查
 
 （暂无。发现新的怪癖时追加，格式同上：参考实现行为／为什么别急着改／新实现做法／取证。）

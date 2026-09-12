@@ -309,3 +309,29 @@ ticket 08 把认证门从「**有凭据** = 已登记（ENROLLED）」收紧为�
    （`SSO.tsx:52`），本工程是 `HarmonyOS,learnOH/{versionName} ({productModel})`
    （`core/device/AppIdentity.ets:4`，依据 spec 第 5 节）。实验一次只动一个变量：deviceName 不改，
    但两个值（页面 DOM 里的与我们的）都会进日志，便于事后判断服务端看到的是哪一个。
+
+### 2026-09-12 失败根因（已复核）+ 取证环境变更
+
+**根因**：站点二次验证页内置的 `detectIncognito@1.5.1` 在 ArkWeb 上误判隐私模式——判据是
+`Math.round(quota/1MB) < 2*Math.round(jsHeapSizeLimit/1MB)`，6 GiB 数据分区时 ArkWeb 报 `quota=3504MB`
+而阈值 `2×2089MB=4178MB` ⇒ `isPrivate=true`；该页在 isPrivate 时**只渲染 `type=否`，「信任」选项根本不出现**。
+与我们的注入无关：判据只用引擎上报的两个数；那次会话三次 `/b/doubleAuth/login` **全部 result=success**、
+**没有 saveFingerRequest**、**没有 roaming**；方案 A 的 `fpSource=page` 已生效。台账：`reference-quirks` 第 12 条。
+
+**请留档的推论**：**参考实现在这台模拟器上今天同样会失败**（它写不写自己的 UUID 都不影响这个判据）。
+
+**离线验证（没有花短信）**：把模拟器数据分区 6 GiB → 16 GB 后，同一登录页探针读到
+`quotaMb=9347 > thresholdMb=4178` ⇒ **`isPrivateByChromeRule=false`**。修复（环境）已被验证。
+
+**决策留档**：**不实现**「把 `queryUsageAndQuota`/`storage.estimate` 包一层上报假配额」的代码层修法——
+那是欺骗站点的反欺诈启发式，且只对小分区测试环境有意义（真实设备天然满足）。
+
+**取证环境变更**：模拟器 Pura 90 的 `hw.dataPartitionSize` 6144→16384、`disk.dataPartition.size` 6g→16g、
+`isCustomize` false→true；改前副本与一键回退见 `.dsh/logs/emulator-backup/`（含 SHA256 与 RECOVERY.md）。
+**此前所有模拟器证据都出自 6 GiB 的旧配置**；`/data` 由 `5.7G/4.4G avail` 变为 `15G/14G avail`。
+因数据分区重建，guest 数据被清空（应用需重装；设备侧 hilog 已全部取回）。
+
+**下一轮取证缺口**：cookie 观测只有 `cookieChars=0`（两份文档 document-start）与 `web cookies cleared`，
+谁下发什么、漫游带什么全无——若还要用户再跑一次，那一次必须能回答「信任登记到底靠什么落地」。
+
+**未验证**：配额够了之后站点是否真的授予信任（仍需一次真实提交）；真机上该检测器是否自然通过（预测会，未验证）。
