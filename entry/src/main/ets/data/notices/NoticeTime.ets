@@ -9,6 +9,11 @@
  *
  * 语义逐条对齐参考实现 data/actions/notices.ts 的
  * `dayjs(publishTime).unix()`：站点下发的是本地时间（无时区），按本地时区解释。
+ *
+ * 【ticket 12 边界】它只服务**公告发布时间**（卡片的排序键）。作业截止时间的比较在
+ * `domain/courses/CourseCounts`，走 `domain/parse/Text.parseTimestamp`——那里对
+ * RFC3339 与 `YYYY-MM-DD HH:mm(:ss)` 都做本地时区补全，而 dayjs 也是同一套宽容解析。
+ * 真实站点下发的时间串两种形状相同（`YYYY-MM-DD HH:mm`），两条路径在真实数据上一致。
  */
 
 /** 参考实现的 publishTime 形如 '2020-09-25 07:21'（本地时间，无时区）。 */

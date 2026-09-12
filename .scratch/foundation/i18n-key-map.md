@@ -17,8 +17,8 @@
 | --- | --- | --- |
 | 参考实现迁入 | 180 | `loh_` |
 | 本工程新增（学期季节词） | 6 | `loh_` |
-| 本工程新增（原生重写 UI 文案） | 51 | `ui_` |
-| 合计 | 237 | |
+| 本工程新增（原生重写 UI 文案） | 59 | `ui_` |
+| 合计 | 245 | |
 
 ## 参考实现迁入键（180）
 
@@ -205,7 +205,7 @@
 | 179 | `avoidFrontCameraDescription` | `loh_avoid_front_camera_description` | - | 在上部留出空间以避让挖孔区域，需要重启应用 | Leave top space to avoid the front camera cutout. App restart required. |
 | 180 | `pleaseRestartAppToApplyImmersive` | `loh_please_restart_app_to_apply_immersive` | - | 请重启应用以应用沉浸式模式设置。 | Please restart the app to apply immersive mode setting. |
 
-## 本工程新增键（57）
+## 本工程新增键（65）
 
 | # | 类别 | 资源名 | 占位符 | 中文 | 英文 |
 | --- | --- | --- | --- | --- | --- |
@@ -265,5 +265,13 @@
 | 54 | ui | `ui_month_dec` | - | 12 月 | Dec |
 | 55 | ui | `ui_attachment_label` | - | 含附件 | Has attachment |
 | 56 | ui | `ui_marked_important_label` | - | 重要公告 | Marked important |
-| 57 | ui | `ui_enrollment_fingerprint_not_ready` | - | 浏览器指纹尚未就绪，此刻提交不会把该浏览器记为可信（服务端会提示"隐私或匿名模式"）。请稍等几秒后再次点击登录；若反复出现，请关闭本页重新登录。 | The browser fingerprint is not ready yet, so signing in now would not register this browser as trusted (the server would report a private/anonymous browser). Wait a few seconds and tap sign in again; if it keeps happening, close this page and sign in again. |
+| 57 | ui | `ui_course_unread_notices_label` | - | 未读公告 | Unread notices |
+| 58 | ui | `ui_course_unfinished_assignments_label` | - | 未完成作业 | Unfinished assignments |
+| 59 | ui | `ui_course_new_files_label` | - | 新文件 | New files |
+| 60 | ui | `ui_courses_semester_label` | - | 当前学期 | Current semester |
+| 61 | ui | `ui_courses_empty` | - | 暂无课程 | No courses |
+| 62 | ui | `ui_course_semester_list_unavailable` | - | 学期列表暂不可用，仅列出当前学期与已生效的学期。 | The semester list is unavailable; only the current and the active semester are listed. |
+| 63 | ui | `ui_courses_load_failed` | {0} | 课程加载失败：%1$s | Failed to load courses: %1$s |
+| 64 | ui | `ui_courses_override_badge` | - | 取证覆盖生效 | Evidence override active |
+| 65 | ui | `ui_enrollment_fingerprint_not_ready` | - | 浏览器指纹尚未就绪，此刻提交不会把该浏览器记为可信（服务端会提示"隐私或匿名模式"）。请稍等几秒后再次点击登录；若反复出现，请关闭本页重新登录。 | The browser fingerprint is not ready yet, so signing in now would not register this browser as trusted (the server would report a private/anonymous browser). Wait a few seconds and tap sign in again; if it keeps happening, close this page and sign in again. |
 

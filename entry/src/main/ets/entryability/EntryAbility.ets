@@ -24,6 +24,9 @@ import {
 import { window } from '@kit.ArkUI';
 import { Logger, LOG_DOMAIN } from '../core/log/Logger';
 import { i18nService } from '../core/i18n/I18n';
+import {
+  SEMESTER_WANT_PARAM, describeSemesterOverride, setRuntimeSemesterOverride
+} from '../data/courses/SemesterOverride';
 
 const logger: Logger = new Logger('entry.ability');
 
@@ -70,10 +73,45 @@ export default class EntryAbility extends UIAbility {
     }
     AppStorage.setOrCreate(LOCALE_VERSION_KEY, Date.now());
 
+    // 学期覆盖的**脚本入口**（ticket 12 硬约束 2）：ticket 10/13 要切到
+    // 2025-2026 学年春季学期才能取到真实作业，而不允许靠界面交互。
+    //   hdc shell aa start -a EntryAbility -b com.koracan.learnOH --ps lohSemester 2025-2026-2
+    this.applySemesterOverride(want);
+
     logger.info('Ability onCreate: colorMode=' + this.context.config.colorMode
       + ' language=' + this.context.config.language
       + ' locale=' + i18nService.locale()
       + ' hilogDomain=' + LOG_DOMAIN);
+  }
+
+  /**
+   * 从 want 参数里读学期覆盖并**自证生效**（AGENTS.md：开关必须把实际生效值打进 hilog）。
+   *
+   * 冷启动走 onCreate；应用已在运行时再次被拉起走 onNewWant。
+   * 覆盖只在**内存**里，进程重启即失效——所以取证脚本的正确用法是
+   * `aa force-stop` 后再 `aa start --ps ...`（见 data/courses/SemesterOverride.ets 的文件头）。
+   */
+  private applySemesterOverride(want: Want): void {
+    const params: Record<string, Object> | undefined = want.parameters;
+    if (params === undefined) {
+      logger.info('semester override: no want parameters; ' + describeSemesterOverride());
+      return;
+    }
+    const raw: Object = params[SEMESTER_WANT_PARAM];
+    if (raw === undefined || raw === null) {
+      logger.info('semester override: want parameter "' + SEMESTER_WANT_PARAM
+        + '" absent; ' + describeSemesterOverride());
+      return;
+    }
+    const accepted: boolean = setRuntimeSemesterOverride(String(raw));
+    logger.info('semester override: want parameter "' + SEMESTER_WANT_PARAM + '"="'
+      + String(raw) + '" accepted=' + accepted.toString() + '; ' + describeSemesterOverride());
+  }
+
+  /** 已经在前台时再次被 `aa start --ps`：同样要读参数并自证。 */
+  onNewWant(want: Want, launchParam: AbilityConstant.LaunchParam): void {
+    logger.info('Ability onNewWant');
+    this.applySemesterOverride(want);
   }
 
   /**

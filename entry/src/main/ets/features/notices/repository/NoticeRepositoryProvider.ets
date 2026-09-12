@@ -31,7 +31,7 @@ import { AuthedTaskExecutor, RealNoticeRepository } from '../../../data/notices/
 import { AuthedRunResult, AuthedTaskRunner, SessionTask } from '../../../data/auth/SessionRestore';
 import { HttpNoticeFetchSource } from '../../../data/notices/NoticeFetchSource';
 import {
-  COURSE_LIST_LOG_DOMAIN, HttpCourseListSource
+  COURSE_LIST_LOG_DOMAIN, HttpCourseListSource, HttpSemesterSource
 } from '../../../data/notices/CourseListFetcher';
 import { NoticeSnapshotFileStore } from '../../../data/notices/NoticeSnapshotFileStore';
 
@@ -75,7 +75,11 @@ export function createNoticeRepository(): NoticeRepository {
     return new MissingContextNoticeRepository();
   }
   const port: HttpFetchPort = new HttpFetchPort();
-  const courses: HttpCourseListSource = new HttpCourseListSource(new Logger(COURSE_LIST_LOG_DOMAIN), port);
+  // 学期解析自 ticket 12 起单独成模块（data/courses/SemesterFetcher）；公告路径仍需
+  // "站点当前学期 + 课程名表"，所以这里把同一个 port 同时喂给两者——**没有第二份取数逻辑**。
+  const semesters: HttpSemesterSource = new HttpSemesterSource(new Logger(COURSE_LIST_LOG_DOMAIN), port);
+  const courses: HttpCourseListSource =
+    new HttpCourseListSource(new Logger(COURSE_LIST_LOG_DOMAIN), port, semesters);
   const source: HttpNoticeFetchSource = new HttpNoticeFetchSource(port, courses, decodeBase64Text);
   const snapshots: NoticeSnapshotFileStore = new NoticeSnapshotFileStore(context);
   logger.info('notice repository wired: source=real snapshotStore=preferences contextAvailable=true');

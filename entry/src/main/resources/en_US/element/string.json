@@ -945,6 +945,38 @@
       "value": "Marked important"
     },
     {
+      "name": "ui_course_unread_notices_label",
+      "value": "Unread notices"
+    },
+    {
+      "name": "ui_course_unfinished_assignments_label",
+      "value": "Unfinished assignments"
+    },
+    {
+      "name": "ui_course_new_files_label",
+      "value": "New files"
+    },
+    {
+      "name": "ui_courses_semester_label",
+      "value": "Current semester"
+    },
+    {
+      "name": "ui_courses_empty",
+      "value": "No courses"
+    },
+    {
+      "name": "ui_course_semester_list_unavailable",
+      "value": "The semester list is unavailable; only the current and the active semester are listed."
+    },
+    {
+      "name": "ui_courses_load_failed",
+      "value": "Failed to load courses: %1$s"
+    },
+    {
+      "name": "ui_courses_override_badge",
+      "value": "Evidence override active"
+    },
+    {
       "name": "ui_enrollment_fingerprint_not_ready",
       "value": "The browser fingerprint is not ready yet, so signing in now would not register this browser as trusted (the server would report a private/anonymous browser). Wait a few seconds and tap sign in again; if it keeps happening, close this page and sign in again."
     }

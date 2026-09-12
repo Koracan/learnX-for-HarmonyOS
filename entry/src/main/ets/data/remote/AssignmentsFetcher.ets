@@ -127,6 +127,8 @@ export class AssignmentsFetcher {
   private readonly port: FetchPort;
   private readonly session: Session;
   private readonly courseNames: Record<string, CourseName>;
+  /** 非字符串截止时间的 warn 只打第一条（其余计入汇总行的 nonStringDeadlines）。 */
+  private deadlineTypeWarned: boolean = false;
 
   constructor(logger: Logger, port: FetchPort, session: Session, courseNames: Record<string, CourseName>) {
     this.logger = logger;
@@ -140,6 +142,7 @@ export class AssignmentsFetcher {
     const startedAt: number = Date.now();
     let requests: number = 0;
     let failures: number = 0;
+    let nonStringDeadlines: number = 0;
     const byId: Map<string, Assignment> = new Map<string, Assignment>();
     const order: string[] = [];
 
@@ -159,6 +162,9 @@ export class AssignmentsFetcher {
         const rows: RawAssignment[] = extractAssignmentRows(listOutcome.body);
         for (let k = 0; k < rows.length; k++) {
           const raw: RawAssignment = rows[k];
+          if (this.noteDeadlineType(raw, courseId)) {
+            nonStringDeadlines++;
+          }
           const assignment: Assignment = parseAssignment(raw, courseId, this.courseNames,
             source.submitted, source.graded);
           const enriched: Assignment = await this.enrich(assignment, raw, courseId);
@@ -187,8 +193,37 @@ export class AssignmentsFetcher {
       + ' items=' + ordered.length.toString()
       + ' elapsedMs=' + elapsedMs.toString()
       + ' requests=' + requests.toString()
-      + ' failures=' + failures.toString());
+      + ' failures=' + failures.toString()
+      + ' nonStringDeadlines=' + nonStringDeadlines.toString());
     return ordered;
+  }
+
+  /**
+   * 站点给的 `jzsj`（截止时间）**不保证是字符串**：2026-09-12 在 2025-2026 春季学期的真实数据上，
+   * 这个值让 `domain/parse/Text.parseTimestamp` 的 `raw.trim()` 抛 "undefined is not callable"，
+   * 整条课程/作业链路随之失败。实测原文见 .scratch/courses/evidence/。
+   *
+   * 这里只做**诊断**（第一条打 warn，总数进汇总行），解析与比较的语义在
+   * `parseTimestamp` 里按 dayjs 对齐（数字 ⇒ epoch 毫秒）。
+   * @returns 该行的 `jzsj` 是否不是字符串
+   */
+  private noteDeadlineType(raw: RawAssignment, courseId: string): boolean {
+    // 不用 `raw as Record<string, Object>`：ArkTS 的类型检查拒绝这种不重叠的转换
+    // （实测 "Conversion of type 'RawAssignment' to type 'Record<string, Object>' may be a mistake"）。
+    // 声明成 string | undefined 后再做 typeof 判定即可——运行时该值可能是数字。
+    const deadline: string | undefined = raw.jzsj;
+    if (deadline === undefined || deadline === null || typeof deadline === 'string') {
+      // 缺失 / null 由 parseAssignment 的 text() 转成空串（"没有截止时间"是合法状态），
+      // 只有"给了值但不是字符串"才是本工单要诊断的那种行。
+      return false;
+    }
+    if (!this.deadlineTypeWarned) {
+      this.deadlineTypeWarned = true;
+      this.logger.warn(ASSIGNMENTS_LOG_DOMAIN + ' non-string deadline: course=' + courseId
+        + ' type=' + typeof deadline + ' value=' + String(deadline)
+        + ' (parseTimestamp treats numbers as epoch ms, everything else as unparseable)');
+    }
+    return true;
   }
 
   /** 补描述与详情页（描述失败不影响详情，反之亦然——照参考实现两个独立 try/catch）。 */

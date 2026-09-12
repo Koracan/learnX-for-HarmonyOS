@@ -20,7 +20,7 @@ import {
   parseAssignment, parseAssignmentList, parseAssignmentDetail, mergeAssignmentDetail,
   compareAssignmentsByUpcoming, sortAssignments
 } from '../main/ets/domain/parse/AssignmentParser';
-import { decodeHtmlEntities } from '../main/ets/domain/parse/Text';
+import { decodeHtmlEntities, parseTimestamp } from '../main/ets/domain/parse/Text';
 import {
   ASSIGNMENT_DETAIL_FOUR_BLOCKS_HTML, ASSIGNMENT_DETAIL_ONE_BLOCK_HTML,
   ASSIGNMENT_LIST_RESPONSE_JSON, ASSIGNMENT_DESCRIPTION_RESPONSE_JSON, RAW_ASSIGNMENT
@@ -86,6 +86,34 @@ function baseAssignment(id: string, deadline: string): Assignment {
 
 export default function assignmentParserTest() {
   describe('domain.AssignmentParser', () => {
+    /*
+     * 真实数据回归（2026-09-12 模拟器 Pura 90，2025-2026 春季学期）：
+     * 站点把 jzsj 下发成 epoch 毫秒的**数字**（57/57 条），于是
+     *   - parseTimestamp 的 raw.trim() 抛 "undefined is not callable"，整条链路失败；
+     *   - 修好之后 deadline 仍是数字，作业行渲染不出截止时间。
+     * 这里钉住"数字 ⇒ 本地时间 'YYYY-MM-DD HH:mm'（与 Assignment.deadline 的既定形状一致）"。
+     */
+    it('normalizes a numeric site deadline into the documented string shape', 0, () => {
+      // 站点在 2025-2026 春季学期把 jzsj 下发成 epoch 毫秒的**数字**（57/57 条，实测）。
+      // 类型上 RawAssignment.jzsj 是 string，所以这里直接从 JSON 造一行，保留运行时数字。
+      const raw: RawAssignment =
+        JSON.parse('{"xszyid":"x1","zyid":"z1","jzsj":1780243140000}') as RawAssignment;
+      const assignment: Assignment = parseAssignment(raw, 'c1', {}, false, false);
+      const expected: Date = new Date(1780243140000);
+      const pad: (n: number) => string = (n: number): string => (n < 10 ? '0' + n.toString() : n.toString());
+      const expectedText: string = expected.getFullYear().toString() + '-'
+        + pad(expected.getMonth() + 1) + '-' + pad(expected.getDate()) + ' '
+        + pad(expected.getHours()) + ':' + pad(expected.getMinutes());
+      expect(assignment.deadline).assertEqual(expectedText);
+      // 规范化后的串能被 parseTimestamp 读回同一个瞬时（秒以下被截掉）。
+      const truncated: number = expected.getTime() - expected.getSeconds() * 1000 - expected.getMilliseconds();
+      expect(parseTimestamp(assignment.deadline)).assertEqual(truncated);
+      // 字符串截止时间一律原样保留（ticket 05 的既有行为不受影响）。
+      const stringRaw: RawAssignment =
+        JSON.parse('{"zyid":"z2","jzsj":"2020-09-01 23:59"}') as RawAssignment;
+      expect(parseAssignment(stringRaw, 'c1', {}, false, false).deadline).assertEqual('2020-09-01 23:59');
+    });
+
     it('mapsAssignmentFieldsFromRawRecord', 0, () => {
       const assignment: Assignment = parseAssignment(RAW_ASSIGNMENT, '2019-2020-1139283212', COURSES, false, false);
       expect(assignment.id).assertEqual('26ef84e8937624450193ba443c9414bd');

@@ -46,6 +46,36 @@ function text(value: string | undefined): string {
   return value === undefined || value === null ? '' : value;
 }
 
+/** 补零到两位（截止时间的格式化）。 */
+function pad2(value: number): string {
+  return value < 10 ? '0' + value.toString() : value.toString();
+}
+
+/**
+ * 截止时间的**规范化**。
+ *
+ * 站点有时把 `jzsj` 下发成 **epoch 毫秒的数字**：2026-09-12 在 2025-2026 春季学期的真实数据上，
+ * **全部 57 条**作业都是数字（例 `1780243140000` = 2026-05-31 23:59 本地时间），
+ * 于是 `Assignment.deadline`（本工程声明为字符串）在运行时是数字，卡片/详情里那一行渲染成空。
+ * 参考实现在**渲染层**用 `dayjs(deadline)` 处理这种值（AssignmentCard.tsx:103-108），
+ * 本工程把同一步提前到解析层：数字按本地时间格式化成 `YYYY-MM-DD HH:mm`
+ * —— 也就是 `Assignment.deadline` 既定的形状，排序（parseTimestamp）与显示拿到同一个瞬时。
+ *
+ * **字符串一律原样保留**（ticket 05 的夹具与既有行为不受影响），只规范"非字符串"这一支。
+ */
+export function normalizeDeadline(value: string): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+  const millis: number = Number(value);
+  if (Number.isNaN(millis)) {
+    return '';
+  }
+  const date: Date = new Date(millis);
+  return date.getFullYear().toString() + '-' + pad2(date.getMonth() + 1) + '-'
+    + pad2(date.getDate()) + ' ' + pad2(date.getHours()) + ':' + pad2(date.getMinutes());
+}
+
 /** 作业的稳定标识：优先学生作业标识，退回作业标识（照参考实现）。 */
 export function assignmentKey(raw: RawAssignment): string {
   return raw.xszyid !== undefined && raw.xszyid !== null && raw.xszyid.length > 0 ? raw.xszyid : raw.zyid;
@@ -144,7 +174,7 @@ export function parseAssignment(
     baseId: text(raw.zyid),
     title: decodeHtmlEntities(text(raw.bt)),
     url: assignmentDetailUrl(courseId, raw),
-    deadline: text(raw.jzsj),
+    deadline: normalizeDeadline(text(raw.jzsj)),
     isLateSubmission: raw.sfbj === '1',
     completionType: text(raw.zywcfs),
     submissionType: text(raw.zytjfs),

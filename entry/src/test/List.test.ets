@@ -26,6 +26,8 @@ import enrollmentFlowTest from './EnrollmentFlow.test';
 import fingerprintDigestTest from './FingerprintDigest.test';
 import sessionRestoreTest from './SessionRestore.test';
 import noticeRepositoryTest from './NoticeRepository.test';
+import courseCountsTest from './CourseCounts.test';
+import courseDataTest from './CourseData.test';
 
 export default function testsuite() {
   semesterTest();
@@ -52,4 +54,6 @@ export default function testsuite() {
   fingerprintDigestTest();
   sessionRestoreTest();
   noticeRepositoryTest();
+  courseCountsTest();
+  courseDataTest();
 }

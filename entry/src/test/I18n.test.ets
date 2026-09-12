@@ -37,9 +37,9 @@ const LOCAL_ADDITION_COUNT: number = 6;
  * 星期词表 + 月份词表）；ticket 07 加了 1 个（登记页的提交前自检提示）；
  * ticket 09 加了 2 个（公告卡片两个状态图标的无障碍文案），见 scripts/i18n-ui-strings.mjs。
  */
-const UI_STRING_COUNT: number = 51;
+const UI_STRING_COUNT: number = 59;
 /** 迁移后的资源键总数（也是 I18N_KEY_COUNT 的期望值）。 */
-const TOTAL_KEY_COUNT: number = 237;
+const TOTAL_KEY_COUNT: number = 245;
 
 const REFERENCE_SAMPLE: string[] = ['loh_back', 'loh_notices', 'loh_assignments', 'loh_files', 'loh_courses'];
 const LOCAL_ADDITIONS: string[] = ['loh_fall', 'loh_spring', 'loh_summer'];

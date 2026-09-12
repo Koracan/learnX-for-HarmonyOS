@@ -75,6 +75,24 @@ export const UI_STRINGS = [
   // **不需要新键**：整句相对时间（含"前" / "ago"）由 core/i18n 的 formatRelativeTo 给出，
   // 它已按 locale 出措辞；再套一层 "{0} ago" 会在中文界面拼出"… ago"或在英文拼出
   // "ago ago"。取不到措辞时（relative.length===0）整段不显示，界面只留绝对时间。
+  // --- ticket 12（课程列表 + 详情 + 学期选择）新增 ---
+  // 课程卡片右下三个计数：参考实现是 MaterialIcons 的 notifications / event / folder，
+  // ArkUI 没有可移植的等价符号（同 ticket 09 对公告图标的判断），故用 emoji + 这三条
+  // 只作为 accessibilityText 的语义文案。数字本身逐字可见，是验收的判据。
+  ['ui_course_unread_notices_label', '未读公告', 'Unread notices'],
+  ['ui_course_unfinished_assignments_label', '未完成作业', 'Unfinished assignments'],
+  ['ui_course_new_files_label', '新文件', 'New files'],
+  // 课程 tab 头部那句"当前学期：<文案>"的前缀（学期文案本身来自 getSemesterTextFromId）。
+  ['ui_courses_semester_label', '当前学期', 'Current semester'],
+  ['ui_courses_empty', '暂无课程', 'No courses'],
+  // 学期集合接口（queryxnxq）失败时**不假装完整**：显式说明列表可能不全。
+  ['ui_course_semester_list_unavailable',
+    '学期列表暂不可用，仅列出当前学期与已生效的学期。',
+    'The semester list is unavailable; only the current and the active semester are listed.'],
+  // 取数失败的错误态（会话失效用 ticket 08 的 loh_session_expired，这里只兜其余失败）。
+  ['ui_courses_load_failed', '课程加载失败：{0}', 'Failed to load courses: {0}'],
+  // 学期覆盖（脚本入口）生效时的界面标记：让"确实切过去了"在截图上可见。
+  ['ui_courses_override_badge', '取证覆盖生效', 'Evidence override active'],
   ['ui_enrollment_fingerprint_not_ready',
     '浏览器指纹尚未就绪，此刻提交不会把该浏览器记为可信（服务端会提示"隐私或匿名模式"）。请稍等几秒后再次点击登录；若反复出现，请关闭本页重新登录。',
     'The browser fingerprint is not ready yet, so signing in now would not register this browser as trusted (the server would report a private/anonymous browser). Wait a few seconds and tap sign in again; if it keeps happening, close this page and sign in again.']

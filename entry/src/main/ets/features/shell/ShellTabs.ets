@@ -23,6 +23,7 @@ import { i18nService } from '../../core/i18n/I18n';
 import { Logger } from '../../core/log/Logger';
 import { COLOR_MODE_KEY, LOCALE_VERSION_KEY } from '../../entryability/EntryAbility';
 import { NoticesPage } from '../notices/NoticesPage';
+import { CoursesPage } from '../courses/CoursesPage';
 import {
   FORCE_DARK_FOR_EVIDENCE, FORCE_ENGLISH_FOR_EVIDENCE, logEvidenceSwitchState
 } from '../notices/repository/NoticeRepositoryProvider';
@@ -237,12 +238,9 @@ export struct ShellTabs {
         }
         .tabBar(this.s($r('app.string.loh_files')))
 
+        // 课程 tab（ticket 12）：真实课程列表 + 详情栈 + 学期切换。
         TabContent() {
-          PlaceholderTab({
-            title: this.s($r('app.string.loh_courses')),
-            message: this.s($r('app.string.ui_tab_placeholder')),
-            isDark: this.isDark()
-          })
+          CoursesPage()
         }
         .tabBar(this.s($r('app.string.loh_courses')))
 

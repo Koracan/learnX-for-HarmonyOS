@@ -1,0 +1,70 @@
+/*
+ * 课程 tab 的导航路由名与参数（ticket 12）。
+ *
+ * 沿用 ticket 03 的选型：**每个 tab 一个自己的 NavPathStack**（见 features/shell/ShellTabs.ets
+ * 的文件头）。课程 tab 的栈根是课程列表，压在上面的依次是：
+ *   - 课程详情（三个标签页：公告 / 作业 / 文件）；
+ *   - 学期切换；
+ *   - 作业详情 / 文件详情（**占位**：真身在 ticket 10 / 11，见 CourseDetailPlaceholder.ets）。
+ *
+ * 参数类型用显式接口（ArkTS 无结构化类型，匿名对象字面量在 Navigation 参数上会编译失败）。
+ */
+
+/** 课程详情路由名。 */
+export const ROUTE_COURSE_DETAIL: string = 'CourseDetail';
+
+/** 学期切换路由名。 */
+export const ROUTE_SEMESTER_SELECTION: string = 'SemesterSelection';
+
+/** 作业详情路由名（ticket 12 只交付"路由 + 占位页"，真身在 ticket 10）。 */
+export const ROUTE_ASSIGNMENT_DETAIL: string = 'CourseAssignmentDetail';
+
+/** 文件详情路由名（ticket 12 只交付"路由 + 占位页"，真身在 ticket 11）。 */
+export const ROUTE_COURSE_FILE_DETAIL: string = 'CourseFileDetail';
+
+/**
+ * 学期切换页参数。
+ *
+ * 为什么给一个空壳接口：`NavPathStack.pushPath` 的 `param` 是 `Object`，ArkTS 里原始值
+ * （字符串等）不能当 `Object` 传；用显式接口让参数形状在类型上可见（ArkTS 也无结构化类型）。
+ */
+export interface SemesterSelectionRouteParams {
+  /** 进入选择页时实际生效的学期（只用于日志/诊断）。 */
+  activeSemesterId: string;
+}
+
+/** 课程详情参数：只带定位信息，内容由 CourseListStore 按 courseId 过滤后提供。 */
+export interface CourseDetailRouteParams {
+  courseId: string;
+  courseName: string;
+  courseTeacherName: string;
+}
+
+/** 作业详情参数（占位页逐项显示，便于 layout dump 核对"点进去的是这一条"）。 */
+export interface AssignmentDetailRouteParams {
+  id: string;
+  baseId: string;
+  title: string;
+  courseId: string;
+  courseName: string;
+  courseTeacherName: string;
+  deadline: string;
+  submitTime: string;
+  submitted: boolean;
+  graded: boolean;
+  url: string;
+}
+
+/** 文件详情参数（同上）。 */
+export interface CourseFileDetailRouteParams {
+  id: string;
+  fileId: string;
+  title: string;
+  courseId: string;
+  courseName: string;
+  courseTeacherName: string;
+  size: string;
+  uploadTime: string;
+  fileType: string;
+  downloadUrl: string;
+}

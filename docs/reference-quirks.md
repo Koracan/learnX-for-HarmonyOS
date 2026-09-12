@@ -567,8 +567,54 @@ ticket 09 的模拟器截图（`.scratch/notices/evidence/`）。
 
 **取证**：`.scratch/notices/evidence/README.md` 第 1 节（A1/A2/A3/A4 四行原始输出）、`09-probe3-hilog-simulator.txt` 的 `[probe] …-bare status=403` 系列。
 
+**更正（2026-09-12，ticket 12 复测）——上表 A3/A4 那条 `queryxnxq` 子结论【未能复现】，不要再据此认定该接口坏掉。**
+
+- 同一台模拟器、同一个 account、**同一个** `authedGet`（带 `?_csrf=`）实测：
+  `data.courses GET status=200 bytes=127 ok=true`、`semesters resolved current=2026-2027-1 list=9 listOk=true`，
+  学期切换页因此列出了 9 个学期（截图见 `.scratch/courses/evidence/A3-semester-picker-final.png`）。
+- 本轮**没有**解释"为什么 ticket 09 的 A4 是 403"（可能是当次探针自身的请求完备性问题——第 15/17 条反复强调的那类），
+  只记录"带 `_csrf` 的 `queryxnxq` 现在返回 200 + JSON 数组"。
+- **本条其余部分不变**：裸请求（不带 `_csrf`）确实会拿到站点自己的 403 报错页，而 `isNoLoginResponse` 把 403
+  当会话失效 ⇒ 生产代码的 `authedGet` 一律带 `_csrf` 这条**必须遵守**。
+- 取证：`.scratch/courses/evidence/A5b-hilog-final-current-datacourses.txt`、`A4-layout-semester-picker-final.json`；
+  ticket 12 Comments 的"修正台账第 17 条的一条子结论"。
+
 ---
 
-## 待查
+## 18. 课程 / 学期这条线的四处有意偏离 —— 已复审（ticket 12）
 
-（暂无。发现新的怪癖时追加，格式同上：参考实现行为／为什么别急着改／新实现做法／取证。）
+**参考实现行为**（参考工程 reference/learnOH-old/）：
+
+| # | 参考实现 | 出处 |
+| --- | --- | --- |
+| A | 学期切换页挂在**设置栈**（SettingsStackParams.SemesterSelection），不在课程栈 | src/screens/SemesterSelection.tsx、src/screens/types.ts |
+| B | 课程详情页每个标签页各自 dispatch(getXxxForCourse(courseId))，**按课程二次取数** | src/screens/CourseDetail.tsx:36-40,72-76,108-112 |
+| C | 当前学期**只能**由界面点选写入 redux（setCurrentSemester） | src/screens/SemesterSelection.tsx:38-40 |
+| D | 三类计数从**已加载的全局 state** 算（selectCoursesWithCounts），而不是课程页自己抓 | src/data/selectors/filteredData.ts:24-49 |
+
+**为什么偏离（逐条）**：
+
+- **A**：ticket 12 的交付物把"学期选择"与课程放在一起（课程 tab 头部点学期名进入）。
+  位置属导航结构，行为（列出可选学期、切换、列表随之更新）一字未变。
+- **B / D**：本工程的一次刷新**已经取回三域**（课程 + 公告 + 作业 + 文件），再按课程各发一次会重复请求
+  （3 × N 门课）。参考实现之所以要各发一次，是因为它可以**直接**进入课程详情而全局 state 里可能还没有
+  该课程的内容；本工程把三域放在**同一次抓取**里，进详情时数据已在手上。D 是同一原因的正向结果：
+  计数与列表**同源**，不会出现"列表是新的、计数是旧的"。
+- **C**：这是本表里**唯一影响取数能力**的偏离。统筹给的事实：本账号 **2026-2027 学年秋季学期没有作业**，
+  而 ticket 10（作业）/ 13（提交）的验收必须拿到 **2025-2026 学年春季学期**的真实作业。
+  若只能靠界面点选，验收脚本就必须做 UI 交互，证据容易退化成"人肉截图"。
+  实测还确认了两条通道的可行性：hdc file send 到应用沙箱**被拒**（permission denied，
+  反向的 hdc file recv 可以），而 aa start --ps 可用。
+
+**替代验收标准（本表"已复审"档要求写明的那一条）**：
+
+1. 学期切换在界面上可用，切换后课程列表随之更新（课程名集合/条数变化可截图、可与站点原始响应对照）；
+2. 存在一条**不经界面交互**的切学期入口，且**实际生效值**进 hilog：
+
+       hdc shell aa start -a EntryAbility -b com.koracan.learnOH --ps lohSemester 2025-2026-2
+
+   ⇒ hilog 出现
+   data.courses semester override: constant="" runtime="2025-2026-2" effective="2025-2026-2" source=runtime-want-param
+   以及 data.courses snapshot semester=2025-2026-2 source=override courses=⟨n⟩ ...；
+3. 覆盖优先级 = override > 界面选择 > 站点当前学期，且**界面显示的 semester 就是实际生效值**
+   （课程 tab 头部那句"当前学期：getSemesterTextFromId(effective)"）。

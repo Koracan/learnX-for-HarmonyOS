@@ -357,9 +357,17 @@ function parseSiteTime(raw: string): number {
  * 解析时间串为毫秒时间戳；无法解析时返回 `Number.NaN`（排序时 NaN 排在最后）。
  * RFC3339（含时区）用 `Date.parse`，站点本地时间串用本地时区补全。
  */
-export function parseTimestamp(raw: string | undefined): number {
+export function parseTimestamp(raw: string | number | undefined): number {
   if (raw === undefined || raw === null) {
     return Number.NaN;
+  }
+  if (typeof raw !== 'string') {
+    // dayjs 对**数字**按 epoch 毫秒解释；站点个别字段会给数字（实测作业 jzsj，见
+    // AssignmentsFetcher 的 non-string deadline 警告）。这里与 dayjs 对齐：
+    // 有限数字按毫秒返回；其它非字符串（运行时仍可能收到）视为不可解析，
+    // 等价于 dayjs 的 Invalid Date ⇒ isAfter 恒 false。
+    // 不这样写的话，数字会走到下面的 raw.trim() 上抛 "undefined is not callable"。
+    return typeof raw === 'number' && !Number.isNaN(raw) ? raw : Number.NaN;
   }
   const text: string = raw.trim();
   if (text.length === 0) {
@@ -377,7 +385,7 @@ export function parseTimestamp(raw: string | undefined): number {
 }
 
 /** 时间倒序（新在前），不可解析的排最后。 */
-export function compareTimeDesc(left: string | undefined, right: string | undefined): number {
+export function compareTimeDesc(left: string | number | undefined, right: string | number | undefined): number {
   const a: number = parseTimestamp(left);
   const b: number = parseTimestamp(right);
   const aValid: boolean = !Number.isNaN(a);
@@ -410,9 +418,9 @@ export function compareIdDesc(left: string, right: string): number {
 
 /** 参考实现的列表排序：时间倒序，同一时间按标识倒序。 */
 export function compareByTimeThenIdDesc(
-  timeLeft: string | undefined,
+  timeLeft: string | number | undefined,
   idLeft: string,
-  timeRight: string | undefined,
+  timeRight: string | number | undefined,
   idRight: string
 ): number {
   const byTime: number = compareTimeDesc(timeLeft, timeRight);

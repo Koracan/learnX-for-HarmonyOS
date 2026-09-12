@@ -20,7 +20,7 @@
  * Regenerate:  node scripts/generate-i18n-resources.mjs && node scripts/gen-i18n-keys.mjs
  * Verify:      node scripts/check-i18n-keys.mjs
  *
- * 237 keys; project-local additions: 6.
+ * 245 keys; project-local additions: 6.
  */
 export type I18nKey = 'loh_back'
   | 'loh_notices'
@@ -258,6 +258,14 @@ export type I18nKey = 'loh_back'
   | 'ui_month_dec'
   | 'ui_attachment_label'
   | 'ui_marked_important_label'
+  | 'ui_course_unread_notices_label'
+  | 'ui_course_unfinished_assignments_label'
+  | 'ui_course_new_files_label'
+  | 'ui_courses_semester_label'
+  | 'ui_courses_empty'
+  | 'ui_course_semester_list_unavailable'
+  | 'ui_courses_load_failed'
+  | 'ui_courses_override_badge'
   | 'ui_enrollment_fingerprint_not_ready';
 
 const ALL_KEYS: string[] = [
@@ -497,6 +505,14 @@ const ALL_KEYS: string[] = [
   'ui_month_dec',
   'ui_attachment_label',
   'ui_marked_important_label',
+  'ui_course_unread_notices_label',
+  'ui_course_unfinished_assignments_label',
+  'ui_course_new_files_label',
+  'ui_courses_semester_label',
+  'ui_courses_empty',
+  'ui_course_semester_list_unavailable',
+  'ui_courses_load_failed',
+  'ui_courses_override_badge',
   'ui_enrollment_fingerprint_not_ready',
 ];
 
@@ -508,4 +524,4 @@ export function isI18nKey(value: string): boolean {
 }
 
 /** Total number of known keys; scripts/check-i18n-keys.mjs asserts this. */
-export const I18N_KEY_COUNT: number = 237;
+export const I18N_KEY_COUNT: number = 245;

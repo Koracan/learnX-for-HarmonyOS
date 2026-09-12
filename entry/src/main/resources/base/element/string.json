@@ -957,6 +957,38 @@
       "value": "重要公告"
     },
     {
+      "name": "ui_course_unread_notices_label",
+      "value": "未读公告"
+    },
+    {
+      "name": "ui_course_unfinished_assignments_label",
+      "value": "未完成作业"
+    },
+    {
+      "name": "ui_course_new_files_label",
+      "value": "新文件"
+    },
+    {
+      "name": "ui_courses_semester_label",
+      "value": "当前学期"
+    },
+    {
+      "name": "ui_courses_empty",
+      "value": "暂无课程"
+    },
+    {
+      "name": "ui_course_semester_list_unavailable",
+      "value": "学期列表暂不可用，仅列出当前学期与已生效的学期。"
+    },
+    {
+      "name": "ui_courses_load_failed",
+      "value": "课程加载失败：%1$s"
+    },
+    {
+      "name": "ui_courses_override_badge",
+      "value": "取证覆盖生效"
+    },
+    {
       "name": "ui_enrollment_fingerprint_not_ready",
       "value": "浏览器指纹尚未就绪，此刻提交不会把该浏览器记为可信（服务端会提示\"隐私或匿名模式\"）。请稍等几秒后再次点击登录；若反复出现，请关闭本页重新登录。"
     }

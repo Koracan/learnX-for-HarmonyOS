@@ -1,8 +1,8 @@
 {
-  "total": 237,
+  "total": 245,
   "referenceCount": 180,
   "localCount": 6,
-  "uiCount": 51,
+  "uiCount": 59,
   "referenceKeys": [
     "back",
     "notices",
@@ -2324,6 +2324,82 @@
       "name": "ui_marked_important_label",
       "zhValue": "重要公告",
       "enValue": "Marked important",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_course_unread_notices_label",
+      "name": "ui_course_unread_notices_label",
+      "zhValue": "未读公告",
+      "enValue": "Unread notices",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_course_unfinished_assignments_label",
+      "name": "ui_course_unfinished_assignments_label",
+      "zhValue": "未完成作业",
+      "enValue": "Unfinished assignments",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_course_new_files_label",
+      "name": "ui_course_new_files_label",
+      "zhValue": "新文件",
+      "enValue": "New files",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_courses_semester_label",
+      "name": "ui_courses_semester_label",
+      "zhValue": "当前学期",
+      "enValue": "Current semester",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_courses_empty",
+      "name": "ui_courses_empty",
+      "zhValue": "暂无课程",
+      "enValue": "No courses",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_course_semester_list_unavailable",
+      "name": "ui_course_semester_list_unavailable",
+      "zhValue": "学期列表暂不可用，仅列出当前学期与已生效的学期。",
+      "enValue": "The semester list is unavailable; only the current and the active semester are listed.",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_courses_load_failed",
+      "name": "ui_courses_load_failed",
+      "zhValue": "课程加载失败：%1$s",
+      "enValue": "Failed to load courses: %1$s",
+      "zhPlaceholders": [
+        "{0}"
+      ],
+      "enPlaceholders": [
+        "{0}"
+      ],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_courses_override_badge",
+      "name": "ui_courses_override_badge",
+      "zhValue": "取证覆盖生效",
+      "enValue": "Evidence override active",
       "zhPlaceholders": [],
       "enPlaceholders": [],
       "origin": "ui"
