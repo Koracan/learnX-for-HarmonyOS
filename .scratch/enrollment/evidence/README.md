@@ -56,3 +56,32 @@
 - A/B 批：devecocli build → hdc install -r ...entry-default-signed.hap → aa force-stop/start → devecocli ui click/text/screenshot → hdc shell 「hilog -x -D 0x4C4F > /data/local/tmp/x.txt」 + hdc file recv。
 - B 批的探针：pwsh -File .scratch/enrollment/tools/run-enrollment-probe.ps1。
 - C 批：把 ENROLLMENT_DIAGNOSTICS_FOR_EVIDENCE 临时置 true 构建，登录页只做到「确认对话框 → 打开 ID 页面」，**不点页面里的登录**。
+
+## 实验构建（2026-09-12 09:09，诊断开关 ON）—— 用户这一次跑的产物
+
+| 项 | 值 |
+| --- | --- |
+| 源码 HEAD（还原点） | `99d9110b60e6c80d33ee1f5d6925dc565de245f3` |
+| 工作区（诊断改动前） | 空；`git status --porcelain` 的 SHA256 = `E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855`（空串的 SHA256） |
+| 诊断补丁 | `.dsh/logs/diagnostics.patch`（6,061 B；SHA256 `EC0D72DD60C5003297C434277B2C4C76C37D2C1F24EFF4D6737822366B1E6F6C`） |
+| 产物 | `entry-default-signed.hap` 1,564,609 B @ 09:09:44；**SHA256 `07A3297DD6870BC0728C191B99138A9C8E840C5C29610C63EE0158DA18704A5D`** |
+| 开关 | `ENROLLMENT_DIAGNOSTICS_FOR_EVIDENCE = true`（运行期自证：`diagnostics=true`、状态行 `diag=1`） |
+
+**设备侧日志抓取**（不依赖任何 host 进程，用户想什么时候做都行）：
+
+- 启动：`hdc shell "hilog -w start -f learnoh_exp -l 8M -n 20"`（jobid 1）；文件在设备 `/data/log/hilog/learnoh_exp.*.gz`（zlib 压缩，滚动保留最近若干文件）。
+- **正样本自证**（先证明抓得到，再叫用户）：`hdc shell 'zcat /data/log/hilog/learnoh_exp.*.gz | grep -c A04c4f'` → **48**；原文行例：
+  `09-12 09:10:20.062 22868 22868 I A04c4f/entry.ability: … [entry.ability] configuration updated: colorMode=1 …`
+- 事后取回：`hdc file recv /data/log/hilog/learnoh_exp.XXX.gz <本地>`（设备侧有 `/bin/zcat`、`/bin/gzip`）。
+
+**实验构建的加载期自证**（09:14，见 `07-exp-build-diagnostics.png` 与同一次抓取）：
+
+- `enrollment webview starting: … diagnostics=true`
+- `enrollment dom values: fingerPrintChars=32 … fpSource=page f3Remote=0 singleLogin=true`
+- `enrollment deviceName: page=other,Chrome/132 ours=HarmonyOS,learnOH/1.1.0 (emulator) same=false`
+- `enrollment page report [pageScripts] phase=load url=… scriptCount=25 inlineScripts=4 formAction=/do/off/ui/auth/login/check scripts=[…]`
+- `enrollment page report [xhr] res path=/b/doubleAuth/personal/getFinger3 status=200 chars=59 result=error objectChars=0`
+
+**分析那次真实提交时要看的关键词**：`roaming` / `harvest` / `saveFingerRequest` / `[xhr] res path=/b/doubleAuth/personal/saveFinger` / `[finger3]` / `submitGate` / `preSubmitGate` / `pageScripts` / `enrollment deviceName` / `enrollment session` / `credentials saved`。
+
+**未验证（勿当结论）**：方案 A 能否让服务端授予信任 —— 要等这次真实提交；提交前的自检两行日志也只在真正点提交时出现。
