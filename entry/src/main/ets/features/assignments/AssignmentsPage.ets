@@ -49,7 +49,7 @@ import { EmptyState } from '../../ui/components/EmptyState';
 import { SessionHeaderProvider, createSessionHeaderProvider } from '../../core/web/SessionHeaderProvider';
 import { CourseListStore } from '../courses/CourseListStore';
 import { createCourseRepository } from '../courses/repository/CourseRepositoryProvider';
-import { FileDetailPlaceholderPage } from '../notices/FileDetailPlaceholderPage';
+import { FileDetailPage } from '../files/FileDetailPage';
 import { FileDetailRouteParams, ROUTE_FILE_DETAIL } from '../notices/NoticeRoutes';
 import { AssignmentDetailPage } from './AssignmentDetailPage';
 import { ROUTE_ASSIGNMENT_DETAIL } from './AssignmentRoutes';
@@ -505,7 +505,7 @@ export struct AssignmentsPage {
       .hideTitleBar(true)
     } else if (name === ROUTE_FILE_DETAIL) {
       NavDestination() {
-        FileDetailPlaceholderPage({ params: param as FileDetailRouteParams })
+        FileDetailPage({ params: param as FileDetailRouteParams, stack: this.stack })
       }
       .hideTitleBar(true)
     }

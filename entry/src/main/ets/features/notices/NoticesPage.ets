@@ -35,7 +35,7 @@ import { removeTags } from '../../domain/render/WebViewTemplate';
 import { NoticeListStore } from './NoticeListStore';
 import { NoticeRecord } from '../../data/notices/NoticeRepository';
 import { createNoticeRepository } from './repository/NoticeRepositoryProvider';
-import { FileDetailPlaceholderPage } from './FileDetailPlaceholderPage';
+import { FileDetailPage } from '../files/FileDetailPage';
 import { FileDetailRouteParams, ROUTE_FILE_DETAIL, ROUTE_NOTICE_DETAIL } from './NoticeRoutes';
 import { NoticeDetailPage } from './NoticeDetailPage';
 
@@ -322,7 +322,7 @@ export struct NoticesPage {
     .height('100%')
   }
 
-  /** 详情栈的出栈目标：公告详情 / 文件详情占位（见 FileDetailPlaceholderPage 注释）。 */
+  /** 详情栈的出栈目标：公告详情 / 文件详情真身（ticket 11 起不再是占位页）。 */
   @Builder
   destinationBuilder(name: string, param: object) {
     if (name === ROUTE_NOTICE_DETAIL) {
@@ -336,7 +336,7 @@ export struct NoticesPage {
       .hideTitleBar(true)
     } else if (name === ROUTE_FILE_DETAIL) {
       NavDestination() {
-        FileDetailPlaceholderPage({ params: param as FileDetailRouteParams })
+        FileDetailPage({ params: param as FileDetailRouteParams, stack: this.stack })
       }
       .hideTitleBar(true)
     }

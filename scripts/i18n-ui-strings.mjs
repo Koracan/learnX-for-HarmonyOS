@@ -133,5 +133,55 @@ export const UI_STRINGS = [
   ['ui_assignment_excellent_mark_label', '含优秀作业', 'Has excellent homework'],
   ['ui_enrollment_fingerprint_not_ready',
     '浏览器指纹尚未就绪，此刻提交不会把该浏览器记为可信（服务端会提示"隐私或匿名模式"）。请稍等几秒后再次点击登录；若反复出现，请关闭本页重新登录。',
-    'The browser fingerprint is not ready yet, so signing in now would not register this browser as trusted (the server would report a private/anonymous browser). Wait a few seconds and tap sign in again; if it keeps happening, close this page and sign in again.']
+    'The browser fingerprint is not ready yet, so signing in now would not register this browser as trusted (the server would report a private/anonymous browser). Wait a few seconds and tap sign in again; if it keeps happening, close this page and sign in again.'],
+  // --- ticket 11（文件列表 + 详情 + 下载 + 预览 + 分享）新增 ---
+  // 参考实现已有的串（loh_file_download_failed / loh_open_file_failed / loh_share /
+  // loh_open / loh_no_file_size / loh_no_file_description / loh_clear_file_cache* /
+  // loh_file_use_document_dir / loh_file_omit_course_name）直接复用，不重复声明。
+  ['ui_files_empty', '暂无文件', 'No files'],
+  ['ui_files_load_failed', '文件加载失败：{0}', 'Failed to load files: {0}'],
+  // 详情页的字段标签（参考实现那两行只有图标 + 值，没有文字；这里补文字进无障碍树）。
+  ['ui_file_type_label', '类型', 'Type'],
+  ['ui_file_size_label', '大小', 'Size'],
+  ['ui_file_upload_time_label', '上传时间', 'Uploaded at'],
+  // 下载进度：进度条本身是比例；这两条给"下载中"与"已接收 / 总量"的文本。
+  // Content-Length 缺失时**不假装百分比**，只显示已接收字节（见 FileDetailPage）。
+  ['ui_file_downloading', '下载中', 'Downloading'],
+  ['ui_file_download_progress', '{0} / {1}', '{0} / {1}'],
+  ['ui_file_download_received', '已接收 {0}', 'Received {0}'],
+  // 非会话原因的拒绝（状态码非 200 且不是 403 / JSON 错误页）：说清是"响应不是文件内容"。
+  ['ui_file_download_rejected', '下载被拒绝：{0}', 'Download rejected: {0}'],
+  ['ui_file_download_empty', '服务端返回了空文件', 'The server returned an empty file'],
+  // 预览：PDF 走 PDFKit，图片走 Image。渲染器起不来时**如实说**，不悄悄退回"跳第三方"。
+  ['ui_file_preview_failed', '预览失败：{0}', 'Preview failed: {0}'],
+  ['ui_file_preview_unavailable',
+    '该文件类型不支持应用内预览，可下载后分享给其他应用。',
+    'This file type cannot be previewed in the app; download it and share it with another app.'],
+  ['ui_file_share_failed', '分享失败：{0}', 'Share failed: {0}'],
+  ['ui_file_saved_at', '保存位置：{0}', 'Saved at: {0}'],
+  // 详情页右上角那个"详情 / 预览"开关（参考实现用 preview / info-outline 两个图标）。
+  ['ui_file_view_info', '详情', 'Info'],
+  ['ui_file_view_preview', '预览', 'Preview'],
+  // 文件设置页（值/语义在 data/settings；全局设置页的入口/外观归 ticket 17）。
+  ['ui_file_settings_title', '文件设置', 'File settings'],
+  ['ui_file_use_document_dir_on',
+    '文件保存在 App 的"文档"中，只会随 App 卸载而被删除。',
+    'Files are saved in the App Document folder and are deleted only when the app is uninstalled.'],
+  ['ui_file_use_document_dir_off',
+    '文件保存在 App 的"缓存"中，会在设备空间不足或其他系统预设情况下被自动清除以节约空间。',
+    'Files are saved in the App cache folder; the system may clear it when space is low.'],
+  ['ui_file_omit_course_name_on',
+    '文件以"文件名"形式保存。',
+    'Files are saved as "filename".'],
+  ['ui_file_omit_course_name_off',
+    '文件以"课程名-文件名"形式保存。',
+    'Files are saved as "coursename-filename".'],
+  ['ui_file_settings_root', '当前保存位置：{0}', 'Current save location: {0}'],
+  ['ui_file_settings_open', '文件设置', 'File settings'],
+  // PDF 预览的翻页（`PdfView` 组件在模拟器上不可用，改用 pdfService 渲染单页 PixelMap，
+  // 见 docs/reference-quirks.md 第 22 条与 FileDetailPage 的 pdfDocument 字段说明）。
+  ['ui_file_prev_page', '上一页', 'Previous page'],
+  ['ui_file_next_page', '下一页', 'Next page'],
+  ['ui_file_page_of', '第 {0} / {1} 页', 'Page {0} of {1}'],
+  ['ui_file_cache_already_empty', '缓存目录已为空', 'The cache folder is already empty']
 ];

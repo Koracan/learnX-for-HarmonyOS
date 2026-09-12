@@ -1079,6 +1079,114 @@
     {
       "name": "ui_enrollment_fingerprint_not_ready",
       "value": "The browser fingerprint is not ready yet, so signing in now would not register this browser as trusted (the server would report a private/anonymous browser). Wait a few seconds and tap sign in again; if it keeps happening, close this page and sign in again."
+    },
+    {
+      "name": "ui_files_empty",
+      "value": "No files"
+    },
+    {
+      "name": "ui_files_load_failed",
+      "value": "Failed to load files: %1$s"
+    },
+    {
+      "name": "ui_file_type_label",
+      "value": "Type"
+    },
+    {
+      "name": "ui_file_size_label",
+      "value": "Size"
+    },
+    {
+      "name": "ui_file_upload_time_label",
+      "value": "Uploaded at"
+    },
+    {
+      "name": "ui_file_downloading",
+      "value": "Downloading"
+    },
+    {
+      "name": "ui_file_download_progress",
+      "value": "%1$s / %2$s"
+    },
+    {
+      "name": "ui_file_download_received",
+      "value": "Received %1$s"
+    },
+    {
+      "name": "ui_file_download_rejected",
+      "value": "Download rejected: %1$s"
+    },
+    {
+      "name": "ui_file_download_empty",
+      "value": "The server returned an empty file"
+    },
+    {
+      "name": "ui_file_preview_failed",
+      "value": "Preview failed: %1$s"
+    },
+    {
+      "name": "ui_file_preview_unavailable",
+      "value": "This file type cannot be previewed in the app; download it and share it with another app."
+    },
+    {
+      "name": "ui_file_share_failed",
+      "value": "Share failed: %1$s"
+    },
+    {
+      "name": "ui_file_saved_at",
+      "value": "Saved at: %1$s"
+    },
+    {
+      "name": "ui_file_view_info",
+      "value": "Info"
+    },
+    {
+      "name": "ui_file_view_preview",
+      "value": "Preview"
+    },
+    {
+      "name": "ui_file_settings_title",
+      "value": "File settings"
+    },
+    {
+      "name": "ui_file_use_document_dir_on",
+      "value": "Files are saved in the App Document folder and are deleted only when the app is uninstalled."
+    },
+    {
+      "name": "ui_file_use_document_dir_off",
+      "value": "Files are saved in the App cache folder; the system may clear it when space is low."
+    },
+    {
+      "name": "ui_file_omit_course_name_on",
+      "value": "Files are saved as \"filename\"."
+    },
+    {
+      "name": "ui_file_omit_course_name_off",
+      "value": "Files are saved as \"coursename-filename\"."
+    },
+    {
+      "name": "ui_file_settings_root",
+      "value": "Current save location: %1$s"
+    },
+    {
+      "name": "ui_file_settings_open",
+      "value": "File settings"
+    },
+    {
+      "name": "ui_file_prev_page",
+      "value": "Previous page"
+    },
+    {
+      "name": "ui_file_next_page",
+      "value": "Next page"
+    },
+    {
+      "name": "ui_file_page_of",
+      "value": "Page %1$s of %2$s"
+    },
+    {
+      "name": "ui_file_cache_already_empty",
+      "value": "The cache folder is already empty"
     }
   ]
 }

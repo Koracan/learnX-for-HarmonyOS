@@ -17,8 +17,8 @@
 | --- | --- | --- |
 | 参考实现迁入 | 180 | `loh_` |
 | 本工程新增（学期季节词） | 6 | `loh_` |
-| 本工程新增（原生重写 UI 文案） | 84 | `ui_` |
-| 合计 | 270 | |
+| 本工程新增（原生重写 UI 文案） | 111 | `ui_` |
+| 合计 | 297 | |
 
 ## 参考实现迁入键（180）
 
@@ -205,7 +205,7 @@
 | 179 | `avoidFrontCameraDescription` | `loh_avoid_front_camera_description` | - | 在上部留出空间以避让挖孔区域，需要重启应用 | Leave top space to avoid the front camera cutout. App restart required. |
 | 180 | `pleaseRestartAppToApplyImmersive` | `loh_please_restart_app_to_apply_immersive` | - | 请重启应用以应用沉浸式模式设置。 | Please restart the app to apply immersive mode setting. |
 
-## 本工程新增键（90）
+## 本工程新增键（117）
 
 | # | 类别 | 资源名 | 占位符 | 中文 | 英文 |
 | --- | --- | --- | --- | --- | --- |
@@ -299,4 +299,31 @@
 | 88 | ui | `ui_assignment_excellent_by` | {0} | %1$s的优秀作业 | Excellent homework by %1$s |
 | 89 | ui | `ui_assignment_excellent_mark_label` | - | 含优秀作业 | Has excellent homework |
 | 90 | ui | `ui_enrollment_fingerprint_not_ready` | - | 浏览器指纹尚未就绪，此刻提交不会把该浏览器记为可信（服务端会提示"隐私或匿名模式"）。请稍等几秒后再次点击登录；若反复出现，请关闭本页重新登录。 | The browser fingerprint is not ready yet, so signing in now would not register this browser as trusted (the server would report a private/anonymous browser). Wait a few seconds and tap sign in again; if it keeps happening, close this page and sign in again. |
+| 91 | ui | `ui_files_empty` | - | 暂无文件 | No files |
+| 92 | ui | `ui_files_load_failed` | {0} | 文件加载失败：%1$s | Failed to load files: %1$s |
+| 93 | ui | `ui_file_type_label` | - | 类型 | Type |
+| 94 | ui | `ui_file_size_label` | - | 大小 | Size |
+| 95 | ui | `ui_file_upload_time_label` | - | 上传时间 | Uploaded at |
+| 96 | ui | `ui_file_downloading` | - | 下载中 | Downloading |
+| 97 | ui | `ui_file_download_progress` | {0},{1} | %1$s / %2$s | %1$s / %2$s |
+| 98 | ui | `ui_file_download_received` | {0} | 已接收 %1$s | Received %1$s |
+| 99 | ui | `ui_file_download_rejected` | {0} | 下载被拒绝：%1$s | Download rejected: %1$s |
+| 100 | ui | `ui_file_download_empty` | - | 服务端返回了空文件 | The server returned an empty file |
+| 101 | ui | `ui_file_preview_failed` | {0} | 预览失败：%1$s | Preview failed: %1$s |
+| 102 | ui | `ui_file_preview_unavailable` | - | 该文件类型不支持应用内预览，可下载后分享给其他应用。 | This file type cannot be previewed in the app; download it and share it with another app. |
+| 103 | ui | `ui_file_share_failed` | {0} | 分享失败：%1$s | Share failed: %1$s |
+| 104 | ui | `ui_file_saved_at` | {0} | 保存位置：%1$s | Saved at: %1$s |
+| 105 | ui | `ui_file_view_info` | - | 详情 | Info |
+| 106 | ui | `ui_file_view_preview` | - | 预览 | Preview |
+| 107 | ui | `ui_file_settings_title` | - | 文件设置 | File settings |
+| 108 | ui | `ui_file_use_document_dir_on` | - | 文件保存在 App 的"文档"中，只会随 App 卸载而被删除。 | Files are saved in the App Document folder and are deleted only when the app is uninstalled. |
+| 109 | ui | `ui_file_use_document_dir_off` | - | 文件保存在 App 的"缓存"中，会在设备空间不足或其他系统预设情况下被自动清除以节约空间。 | Files are saved in the App cache folder; the system may clear it when space is low. |
+| 110 | ui | `ui_file_omit_course_name_on` | - | 文件以"文件名"形式保存。 | Files are saved as "filename". |
+| 111 | ui | `ui_file_omit_course_name_off` | - | 文件以"课程名-文件名"形式保存。 | Files are saved as "coursename-filename". |
+| 112 | ui | `ui_file_settings_root` | {0} | 当前保存位置：%1$s | Current save location: %1$s |
+| 113 | ui | `ui_file_settings_open` | - | 文件设置 | File settings |
+| 114 | ui | `ui_file_prev_page` | - | 上一页 | Previous page |
+| 115 | ui | `ui_file_next_page` | - | 下一页 | Next page |
+| 116 | ui | `ui_file_page_of` | {0},{1} | 第 %1$s / %2$s 页 | Page %1$s of %2$s |
+| 117 | ui | `ui_file_cache_already_empty` | - | 缓存目录已为空 | The cache folder is already empty |
 

@@ -5,7 +5,8 @@
  * 的文件头）。课程 tab 的栈根是课程列表，压在上面的依次是：
  *   - 课程详情（三个标签页：公告 / 作业 / 文件）；
  *   - 学期切换；
- *   - 作业详情 / 文件详情（**占位**：真身在 ticket 10 / 11，见 CourseDetailPlaceholder.ets）。
+ *   - 作业详情（ticket 10 真身）/ 文件详情（ticket 11 真身）；
+ *     两者的占位页文件（`CourseDetailPlaceholder.ets`）已随真身落地删除。
  *
  * 参数类型用显式接口（ArkTS 无结构化类型，匿名对象字面量在 Navigation 参数上会编译失败）。
  */

@@ -20,7 +20,7 @@
  * Regenerate:  node scripts/generate-i18n-resources.mjs && node scripts/gen-i18n-keys.mjs
  * Verify:      node scripts/check-i18n-keys.mjs
  *
- * 270 keys; project-local additions: 6.
+ * 297 keys; project-local additions: 6.
  */
 export type I18nKey = 'loh_back'
   | 'loh_notices'
@@ -291,7 +291,34 @@ export type I18nKey = 'loh_back'
   | 'ui_assignment_excellent'
   | 'ui_assignment_excellent_by'
   | 'ui_assignment_excellent_mark_label'
-  | 'ui_enrollment_fingerprint_not_ready';
+  | 'ui_enrollment_fingerprint_not_ready'
+  | 'ui_files_empty'
+  | 'ui_files_load_failed'
+  | 'ui_file_type_label'
+  | 'ui_file_size_label'
+  | 'ui_file_upload_time_label'
+  | 'ui_file_downloading'
+  | 'ui_file_download_progress'
+  | 'ui_file_download_received'
+  | 'ui_file_download_rejected'
+  | 'ui_file_download_empty'
+  | 'ui_file_preview_failed'
+  | 'ui_file_preview_unavailable'
+  | 'ui_file_share_failed'
+  | 'ui_file_saved_at'
+  | 'ui_file_view_info'
+  | 'ui_file_view_preview'
+  | 'ui_file_settings_title'
+  | 'ui_file_use_document_dir_on'
+  | 'ui_file_use_document_dir_off'
+  | 'ui_file_omit_course_name_on'
+  | 'ui_file_omit_course_name_off'
+  | 'ui_file_settings_root'
+  | 'ui_file_settings_open'
+  | 'ui_file_prev_page'
+  | 'ui_file_next_page'
+  | 'ui_file_page_of'
+  | 'ui_file_cache_already_empty';
 
 const ALL_KEYS: string[] = [
   'loh_back',
@@ -564,6 +591,33 @@ const ALL_KEYS: string[] = [
   'ui_assignment_excellent_by',
   'ui_assignment_excellent_mark_label',
   'ui_enrollment_fingerprint_not_ready',
+  'ui_files_empty',
+  'ui_files_load_failed',
+  'ui_file_type_label',
+  'ui_file_size_label',
+  'ui_file_upload_time_label',
+  'ui_file_downloading',
+  'ui_file_download_progress',
+  'ui_file_download_received',
+  'ui_file_download_rejected',
+  'ui_file_download_empty',
+  'ui_file_preview_failed',
+  'ui_file_preview_unavailable',
+  'ui_file_share_failed',
+  'ui_file_saved_at',
+  'ui_file_view_info',
+  'ui_file_view_preview',
+  'ui_file_settings_title',
+  'ui_file_use_document_dir_on',
+  'ui_file_use_document_dir_off',
+  'ui_file_omit_course_name_on',
+  'ui_file_omit_course_name_off',
+  'ui_file_settings_root',
+  'ui_file_settings_open',
+  'ui_file_prev_page',
+  'ui_file_next_page',
+  'ui_file_page_of',
+  'ui_file_cache_already_empty',
 ];
 
 const KEY_SET: Set<string> = new Set<string>(ALL_KEYS);
@@ -574,4 +628,4 @@ export function isI18nKey(value: string): boolean {
 }
 
 /** Total number of known keys; scripts/check-i18n-keys.mjs asserts this. */
-export const I18N_KEY_COUNT: number = 270;
+export const I18N_KEY_COUNT: number = 297;

@@ -43,12 +43,13 @@ import {
   SemesterSelectionRouteParams,
   ROUTE_COURSE_DETAIL, ROUTE_COURSE_FILE_DETAIL, ROUTE_SEMESTER_SELECTION
 } from './CourseRoutes';
-import { CourseFileDetailPlaceholderPage } from './CourseDetailPlaceholder';
+
 // ticket 10：作业详情真身与它的路由（课程详情的作业标签页也推这一条）。
 import { AssignmentDetailPage } from '../assignments/AssignmentDetailPage';
 import { ROUTE_ASSIGNMENT_DETAIL } from '../assignments/AssignmentRoutes';
-// 作业详情里的附件点击 → ticket 04 的 FileDetail 路由（真身归 ticket 11）。
-import { FileDetailPlaceholderPage } from '../notices/FileDetailPlaceholderPage';
+// 作业详情里的附件点击 → ticket 04 的 FileDetail 路由（ticket 11 起是真身）。
+import { FileDetailPage } from '../files/FileDetailPage';
+import { fileDetailParamsFromCourseFile } from '../files/FileRoutes';
 import { FileDetailRouteParams, ROUTE_FILE_DETAIL } from '../notices/NoticeRoutes';
 import { CourseDetailPage } from './CourseDetailPage';
 import { SemesterSelectionPage } from './SemesterSelectionPage';
@@ -373,15 +374,16 @@ export struct CoursesPage {
       }
       .hideTitleBar(true)
     } else if (name === ROUTE_FILE_DETAIL) {
-      // 作业详情里的附件点击（真身归 ticket 11；这里复用 ticket 04 的 FileDetail 占位页）。
+      // 作业详情里的附件点击 → 文件详情真身（ticket 11）。
       NavDestination() {
-        FileDetailPlaceholderPage({ params: param as FileDetailRouteParams })
+        FileDetailPage({ params: param as FileDetailRouteParams, stack: this.stack })
       }
       .hideTitleBar(true)
     } else if (name === ROUTE_COURSE_FILE_DETAIL) {
+      // 课程详情的"文件"标签页 → 同一条文件详情真身（参数转换见 FileRoutes）。
       NavDestination() {
-        CourseFileDetailPlaceholderPage({
-          params: param as CourseFileDetailRouteParams,
+        FileDetailPage({
+          params: fileDetailParamsFromCourseFile(param as CourseFileDetailRouteParams),
           stack: this.stack
         })
       }

@@ -30,6 +30,7 @@ import courseCountsTest from './CourseCounts.test';
 import courseDataTest from './CourseData.test';
 import assignmentListTest from './AssignmentList.test';
 import excellentHomeworkTest from './ExcellentHomework.test';
+import fileDownloadTest from './FileDownload.test';
 
 export default function testsuite() {
   semesterTest();
@@ -60,4 +61,5 @@ export default function testsuite() {
   courseDataTest();
   assignmentListTest();
   excellentHomeworkTest();
+  fileDownloadTest();
 }

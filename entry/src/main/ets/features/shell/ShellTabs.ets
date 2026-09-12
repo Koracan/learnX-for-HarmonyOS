@@ -25,6 +25,7 @@ import { COLOR_MODE_KEY, LOCALE_VERSION_KEY } from '../../entryability/EntryAbil
 import { NoticesPage } from '../notices/NoticesPage';
 import { AssignmentsPage } from '../assignments/AssignmentsPage';
 import { CoursesPage } from '../courses/CoursesPage';
+import { FilesPage } from '../files/FilesPage';
 import {
   FORCE_DARK_FOR_EVIDENCE, FORCE_ENGLISH_FOR_EVIDENCE, logEvidenceSwitchState
 } from '../notices/repository/NoticeRepositoryProvider';
@@ -227,12 +228,9 @@ export struct ShellTabs {
         }
         .tabBar(this.s($r('app.string.loh_assignments')))
 
+        // 文件 tab（ticket 11）：真实文件列表 + 详情栈（下载 / 应用内预览 / 分享）+ 文件设置。
         TabContent() {
-          PlaceholderTab({
-            title: this.s($r('app.string.loh_files')),
-            message: this.s($r('app.string.ui_tab_placeholder')),
-            isDark: this.isDark()
-          })
+          FilesPage()
         }
         .tabBar(this.s($r('app.string.loh_files')))
 

@@ -1,8 +1,8 @@
 {
-  "total": 270,
+  "total": 297,
   "referenceCount": 180,
   "localCount": 6,
-  "uiCount": 84,
+  "uiCount": 111,
   "referenceKeys": [
     "back",
     "notices",
@@ -2660,6 +2660,289 @@
       "name": "ui_enrollment_fingerprint_not_ready",
       "zhValue": "浏览器指纹尚未就绪，此刻提交不会把该浏览器记为可信（服务端会提示\"隐私或匿名模式\"）。请稍等几秒后再次点击登录；若反复出现，请关闭本页重新登录。",
       "enValue": "The browser fingerprint is not ready yet, so signing in now would not register this browser as trusted (the server would report a private/anonymous browser). Wait a few seconds and tap sign in again; if it keeps happening, close this page and sign in again.",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_files_empty",
+      "name": "ui_files_empty",
+      "zhValue": "暂无文件",
+      "enValue": "No files",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_files_load_failed",
+      "name": "ui_files_load_failed",
+      "zhValue": "文件加载失败：%1$s",
+      "enValue": "Failed to load files: %1$s",
+      "zhPlaceholders": [
+        "{0}"
+      ],
+      "enPlaceholders": [
+        "{0}"
+      ],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_file_type_label",
+      "name": "ui_file_type_label",
+      "zhValue": "类型",
+      "enValue": "Type",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_file_size_label",
+      "name": "ui_file_size_label",
+      "zhValue": "大小",
+      "enValue": "Size",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_file_upload_time_label",
+      "name": "ui_file_upload_time_label",
+      "zhValue": "上传时间",
+      "enValue": "Uploaded at",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_file_downloading",
+      "name": "ui_file_downloading",
+      "zhValue": "下载中",
+      "enValue": "Downloading",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_file_download_progress",
+      "name": "ui_file_download_progress",
+      "zhValue": "%1$s / %2$s",
+      "enValue": "%1$s / %2$s",
+      "zhPlaceholders": [
+        "{0}",
+        "{1}"
+      ],
+      "enPlaceholders": [
+        "{0}",
+        "{1}"
+      ],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_file_download_received",
+      "name": "ui_file_download_received",
+      "zhValue": "已接收 %1$s",
+      "enValue": "Received %1$s",
+      "zhPlaceholders": [
+        "{0}"
+      ],
+      "enPlaceholders": [
+        "{0}"
+      ],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_file_download_rejected",
+      "name": "ui_file_download_rejected",
+      "zhValue": "下载被拒绝：%1$s",
+      "enValue": "Download rejected: %1$s",
+      "zhPlaceholders": [
+        "{0}"
+      ],
+      "enPlaceholders": [
+        "{0}"
+      ],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_file_download_empty",
+      "name": "ui_file_download_empty",
+      "zhValue": "服务端返回了空文件",
+      "enValue": "The server returned an empty file",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_file_preview_failed",
+      "name": "ui_file_preview_failed",
+      "zhValue": "预览失败：%1$s",
+      "enValue": "Preview failed: %1$s",
+      "zhPlaceholders": [
+        "{0}"
+      ],
+      "enPlaceholders": [
+        "{0}"
+      ],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_file_preview_unavailable",
+      "name": "ui_file_preview_unavailable",
+      "zhValue": "该文件类型不支持应用内预览，可下载后分享给其他应用。",
+      "enValue": "This file type cannot be previewed in the app; download it and share it with another app.",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_file_share_failed",
+      "name": "ui_file_share_failed",
+      "zhValue": "分享失败：%1$s",
+      "enValue": "Share failed: %1$s",
+      "zhPlaceholders": [
+        "{0}"
+      ],
+      "enPlaceholders": [
+        "{0}"
+      ],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_file_saved_at",
+      "name": "ui_file_saved_at",
+      "zhValue": "保存位置：%1$s",
+      "enValue": "Saved at: %1$s",
+      "zhPlaceholders": [
+        "{0}"
+      ],
+      "enPlaceholders": [
+        "{0}"
+      ],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_file_view_info",
+      "name": "ui_file_view_info",
+      "zhValue": "详情",
+      "enValue": "Info",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_file_view_preview",
+      "name": "ui_file_view_preview",
+      "zhValue": "预览",
+      "enValue": "Preview",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_file_settings_title",
+      "name": "ui_file_settings_title",
+      "zhValue": "文件设置",
+      "enValue": "File settings",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_file_use_document_dir_on",
+      "name": "ui_file_use_document_dir_on",
+      "zhValue": "文件保存在 App 的\"文档\"中，只会随 App 卸载而被删除。",
+      "enValue": "Files are saved in the App Document folder and are deleted only when the app is uninstalled.",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_file_use_document_dir_off",
+      "name": "ui_file_use_document_dir_off",
+      "zhValue": "文件保存在 App 的\"缓存\"中，会在设备空间不足或其他系统预设情况下被自动清除以节约空间。",
+      "enValue": "Files are saved in the App cache folder; the system may clear it when space is low.",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_file_omit_course_name_on",
+      "name": "ui_file_omit_course_name_on",
+      "zhValue": "文件以\"文件名\"形式保存。",
+      "enValue": "Files are saved as \"filename\".",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_file_omit_course_name_off",
+      "name": "ui_file_omit_course_name_off",
+      "zhValue": "文件以\"课程名-文件名\"形式保存。",
+      "enValue": "Files are saved as \"coursename-filename\".",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_file_settings_root",
+      "name": "ui_file_settings_root",
+      "zhValue": "当前保存位置：%1$s",
+      "enValue": "Current save location: %1$s",
+      "zhPlaceholders": [
+        "{0}"
+      ],
+      "enPlaceholders": [
+        "{0}"
+      ],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_file_settings_open",
+      "name": "ui_file_settings_open",
+      "zhValue": "文件设置",
+      "enValue": "File settings",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_file_prev_page",
+      "name": "ui_file_prev_page",
+      "zhValue": "上一页",
+      "enValue": "Previous page",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_file_next_page",
+      "name": "ui_file_next_page",
+      "zhValue": "下一页",
+      "enValue": "Next page",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_file_page_of",
+      "name": "ui_file_page_of",
+      "zhValue": "第 %1$s / %2$s 页",
+      "enValue": "Page %1$s of %2$s",
+      "zhPlaceholders": [
+        "{0}",
+        "{1}"
+      ],
+      "enPlaceholders": [
+        "{0}",
+        "{1}"
+      ],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_file_cache_already_empty",
+      "name": "ui_file_cache_already_empty",
+      "zhValue": "缓存目录已为空",
+      "enValue": "The cache folder is already empty",
       "zhPlaceholders": [],
       "enPlaceholders": [],
       "origin": "ui"

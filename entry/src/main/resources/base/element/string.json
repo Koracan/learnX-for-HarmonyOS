@@ -1091,6 +1091,114 @@
     {
       "name": "ui_enrollment_fingerprint_not_ready",
       "value": "浏览器指纹尚未就绪，此刻提交不会把该浏览器记为可信（服务端会提示\"隐私或匿名模式\"）。请稍等几秒后再次点击登录；若反复出现，请关闭本页重新登录。"
+    },
+    {
+      "name": "ui_files_empty",
+      "value": "暂无文件"
+    },
+    {
+      "name": "ui_files_load_failed",
+      "value": "文件加载失败：%1$s"
+    },
+    {
+      "name": "ui_file_type_label",
+      "value": "类型"
+    },
+    {
+      "name": "ui_file_size_label",
+      "value": "大小"
+    },
+    {
+      "name": "ui_file_upload_time_label",
+      "value": "上传时间"
+    },
+    {
+      "name": "ui_file_downloading",
+      "value": "下载中"
+    },
+    {
+      "name": "ui_file_download_progress",
+      "value": "%1$s / %2$s"
+    },
+    {
+      "name": "ui_file_download_received",
+      "value": "已接收 %1$s"
+    },
+    {
+      "name": "ui_file_download_rejected",
+      "value": "下载被拒绝：%1$s"
+    },
+    {
+      "name": "ui_file_download_empty",
+      "value": "服务端返回了空文件"
+    },
+    {
+      "name": "ui_file_preview_failed",
+      "value": "预览失败：%1$s"
+    },
+    {
+      "name": "ui_file_preview_unavailable",
+      "value": "该文件类型不支持应用内预览，可下载后分享给其他应用。"
+    },
+    {
+      "name": "ui_file_share_failed",
+      "value": "分享失败：%1$s"
+    },
+    {
+      "name": "ui_file_saved_at",
+      "value": "保存位置：%1$s"
+    },
+    {
+      "name": "ui_file_view_info",
+      "value": "详情"
+    },
+    {
+      "name": "ui_file_view_preview",
+      "value": "预览"
+    },
+    {
+      "name": "ui_file_settings_title",
+      "value": "文件设置"
+    },
+    {
+      "name": "ui_file_use_document_dir_on",
+      "value": "文件保存在 App 的\"文档\"中，只会随 App 卸载而被删除。"
+    },
+    {
+      "name": "ui_file_use_document_dir_off",
+      "value": "文件保存在 App 的\"缓存\"中，会在设备空间不足或其他系统预设情况下被自动清除以节约空间。"
+    },
+    {
+      "name": "ui_file_omit_course_name_on",
+      "value": "文件以\"文件名\"形式保存。"
+    },
+    {
+      "name": "ui_file_omit_course_name_off",
+      "value": "文件以\"课程名-文件名\"形式保存。"
+    },
+    {
+      "name": "ui_file_settings_root",
+      "value": "当前保存位置：%1$s"
+    },
+    {
+      "name": "ui_file_settings_open",
+      "value": "文件设置"
+    },
+    {
+      "name": "ui_file_prev_page",
+      "value": "上一页"
+    },
+    {
+      "name": "ui_file_next_page",
+      "value": "下一页"
+    },
+    {
+      "name": "ui_file_page_of",
+      "value": "第 %1$s / %2$s 页"
+    },
+    {
+      "name": "ui_file_cache_already_empty",
+      "value": "缓存目录已为空"
     }
   ]
 }

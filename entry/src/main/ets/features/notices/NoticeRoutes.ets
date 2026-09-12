@@ -14,7 +14,11 @@
 export const ROUTE_NOTICE_DETAIL: string = 'NoticeDetail';
 
 /**
- * 文件详情路由名（本 ticket 只做占位页 + 导航参数，见 FileDetailPlaceholderPage）。
+ * 文件详情路由名。
+ *
+ * 【ticket 11 起】这条路由的**真身**是 `features/files/FileDetailPage`（下载 / 应用内预览 /
+ * 分享）。ticket 04 的 `FileDetailPlaceholderPage` 已删除（被真身取代），
+ * 路由名与参数形状（含本 ticket 追加的三个**可选**字段）保持兼容。
  *
  * 【ticket 10 复用它】作业详情里的附件点击**走同一条 `FileDetail` 路由**（照参考实现
  * AssignmentDetail.tsx:143 `navigation.push('FileDetail', data)`）。此时
@@ -38,4 +42,19 @@ export interface FileDetailRouteParams {
   downloadUrl: string;
   /** `getExtension(attachment.name) ?? ''`。 */
   fileType: string;
+  /*
+   * 【ticket 11 追加：三个**可选**字段】
+   *
+   * 附件来源没有这三个量（`Attachment` 只有 name/downloadUrl/size），所以它们必须可选 ——
+   * 公告详情与作业详情的构造点**一行都不用改**，ticket 04 已验收的导航契约（字段名与形状）
+   * 也不变。加它们的理由：课程详情的文件标签页本来就有 size/uploadTime/description
+   * （ticket 12 的 `CourseFileDetailRouteParams`），而文件详情真身落地后那条路由也走本页面，
+   * 于是不需要第二套参数类型（见 ticket 11 的交付说明）。
+   */
+  /** 站点给出的体积文本（如 `139.54KB`）；附件通常没有。 */
+  size?: string;
+  /** 上传时间（`YYYY-MM-DD HH:mm`）；附件没有。 */
+  uploadTime?: string;
+  /** 描述（课程文件有，附件没有）。 */
+  description?: string;
 }
