@@ -20,7 +20,7 @@
  * Regenerate:  node scripts/generate-i18n-resources.mjs && node scripts/gen-i18n-keys.mjs
  * Verify:      node scripts/check-i18n-keys.mjs
  *
- * 245 keys; project-local additions: 6.
+ * 267 keys; project-local additions: 6.
  */
 export type I18nKey = 'loh_back'
   | 'loh_notices'
@@ -266,6 +266,28 @@ export type I18nKey = 'loh_back'
   | 'ui_course_semester_list_unavailable'
   | 'ui_courses_load_failed'
   | 'ui_courses_override_badge'
+  | 'ui_assignments_empty'
+  | 'ui_assignments_none_unfinished'
+  | 'ui_assignments_none_finished'
+  | 'ui_assignments_load_failed'
+  | 'ui_assignment_upcoming'
+  | 'ui_assignment_past_due'
+  | 'ui_assignment_deadline'
+  | 'ui_assignment_late_deadline'
+  | 'ui_assignment_description'
+  | 'ui_assignment_grade'
+  | 'ui_assignment_answer'
+  | 'ui_assignment_submitted_at'
+  | 'ui_assignment_submitted_late_at'
+  | 'ui_assignment_graded_at'
+  | 'ui_assignment_graded_by_at'
+  | 'ui_assignment_attachment_label'
+  | 'ui_assignment_submitted_attachment_label'
+  | 'ui_assignment_grade_attachment_label'
+  | 'ui_assignment_answer_attachment_label'
+  | 'ui_assignment_submitted_mark_label'
+  | 'ui_assignment_graded_mark_label'
+  | 'ui_assignment_answer_mark_label'
   | 'ui_enrollment_fingerprint_not_ready';
 
 const ALL_KEYS: string[] = [
@@ -513,6 +535,28 @@ const ALL_KEYS: string[] = [
   'ui_course_semester_list_unavailable',
   'ui_courses_load_failed',
   'ui_courses_override_badge',
+  'ui_assignments_empty',
+  'ui_assignments_none_unfinished',
+  'ui_assignments_none_finished',
+  'ui_assignments_load_failed',
+  'ui_assignment_upcoming',
+  'ui_assignment_past_due',
+  'ui_assignment_deadline',
+  'ui_assignment_late_deadline',
+  'ui_assignment_description',
+  'ui_assignment_grade',
+  'ui_assignment_answer',
+  'ui_assignment_submitted_at',
+  'ui_assignment_submitted_late_at',
+  'ui_assignment_graded_at',
+  'ui_assignment_graded_by_at',
+  'ui_assignment_attachment_label',
+  'ui_assignment_submitted_attachment_label',
+  'ui_assignment_grade_attachment_label',
+  'ui_assignment_answer_attachment_label',
+  'ui_assignment_submitted_mark_label',
+  'ui_assignment_graded_mark_label',
+  'ui_assignment_answer_mark_label',
   'ui_enrollment_fingerprint_not_ready',
 ];
 
@@ -524,4 +568,4 @@ export function isI18nKey(value: string): boolean {
 }
 
 /** Total number of known keys; scripts/check-i18n-keys.mjs asserts this. */
-export const I18N_KEY_COUNT: number = 245;
+export const I18N_KEY_COUNT: number = 267;

@@ -29,6 +29,7 @@ import {
 import { getSemesterTextFromId } from '../../core/i18n/DateTimeUtil';
 import { COLOR_MODE_KEY, LOCALE_VERSION_KEY } from '../../entryability/EntryAbility';
 import { Logger } from '../../core/log/Logger';
+import { Assignment } from '../../domain/model/ContentItem';
 import { CourseRecord } from '../../data/courses/CourseRepository';
 import { EmptyState } from '../../ui/components/EmptyState';
 import { SessionHeaderProvider, createSessionHeaderProvider } from '../../core/web/SessionHeaderProvider';
@@ -38,13 +39,17 @@ import { ROUTE_NOTICE_DETAIL } from '../notices/NoticeRoutes';
 import { CourseListStore } from './CourseListStore';
 import { createCourseRepository } from './repository/CourseRepositoryProvider';
 import {
-  AssignmentDetailRouteParams, CourseDetailRouteParams, CourseFileDetailRouteParams,
+  CourseDetailRouteParams, CourseFileDetailRouteParams,
   SemesterSelectionRouteParams,
-  ROUTE_ASSIGNMENT_DETAIL, ROUTE_COURSE_DETAIL, ROUTE_COURSE_FILE_DETAIL, ROUTE_SEMESTER_SELECTION
+  ROUTE_COURSE_DETAIL, ROUTE_COURSE_FILE_DETAIL, ROUTE_SEMESTER_SELECTION
 } from './CourseRoutes';
-import {
-  AssignmentDetailPlaceholderPage, CourseFileDetailPlaceholderPage
-} from './CourseDetailPlaceholder';
+import { CourseFileDetailPlaceholderPage } from './CourseDetailPlaceholder';
+// ticket 10：作业详情真身与它的路由（课程详情的作业标签页也推这一条）。
+import { AssignmentDetailPage } from '../assignments/AssignmentDetailPage';
+import { ROUTE_ASSIGNMENT_DETAIL } from '../assignments/AssignmentRoutes';
+// 作业详情里的附件点击 → ticket 04 的 FileDetail 路由（真身归 ticket 11）。
+import { FileDetailPlaceholderPage } from '../notices/FileDetailPlaceholderPage';
+import { FileDetailRouteParams, ROUTE_FILE_DETAIL } from '../notices/NoticeRoutes';
 import { CourseDetailPage } from './CourseDetailPage';
 import { SemesterSelectionPage } from './SemesterSelectionPage';
 
@@ -358,11 +363,19 @@ export struct CoursesPage {
       }
       .hideTitleBar(true)
     } else if (name === ROUTE_ASSIGNMENT_DETAIL) {
+      // ticket 10：作业详情真身（参数就是整个 Assignment）。
       NavDestination() {
-        AssignmentDetailPlaceholderPage({
-          params: param as AssignmentDetailRouteParams,
-          stack: this.stack
+        AssignmentDetailPage({
+          assignment: param as Assignment,
+          stack: this.stack,
+          session: this.session
         })
+      }
+      .hideTitleBar(true)
+    } else if (name === ROUTE_FILE_DETAIL) {
+      // 作业详情里的附件点击（真身归 ticket 11；这里复用 ticket 04 的 FileDetail 占位页）。
+      NavDestination() {
+        FileDetailPlaceholderPage({ params: param as FileDetailRouteParams })
       }
       .hideTitleBar(true)
     } else if (name === ROUTE_COURSE_FILE_DETAIL) {

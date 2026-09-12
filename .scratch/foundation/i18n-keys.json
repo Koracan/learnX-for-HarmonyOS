@@ -1,8 +1,8 @@
 {
-  "total": 245,
+  "total": 267,
   "referenceCount": 180,
   "localCount": 6,
-  "uiCount": 59,
+  "uiCount": 81,
   "referenceKeys": [
     "back",
     "notices",
@@ -2400,6 +2400,226 @@
       "name": "ui_courses_override_badge",
       "zhValue": "取证覆盖生效",
       "enValue": "Evidence override active",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_assignments_empty",
+      "name": "ui_assignments_empty",
+      "zhValue": "暂无作业",
+      "enValue": "No assignments",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_assignments_none_unfinished",
+      "name": "ui_assignments_none_unfinished",
+      "zhValue": "没有未完成的作业",
+      "enValue": "No unfinished assignments",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_assignments_none_finished",
+      "name": "ui_assignments_none_finished",
+      "zhValue": "没有已完成的作业",
+      "enValue": "No finished assignments",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_assignments_load_failed",
+      "name": "ui_assignments_load_failed",
+      "zhValue": "作业加载失败：%1$s",
+      "enValue": "Failed to load assignments: %1$s",
+      "zhPlaceholders": [
+        "{0}"
+      ],
+      "enPlaceholders": [
+        "{0}"
+      ],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_assignment_upcoming",
+      "name": "ui_assignment_upcoming",
+      "zhValue": "未到期",
+      "enValue": "Not due",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_assignment_past_due",
+      "name": "ui_assignment_past_due",
+      "zhValue": "已截止",
+      "enValue": "Past due",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_assignment_deadline",
+      "name": "ui_assignment_deadline",
+      "zhValue": "截止时间",
+      "enValue": "Deadline",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_assignment_late_deadline",
+      "name": "ui_assignment_late_deadline",
+      "zhValue": "补交截止",
+      "enValue": "Late submission due",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_assignment_description",
+      "name": "ui_assignment_description",
+      "zhValue": "作业内容",
+      "enValue": "Description",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_assignment_grade",
+      "name": "ui_assignment_grade",
+      "zhValue": "成绩",
+      "enValue": "Grade",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_assignment_answer",
+      "name": "ui_assignment_answer",
+      "zhValue": "参考答案",
+      "enValue": "Answer",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_assignment_submitted_at",
+      "name": "ui_assignment_submitted_at",
+      "zhValue": "提交于 %1$s",
+      "enValue": "Submitted at %1$s",
+      "zhPlaceholders": [
+        "{0}"
+      ],
+      "enPlaceholders": [
+        "{0}"
+      ],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_assignment_submitted_late_at",
+      "name": "ui_assignment_submitted_late_at",
+      "zhValue": "补交于 %1$s",
+      "enValue": "Submitted late at %1$s",
+      "zhPlaceholders": [
+        "{0}"
+      ],
+      "enPlaceholders": [
+        "{0}"
+      ],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_assignment_graded_at",
+      "name": "ui_assignment_graded_at",
+      "zhValue": "批改于 %1$s",
+      "enValue": "Graded at %1$s",
+      "zhPlaceholders": [
+        "{0}"
+      ],
+      "enPlaceholders": [
+        "{0}"
+      ],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_assignment_graded_by_at",
+      "name": "ui_assignment_graded_by_at",
+      "zhValue": "%1$s 批改于 %2$s",
+      "enValue": "Graded by %1$s at %2$s",
+      "zhPlaceholders": [
+        "{0}",
+        "{1}"
+      ],
+      "enPlaceholders": [
+        "{0}",
+        "{1}"
+      ],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_assignment_attachment_label",
+      "name": "ui_assignment_attachment_label",
+      "zhValue": "作业附件",
+      "enValue": "Assignment attachment",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_assignment_submitted_attachment_label",
+      "name": "ui_assignment_submitted_attachment_label",
+      "zhValue": "我的提交附件",
+      "enValue": "Submitted attachment",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_assignment_grade_attachment_label",
+      "name": "ui_assignment_grade_attachment_label",
+      "zhValue": "批改附件",
+      "enValue": "Grade attachment",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_assignment_answer_attachment_label",
+      "name": "ui_assignment_answer_attachment_label",
+      "zhValue": "答案附件",
+      "enValue": "Answer attachment",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_assignment_submitted_mark_label",
+      "name": "ui_assignment_submitted_mark_label",
+      "zhValue": "已提交",
+      "enValue": "Submitted",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_assignment_graded_mark_label",
+      "name": "ui_assignment_graded_mark_label",
+      "zhValue": "已评分",
+      "enValue": "Graded",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_assignment_answer_mark_label",
+      "name": "ui_assignment_answer_mark_label",
+      "zhValue": "含答案",
+      "enValue": "Has answer",
       "zhPlaceholders": [],
       "enPlaceholders": [],
       "origin": "ui"

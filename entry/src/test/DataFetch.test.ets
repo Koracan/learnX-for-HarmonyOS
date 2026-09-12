@@ -20,6 +20,7 @@ import { AssignmentsFetcher, ASSIGNMENTS_LOG_DOMAIN, extractAssignmentRows, extr
   '../main/ets/data/remote/AssignmentsFetcher';
 import { FilesFetcher, FILES_LOG_DOMAIN, extractCourseFileRows } from '../main/ets/data/remote/FilesFetcher';
 import { strictPureBase64Decoder } from './TestHelpers';
+import { isPastDeadline } from '../main/ets/features/assignments/AssignmentFilter';
 import {
   NOTICE_LIST_RESPONSE_JSON, NOTICE_LIST_RESULTS_LIST_JSON, NOTICE_DETAIL_ML10_HTML,
   ASSIGNMENT_LIST_RESPONSE_JSON, ASSIGNMENT_DESCRIPTION_RESPONSE_JSON,
@@ -220,6 +221,38 @@ export default function dataFetchTest() {
       expect(first.submitted).assertTrue();
       expect(first.courseName).assertEqual('通信与网络');
       assertHasItemsAndElapsed(latestLog(ASSIGNMENTS_LOG_DOMAIN, 'fetched'), 2);
+    });
+
+    /*
+     * 真实数据缺陷回归（2026-09-12，模拟器 Pura 90，2025-2026 春季 57 条）：
+     * 列表里前三条的截止时间是 05-31 / 06-20 / 04-30 —— **已过期段不是按时间排的**。
+     * 根因：参考实现是两步（processor 先按截止时间倒序，JS 再切"未到期 / 已过期"），
+     * ticket 05 只搬了第二步。这里钉住"两步都做完"：未到期在前且由近及远、已过期按时间倒序。
+     */
+    it('assignmentsFetchSortsByDeadlineBeforeSplittingUpcomingAndPast', 0, async () => {
+      const pad: (n: number) => string = (n: number): string => (n < 10 ? '0' + n.toString() : n.toString());
+      const future: Date = new Date(Date.now() + 400 * 24 * 3600 * 1000);
+      const futureStamp: string = future.getFullYear().toString() + '-'
+        + pad(future.getMonth() + 1) + '-' + pad(future.getDate()) + ' '
+        + pad(future.getHours()) + ':' + pad(future.getMinutes());
+      // 夹具顺序故意与截止时间顺序无关（旧 → 未到期 → 新）
+      const body: string = '{"result":"success","object":{"aaData":['
+        + '{"xszyid":"a-past-older","zyid":"a-past-older","bt":"旧","jzsj":"2020-09-05 23:59"},'
+        + '{"xszyid":"a-future","zyid":"a-future","bt":"未到期","jzsj":"' + futureStamp + '"},'
+        + '{"xszyid":"a-past-newer","zyid":"a-past-newer","bt":"新","jzsj":"2020-09-20 23:59"}'
+        + ']}}';
+      const port: ScriptedFetchPort = new ScriptedFetchPort()
+        .routePost('zyList', body)
+        .routePost('kczy/zy/student/detail', ASSIGNMENT_DESCRIPTION_RESPONSE_JSON)
+        .routeGetSeq('zy/student/view', [ASSIGNMENT_DETAIL_FOUR_BLOCKS_HTML]);
+      const assignments: Assignment[] = await new AssignmentsFetcher(
+        new Logger(ASSIGNMENTS_LOG_DOMAIN), port, SESSION, COURSES).fetch(['c1']);
+      expect(assignments.length).assertEqual(3);
+      expect(assignments[0].id).assertEqual('a-future');
+      expect(assignments[1].id).assertEqual('a-past-newer');
+      expect(assignments[2].id).assertEqual('a-past-older');
+      expect(isPastDeadline(assignments[0].deadline, Date.now())).assertFalse();
+      expect(isPastDeadline(assignments[1].deadline, Date.now())).assertTrue();
     });
 
     it('filesFetchParsesAndLogs', 0, async () => {

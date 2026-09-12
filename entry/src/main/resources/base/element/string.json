@@ -989,6 +989,94 @@
       "value": "取证覆盖生效"
     },
     {
+      "name": "ui_assignments_empty",
+      "value": "暂无作业"
+    },
+    {
+      "name": "ui_assignments_none_unfinished",
+      "value": "没有未完成的作业"
+    },
+    {
+      "name": "ui_assignments_none_finished",
+      "value": "没有已完成的作业"
+    },
+    {
+      "name": "ui_assignments_load_failed",
+      "value": "作业加载失败：%1$s"
+    },
+    {
+      "name": "ui_assignment_upcoming",
+      "value": "未到期"
+    },
+    {
+      "name": "ui_assignment_past_due",
+      "value": "已截止"
+    },
+    {
+      "name": "ui_assignment_deadline",
+      "value": "截止时间"
+    },
+    {
+      "name": "ui_assignment_late_deadline",
+      "value": "补交截止"
+    },
+    {
+      "name": "ui_assignment_description",
+      "value": "作业内容"
+    },
+    {
+      "name": "ui_assignment_grade",
+      "value": "成绩"
+    },
+    {
+      "name": "ui_assignment_answer",
+      "value": "参考答案"
+    },
+    {
+      "name": "ui_assignment_submitted_at",
+      "value": "提交于 %1$s"
+    },
+    {
+      "name": "ui_assignment_submitted_late_at",
+      "value": "补交于 %1$s"
+    },
+    {
+      "name": "ui_assignment_graded_at",
+      "value": "批改于 %1$s"
+    },
+    {
+      "name": "ui_assignment_graded_by_at",
+      "value": "%1$s 批改于 %2$s"
+    },
+    {
+      "name": "ui_assignment_attachment_label",
+      "value": "作业附件"
+    },
+    {
+      "name": "ui_assignment_submitted_attachment_label",
+      "value": "我的提交附件"
+    },
+    {
+      "name": "ui_assignment_grade_attachment_label",
+      "value": "批改附件"
+    },
+    {
+      "name": "ui_assignment_answer_attachment_label",
+      "value": "答案附件"
+    },
+    {
+      "name": "ui_assignment_submitted_mark_label",
+      "value": "已提交"
+    },
+    {
+      "name": "ui_assignment_graded_mark_label",
+      "value": "已评分"
+    },
+    {
+      "name": "ui_assignment_answer_mark_label",
+      "value": "含答案"
+    },
+    {
       "name": "ui_enrollment_fingerprint_not_ready",
       "value": "浏览器指纹尚未就绪，此刻提交不会把该浏览器记为可信（服务端会提示\"隐私或匿名模式\"）。请稍等几秒后再次点击登录；若反复出现，请关闭本页重新登录。"
     }

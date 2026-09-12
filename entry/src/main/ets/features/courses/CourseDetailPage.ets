@@ -9,7 +9,7 @@
  * | 三个标签页与顺序 | `routes = [notices, assignments, files]`（:144-148） | 同 |
  * | 数据来源 | 从全局 state 按 `courseId` 过滤（:161-172） | 从 `CourseListStore` 按 `courseId` 过滤 |
  * | 公告点击 | `navigation.push('NoticeDetail', item)`（:49） | 同（推入**课程 tab 自己的** NavPathStack） |
- * | 作业点击 | `navigation.push('AssignmentDetail', item)`（:85） | 同（详情页真身在 ticket 10，本轮为占位页） |
+ * | 作业点击 | `navigation.push('AssignmentDetail', item)`（:85） | 同（详情页真身由 ticket 10 交付，参数就是整个 Assignment） |
  * | 文件点击 | `navigation.push('FileDetail', item)`（:115） | 同（详情页真身在 ticket 11，本轮为占位页） |
  * | 每页下拉刷新 | `getXxxForCourse(courseId)` | 复用课程 tab 的同一次刷新（`store.refresh()`）——本工程一次抓取就含三域 |
  * | 页头标题 = 课程名 | `navigation.setOptions({title: course.name})`（:198-200） | 页头显示课程名 + 教师 |
@@ -34,9 +34,10 @@ import { NoticeRecord } from '../../data/notices/NoticeRepository';
 import { EmptyState } from '../../ui/components/EmptyState';
 import { CourseListStore } from './CourseListStore';
 import {
-  AssignmentDetailRouteParams, CourseDetailRouteParams, CourseFileDetailRouteParams,
-  ROUTE_ASSIGNMENT_DETAIL, ROUTE_COURSE_FILE_DETAIL
+  CourseDetailRouteParams, CourseFileDetailRouteParams, ROUTE_COURSE_FILE_DETAIL
 } from './CourseRoutes';
+// ticket 10：作业详情的路由与页面收敛在作业那条线（本页只推同一个路由）。
+import { ROUTE_ASSIGNMENT_DETAIL } from '../assignments/AssignmentRoutes';
 import { ROUTE_NOTICE_DETAIL } from '../notices/NoticeRoutes';
 
 const logger: Logger = new Logger('features.courses.detail');
@@ -118,21 +119,10 @@ export struct CourseDetailPage {
 
   private openAssignment(assignment: Assignment): void {
     logger.info('course detail assignment tapped: id=' + assignment.id);
-    const params: AssignmentDetailRouteParams = {
-      id: assignment.id,
-      baseId: assignment.baseId,
-      title: assignment.title,
-      courseId: assignment.courseId,
-      courseName: assignment.courseName,
-      courseTeacherName: assignment.courseTeacherName,
-      deadline: assignment.deadline,
-      submitTime: assignment.submitTime === undefined ? '' : assignment.submitTime,
-      submitted: assignment.submitted,
-      graded: assignment.graded,
-      url: assignment.url
-    };
     if (this.stack !== null) {
-      this.stack.pushPath({ name: ROUTE_ASSIGNMENT_DETAIL, param: params });
+      // ticket 10：详情页是真身（不再是占位页），参数就是整个 Assignment ——
+      // 与参考实现 `navigation.push('AssignmentDetail', item)`（CourseDetail.tsx:85）一致。
+      this.stack.pushPath({ name: ROUTE_ASSIGNMENT_DETAIL, param: assignment });
     }
   }
 

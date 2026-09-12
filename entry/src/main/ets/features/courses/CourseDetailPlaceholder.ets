@@ -1,14 +1,17 @@
 /*
- * 课程详情里"作业 / 文件"两个标签页的**占位详情页**（ticket 12）。
+ * 课程详情里"文件"标签页的**占位详情页**（ticket 12）。
  *
- * 为什么是占位：参考实现的 `CourseDetail.tsx:85,115` 会 `navigation.push('AssignmentDetail')`
- * 与 `('FileDetail')`，而这两个页面的真身属于 **ticket 10（作业列表 + 详情）/ ticket 11
- * （文件下载/预览/分享）**。ticket 12 的验收只要求"能从任一标签页进入对应详情"，
- * 所以这里：
+ * 【ticket 12 → ticket 10 的交接】ticket 12 在这里放了**两个**占位页：
+ * 作业详情（`AssignmentDetailPlaceholderPage`）与文件详情（`CourseFileDetailPlaceholderPage`）。
+ * ticket 10 已把作业那个换成真身（`features/assignments/AssignmentDetailPage.ets`，
+ * 路由名与参数也一并移到 `features/assignments/AssignmentRoutes.ets`），
+ * **本文件从此只剩文件详情这一个占位页**。
  *
- *   - **照参考实现的导航契约把参数收全**（`AssignmentDetailRouteParams` /
- *     `CourseFileDetailRouteParams`），并逐项显示 —— 于是"点进去的是这一条"是
- *     layout dump 与截图可核对的；
+ * 为什么还是占位：参考实现的 `CourseDetail.tsx:115` 会 `navigation.push('FileDetail')`，
+ * 而文件详情的真身（下载 / 预览 / 分享）归 **ticket 11**。这里：
+ *
+ *   - **照参考实现的导航契约把参数收全**（`CourseFileDetailRouteParams`），并逐项显示 ——
+ *     于是"点进去的是这一条"是 layout dump 与截图可核对的；
  *   - 页面明确写出"该详情页将在后续迭代中实现"（`ui_tab_placeholder`），不假装已实现。
  *
  * 这与 ticket 04 的 `FileDetailPlaceholderPage` 是同一处置方式（同一套判断）。
@@ -17,7 +20,7 @@ import { ConfigurationConstant } from '@kit.AbilityKit';
 import { ThemeTokens, resolveTheme } from '../../ui/theme/Tokens';
 import { i18nService } from '../../core/i18n/I18n';
 import { COLOR_MODE_KEY } from '../../entryability/EntryAbility';
-import { AssignmentDetailRouteParams, CourseFileDetailRouteParams } from './CourseRoutes';
+import { CourseFileDetailRouteParams } from './CourseRoutes';
 
 /** 一行"字段名：值"。 */
 interface CourseFieldSpec {
@@ -43,74 +46,6 @@ function courseFieldRow(spec: CourseFieldSpec) {
   .width('100%')
   .alignItems(VerticalAlign.Top)
   .padding({ top: spec.theme.sizes.space1, bottom: spec.theme.sizes.space1 })
-}
-
-/** 作业详情占位页（真身：ticket 10）。 */
-@Component
-export struct AssignmentDetailPlaceholderPage {
-  @StorageProp(COLOR_MODE_KEY) colorMode: number = ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT;
-
-  params: AssignmentDetailRouteParams = {
-    id: '', baseId: '', title: '', courseId: '', courseName: '', courseTeacherName: '',
-    deadline: '', submitTime: '', submitted: false, graded: false, url: ''
-  };
-  stack: NavPathStack | null = null;
-
-  private theme(): ThemeTokens {
-    return resolveTheme(this.colorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK);
-  }
-
-  private s(resource: Resource): string {
-    return i18nService.tKey(resource);
-  }
-
-  build() {
-    Column() {
-      Row() {
-        Text(this.s($r('app.string.loh_back')))
-          .fontSize(this.theme().typography.labelLarge.fontSize)
-          .fontColor(this.theme().colors.primary)
-          .onClick(() => {
-            if (this.stack !== null) {
-              this.stack.pop();
-            }
-          })
-      }
-      .width('100%')
-      .margin({ bottom: this.theme().sizes.space3 })
-
-      Text(this.s($r('app.string.loh_assignments')))
-        .fontSize(this.theme().typography.headlineSmall.fontSize)
-        .fontColor(this.theme().colors.onSurface)
-        .width('100%')
-
-      courseFieldRow({ theme: this.theme(), label: 'title', value: this.params.title })
-      courseFieldRow({ theme: this.theme(), label: 'courseName', value: this.params.courseName })
-      courseFieldRow({ theme: this.theme(), label: 'id', value: this.params.id })
-      courseFieldRow({ theme: this.theme(), label: 'baseId', value: this.params.baseId })
-      courseFieldRow({ theme: this.theme(), label: 'deadline', value: this.params.deadline })
-      courseFieldRow({ theme: this.theme(), label: 'submitTime', value: this.params.submitTime })
-      courseFieldRow({
-        theme: this.theme(), label: 'submitted',
-        value: this.params.submitted ? 'true' : 'false'
-      })
-      courseFieldRow({
-        theme: this.theme(), label: 'graded',
-        value: this.params.graded ? 'true' : 'false'
-      })
-
-      Text(this.s($r('app.string.ui_tab_placeholder')))
-        .fontSize(this.theme().typography.bodyMedium.fontSize)
-        .fontColor(this.theme().colors.onSurfaceVariant)
-        .width('100%')
-        .margin({ top: this.theme().sizes.space5 })
-    }
-    .alignItems(HorizontalAlign.Start)
-    .width('100%')
-    .height('100%')
-    .padding(this.theme().sizes.contentPadding)
-    .backgroundColor(this.theme().colors.background)
-  }
 }
 
 /** 课程文件详情占位页（真身：ticket 11）。 */

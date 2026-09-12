@@ -93,6 +93,38 @@ export const UI_STRINGS = [
   ['ui_courses_load_failed', '课程加载失败：{0}', 'Failed to load courses: {0}'],
   // 学期覆盖（脚本入口）生效时的界面标记：让"确实切过去了"在截图上可见。
   ['ui_courses_override_badge', '取证覆盖生效', 'Evidence override active'],
+  // --- ticket 10（作业列表 + 详情）新增 ---
+  // 三种"空"必须给不同的话：没有作业（秋季真实状态）/ 没有未完成（春季 57 条全已交）/
+  // 没有已完成。见 features/assignments/AssignmentText.emptyStateKey。
+  ['ui_assignments_empty', '暂无作业', 'No assignments'],
+  ['ui_assignments_none_unfinished', '没有未完成的作业', 'No unfinished assignments'],
+  ['ui_assignments_none_finished', '没有已完成的作业', 'No finished assignments'],
+  ['ui_assignments_load_failed', '作业加载失败：{0}', 'Failed to load assignments: {0}'],
+  // 验收第 1 条要的"状态标记"：未到期 / 已截止（参考实现用 dayjs 的相对时间那句表达，
+  // 平台侧 Intl.RelativeTimeFormat 给不出同样的措辞 —— 换成一枚明确的本地化标记，
+  // 见 features/assignments/AssignmentsPage.ets 的文件头说明）。
+  ['ui_assignment_upcoming', '未到期', 'Not due'],
+  ['ui_assignment_past_due', '已截止', 'Past due'],
+  ['ui_assignment_deadline', '截止时间', 'Deadline'],
+  ['ui_assignment_late_deadline', '补交截止', 'Late submission due'],
+  ['ui_assignment_description', '作业内容', 'Description'],
+  // 段标题：参考实现的 grade / key-variant 图标各配一个词。
+  ['ui_assignment_grade', '成绩', 'Grade'],
+  ['ui_assignment_answer', '参考答案', 'Answer'],
+  // 时间行（参考实现的三条 dayjs 格式化模板，逐条对应）。
+  ['ui_assignment_submitted_at', '提交于 {0}', 'Submitted at {0}'],
+  ['ui_assignment_submitted_late_at', '补交于 {0}', 'Submitted late at {0}'],
+  ['ui_assignment_graded_at', '批改于 {0}', 'Graded at {0}'],
+  ['ui_assignment_graded_by_at', '{0} 批改于 {1}', 'Graded by {0} at {1}'],
+  // 四类附件的语义标签（附件行只有图标 + 文件名，这四条进无障碍树与界面说明）。
+  ['ui_assignment_attachment_label', '作业附件', 'Assignment attachment'],
+  ['ui_assignment_submitted_attachment_label', '我的提交附件', 'Submitted attachment'],
+  ['ui_assignment_grade_attachment_label', '批改附件', 'Grade attachment'],
+  ['ui_assignment_answer_attachment_label', '答案附件', 'Answer attachment'],
+  // 卡片右上角 emoji 标记的无障碍文案（参考实现那几个图标名对读屏就是名称）。
+  ['ui_assignment_submitted_mark_label', '已提交', 'Submitted'],
+  ['ui_assignment_graded_mark_label', '已评分', 'Graded'],
+  ['ui_assignment_answer_mark_label', '含答案', 'Has answer'],
   ['ui_enrollment_fingerprint_not_ready',
     '浏览器指纹尚未就绪，此刻提交不会把该浏览器记为可信（服务端会提示"隐私或匿名模式"）。请稍等几秒后再次点击登录；若反复出现，请关闭本页重新登录。',
     'The browser fingerprint is not ready yet, so signing in now would not register this browser as trusted (the server would report a private/anonymous browser). Wait a few seconds and tap sign in again; if it keeps happening, close this page and sign in again.']

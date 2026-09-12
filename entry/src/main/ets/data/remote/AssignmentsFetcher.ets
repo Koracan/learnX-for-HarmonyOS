@@ -9,6 +9,10 @@
  *
  * 移植后：网络走注入的 `FetchPort`，字段映射 / 四类附件 / 排序在 domain/parse/AssignmentParser。
  *
+ * **次序是两步，别只做第二步**（ticket 10 在真实数据上修正）：processor 先按截止时间倒序，
+ * 再切成"未到期（由近及远）/ 已过期（由远及近）"。见 `fetch` 内的注释与
+ * docs/reference-quirks.md 第 19 条。
+ *
  * 锚点日志（验收项 1）：
  *   data.assignments fetched courses=<n> items=<n> elapsedMs=<n> requests=<n> failures=<n>
  */
@@ -19,7 +23,8 @@ import { CourseName } from '../../domain/parse/CourseName';
 import { decodeHtmlEntities } from '../../domain/parse/Text';
 import {
   AssignmentDetail, RawAssignment, assignmentDetailUrl,
-  mergeAssignmentDetail, parseAssignment, parseAssignmentDetail, compareAssignmentsByUpcoming
+  mergeAssignmentDetail, parseAssignment, parseAssignmentDetail,
+  compareAssignmentsByUpcoming, sortAssignments
 } from '../../domain/parse/AssignmentParser';
 import { FetchOutcome, FetchPort, Session } from './Port';
 import { LEARN_ORIGIN } from './Requests';
@@ -137,7 +142,10 @@ export class AssignmentsFetcher {
     this.courseNames = courseNames;
   }
 
-  /** 抓取并解析；返回按"未截止在前（由近及远）"排列的作业。 */
+  /**
+   * 抓取并解析；返回参考实现的最终次序：
+   * **未到期在前（由近及远）→ 已过期在后（由远及近）**（见 fetch 内两步排序的说明）。
+   */
   async fetch(courseIds: string[]): Promise<Assignment[]> {
     const startedAt: number = Date.now();
     let requests: number = 0;
@@ -187,7 +195,14 @@ export class AssignmentsFetcher {
         collected.push(item);
       }
     }
-    const ordered: Assignment[] = compareAssignmentsByUpcoming(collected, Date.now());
+    // 参考实现的最终次序是**两步**：
+    //   1. processor 先按截止时间倒序（DataProcessorModule.processAssignments 的 sort）；
+    //   2. JS 侧再切成"未到期（reverse 成由近及远）+ 已过期（保持第 1 步的降序）"
+    //      （actions/assignments.ts:123-128）。
+    // ticket 05 的移植只搬了第 2 步 ⇒ **已过期段是接口返回顺序**；2026-09-12 在 2025-2026 春季
+    // 的 57 条真实数据上实测：列表前三条的截止时间是 05-31 / 06-20 / 04-30，明显不是按时间。
+    // ticket 10 补上第 1 步（顺序常量仍是同一个 compareAssignmentsByUpcoming）。
+    const ordered: Assignment[] = compareAssignmentsByUpcoming(sortAssignments(collected), Date.now());
     const elapsedMs: number = Date.now() - startedAt;
     this.logger.info(ASSIGNMENTS_LOG_DOMAIN + ' fetched courses=' + courseIds.length.toString()
       + ' items=' + ordered.length.toString()

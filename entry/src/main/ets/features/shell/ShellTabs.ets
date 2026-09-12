@@ -23,6 +23,7 @@ import { i18nService } from '../../core/i18n/I18n';
 import { Logger } from '../../core/log/Logger';
 import { COLOR_MODE_KEY, LOCALE_VERSION_KEY } from '../../entryability/EntryAbility';
 import { NoticesPage } from '../notices/NoticesPage';
+import { AssignmentsPage } from '../assignments/AssignmentsPage';
 import { CoursesPage } from '../courses/CoursesPage';
 import {
   FORCE_DARK_FOR_EVIDENCE, FORCE_ENGLISH_FOR_EVIDENCE, logEvidenceSwitchState
@@ -220,12 +221,9 @@ export struct ShellTabs {
         }
         .tabBar(this.s($r('app.string.ui_tab_notices')))
 
+        // 作业 tab（ticket 10）：真实作业列表 + 详情栈。
         TabContent() {
-          PlaceholderTab({
-            title: this.s($r('app.string.loh_assignments')),
-            message: this.s($r('app.string.ui_tab_placeholder')),
-            isDark: this.isDark()
-          })
+          AssignmentsPage()
         }
         .tabBar(this.s($r('app.string.loh_assignments')))
 

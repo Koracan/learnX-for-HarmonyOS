@@ -11,6 +11,11 @@
  *     不假装已实现。
  *
  * 也就是说：这条路由的"导航契约"已交付，"文件详情内容"未交付 —— 见 ticket Comments。
+ *
+ * 【ticket 10 的第二个调用方】作业详情里的四类附件也推这条路由
+ * （参考实现 AssignmentDetail.tsx:132-145）。两条来源的 `noticeId` 语义不同
+ * （公告→公告 id，作业→附件 id），都是"文件缓存目录名"；见 NoticeRoutes.ets 的说明
+ * 与 ticket 11 的边界说明。本占位页只逐项显示参数，不解释来源。
  */
 import { ConfigurationConstant } from '@kit.AbilityKit';
 import { ThemeTokens, resolveTheme } from '../../ui/theme/Tokens';

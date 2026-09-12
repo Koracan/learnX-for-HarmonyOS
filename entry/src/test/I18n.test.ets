@@ -32,20 +32,24 @@ const REFERENCE_KEY_COUNT: number = 180;
  */
 const LOCAL_ADDITION_COUNT: number = 6;
 /**
- * 本工程新增：原生重写 UI 文案 51 个（ui_ 命名空间）。
- * ticket 03 加了 4 个（tab/空态/刷新）；ticket 04 加了 20 个（公告详情的日期模式 +
- * 星期词表 + 月份词表）；ticket 07 加了 1 个（登记页的提交前自检提示）；
- * ticket 09 加了 2 个（公告卡片两个状态图标的无障碍文案），见 scripts/i18n-ui-strings.mjs。
+ * 本工程新增：原生重写 UI 文案（ui_ 命名空间）。
+ * ticket 01/02 24 个（自检卡片 / 令牌 / 导出日志 / 语言切换等基础界面）；
+ * ticket 03 4 个（tab / 空态 / 刷新）；ticket 04 20 个（公告详情的日期模式 +
+ * 星期词表 + 月份词表）；ticket 07 1 个（登记页的提交前自检提示）；
+ * ticket 09 2 个（公告卡片两个状态图标的无障碍文案）；
+ * ticket 12 8 个（课程三个计数标签 / 学期文案 / 空态 / 错误 / 覆盖标记）；
+ * ticket 10 22 个（作业列表与详情）—— 见 scripts/i18n-ui-strings.mjs。
  */
-const UI_STRING_COUNT: number = 59;
+const UI_STRING_COUNT: number = 81;
 /** 迁移后的资源键总数（也是 I18N_KEY_COUNT 的期望值）。 */
-const TOTAL_KEY_COUNT: number = 245;
+const TOTAL_KEY_COUNT: number = 267;
 
 const REFERENCE_SAMPLE: string[] = ['loh_back', 'loh_notices', 'loh_assignments', 'loh_files', 'loh_courses'];
 const LOCAL_ADDITIONS: string[] = ['loh_fall', 'loh_spring', 'loh_summer'];
 const UI_SAMPLES: string[] = [
   'ui_app_name', 'ui_language', 'ui_export_logs', 'ui_exported',
-  'ui_notice_publish_time', 'ui_weekday_thursday', 'ui_month_sep'
+  'ui_notice_publish_time', 'ui_weekday_thursday', 'ui_month_sep',
+  'ui_assignments_empty', 'ui_assignment_past_due', 'ui_assignment_graded_by_at'
 ];
 
 const SECOND: number = 1000;

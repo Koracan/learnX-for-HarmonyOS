@@ -977,6 +977,94 @@
       "value": "Evidence override active"
     },
     {
+      "name": "ui_assignments_empty",
+      "value": "No assignments"
+    },
+    {
+      "name": "ui_assignments_none_unfinished",
+      "value": "No unfinished assignments"
+    },
+    {
+      "name": "ui_assignments_none_finished",
+      "value": "No finished assignments"
+    },
+    {
+      "name": "ui_assignments_load_failed",
+      "value": "Failed to load assignments: %1$s"
+    },
+    {
+      "name": "ui_assignment_upcoming",
+      "value": "Not due"
+    },
+    {
+      "name": "ui_assignment_past_due",
+      "value": "Past due"
+    },
+    {
+      "name": "ui_assignment_deadline",
+      "value": "Deadline"
+    },
+    {
+      "name": "ui_assignment_late_deadline",
+      "value": "Late submission due"
+    },
+    {
+      "name": "ui_assignment_description",
+      "value": "Description"
+    },
+    {
+      "name": "ui_assignment_grade",
+      "value": "Grade"
+    },
+    {
+      "name": "ui_assignment_answer",
+      "value": "Answer"
+    },
+    {
+      "name": "ui_assignment_submitted_at",
+      "value": "Submitted at %1$s"
+    },
+    {
+      "name": "ui_assignment_submitted_late_at",
+      "value": "Submitted late at %1$s"
+    },
+    {
+      "name": "ui_assignment_graded_at",
+      "value": "Graded at %1$s"
+    },
+    {
+      "name": "ui_assignment_graded_by_at",
+      "value": "Graded by %1$s at %2$s"
+    },
+    {
+      "name": "ui_assignment_attachment_label",
+      "value": "Assignment attachment"
+    },
+    {
+      "name": "ui_assignment_submitted_attachment_label",
+      "value": "Submitted attachment"
+    },
+    {
+      "name": "ui_assignment_grade_attachment_label",
+      "value": "Grade attachment"
+    },
+    {
+      "name": "ui_assignment_answer_attachment_label",
+      "value": "Answer attachment"
+    },
+    {
+      "name": "ui_assignment_submitted_mark_label",
+      "value": "Submitted"
+    },
+    {
+      "name": "ui_assignment_graded_mark_label",
+      "value": "Graded"
+    },
+    {
+      "name": "ui_assignment_answer_mark_label",
+      "value": "Has answer"
+    },
+    {
       "name": "ui_enrollment_fingerprint_not_ready",
       "value": "The browser fingerprint is not ready yet, so signing in now would not register this browser as trusted (the server would report a private/anonymous browser). Wait a few seconds and tap sign in again; if it keeps happening, close this page and sign in again."
     }

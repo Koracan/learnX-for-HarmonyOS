@@ -28,6 +28,7 @@ import sessionRestoreTest from './SessionRestore.test';
 import noticeRepositoryTest from './NoticeRepository.test';
 import courseCountsTest from './CourseCounts.test';
 import courseDataTest from './CourseData.test';
+import assignmentListTest from './AssignmentList.test';
 
 export default function testsuite() {
   semesterTest();
@@ -56,4 +57,5 @@ export default function testsuite() {
   noticeRepositoryTest();
   courseCountsTest();
   courseDataTest();
+  assignmentListTest();
 }

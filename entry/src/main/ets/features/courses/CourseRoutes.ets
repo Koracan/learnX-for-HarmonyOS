@@ -16,8 +16,12 @@ export const ROUTE_COURSE_DETAIL: string = 'CourseDetail';
 /** 学期切换路由名。 */
 export const ROUTE_SEMESTER_SELECTION: string = 'SemesterSelection';
 
-/** 作业详情路由名（ticket 12 只交付"路由 + 占位页"，真身在 ticket 10）。 */
-export const ROUTE_ASSIGNMENT_DETAIL: string = 'CourseAssignmentDetail';
+/*
+ * 作业详情的路由名**已移到 `features/assignments/AssignmentRoutes.ets`**（ticket 10）：
+ * ticket 12 曾在这里定义 `ROUTE_ASSIGNMENT_DETAIL` 与一个扁平参数子集供占位页用，
+ * 真身落地后路由名与参数（完整 `Assignment`）都收敛到作业那条线，课程详情页改从那里导入。
+ * 这样"作业详情"只有一份路由常量与一个页面。
+ */
 
 /** 文件详情路由名（ticket 12 只交付"路由 + 占位页"，真身在 ticket 11）。 */
 export const ROUTE_COURSE_FILE_DETAIL: string = 'CourseFileDetail';
@@ -40,22 +44,7 @@ export interface CourseDetailRouteParams {
   courseTeacherName: string;
 }
 
-/** 作业详情参数（占位页逐项显示，便于 layout dump 核对"点进去的是这一条"）。 */
-export interface AssignmentDetailRouteParams {
-  id: string;
-  baseId: string;
-  title: string;
-  courseId: string;
-  courseName: string;
-  courseTeacherName: string;
-  deadline: string;
-  submitTime: string;
-  submitted: boolean;
-  graded: boolean;
-  url: string;
-}
-
-/** 文件详情参数（同上）。 */
+/** 文件详情参数（占位页逐项显示，便于 layout dump 核对"点进去的是这一条"）。 */
 export interface CourseFileDetailRouteParams {
   id: string;
   fileId: string;

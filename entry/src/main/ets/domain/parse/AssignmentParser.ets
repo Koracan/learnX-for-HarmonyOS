@@ -2,7 +2,8 @@
  * 作业响应解析——**纯函数，零平台依赖**（见 scripts/check-domain-purity.mjs）。
  *
  * 移植自参考实现 DataProcessorModule.ts 的 `fetchAssignments` 与 `processAssignments`：
- *   - 列表记录字段映射（xszyid / zyid / wlkcid / bt / jzsj / bjjzsj / sfbj / zywcfs / zytjfs / scsj / cj / jsm / pynr）；
+ *   - 列表记录字段映射（xszyid / zyid / wlkcid / bt / jzsj / bjjzsj / sfbj / zywcfs / zytjfs / scsj / cj / jsm / pynr / pysj）；
+ *   - `cj` 的两副面孔：分数（`grade`）与**等级代码**（`gradeLevel`，见 `gradeLevelOf`）；
  *   - 详情页四类附件块（附件 / 答案 / 已提交 / 成绩）的顺序与 thu-learn-lib
  *     `parseHomeworkAtUrl` 一致（fileDivs[0..3]）；
  *   - 三类正文：描述（JSON 详情 `msg`）、已提交正文、答案正文；
@@ -26,9 +27,60 @@ export interface RawAssignment {
   zywcfs?: string;
   zytjfs?: string;
   scsj?: string;
+  /** 批改时间（参考实现 thu-learn-lib 与之同名字段）。 */
+  pysj?: string;
   cj?: number | string;
   jsm?: string;
   pynr?: string;
+}
+
+/**
+ * 成绩代码 → 等级（thu-learn-lib `GRADE_LEVEL_MAP` 的逐条移植）。
+ *
+ * 参考实现（`node_modules/thu-learn-lib/lib/module/index.js:879`）是
+ * `gradeLevel: GRADE_LEVEL_MAP.get(h.cj)`，表在 `utils.js:39`。**值原样照抄**
+ * （'checked' / 'distinction' / 'exempted course' …），因为本地化映射在参考实现里是
+ * 另一层（`helpers/i18n.ts` 的 `assignmentGradeLevelDescriptionMap`，只覆盖 7 个键）。
+ *
+ * 表里没有的代码返回 `undefined` —— 界面对这种记录回退显示数字成绩（照参考实现的
+ * `gradeLevel ? ... : grade`）。
+ */
+export function gradeLevelOf(cj: number | string | undefined | null): string | undefined {
+  if (cj === undefined || cj === null) {
+    return undefined;
+  }
+  const code: number = typeof cj === 'number' ? cj : Number(cj);
+  if (Number.isNaN(code)) {
+    return undefined;
+  }
+  switch (code) {
+    case -100: return 'checked';
+    case -99: return 'A+';
+    case -98: return 'A';
+    case -92: return 'A-';
+    case -87: return 'B+';
+    case -85: return 'distinction';
+    case -82: return 'B';
+    case -78: return 'B-';
+    case -74: return 'C+';
+    case -71: return 'C';
+    case -68: return 'C-';
+    case -67: return 'G';
+    case -66: return 'D+';
+    case -64: return 'D';
+    case -65: return 'exempted course';
+    case -63: return 'pass';
+    case -62: return 'EX';
+    case -61: return 'exemption';
+    case -60: return 'pass';
+    case -59: return 'failure';
+    case -55: return 'W';
+    case -51: return 'I';
+    case -50: return 'incomplete';
+    case -31: return 'NA';
+    case -30: return 'F';
+    default: return undefined;
+  }
 }
 
 /** 作业详情页解析结果：三类正文 + 四类附件。 */
@@ -196,11 +248,14 @@ export function parseAssignment(
   if (xszyid !== undefined) {
     assignment.studentHomeworkId = xszyid;
   }
-  if (raw.bjjzsj !== undefined && raw.bjjzsj !== null && raw.bjjzsj.length > 0) {
-    assignment.lateSubmissionDeadline = raw.bjjzsj;
+  // 三个时间字段与 jzsj 同一现象：站点把它们下发成 epoch 毫秒**数字**（2026-09-12 实测
+  // `scsj=1780143131000`、`pysj=1780243140000`、jzsj 57/57 条）。参考实现在渲染层用
+  // dayjs(...) 吃掉数字，本工程统一在解析层规范化成 `YYYY-MM-DD HH:mm`（与 deadline 同一函数）。
+  if (raw.bjjzsj !== undefined && raw.bjjzsj !== null) {
+    assignment.lateSubmissionDeadline = normalizeDeadline(text(raw.bjjzsj));
   }
   if (raw.scsj !== undefined && raw.scsj !== null) {
-    assignment.submitTime = raw.scsj;
+    assignment.submitTime = normalizeDeadline(text(raw.scsj));
   }
   if (raw.cj !== undefined && raw.cj !== null) {
     const grade: number = Number(raw.cj);
@@ -210,6 +265,14 @@ export function parseAssignment(
   }
   if (raw.jsm !== undefined && raw.jsm !== null) {
     assignment.graderName = raw.jsm;
+  }
+  // 等级与批改时间（参考实现 index.js:879,882 的 `gradeLevel` / `gradeTime`）。
+  const level: string | undefined = gradeLevelOf(raw.cj);
+  if (level !== undefined) {
+    assignment.gradeLevel = level;
+  }
+  if (raw.pysj !== undefined && raw.pysj !== null) {
+    assignment.gradeTime = normalizeDeadline(text(raw.pysj));
   }
   return assignment;
 }

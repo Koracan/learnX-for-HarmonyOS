@@ -70,8 +70,22 @@ export interface Assignment extends CourseOwned {
   /** 提交页地址。 */
   submitUrl: string;
   submitTime?: string;
+  /** 站点下发的成绩（`cj` 的数值形态）；`undefined` = 未评分。 */
   grade?: number;
+  /**
+   * 成绩的**等级**形态（thu-learn-lib `GRADE_LEVEL_MAP.get(cj)` 的等价物）。
+   *
+   * `cj` 除了分数（如 88）还会下发**等级代码**（如 -100 = 已阅、-85 = 优秀、
+   * -63 = 通过、-59 = 不通过、-50 = 缓考、-61/-65 = 免修/免课）。
+   * 参考实现的详情页优先显示等级（`gradeLevel ? getAssignmentGradeLevelDescription(...) : grade`，
+   * AssignmentDetail.tsx:263-269）；ticket 05 漏了这一格，ticket 10 按同一张表补上。
+   * 取值为 thu-learn-lib `HomeworkGradeLevel` 的字符串（'checked' / 'distinction' / 'A+' …），
+   * 表里没有的代码为 `undefined`（此时界面回退显示数字成绩）。
+   */
+  gradeLevel?: string;
   graderName?: string;
+  /** 批改时间（`pysj`）；与 `deadline` 一样已规范化为 `YYYY-MM-DD HH:mm`（或原样字符串）。 */
+  gradeTime?: string;
   /** 来自列表接口的 pynr 字段。 */
   gradeContent: string;
   submittedContent: string;
