@@ -6,7 +6,7 @@
 
 **Blocked by:** None（ticket 02 已合并，`OPEN_IN_NEW` 与它的码位/fallback 都在）
 
-**Status:** verified-partial（合并 `863b066`）：补证两条残留已闭合；补证轮发现 `type=general.file` 使入口**必然失败**，据此修订裁定并派补证轮 2
+**Status:** verified（机制 `3c76f9f` + 外跳不带 type 的轮 2 `791f242`；PDF 成功路径设备实测渲染。ZIP 落到文件管理主页一项登记为候选）
 
 - [x] 先读参考实现确认它到底做了什么：是 `Linking.openURL(fileUri)`、还是系统分享面板、还是 `startAbility` 带 want。
       **别猜**；把读到的出处（文件 + 行为）写进交付说明。若参考实现根本没有这个动作（只是引入了图标），就**如实说明并降级**为"不做动作"，不要为了凑验收造一个。
@@ -63,5 +63,15 @@
 - **仍未证之处（如实）**：接收方能否真的**读到**应用沙箱里的那个文件（`FLAG_AUTH_READ_URI_PERMISSION` 是否被系统兑现）—— shell 侧复现不了，只能应用里点一次才知道。⇒ 已作为补证轮 2 的必测项。
 
 **另记一条现场事实**：外跳按钮位置**随文件类型变化** —— PDF 可预览 ⇒ 顶栏多一枚「详情 / 预览」，外跳从 ZIP 帧的 `Stack [2768,102,2848,182]` 移到 `[2664,102,2744,182]`（按码位认人：`820 返回 / 2352 全屏 / 2456 刷新 / 2560 分享 / 2664 外跳 / 2768 详情`）。写死坐标的验收脚本要按类型取。
+
+### 2026-09-13 · 补证轮 2 复核：**verified**（合并 `791f242`）
+
+- **改动面只有一处调用点**（`FileDetailPage.ets` +15/−6）：`openExternally()` 的 want 不带 type（`externalOpenIntent(uri, '')`），"空 type 不进 Want"的守卫保留；`shareUtd()` 注释改准为**只服务分享**，**分享逻辑零改动**；`domain/files/ExternalOpen.ets` 与它的单测未动；失败分支未动。我读 diff 确认过。
+- **成功路径拿到，而且我亲眼看了那一帧**：`13-external-open-pdf-rendered.png` 里浏览器打开的是 `file:///storage/Users/currentUser/appdata/el2/base/com.koracan.learnOH/haps/entry/cache/learnX-files/…Homework12.pdf`，**PDF 正文渲染出来了**（`Homework 12` / `Deadline: June 15, 2026` / `CLRS (4th Edition), Problems 26-2。` / 实验二选一…），页码 `1 / 1`、`100%`。⇒ 我上一轮钉的那个未知 —— **接收方到底能不能读到应用沙箱里的文件** —— 被正面回答：`FLAG_AUTH_READ_URI_PERMISSION`（`flags=1`）确实被兑现。
+- **门禁**：单测 `422`（`test_result.txt` 时间戳 `13:49:25`；基线 405 + ticket 12 的 17，本 ticket 的 5 条 `ExternalOpen` 仍在并全过）；`assembleHap` 搜 `ERROR`/`ErrorCode`/`COMPILE RESULT` 无命中；主树四门禁 PASS / OK（我在 `791f242` 上复跑）。
+- **ZIP 的行为我判为"接受、但必须记录"**：ZIP 被 `com.huawei.hmos.filemanager` 接住，却停在它自己的主页（`最近 0 项`）—— 即从"明确告诉用户没有应用能打开"变成"交给了一个不打开它的应用"。这是**接收方行为**（它那条无类型约束的 `viewData` skill 就是主页入口），不是 want 形状的问题（同一形状对 PDF 就成功了）。**我不为它再开一轮改代码**：要收掉它就得"先试具体类型、无候选再回退无类型"，而"扩展名 → 精确 UTD"所依赖的平台 API 在本工程实测抛 401（见 `shareUtd()` 注释），等于要自建类型表 —— 新增面、无验收条款。⇒ **登记为候选并报给账号所有者定夺**（证据：`13-external-open-handoff-zip.png`）。
+- **"无接收方 ⇒ 可读文案"这条现在在本机上不可达**：type-less 的 `viewData` 至少有 filemanager 与 browser 两个声明者，构造不出"没人接"的输入。它**不是没验过** —— 上一轮带 type 的产物上设备实测过（`13-external-open-no-handler.png` / `13-open-failure-note-persists.png`），而这次改动**没有碰那条分支**。按"改掉别人证据依赖的前提时两边都要留话"的规矩，就在这里留话：**该分支的代码证据仍在、设备证据来自带 type 的那一版产物**。
+- **一处应用外部的状态变更（如实记）**：`com.huawei.hmos.filemanager` 的首次隐私声明被点了一次「同意」—— 那是系统自带应用的首次运行确认，**不是设备级设置**。
+
 
 
