@@ -52,6 +52,16 @@ hvigor 入口：``C:/Program Files/Huawei/DevEco Studio/tools/hvigor/bin/hvigorw
 
 具体要跑哪些命令、以及"构建/测试假绿"的几种陷阱，见 `docs/agents/gates.md`。
 
+### 新 worktree 的一次性准备（2026-09-13 两条线各踩一次）
+
+`git worktree add` 出来的树**不是**开箱可构建的，两样都要补，否则会得到看起来很吓人的"红"，但那不是代码问题：
+
+1. **必须 `ohpm install`**（在树根跑）：否则 `test` **真的**失败（`Failed to resolve OhmUrl @ohos/hypium`）—— 这是真红，不是假红。
+2. **必须有 `reference/`**：主树里它是 junction 且被 git 忽略，`worktree add` 不会带过来；缺了会让 `check-i18n-keys` 与 `check-generated-fresh` 变红/退出 2。
+   接法（不改变 git 状态）：
+   `New-Item -ItemType Junction -Path '<tree>\reference' -Target 'D:\Koracan\source\harmony\learnOH\reference'`
+3. 每棵树有自己的 `entry/build` 与 hvigor 守护进程（并行构建互不覆盖）；删树前先按 `concurrency.md` 停掉该树的守护进程。
+
 ## `devecocli run` 的三条坑
 
 1. **必须作为后台作业运行**：应用启动后它仍保持运行，直到应用退出才返回——前台调用会一直挂住。
