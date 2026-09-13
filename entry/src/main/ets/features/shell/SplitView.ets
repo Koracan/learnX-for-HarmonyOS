@@ -103,6 +103,21 @@ export function resolveSplitViewActive(measuredWidth: number, measuredHeight: nu
   return effectiveWidth >= SPLIT_VIEW_BREAKPOINT_VP && isLandscape;
 }
 
+/**
+ * 底栏宽度：**分栏态取主栏宽度**（"底栏只占主栏"），**单栏态铺满整屏**（`'100%'`）。
+ *
+ * 判据复用既有的分栏开关（`SPLIT_VIEW_ACTIVE_KEY` 那一个布尔），**不新造断点**：
+ * 底栏与主栏同宽，右栏的详情就不会被一条横跨整屏的底栏割断。
+ *
+ * 抽成纯函数（而不是把三元写在组件里）是为了把两个分支钉进单测：本机模拟器不能旋转、
+ * 不能缩放窗口，平板恒为横屏 ⇒ **单栏态在平板上排不出来**，只能靠单测覆盖。
+ * 返回 `string | number`（`'100%'` 或 vp 数）而不引 ArkUI 的 `Length`，是为了让它
+ * 在 host 侧单测里也能编译（本模块的其它纯函数同样不依赖 ArkUI 类型）。
+ */
+export function bottomBarWidth(splitActive: boolean): string | number {
+  return splitActive ? SPLIT_VIEW_MASTER_WIDTH : '100%';
+}
+
 /** 迁移计划：主栈里"栈顶连续的详情段"要从第几条开始搬。 */
 export interface SplitMigrationPlan {
   /** 主栈里**保留**的路由条数（详情段之前的那些）。 */
