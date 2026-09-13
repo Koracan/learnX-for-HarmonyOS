@@ -1,6 +1,10 @@
-# learnOH
+<div align="center">
 
-HarmonyOS 原生（ArkTS / ArkUI）重写版本的 learnOH：原 [React Native for OpenHarmony](https://gitcode.com/openharmony-sig/ohos_react_native) 应用的功能迁移目标工程。
+<img src="./docs/assets/logo.png" alt="logo" width="128" height="128" />
+
+<h1>learnOH</h1>
+
+HarmonyOS 原生版本的 learnOH。
 
 > 注意：本应用只适用于清华大学学生。
 >
@@ -14,16 +18,6 @@ HarmonyOS 原生（ArkTS / ArkUI）重写版本的 learnOH：原 [React Native f
 
 - [在 AppGallery 下载 Download from AppGallery](https://appgallery.huawei.com/app/detail?id=com.koracan.learnOH)
 
-## 当前状态 Status
-
-工程骨架已搭建完成，可通过命令行构建并签名，但**功能尚未移植**：`entry` 模块目前只有 DevEco 模板生成的 Hello World 页面。
-
-- [x] 原生工程骨架（API 23 / HarmonyOS 6.1.0）
-- [x] 复用原有应用签名（release 证书与 Profile 与原应用完全一致）
-- [x] 命令行构建产出已签名产物
-- [x] 真机部署验证（HUAWEI MatePad Air，已安装启动并正常渲染）
-- [ ] 真实功能移植
-
 ## 环境要求 Requirements
 
 | 组件 | 版本 | 说明 |
@@ -32,25 +26,6 @@ HarmonyOS 原生（ArkTS / ArkUI）重写版本的 learnOH：原 [React Native f
 | HarmonyOS SDK | API 23 / 6.1.0(23) | `targetSdkVersion` 与 `compatibleSdkVersion` |
 | devecocli | 1.3.2 | 由 `mise.toml` 固定，`devecocli` 命令 |
 | JDK | DevEco 自带 JBR | 签名工具依赖 |
-
-## 目录结构 Layout
-
-```
-.
-├── AppScope/                     # 应用级配置与图标（bundleName、versionCode 等）
-├── entry/                        # 主 HAP 模块
-│   └── src/main/
-│       ├── ets/                  # ArkTS 源码（entryability / pages / ...）
-│       ├── resources/            # 资源
-│       └── module.json5          # 模块声明（abilities、权限、deviceTypes）
-├── keys/                         # 签名材料（.gitignore 忽略，本机专用）
-├── reference/learnOH-old/        # 原 RN for OpenHarmony 工程（忽略，移植参考）
-├── build-profile.json5           # 签名配置与产物定义
-├── oh-package.json5              # ohpm 依赖
-└── mise.toml                     # 固定 devecocli 版本
-```
-
-应用标识与原应用保持一致：`com.koracan.learnOH`，版本 `1.1.0`（versionCode `1000042`），设备类型 `phone` / `tablet` / `2in1`。
 
 ## 构建 Build
 
