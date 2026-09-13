@@ -5,7 +5,7 @@
 
 **Blocked by:** None（可立即开始）
 
-**Status:** ready-for-agent
+**Status:** verified（统筹者**自己重做了同口径 A/B**：我的构建/我的装机下 修前 7/48 命中、修后 0/48；产物指纹 `9E0726FC…` 与它报的一致；见 2026-09-13 第三条 Comment）
 
 **判据**
 - [ ] **先复现并留帧**：分栏态下触发进入与退出，在动画**中间**各截至少一帧，帧里能看到越过分栏线的内容；同时记录分栏线位置（主栏宽 px）。
@@ -81,3 +81,25 @@
 4. **新 worktree 的既知假红**：`reference/` 在本树缺失时 `check-i18n-keys` 与 `check-generated-fresh` 会先红（`gates.md` 有记）。我用目录联接把主树的 `reference/` 接到本树后两个脚本转绿，`git status` 不受影响。
 
 **过程证据**：`.scratch/ui-optimize/evidence/15-split-right-pane-clip.md`（含抓帧脚本、判据窗口与阴性对照、逐帧数字、未做到项）。帧与 layout dump 只留本地不入库。
+
+### 2026-09-13 · 统筹者验收：**verified**（我把 A/B 自己做了一遍，包括阴性对照）
+
+**A. 我自己跑的同口径 A/B（用它的工具，我的构建、我的装机）**
+- 先装**我编的提交态产物**到 5559，跑 4 trial × 12 帧：`bleedFrames = 0/48`，其中 **22 帧右栏是 CONTENT**（⇒ 转场确实被采到了，0 不是"详情没打开"的假阴性）。
+- 再把六个文件回退到 `af163b4`（`git checkout af163b4 -- <6 files>`）、**由我重新构建并装机**，同样 4 trial × 12 帧：`bleedFrames = 7/48`（`Vbefore-0-3` 19623、`-0-4` 21733、`-1-3` 14348、`-1-4` 21733、`-2-3` 18568、`-3-3` 17724、`-3-4` 21733），同 22 帧 CONTENT。
+  ⇒ **判据的阳性对照在我手里也复现了**：这套采样能抓到越界，"修后 0"才有意义。越界块左缘随帧右移（410 → 510 → 430 → 446）也与它报的弹出签名一致。
+- 几何：稳定帧 `y=900` 的非白列只有 `786:C8C8C8 787:C3C3C3` ⇒ **分隔条仍是 2px、位置未动**。
+- 回退实验后我把六个文件还原到 `8db884c` 并复核 `git status` 为空。
+
+**B. 产物同一性**：我在它的树里自己 `assembleHap --no-incremental`，解包 `ets/modules.abc` = **1,784,036 B / `9E0726FC94B154D297C129C6B9E8059D02CA722A54EF19E02971C3D7EEF38B40`** —— 与它报的指纹一致 ⇒ 设备上跑的就是提交态。
+
+**C. 门禁（我在它的树里重跑）**：单测 `Tests run: 424, Failure: 0, Error: 0, Pass: 424`（`test_result.txt` mtime **16:46:34**，本轮；424 是因为它的基线是 `af163b4`，还没有 ticket 14 新增的 3 条）；
+`assembleHap` exit 0、搜 `ERROR:`/`ErrorCode`/`COMPILE RESULT` **各 0**；四脚本 domain-purity `PASS` / import-graph `PASS` / i18n `RESULT: OK` / generated-fresh `PASS`。**合并进 main 后的门禁会另行重跑（应为 427）**。
+
+**D. 改动复核**：`git diff af163b4...HEAD` 的代码部分是 **6 个文件 ×（2 行注释 + `.clip(true)`）**，纯增量、没有语义改动；没有新增/打开任何 `*_FOR_EVIDENCE`（文档里那几条命中是说明文字）；没碰 i18n、没图片、没 `.scratch/migration/**`；`.ets` 注释里没有工单/台账编号。
+
+**E. 合并**：`git merge wt/t15` 进 main（已含 t14、t16）**自动合并干净**（与那两张 ticket 在 5 个页面上重叠，但 hunk 不相邻）⇒ main = `1d19c44`。
+
+**F. 我认下的限制（它如实报了，我复核后同意）**：① 退出方向中间帧覆盖薄（修前 200 帧仅 16 帧右栏有内容）⇒ 修后 0 应读作"这套采样下未复现"；② 根因是反推的（"加 clip 后消失"成立，"NavDestination 被合成到矩形外"没有框架侧正面证据）；③ 只对公告 tab 逐帧扫描，另 5 页同模子落地未各自取证（搜索页分栏进详情本就是 `animated=false`）；④ 新 worktree 缺 `reference/` 会让两个 i18n 脚本假红 —— 这条与它报的 `ohpm install` 一起，值得补进 `docs/agents/environment.md`（`reference/` 那条 `gates.md` 已有）。
+
+**G. 过程**：它如实认了两件事 —— 派单缺路径时自己挑了树（根因是我的模板 bug，见 `docs/agents/concurrency.md`）、以及回退我迁过去的 WIP 前应当先问。两次都已记进规矩。
