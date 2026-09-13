@@ -10,7 +10,7 @@
 
 **Blocked by:** None（可立即开始）
 
-**Status:** open
+**Status:** verified
 
 **判据**
 
@@ -139,3 +139,55 @@ D. 门禁与纪律
    应用私有目录另有 4 个历史导出文件未清；设备权限状态未做任何永久修改
    （`READ_WRITE_DOWNLOAD_DIRECTORY` 仍是"已声明未授予"）；未点过退出登录，未动语言/分辨率/密度/时区；
    主树未动，未 merge / rebase / push。
+
+### 复核 Comment（统筹者，merge `fade90a`）
+
+**结论：通过。** 四条判据（A 目的地 / B 外部可见 / C 降级显式 / D 门禁与纪律）由**我自己**重做一遍，
+不采信实现者自报；下面每个数字都来自我这一轮的原始输出。
+
+**我独立重做的那一次导出**（不依赖实现者留下的文件）：关闭前 5557 的公共目录里只有实现者的 1 个文件
+（`learnOH-1789297382281.log`，15464 B，19:03）。我在设置页自己点了「导出日志为文本文件」，`ls -l` 前后对照：
+
+    before: total 20480 -> 1 个文件（19:03）
+    after : total 45056 -> + -rw-rw---- 1 20001006 file_manager 17082 2026-09-13 19:09 learnOH-1789297754146.log
+
+- **落点在公共目录**：属主 uid `20001006`（file_manager 一族）≠ 应用 uid `20020062`；同一时刻应用私有目录
+  `…/haps/entry/files/logs` 仍是原来 4 个文件、时间戳未变 ⇒ 这次成功没有落到私有目录。
+- **四路一致**（界面 / hilog / `ls -l` / `file recv`）：界面常驻行与 Toast 都是 `已导出 98 条 / 17082 字节`
+  ＋ `保存位置：/storage/Users/currentUser/Download/learnOH-1789297754146.log`；`file recv` 17082 B，
+  首行 `learnOH 日志导出`、第三行 `记录数: 98/500`；hilog `core.log.export`：`probe state=available`
+  → `authResults=[2] dialogShown=true errorReasons=[0] effective=not-requestable` → `plan outcome=exported-public`
+  → `wrote file … textLength=16766 writeSync=17082 statSize=17082`。
+- **字节数那处旧缺陷被独立证实**：同一份文本 `charLength=16766`，落盘 `17082` —— 旧实现报 `text.length`，
+  界面会显示 16766 而 `ls -l` 显示 17082；现在界面 / hilog / `ls -l` / `recv` 四处同为 17082。
+- **权限弹窗没有出现**（19:09 的帧里只有 Toast），与 `authResults=[2]` 吻合：这条路线在本机无需授权即可直写。
+
+**对上一轮一处前提的纠正（与 ticket 18 的残留相关）**：本机实测 shell（`uid=2000`，属组含 `file_manager`）
+用物理路径 `/data/app/el2/100/base/com.koracan.learnOH/haps/entry/files/logs` **列得到**应用私有目录里的 4 个
+历史导出文件；而 `/data/app/el1/bundle/public/com.koracan.learnOH`（装好的 hap）是 `Permission denied`。
+⇒ 我此前「应用私有沙箱在 hdc 里看不到」的说法不成立；能站住的判据是**落点在不在公共目录**（路径 + 属主 uid 两处都变），
+本 ticket 用的正是这个。对**用户**而言，「私有降级时文件管理器里看不到」仍然成立。
+
+**门禁（两处都是我自己跑的）**：
+- 工树 `wt/t19`（HEAD `b7817dd`）：`Tests run: 452, Failure: 0, Error: 0, Pass: 452, Ignore: 0`，
+  test_result.txt mtime 19:08:37；`assembleHap --no-incremental` BUILD SUCCESSFUL ×1，ERROR / ErrorCode / COMPILE RESULT = 0；
+  四脚本 PASS / PASS / RESULT: OK / PASS；解包 `ets/modules.abc` SHA256 `AA5A52F9…`、1840928 B —— 与实现者自报逐字一致。
+- 合并后主树 `fade90a`：`Tests run: 452 …`（mtime 19:10:47），assemble 同样 BUILD SUCCESSFUL 且 0 错误，四脚本全绿，`git status` 干净。
+  （跨树的 `modules.abc` 指纹不可比是本工程已知口径，这里只用来证明「同一棵树内实现者与复核者跑出同一个产物」。）
+
+**合并过程**：唯一冲突是本 ticket 文件（add/add）—— 两侧前 78 行是同一份派单正文，工树在其后追加了实现 Comment；
+取工树版本，与合并前主体的差异是 `60 insertions, 1 deletion`，那 1 行删除是文件末尾「无换行符」的那一行本身（文本保留）。
+
+**接受的残留（不阻塞收口）**：
+1. 降级那一幕在本机**没有自然触发条件**（直写总是成功），交付版的降级判据是 11 条单测里的 6 条；
+   实现者在 18:59 的**中间构建**上拍过降级帧，但那一版把「不受理」误当「被拒绝」，不能当作交付版的证据。
+2. `authResults=[2]` 与 `errorReasons=[0]` 自相矛盾未解释；真机（API 24）的权限行为未验；英文文案未取帧。
+3. 装好的 hap 取不到（`/data/app/el1/bundle/public/…` shell 无权限 ⇒ 无法用哈希把设备产物钉到源树）；
+   本轮产物身份由**只有新代码才会打的 hilog 标签**（`core.log.export` / `log export reported:`）与**新落点**共同确立。
+4. 小 nit：`LogExportFallback.NO_PRIVATE_DIR` 的 reason 是英文硬编码（平台错误串同样原样透出），
+   但该分支只在 `filesDir` 为空时才会走到，实践中不可达。
+
+**我复核后的设备与工作区状态**：5557 上我取回并删除了公共目录里的 **2 个**测试文件
+（现在 `/storage/media/100/local/files/Docs/Download` 为空；两份文件已存到本地证据目录 `orchestrator-round4/`）；
+应用私有目录 4 个历史文件未清；未点退出登录，未改任何永久设置；设备锁已释放。
+主树 `fade90a`，工作区干净，领先 `origin/main` 62。
