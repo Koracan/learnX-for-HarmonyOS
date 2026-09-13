@@ -32,6 +32,7 @@ import assignmentListTest from './AssignmentList.test';
 import excellentHomeworkTest from './ExcellentHomework.test';
 import assignmentSubmissionTest from './AssignmentSubmission.test';
 import fileDownloadTest from './FileDownload.test';
+import externalOpenTest from './ExternalOpen.test';
 import updatedTimeTest from './UpdatedTime.test';
 import iconCatalogTest from './IconCatalog.test';
 import favoritesTest from './Favorites.test';
@@ -70,6 +71,7 @@ export default function testsuite() {
   excellentHomeworkTest();
   assignmentSubmissionTest();
   fileDownloadTest();
+  externalOpenTest();
   updatedTimeTest();
   iconCatalogTest();
   favoritesTest();

@@ -158,6 +158,12 @@ export const UI_STRINGS = [
     '该文件类型不支持应用内预览，可下载后分享给其他应用。',
     'This file type cannot be previewed in the app; download it and share it with another app.'],
   ['ui_file_share_failed', '分享失败：{0}', 'Share failed: {0}'],
+  // 文件详情的「交给系统打开方式」：文件还没落盘时点它要给一句可读的话，而不是什么都不发生。
+  // 交给系统之后失败的文案复用参考实现已有的 loh_open_file_failed —— 它已经说了
+  // "确保存在可打开此文件类型的应用"，正是设备上没有接收方时的原因。
+  ['ui_file_open_not_ready',
+    '文件尚未下载完成，暂时不能交给其他应用打开。',
+    'The file has not finished downloading, so it cannot be handed to another app yet.'],
   ['ui_file_saved_at', '保存位置：{0}', 'Saved at: {0}'],
   // 详情页右上角那个"详情 / 预览"开关（参考实现用 preview / info-outline 两个图标）。
   ['ui_file_view_info', '详情', 'Info'],

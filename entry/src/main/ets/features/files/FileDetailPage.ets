@@ -10,7 +10,7 @@
  * | 进度条 | `<ProgressBar progress={progress}/>`（库的 `bytesWritten` **恒为 0**） | 平台 HTTP 层 `dataReceive` 的**真实**字节数 + `Content-Length`；无 Content-Length 时不显示百分比 |
  * | PDF 预览 | `react-native-pdf` 的 `<Pdf>` :170-175 | **HMS PDFKit** 的 `PdfView` + `loadDocument(path)` |
  * | 图片预览 | `<WebView source={{uri:'file://'+path}}/>` :176-188 | ArkUI **`Image`** + `image.createPixelMap(path)` |
- * | 其他类型 | 信息面板（标题/类型/体积/描述）+ 分享 + **跳系统打开方式** | 信息面板 + 分享；**不再外跳**（有意偏离） |
+ * | 其他类型 | 信息面板（标题/类型/体积/描述）+ 分享 + **跳系统打开方式** | 信息面板 + 分享 + **交给系统打开方式**（`FileViewer.open(..., {showOpenWithDialog:true})` 的对应物 = viewData want） |
  * | 会话过期 | 落盘后按"小文件含 `<html`"猜 | 落盘前按 `Content-Type` 判定 → 不落盘 + `loh_session_expired` |
  *
  * 描述/体积：附件来源没有 `description`（`Attachment` 里就没有这个字段），
@@ -18,7 +18,7 @@
  * 下载完成后显示**落盘真实字节数**格式化后的值（参考实现 :73-75 同一行为）。
  */
 
-import { common, ConfigurationConstant } from '@kit.AbilityKit';
+import { common, ConfigurationConstant, Want } from '@kit.AbilityKit';
 import { image } from '@kit.ImageKit';
 import { uniformTypeDescriptor } from '@kit.ArkData';
 import { BusinessError } from '@kit.BasicServicesKit';
@@ -30,6 +30,7 @@ import { i18nService } from '../../core/i18n/I18n';
 import { Logger } from '../../core/log/Logger';
 import { COLOR_MODE_KEY, LOCALE_VERSION_KEY } from '../../entryability/EntryAbility';
 import { cacheKeyFor, fileKindOf, FileKind, formatSize } from '../../domain/files/FilePath';
+import { canOpenExternally, ExternalOpenIntent, externalOpenIntent } from '../../domain/files/ExternalOpen';
 import { isSessionLossReason } from '../../domain/files/FileDownloadPolicy';
 import { removeTags } from '../../domain/render/WebViewTemplate';
 import { FileDownloadOutcome, FileDownloadRequest } from '../../data/files/FileDownloader';
@@ -86,6 +87,15 @@ export struct FileDetailPage {
   @State errorText: string = '';
   @State showInfo: boolean = false;
   @State previewError: string = '';
+  /**
+   * 「外跳」动作的反馈文案：空串 = 不显示。
+   *
+   * 与下载失败同一口径 —— 失败原因**留在页面上**（下载失败用整页错误态，这里用顶栏下方一行），
+   * 而不是弹 2 秒就消失的 toast：用户要能重读那句话。
+   */
+  @State openNote: string = '';
+  /** 上面那行是不是"出错了"（决定用错误色还是次要文字色）。 */
+  @State openNoteIsError: boolean = false;
   @State pixelMap: image.PixelMap | undefined = undefined;
   @State settingsSummary: string = '';
   /**
@@ -172,6 +182,8 @@ export struct FileDetailPage {
     this.errorText = '';
     this.previewError = '';
     this.previewUnsupported = false;
+    this.openNote = '';
+    this.openNoteIsError = false;
     this.pixelMap = undefined;
     const request: FileDownloadRequest = this.request(refresh);
     try {
@@ -221,7 +233,7 @@ export struct FileDetailPage {
    * 应用内预览：
    *   - PDF → `PdfController.loadDocument(path)`（HMS PDFKit），失败时**如实报错**；
    *   - 图片 → `image.createPixelMap(path)` → `Image(pixelMap)`。
-   * 两条都不跳第三方应用（有意偏离参考实现的"打开"动作）。
+   * 两条都在**应用内**渲染，与顶栏那个"交给系统打开方式"的动作互不影响（预览在，外跳也在）。
    */
   private async loadPreview(): Promise<void> {
     const kind: FileKind = this.kind();
@@ -332,6 +344,64 @@ export struct FileDetailPage {
     }
   }
 
+  /** 「外跳」可用判据：下载成功且文件已落盘（纯函数在 domain/files/ExternalOpen）。 */
+  private openReady(): boolean {
+    return canOpenExternally(this.phase === FileDetailPhase.READY, this.localPath);
+  }
+
+  /**
+   * 「外跳」：把**已落盘**的文件交给系统打开方式。
+   *
+   * 语义取自参考实现 `FileDetail.tsx:84-90` → `helpers/fs.ts:171-179` 的
+   * `FileViewer.open(path, { showOpenWithDialog: true })`：**由系统决定用什么打开**，
+   * 不是打开一个 URL，也不是分享（分享是旁边那个按钮）。平台对应物是一条
+   * `ohos.want.action.viewData` 的隐式 want，参数构造在 domain 里（可单测），
+   * 这里只做两件测不了的事：按路径生成 uri、把 want 交给 `startAbility`。
+   *
+   * **失败要说话**：设备上没有任何应用声明能读这个类型时 `startAbility` 会抛，
+   * 这时把原因留在页面上（含错误码打点），不静默返回。文件还没落盘时同理 ——
+   * 按钮照常可点，点了给一句"还没下载完成"，而不是什么都不发生。
+   */
+  private async openExternally(): Promise<void> {
+    this.openNote = '';
+    this.openNoteIsError = false;
+    if (!this.openReady()) {
+      this.openNote = i18nService.t('ui_file_open_not_ready');
+      logger.info('file detail external open skipped: no local copy yet, path="' + this.localPath + '"');
+      return;
+    }
+    // 逐步打点：平台在这一步可能抛（没有接收方 / 参数不合法），要能分清是哪一步。
+    let step: string = 'getUriFromPath';
+    try {
+      const uri: string = fileUri.getUriFromPath(this.localPath);
+      logger.info('file detail external open uri: ' + uri);
+      step = 'utd';
+      const intent: ExternalOpenIntent = externalOpenIntent(uri, this.shareUtd());
+      logger.info('file detail external open want: action=' + intent.action + ' type=' + intent.type
+        + ' flags=' + intent.flags.toString() + ' entities=' + intent.entities.length.toString());
+      const want: Want = {
+        action: intent.action,
+        uri: intent.uri,
+        entities: intent.entities,
+        flags: intent.flags
+      };
+      if (intent.type.length > 0) {
+        want.type = intent.type;
+      }
+      step = 'startAbility';
+      const context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
+      await context.startAbility(want);
+      logger.info('file detail external open handed to the system: uri=' + uri);
+    } catch (error) {
+      const business: BusinessError = error as BusinessError;
+      const code: string = business.code === undefined ? 'none' : business.code.toString();
+      logger.error('file detail external open failed at step=' + step + ': code=' + code
+        + ' message=' + business.message);
+      this.openNote = i18nService.t('loh_open_file_failed');
+      this.openNoteIsError = true;
+    }
+  }
+
   /** 进度百分比；未知总量时返回 -1（界面据此走不确定进度，**不假装**百分比）。 */
   private progressPercent(): number {
     if (this.total <= 0 || this.received <= 0) {
@@ -383,7 +453,7 @@ export struct FileDetailPage {
   /**
    * 顶部工具栏。**不叫 toolbar**：那是 CustomComponent 继承来的属性方法名，重名会编译失败。
    *
-   * 四个动作都是图标；点击目标统一是外层 `Stack` 的 **40vp×40vp**（`sizes.controlHeight`）。
+   * 每个动作都是图标；点击目标统一是外层 `Stack` 的 **40vp×40vp**（`sizes.controlHeight`）。
    * 换图标**没有缩小点击区**：改动前每个按钮是一行 `labelLarge` 文字（行高约 20–24vp、
    * 宽度随文案），现在每个都是 40vp×40vp 的固定方框；图标本身按 `iconMedium`（24vp）居中。
    * **为什么点击加在 Stack 而不是 IconGlyph 上**：IconGlyph 是本工程的自定义组件，不给它链式挂
@@ -461,6 +531,22 @@ export struct FileDetailPage {
       .onClick(() => {
         this.share();
       })
+      // 「外跳」：把已落盘的文件交给系统打开方式（参考实现 headerRight 里的
+      // `open-in-new`，FileDetail.tsx:120-124）。点击区同样是外层 Stack 的
+      // 40vp×40vp；未落盘时图标走 outline 色，点了给一句可读说明（见 openExternally）。
+      Stack() {
+        IconGlyph({
+          icon: AppIcon.OPEN_IN_NEW, glyphSize: this.theme().sizes.iconMedium,
+          color: this.openReady() ? this.theme().colors.primary : this.theme().colors.outline,
+          label: this.s($r('app.string.loh_open'))
+        })
+      }
+      .width(this.theme().sizes.controlHeight)
+      .height(this.theme().sizes.controlHeight)
+      .margin({ left: this.theme().sizes.space3 })
+      .onClick(() => {
+        this.openExternally();
+      })
       if (this.previewable() && this.localPath.length > 0) {
         // 按钮的图标说的是**按下之后能看到什么**：正在看预览时给"详情"图标、给"预览"文案；
         // 正在看信息面板时反过来。文字按钮改成图标后，两态由图标的语义承载。
@@ -492,6 +578,25 @@ export struct FileDetailPage {
       top: this.theme().sizes.space3,
       bottom: this.theme().sizes.space3
     })
+  }
+
+  /** 「外跳」的反馈行：常驻，直到下一次打开动作或重新下载把它清掉。 */
+  @Builder
+  openNoteBar() {
+    Row() {
+      Text(this.openNote)
+        .fontSize(this.theme().typography.bodySmall.fontSize)
+        .fontColor(this.openNoteIsError ? this.theme().colors.error : this.theme().colors.onSurfaceVariant)
+        .layoutWeight(1)
+    }
+    .width('100%')
+    .padding({
+      left: this.theme().sizes.contentPadding,
+      right: this.theme().sizes.contentPadding,
+      top: this.theme().sizes.space2,
+      bottom: this.theme().sizes.space2
+    })
+    .backgroundColor(this.theme().colors.surfaceVariant)
   }
 
   @Builder
@@ -715,6 +820,9 @@ export struct FileDetailPage {
   build() {
     Column() {
       this.topBar()
+      if (this.openNote.length > 0) {
+        this.openNoteBar()
+      }
       if (this.phase === FileDetailPhase.DOWNLOADING) {
         this.progressBar()
       }
