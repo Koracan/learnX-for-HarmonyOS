@@ -705,16 +705,8 @@
       "value": "Immersive Mode"
     },
     {
-      "name": "loh_avoid_front_camera",
-      "value": "Avoid Front Camera"
-    },
-    {
       "name": "loh_immersive_mode_description",
       "value": "Hide the navigation bar and status bar. App restart required."
-    },
-    {
-      "name": "loh_avoid_front_camera_description",
-      "value": "Leave top space to avoid the front camera cutout. App restart required."
     },
     {
       "name": "loh_please_restart_app_to_apply_immersive",

@@ -1,6 +1,6 @@
 {
-  "total": 311,
-  "referenceCount": 180,
+  "total": 309,
+  "referenceCount": 178,
   "localCount": 8,
   "uiCount": 123,
   "referenceKeys": [
@@ -180,9 +180,7 @@
     "courseEventOmitLocation",
     "restartRequired",
     "immersiveMode",
-    "avoidFrontCamera",
     "immersiveModeDescription",
-    "avoidFrontCameraDescription",
     "pleaseRestartAppToApplyImmersive"
   ],
   "keys": [
@@ -1771,28 +1769,10 @@
       "origin": "reference"
     },
     {
-      "key": "avoidFrontCamera",
-      "name": "loh_avoid_front_camera",
-      "zhValue": "避让前置摄像头",
-      "enValue": "Avoid Front Camera",
-      "zhPlaceholders": [],
-      "enPlaceholders": [],
-      "origin": "reference"
-    },
-    {
       "key": "immersiveModeDescription",
       "name": "loh_immersive_mode_description",
       "zhValue": "隐藏导航栏和状态栏，需要重启应用",
       "enValue": "Hide the navigation bar and status bar. App restart required.",
-      "zhPlaceholders": [],
-      "enPlaceholders": [],
-      "origin": "reference"
-    },
-    {
-      "key": "avoidFrontCameraDescription",
-      "name": "loh_avoid_front_camera_description",
-      "zhValue": "在上部留出空间以避让挖孔区域，需要重启应用",
-      "enValue": "Leave top space to avoid the front camera cutout. App restart required.",
       "zhPlaceholders": [],
       "enPlaceholders": [],
       "origin": "reference"

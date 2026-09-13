@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import url from 'node:url';
-import { readDict } from './i18n-lib.mjs';
+import { RETIRED_REFERENCE_KEYS, isRetiredReferenceKey, readDict } from './i18n-lib.mjs';
 
 const here = path.dirname(url.fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
@@ -40,6 +40,7 @@ lines.push('  zh.ts keys : ' + zhKeys.length);
 lines.push('  en.ts keys : ' + enKeys.length);
 lines.push('  key sets identical: ' + String(JSON.stringify(zhKeys) === JSON.stringify(enKeys)));
 lines.push('  entries with a {N} placeholder: ' + String(keys.filter((k) => k.origin === 'reference' && (k.zhPlaceholders || []).length > 0).length));
+lines.push('  retired (not migrated on purpose): ' + String(RETIRED_REFERENCE_KEYS.length) + ' (' + RETIRED_REFERENCE_KEYS.join(', ') + ')');
 lines.push('');
 lines.push('generated resources:');
 for (const locale of ['base', 'zh_CN', 'en_US']) {
@@ -54,7 +55,9 @@ lines.push('  native-rewrite UI copy  : ' + String(manifest.uiCount));
 lines.push('  total                   : ' + String(manifest.total));
 lines.push('');
 const migrated = keys.filter((k) => k.origin === 'reference').length;
-const missing = zhKeys.filter((k) => !keys.some((r) => r.key === k)).length;
-lines.push('coverage: ' + String(migrated) + '/' + String(zhKeys.length) + ' reference keys migrated, ' + String(missing) + ' missing');
+const active = zhKeys.filter((k) => !isRetiredReferenceKey(k));
+const missing = active.filter((k) => !keys.some((r) => r.key === k)).length;
+lines.push('coverage: ' + String(migrated) + '/' + String(active.length) + ' active reference keys migrated, '
+  + String(missing) + ' missing (' + String(RETIRED_REFERENCE_KEYS.length) + ' retired, not counted)');
 lines.push('');
 console.log(lines.join('\n'));
