@@ -44,8 +44,6 @@ import { collectionFlagsStore } from '../marks/CollectionFlagsProvider';
 import { FileListStore } from './FileListStore';
 import { fileRepository } from './repository/FileRepositoryProvider';
 import { FileDetailPage } from './FileDetailPage';
-import { FileSettingsPage } from './FileSettingsPage';
-import { FileSettingsRouteParams, ROUTE_FILE_SETTINGS } from './FileRoutes';
 import { FileDetailRouteParams, ROUTE_FILE_DETAIL } from '../notices/NoticeRoutes';
 import { openSearch } from '../search/SearchEntry';
 import {
@@ -247,16 +245,6 @@ export struct FilesPage {
       ROUTE_FILE_DETAIL, this.paramsFor(file));
   }
 
-  private openSettings(): void {
-    const store: FileListStore | null = this.store;
-    const params: FileSettingsRouteParams = {
-      activeRoot: store === null ? '' : store.semesterId
-    };
-    // 文件设置也在参考实现的**详情**白名单里（SplitView.tsx:62），双栏时同样进右栏。
-    pushDetailFromMaster(this.stack, this.detailStack, this.splitActive,
-      ROUTE_FILE_SETTINGS, params);
-  }
-
   /**
    * 分栏开关翻转（消费点自证）：进分栏把主栈上的详情段搬到右栏、左栏回列表；
    * 退出分栏把右栏的详情搬回主栈（**本工程补做**）。
@@ -295,11 +283,12 @@ export struct FilesPage {
   }
 
   /**
-   * 页头（ticket 11.5 Part B，账号所有者点名）：**「标题 + 相对更新时间」同一行**。
+   * 页头：**「标题 + 相对更新时间」同一行**，最右侧是搜索入口。
    *
-   * 移除 `当前学期 <学期>` 那一行：学期**只在课程页**显示；文件列表每行本来就带课程名，
-   * 这里再写一遍学期是冗余。**保留**文件条数与"文件设置"入口（有信息量 / 有入口价值，
-   * 按账号所有者"别为了统一而删信息"的要求）。
+   * 学期**只在课程页**显示；文件列表每行本来就带课程名，这里再写一遍学期是冗余。
+   * 「文件设置」只留设置页那一条入口——页头再放一个就是同一功能的第二个入口。
+   * 文件条数不在这里显示：它没有标签、看不出在数什么，而下面五个筛选片上的计数
+   * 本来就带标签（全部 / 未读 / 收藏 / 已归档 / 已屏蔽）。
    */
   @Builder
   header() {
@@ -315,18 +304,7 @@ export struct FilesPage {
           .margin({ left: this.theme().sizes.space2 })
           .maxLines(1)
         Blank()
-        Text(this.store === null ? '0' : this.store.files.length.toString())
-          .fontSize(this.theme().typography.labelSmall.fontSize)
-          .fontColor(this.theme().colors.primary)
-          .margin({ right: this.theme().sizes.space3 })
-        // 文件设置入口（**本页自己的入口**；全局设置页的入口/外观归 ticket 17）。
-        Text(this.s($r('app.string.ui_file_settings_open')))
-          .fontSize(this.theme().typography.labelLarge.fontSize)
-          .fontColor(this.theme().colors.primary)
-          .onClick(() => {
-            this.openSettings();
-          })
-        // ticket 15：页头最右侧的搜索入口（参考实现的 headerRight）。
+        // 页头最右侧的搜索入口（参考实现的 headerRight）。
         SearchButton({
           isDark: this.isDark(),
           label: this.s($r('app.string.loh_search')),
@@ -588,11 +566,6 @@ export struct FilesPage {
     if (name === ROUTE_FILE_DETAIL) {
       NavDestination() {
         FileDetailPage({ params: param as FileDetailRouteParams, stack: stack })
-      }
-      .hideTitleBar(true)
-    } else if (name === ROUTE_FILE_SETTINGS) {
-      NavDestination() {
-        FileSettingsPage({ params: param as FileSettingsRouteParams, stack: stack })
       }
       .hideTitleBar(true)
     }

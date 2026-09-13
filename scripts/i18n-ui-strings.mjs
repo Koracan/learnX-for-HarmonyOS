@@ -177,7 +177,6 @@ export const UI_STRINGS = [
     '文件以"课程名-文件名"形式保存。',
     'Files are saved as "coursename-filename".'],
   ['ui_file_settings_root', '当前保存位置：{0}', 'Current save location: {0}'],
-  ['ui_file_settings_open', '文件设置', 'File settings'],
   // PDF 预览的翻页（`PdfView` 组件在模拟器上不可用，改用 pdfService 渲染单页 PixelMap，
   // 见 FileDetailPage 的 pdfDocument 字段说明）。
   ['ui_file_prev_page', '上一页', 'Previous page'],

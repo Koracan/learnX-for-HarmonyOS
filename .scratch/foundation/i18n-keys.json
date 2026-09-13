@@ -1,8 +1,8 @@
 {
-  "total": 309,
+  "total": 308,
   "referenceCount": 180,
   "localCount": 8,
-  "uiCount": 121,
+  "uiCount": 120,
   "referenceKeys": [
     "back",
     "notices",
@@ -2912,15 +2912,6 @@
       "enPlaceholders": [
         "{0}"
       ],
-      "origin": "ui"
-    },
-    {
-      "key": "__ui_file_settings_open",
-      "name": "ui_file_settings_open",
-      "zhValue": "文件设置",
-      "enValue": "File settings",
-      "zhPlaceholders": [],
-      "enPlaceholders": [],
       "origin": "ui"
     },
     {
