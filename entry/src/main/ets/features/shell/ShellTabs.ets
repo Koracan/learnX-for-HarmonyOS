@@ -23,7 +23,7 @@
  * 这里照做：根 `Column` 的 `onAreaChange` 量到的就是**本应用的渲染区**，比屏幕尺寸更贴近真实
  * 可用宽度（2in1 窗口化时两者会分叉）。判据与常量在 `./SplitView`，结果写进 AppStorage，
  * **消费点有两处**：每个 tab 页（订阅 `SPLIT_VIEW_ACTIVE_KEY` 决定单栏/双栏版式），
- * 以及本壳自己的底栏（分栏态收窄到主栏宽度，见 `bottomBarWidth`）。
+ * 以及本壳自己的底栏（分栏态收窄到主栏宽度、主栏被隐藏时取整屏，见 `bottomBarWidth`）。
  *
  * `Tabs + TabContent` 的选型**一字未改**：双栏只改每个 tab 内部的版式，
  * 五个 `TabContent` 子树照样不销毁（ticket 03 的"切 tab 保留浏览位置"因此不受影响）。
@@ -42,7 +42,8 @@ import {
   FORCE_DARK_FOR_EVIDENCE, FORCE_ENGLISH_FOR_EVIDENCE, logEvidenceSwitchState
 } from '../notices/repository/NoticeRepositoryProvider';
 import {
-  SPLIT_VIEW_ACTIVE_KEY, SPLIT_VIEW_BREAKPOINT_VP, bottomBarWidth, publishSplitViewDecision
+  SPLIT_VIEW_ACTIVE_KEY, SPLIT_VIEW_BREAKPOINT_VP, SPLIT_VIEW_MASTER_HIDDEN_KEY, bottomBarWidth,
+  publishSplitViewDecision
 } from './SplitView';
 import { SettingsPage } from '../settings/SettingsPage';
 import { SearchPage } from '../search/SearchPage';
@@ -117,6 +118,11 @@ export struct ShellTabs {
    * 同时在这里订阅它 —— 底栏宽度要跟着它变（见 bottomBarWidth）。
    */
   @StorageProp(SPLIT_VIEW_ACTIVE_KEY) splitActive: boolean = false;
+  /**
+   * 主栏是否被隐藏（文件详情的全屏按钮翻转它，见 `SPLIT_VIEW_MASTER_HIDDEN_KEY`）。
+   * 它优先于分栏开关：主栏不可见时底栏取整屏，不做一条只属于主栏的窄栏。
+   */
+  @StorageProp(SPLIT_VIEW_MASTER_HIDDEN_KEY) masterHidden: boolean = false;
   @State activeIndex: number = ShellTab.NOTICES;
 
   private tabsController: TabsController = new TabsController();
@@ -281,9 +287,9 @@ export struct ShellTabs {
         }
       })
     }
-    // 底栏宽度：分栏态 = 主栏宽度（'底栏只挂在左栏下方'，右栏的详情不被它割断）；
-    // 单栏态 = '100%'（横跨整屏，形态与改动前一致）。判据见 bottomBarWidth。
-    .width(bottomBarWidth(this.splitActive))
+    // 底栏宽度三档（优先级见 bottomBarWidth）：主栏被隐藏 → 整屏；分栏且主栏可见 → 主栏宽度；
+    // 单栏 → 整屏。
+    .width(bottomBarWidth(this.splitActive, this.masterHidden))
     .height(this.barHeight())
     .backgroundColor(this.theme().colors.surface)
     .border({ width: { top: this.theme().sizes.borderWidth }, color: this.theme().colors.outlineVariant })

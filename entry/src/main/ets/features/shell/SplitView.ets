@@ -104,17 +104,24 @@ export function resolveSplitViewActive(measuredWidth: number, measuredHeight: nu
 }
 
 /**
- * 底栏宽度：**分栏态取主栏宽度**（"底栏只占主栏"），**单栏态铺满整屏**（`'100%'`）。
+ * 底栏宽度，按**主栏是否可见**分三档，优先级自上而下：
  *
- * 判据复用既有的分栏开关（`SPLIT_VIEW_ACTIVE_KEY` 那一个布尔），**不新造断点**：
- * 底栏与主栏同宽，右栏的详情就不会被一条横跨整屏的底栏割断。
+ *   1. 主栏被隐藏（`SPLIT_VIEW_MASTER_HIDDEN_KEY` 为真，即文件详情的全屏态）⇒ `'100%'`。
+ *      这时主栏宽度已经收成 0；底栏若还取主栏宽度，左下方会留下一条没有归属的色带。
+ *      取整屏也就是回到改动前的形态。
+ *   2. 分栏态（`SPLIT_VIEW_ACTIVE_KEY` 为真）⇒ 主栏宽度："底栏只占主栏"，
+ *      右栏的详情不会被一条横跨整屏的底栏割断。
+ *   3. 其余（单栏态）⇒ `'100%'`，横跨整屏，形态与改动前一致。
  *
- * 抽成纯函数（而不是把三元写在组件里）是为了把两个分支钉进单测：本机模拟器不能旋转、
- * 不能缩放窗口，平板恒为横屏 ⇒ **单栏态在平板上排不出来**，只能靠单测覆盖。
+ * 两个判据都是既有的布尔（**不新造断点**）。抽成纯函数（而不是把分支写在组件里）是为了
+ * 把它钉进单测：本机模拟器不能旋转、不能缩放窗口，平板恒为横屏 ⇒ **单栏态在平板上排不出来**。
  * 返回 `string | number`（`'100%'` 或 vp 数）而不引 ArkUI 的 `Length`，是为了让它
  * 在 host 侧单测里也能编译（本模块的其它纯函数同样不依赖 ArkUI 类型）。
  */
-export function bottomBarWidth(splitActive: boolean): string | number {
+export function bottomBarWidth(splitActive: boolean, masterHidden: boolean): string | number {
+  if (masterHidden) {
+    return '100%';
+  }
   return splitActive ? SPLIT_VIEW_MASTER_WIDTH : '100%';
 }
 

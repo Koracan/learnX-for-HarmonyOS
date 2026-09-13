@@ -48,14 +48,20 @@ export default function splitViewTest() {
     });
 
     it('narrows the bottom tab bar to the master column only in split view', 0, () => {
-      // 分栏态：底栏与主栏同宽 —— 底栏只挂在左栏下方，右栏的详情不被它割断。
+      // 分栏态 + 主栏可见：底栏与主栏同宽 —— 底栏只挂在左栏下方，右栏的详情不被它割断。
       // 期望值就是主栏那个既有常量（393vp），不新造宽度。
-      expect(bottomBarWidth(true)).assertEqual(SPLIT_VIEW_MASTER_WIDTH);
-      expect(bottomBarWidth(true)).assertEqual(393);
+      expect(bottomBarWidth(true, false)).assertEqual(SPLIT_VIEW_MASTER_WIDTH);
+      expect(bottomBarWidth(true, false)).assertEqual(393);
       // 单栏态：仍横跨整屏（形态与改动前一致）。
-      expect(bottomBarWidth(false)).assertEqual('100%');
-      // 两个分支必须不同，否则"只在分栏态收敛"这条要求会静默失效。
-      expect(bottomBarWidth(true) === bottomBarWidth(false)).assertFalse();
+      expect(bottomBarWidth(false, false)).assertEqual('100%');
+      // 主栏被隐藏（文件详情全屏）：主栏已经收成 0，窄栏会在左下方留一条无归属的色带 ⇒ 取整屏。
+      expect(bottomBarWidth(true, true)).assertEqual('100%');
+      expect(bottomBarWidth(false, true)).assertEqual('100%');
+      // 优先级：主栏隐藏**压过**分栏开关（两个判据都真时取整屏，不是 393vp）。
+      expect(bottomBarWidth(true, true) === bottomBarWidth(true, false)).assertFalse();
+      // 只有"分栏且主栏可见"这一档才收窄，否则"只在分栏态收敛"这条要求会静默失效。
+      expect(bottomBarWidth(true, false) === bottomBarWidth(false, false)).assertFalse();
+      expect(bottomBarWidth(true, true) === bottomBarWidth(false, true)).assertTrue();
     });
 
     it('recognises the reference whitelist plus the immersive settings page', 0, () => {
