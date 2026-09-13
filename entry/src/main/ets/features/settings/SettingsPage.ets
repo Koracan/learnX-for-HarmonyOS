@@ -21,12 +21,14 @@
  *
  * ## 两处**增补**（参考实现没有）
  *
- *   1. **「导出日志」一行**（图标 `description`）：core/log/LogBuffer.ets 把
- *      `exportLogs()` 的调用方明确留给「settings 切片的「导出日志」」，本工程
- *      也列了它。带 Toast 反馈（`ui_exported` / `ui_export_failed`）；
- *      **导出的文件落在哪要看得见**：成功时 Toast 与列表下方那一行都给出
- *      `LogExportResult.path` 的**完整路径**（Toast 几秒就没了，留在屏幕上的那一行才是
- *      用户回头能查到的地方），失败分支仍只说原因（`ui_export_failed`，**不显示路径**）。
+ *   1. **「导出日志」一行**（图标 `description`）：core/log/LogExport.ets 的
+ *      `exportLogs()` 把日志写到**用户拿得到**的公共目录（运行时申请下载目录权限），
+ *      不可用时才显式降级到应用私有目录。带 Toast 反馈；
+ *      **导出的文件落在哪要看得见**：Toast 与列表下方那一行都给出落盘路径的
+ *      **完整路径**（Toast 几秒就没了，留在屏幕上的那一行才是用户回头能查到的地方）。
+ *      两种结局用两套文案：写入公共目录时说"已导出…保存位置"；降级到私有目录时
+ *      额外说清"文件管理器里看不到"以及为什么（权限被拒 / 平台不支持 / 目录不可写），
+ *      所以"导出去了但其实拿不到"不可能被误读成成功（见 core/log/LogExportTarget.ets）。
  *   2. **Mock 模式自证行**（只在 mock 用户下出现，见 mockBanner）：要求
  *      「不发起真实网络请求」**可证明**，而计数必须打在**消费点**上 ——
  *      这一行显示的就是 data/remote/NetworkAudit 的实时计数（两个 http 出口共用同一个计数器）。
@@ -37,7 +39,8 @@ import { ThemeTokens, resolveTheme } from '../../ui/theme/Tokens';
 import { i18nService } from '../../core/i18n/I18n';
 import { COLOR_MODE_KEY, LOCALE_VERSION_KEY } from '../../entryability/EntryAbility';
 import { Logger } from '../../core/log/Logger';
-import { LogExportResult, exportLogs } from '../../core/log/LogBuffer';
+import { LogExportReport, exportLogs } from '../../core/log/LogExport';
+import { LogExportDestination, LogExportOutcome, describeLogExportPlan } from '../../core/log/LogExportTarget';
 import { networkAttemptCount } from '../../data/remote/NetworkAudit';
 import { MOCK_USER_DEPARTMENT, MOCK_USER_NAME } from '../../data/mock/MockData';
 import { TableCell, TableCellType } from '../../ui/components/TableCell';
@@ -90,6 +93,11 @@ export struct SettingsPage {
   private courseStore: CourseListStore | null = null;
   /** 最近一次**成功**导出的结果（含完整落盘路径）；空串 = 还没导出过。失败时不写它。 */
   @State exportedSummary: string = '';
+  /**
+   * 导出在途：权限弹窗是异步的，连点两下会叠出第二个弹窗与第二次写盘。
+   * 这里只做重入拦截（不进界面状态，不改变任何可见行为）。
+   */
+  private exportInFlight: boolean = false;
   /**
    * 学期切换在途（由学期页回调设置）：在途时消费掉返回手势。
    *
@@ -223,29 +231,42 @@ export struct SettingsPage {
     openExternalUrl(PRIVACY_POLICY_URL);
   }
 
-  private handleExportLogs(): void {
+  private async handleExportLogs(): Promise<void> {
+    if (this.exportInFlight) {
+      logger.info('log export ignored: another export is still in flight');
+      return;
+    }
     const context: common.Context | null = this.hostContext();
     if (context === null) {
       this.toast.show(i18nService.t('ui_export_failed', 'no host context'), '', null);
       return;
     }
+    this.exportInFlight = true;
     try {
-      const result: LogExportResult = exportLogs(context);
-      logger.info('logs exported: path=' + result.path
-        + ' records=' + result.recordCount.toString()
-        + ' bytes=' + result.byteLength.toString());
-      // 同一份文案两处消费（Toast + 列表下方那一行），只格式化一次 ⇒ 屏幕上的路径
-      // 与上面 hilog 里那条 path= 必然逐字一致。
-      const summary: string = i18nService.t('ui_exported', result.recordCount,
-        result.byteLength, result.path);
-      this.exportedSummary = summary;
+      const report: LogExportReport = await exportLogs(context);
+      // 文案由纯逻辑给出（键 + 四个位置参数），这里只渲染 ⇒ 屏幕上那句话与
+      // 下面 hilog 里那条 describe 必然描述同一次决策的同一条路径。
+      const args: Array<string | number> = report.message.args;
+      const summary: string = i18nService.t(report.message.key, args[0], args[1], args[2], args[3]);
+      if (report.plan.destination === LogExportDestination.PUBLIC
+        || report.plan.destination === LogExportDestination.PRIVATE) {
+        // 落点变了（公共目录 / 私有兜底），留在屏幕上的这一行必须跟着变。
+        this.exportedSummary = summary;
+      } else if (report.plan.outcome === LogExportOutcome.FAILED) {
+        // 彻底失败时清掉上一次的成功结果，免得旧路径被读成"这次也导出成功了"。
+        this.exportedSummary = '';
+      }
       this.toast.show(summary, '', null);
+      logger.info('log export reported: ' + describeLogExportPlan(report.plan)
+        + ' records=' + report.recordCount.toString()
+        + ' bytes=' + report.byteLength.toString());
     } catch (error) {
       const message: string = (error as Error).message;
       logger.error('log export failed: ' + message);
-      // 失败时清掉上一次的成功结果，免得旧路径被读成"这次也导出成功了"。
       this.exportedSummary = '';
       this.toast.show(i18nService.t('ui_export_failed', message), '', null);
+    } finally {
+      this.exportInFlight = false;
     }
   }
 

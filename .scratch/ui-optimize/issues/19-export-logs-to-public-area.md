@@ -80,3 +80,62 @@ D. 门禁与纪律
 做不到的如实写「没做到 / 存疑」；在 `.scratch/ui-optimize/issues/19-export-logs-to-public-area.md` 追加 Comment，
 过程证据写进 `.scratch/ui-optimize/evidence/19-<slug>.md`（可提交），图片只留本地。
 收尾必须回报「**窗口关闭**」并说明设备与工作区状态（权限状态、是否在公共目录里留了测试文件、工作区是否干净）。
+
+
+## Comments
+
+### 实现 Comment（wt/t19 @ 0c6351c 之上，未提交前记录）
+
+**结论：优先路线（`Environment.getUserDownloadDir()` + 公共目录直写）在这台设备上走得通，没有换 picker 路线。**
+过程证据：`.scratch/ui-optimize/evidence/19-export-logs-to-public-area.md`。
+
+1. **落点已改**：导出目标是 `Environment.getUserDownloadDir()` 返回的公共「下载」目录
+   （应用侧是 `/storage/Users/currentUser/Download`），文件名仍是 `learnOH-<时间戳>.log`；
+   应用私有目录只作为**显式降级**的兜底（`filesDir/logs`，形状与旧落点一致）。
+   `module.json5` 已声明 `ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY`（含 reason / usedScene），
+   装完 `bm dump` 的 `reqPermissions` 里看得到。
+2. **权限实测与派单情报不同，值得记一笔**：这台 API 23 模拟器上
+   `requestPermissionsFromUser` 返回 `authResults=[2]`（"请求无效"，**不是** -1"用户拒绝"），
+   `dialogShown=true` 但**系统弹窗一次都没出现**，`errorReasons=[0]`（与 authResults 自相矛盾，未解释）。
+   **公共目录在这台设备上无需授权即可直写** —— 实测一次导出成功落盘。
+   ⇒ 我没有把"权限不受理"当成失败：`LogExportTarget.publicDirUsable` 只在**用户明确拒绝（-1）**或路径不可用时才放弃公共目录，
+   "不受理"放行、由**真的写一次**来判定（写不进去才降级，且把平台原话写进原因）。
+3. **外部可见性证据（本 ticket 的核心）四路对齐，全 True**：
+   界面常驻行 / hilog / `hdc shell ls -l /storage/media/100/local/files/Docs/Download` / `hdc file recv`
+   都是 **90 条、15464 字节、`learnOH-1789297382281.log`**；取回文件首行 `learnOH 日志导出`、
+   第三行 `记录数: 90/500`。`ls -l` 原始输出：
+   `-rw-rw---- 1 20001006 file_manager 15464 2026-09-13 19:03 learnOH-1789297382281.log`
+   （属主是 file_manager 一族的 uid，不是应用沙箱 uid `20020062` ⇒ 确实在共享公共目录里）。
+   顺带纠正一处旧结论：`byteLength` 以前报的是字符串长度（15170），与 `ls -l` 对不上；
+   现在报 `statSync` 的真实字节数（15464），四处才可能一致。
+4. **shell 可见性分三件事记**（判据点名要记）：应用看到的 `/storage/Users/currentUser/Download`
+   在 shell 下 `No such file or directory`；它的物理落点（公共目录本体）`ls -l` 列得到；
+   ticket 18 查的 `/data/storage/el2/base/haps/entry/files/logs` 形态也不存在。
+   ⇒ 界面路径与 shell 能列的路径本来就是两套名字，这解释了 ticket 18 的"沙箱读不到"。
+5. **降级必须显式**：`LogExportTarget.ets` 把结局分成
+   成功 `ui_exported` / 私有降级 `ui_export_private_{denied,blocked,unsupported,unwritable}` /
+   失败 `ui_export_failed` / 用户取消 `ui_export_cancelled`；四条降级文案都写明
+   "文件在应用私有目录内，文件管理器里看不到"并给出各自原因（权限被拒时告诉用户去哪开）。
+   新增 5 条 i18n（生成物与生成器输入同一次提交），`I18n.test.ets` 的键数断言同步到 318。
+6. **门禁**（都在本树里跑）：单测 `Tests run: 452, Failure: 0, Error: 0, Pass: 452, Ignore: 0`
+   （test_result.txt mtime 19:01:18 = 本轮；基线 441 ⇒ +11 条，都在新增的 `LogExport.test.ets`）；
+   `assembleHap --no-incremental` BUILD SUCCESSFUL 且 ERROR/ErrorCode/COMPILE RESULT = 0；
+   四个脚本全绿（i18n RESULT: OK，manifest 318）。产物指纹（同树可比）：
+   解包 `ets/modules.abc` SHA256 = `AA5A52F977A7C9249C5F14F8894A2B3462B388F397F186061FABC0B087ECADF0`。
+7. **没做到 / 存疑**：
+   - 交付构建上**没能在设备上重放"降级"那一幕**（这台设备直写成功，降级没有自然触发条件；
+     为它加取证开关要 3 次构建，判断不值当）。现有降级帧来自 18:59 的**中间构建**，
+     且那一版把"不受理"误当"被拒绝"；交付版的降级判据是单测（11 条里 6 条钉结局与文案键）。
+   - **"应用私有沙箱外部拿不到"这个前提被实测推翻**：用物理路径
+     `/data/app/el2/100/base/<bundle>/haps/entry/files/logs` 时，shell **列得到也 recv 得到**；
+     `/data/app/el2/100/base/com.koracan.learnOH` 实测是 `drwxrwxrwx`（应用是 hdc 装的 debug HAP）。
+     shell 本身没有特权（`uid=2000`、`CapEff=0`，读别的应用沙箱是 `Permission denied`）。
+     机制只解释到一半（`…/haps/entry/files` 是 `drwxrwx---` 却仍可读），留作存疑。
+     ⇒ 本 ticket 的判据因此落在**落点在不在公共目录**（属主 uid 与路径两处都变了），
+     而不是退化成"hdc 列得到"。
+   - 英文侧文案未取帧；真机（API 24）上的权限行为未验；`authResults=[2]` 的成因未定案。
+8. **设备与工作区状态**：公共目录里留了 **1 个** 测试文件
+   `/storage/media/100/local/files/Docs/Download/learnOH-1789297382281.log`（15464 B，故意留给复核者自查）；
+   应用私有目录另有 4 个历史导出文件未清；设备权限状态未做任何永久修改
+   （`READ_WRITE_DOWNLOAD_DIRECTORY` 仍是"已声明未授予"）；未点过退出登录，未动语言/分辨率/密度/时区；
+   主树未动，未 merge / rebase / push。

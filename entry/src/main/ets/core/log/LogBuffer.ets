@@ -1,13 +1,12 @@
 /*
- * 内存环形缓冲 + 导出为文本文件。
+ * 内存环形缓冲（Logger 写入，设置页导出）。
  *
- * 导出入口 `exportLogs(context)` 供后续 settings 切片的「导出日志」直接调用：
- * 传入任意 Context（UIAbilityContext / ApplicationContext 均可），返回落盘路径与字节数。
+ * 缓冲只负责把记录变成文本；**落到哪个目录**（公共目录 / 私有兜底）与权限申请
+ * 都在同目录的 LogExport.ets（编排）与 LogExportTarget.ets（纯决策）里 ——
+ * 本文件不碰文件系统，也就不需要 Context。
  */
 
-import { fileIo as fs } from '@kit.CoreFileKit';
-import { common } from '@kit.AbilityKit';
-import { LogLevel, LogRecord, formatRecords, formatTimestamp } from './LogFormat';
+import { LogRecord, formatRecords, formatTimestamp } from './LogFormat';
 
 /** 默认保留的日志条数。 */
 export const DEFAULT_LOG_CAPACITY: number = 500;
@@ -76,31 +75,3 @@ export class LogBuffer {
 /** 全局日志缓冲：Logger 写入，设置页导出。 */
 export const logBuffer: LogBuffer = new LogBuffer();
 
-/** 导出结果。 */
-export interface LogExportResult {
-  /** 落盘绝对路径。 */
-  path: string;
-  byteLength: number;
-  recordCount: number;
-}
-
-/**
- * 把日志缓冲导出到应用沙箱 files 目录下的 `logs/learnOH-<时间戳>.log`。
- * @param context 任意应用 Context
- * @param buffer 默认导出全局缓冲
- */
-export function exportLogs(context: common.Context, buffer: LogBuffer = logBuffer): LogExportResult {
-  const dir: string = context.filesDir + '/logs';
-  if (!fs.accessSync(dir)) {
-    fs.mkdirSync(dir);
-  }
-  const path: string = dir + '/learnOH-' + Date.now() + '.log';
-  const text: string = buffer.toText();
-  const file = fs.openSync(path, fs.OpenMode.READ_WRITE | fs.OpenMode.CREATE | fs.OpenMode.TRUNC);
-  try {
-    fs.writeSync(file.fd, text);
-  } finally {
-    fs.closeSync(file);
-  }
-  return { path: path, byteLength: text.length, recordCount: buffer.size() };
-}

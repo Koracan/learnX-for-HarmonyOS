@@ -1,6 +1,10 @@
 {
   "string": [
     {
+      "name": "log_export_permission_reason",
+      "value": "导出日志文件到「下载」目录，便于你在文件管理器中取用"
+    },
+    {
       "name": "module_desc",
       "value": "module description"
     },
@@ -819,6 +823,26 @@
     {
       "name": "ui_export_failed",
       "value": "导出失败：%1$s"
+    },
+    {
+      "name": "ui_export_private_denied",
+      "value": "已导出 %1$s 条 / %2$s 字节\n保存位置：%3$s\n（申请「下载目录」权限被拒绝，文件在应用私有目录内，文件管理器里看不到；可在系统「设置 → 应用」里为 learnOH 打开该权限后重试）"
+    },
+    {
+      "name": "ui_export_private_blocked",
+      "value": "已导出 %1$s 条 / %2$s 字节\n保存位置：%3$s\n（「下载目录」权限已被永久拒绝，权限弹窗不会再出现；请到系统「设置 → 应用 → learnOH → 权限」里手动打开后重试）"
+    },
+    {
+      "name": "ui_export_private_unsupported",
+      "value": "已导出 %1$s 条 / %2$s 字节\n保存位置：%3$s\n（本设备不支持公共目录（%4$s），文件在应用私有目录内，文件管理器里看不到）"
+    },
+    {
+      "name": "ui_export_private_unwritable",
+      "value": "已导出 %1$s 条 / %2$s 字节\n保存位置：%3$s\n（公共目录当前不可写（%4$s），文件在应用私有目录内，文件管理器里看不到）"
+    },
+    {
+      "name": "ui_export_cancelled",
+      "value": "已取消导出"
     },
     {
       "name": "ui_locale_live_demo",
