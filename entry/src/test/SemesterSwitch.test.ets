@@ -28,7 +28,8 @@ import {
 } from '../main/ets/data/courses/SemesterOverride';
 import {
   DomainOutcome, SWITCH_DOMAIN_COURSES, SWITCH_DOMAIN_FILES, SWITCH_DOMAIN_NOTICES,
-  SWITCH_RESULT_FAILED, SWITCH_RESULT_PARTIAL, SWITCH_RESULT_SUCCESS, buildDomainOutcome,
+  SWITCH_DELAY_FOR_EVIDENCE, SWITCH_RESULT_FAILED, SWITCH_RESULT_PARTIAL,
+  SWITCH_RESULT_SUCCESS, buildDomainOutcome,
   classifySwitchResult, summarizeReason
 } from '../main/ets/features/courses/SemesterSwitch';
 import {
@@ -403,6 +404,15 @@ export default function semesterSwitchTest() {
       expect(resolveToastMillis(0)).assertEqual(3000);
       // 显式时长优先（学期切换的结果提示要能被帧 / dump 读到）。
       expect(resolveToastMillis(45000)).assertEqual(45000);
+    });
+  });
+
+  describe('features.courses.SemesterSwitch.evidenceSwitches', () => {
+    it('evidenceSwitchDelayOverrideIsOffAtCommit', 0, () => {
+      // AGENTS.md：每个取证开关都要有 OffAtCommit 断言（与
+      // evidenceToastDurationOverrideIsOffAtCommit / evidenceUnreadOverrideIsOffAtCommit 同一口径）。
+      // 提交态为 0 = 三个域开始取数前不等待 ⇒ 切换的墙钟就是真实的 5–9 s。
+      expect(SWITCH_DELAY_FOR_EVIDENCE).assertEqual(0);
     });
   });
 }

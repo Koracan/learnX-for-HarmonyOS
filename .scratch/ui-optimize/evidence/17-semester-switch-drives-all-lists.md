@@ -237,3 +237,86 @@ network request #37 ... loadCourseBySemesterId/2025-2026-2/zh_CN   ← 课程域
 5. 未验证**分栏（tablet）**下的切换表现：本 ticket 的设备是 phone，双栏路径本轮没取。
 6. `ui click` 的坐标取自 layout dump 的 px（未按截图目测），但 dump 的坐标是屏幕物理 px、
    而点击也按物理 px 传参 —— 两次点击都命中预期节点（dump 前后文本变化可证）。
+---
+
+## 12. 补充轮（统筹者验收打回的一条：设置入口的返回守卫）
+
+统筹者独立验收发现：返回守卫只做在**课程入口**（`CoursesPage` 的 ROUTE_SEMESTER_SELECTION），
+**设置入口**（`SettingsPage` 同一路由）既没传 `onSwitchInFlight` 也没挂 `onBackPressed`。
+后果：从设置进学期页 → 点一行（切换 ~7 s）→ 期间按系统返回 ⇒ 页面先 pop、编排仍在后台跑完，
+结果提示落在**已被销毁**的页面上，用户看不到。
+
+### 12.1 修复
+
+`features/settings/SettingsPage.ets`：
+
+- 新增字段 `semesterSwitchInFlight`；
+- `routeTo` 的 `ROUTE_SEMESTER_SELECTION` 分支传 `onSwitchInFlight` 并挂
+  `.onBackPressed((): boolean => this.semesterSwitchInFlight)`。
+- **分栏态也覆盖**：`routeTo` 被 `masterDestination`(:481) 与 `detailDestination`(:487) **共用**，
+  所以单栏（主栈）与分栏（右栏 `detailStack`）构造的是同一个带守卫的 `NavDestination`。
+  **但本 ticket 的设备是 phone（单栏），分栏那条路径我只给了结构性论据、没有设备观察**（如实登记）。
+
+`grep -rn 'ROUTE_SEMESTER_SELECTION'` 的全部 push 点只有两处（`CoursesPage:270`、`SettingsPage:191`），
+两个宿主现在都有守卫。
+
+### 12.2 A/B 设备证据（同一台 5555，同一操作序列）
+
+操作序列：设置 tab → 学期切换子页 → 点 `2025-2026 学年春季学期` 行 → **0.6 s 后**发一次
+`hdc -t 127.0.0.1:5555 shell uitest uiInput keyEvent Back`。
+
+| | 构建 | Back 之后那一帧 | 结果 |
+| --- | --- | --- | --- |
+| **修前** | 提交态 `de9d454` 的产物（`99A18C53…`，无设置入口守卫） | `logs/t17-19-before-back-during-switch.json` | 学期页**被 pop**，dump 里是设置页（`设置/退出登录/沉浸式模式/学期切换/文件/…`）；hilog 仍打出 `toast shown: … text=已切换到2025-2026 学年春季学期`（18:33:48.184）——提示落在已销毁的页面上 |
+| **修后** | 取证构建 `F3B6D863…`（`SWITCH_DELAY_FOR_EVIDENCE=25000`） | `logs/t17-21-after-back-during-switch.json` | 学期页**仍在**（`学期切换` + 整列学期）**且**遮罩 `正在切换学期…` 在（bounds `[952,1153,1259,1204]`，居中） |
+| **修后（切换结束）** | 同上 | `logs/t17-22-after-switch-toast.json` + `evidence/17-04-back-guard-toast-still-visible.png` | 学期页仍在、`✔` 已移到春季行、提示 `已切换到2025-2026 学年春季学期` **可见**（截图底部一栏，且底部高亮的是**设置** tab ⇒ 确实是设置入口） |
+
+时间线（设备时钟，`logs/t17-hilog-after-back.txt`）：
+
+```
+18:36:07.664 semester switch started: target=2025-2026-2 accepted=true
+18:36:07.664 switch delay override active: SWITCH_DELAY_FOR_EVIDENCE=25000 ms before any domain fetch
+   ← Back 在 tap 之后 0.56 s 发出（宿主机 18:35:48.873；设备时钟约 +19.3 s）⇒ 落在 25 s 窗口内
+18:36:41.097 semester switch finished: target=2025-2026-2 result=success domains=[courses=ok(7) notices=ok(17) files=ok(95)]
+18:36:41.097 toast shown: millis=60000 hasAction=false text=已切换到2025-2026 学年春季学期
+```
+
+### 12.3 课程入口回归 + 顺带复原设备
+
+同一套操作走**课程入口**（点 `2026-2027 学年秋季学期` 行 = 复原动作）：
+
+- `logs/t17-24-courses-back-during-switch.json`：Back 之后学期页仍在 + 遮罩在（`正在切换学期…`）。
+- `logs/t17-25-courses-after-switch.json` + `evidence/17-05-courses-back-restore.png`：
+  提示 `已切换到2026-2027 学年秋季学期`、`✔` 回到秋季行；hilog
+  `result=success domains=[courses=ok(2) notices=ok(2) files=ok(4)]` ⇒ **设备已复原到秋季**。
+
+### 12.4 顺手补的取证开关单测
+
+统筹者指出 `SWITCH_DELAY_FOR_EVIDENCE` 当时没有 OffAtCommit 断言。已在
+`entry/src/test/SemesterSwitch.test.ets` 补 `evidenceSwitchDelayOverrideIsOffAtCommit`
+（与 `evidenceToastDurationOverrideIsOffAtCommit` / `evidenceUnreadOverrideIsOffAtCommit` 同一口径）。
+
+### 12.5 这一轮的门禁（提交态，全部在 `wt/t17`）
+
+| 门禁 | 原始输出 |
+| --- | --- |
+| 单测 | `Tests run: 441, Failure: 0, Error: 0, Pass: 441, Ignore: 0`（mtime `2026-09-13T18:41:02`，本轮；上一轮 440 → 本轮 +1 就是补的那条） |
+| 打包 | `assembleHap --no-incremental`：`BUILD SUCCESSFUL in 9 s 750 ms`；关键字扫描 `ERROR|ErrorCode|COMPILE RESULT` **0 命中** |
+| 脚本 | purity PASS / import-graph PASS / i18n `RESULT: OK` / generated-fresh PASS |
+| 提交态指纹 | `ets/modules.abc` SHA256 `69E480AE85F5A90EFC805CDF7CD8707CE570DE9EB3C6907F8E4895169396D087`（1822596 B） |
+
+### 12.6 这一轮的构建溯源
+
+| 构建 | 内容 | abc SHA256 | 大小 |
+| --- | --- | --- | --- |
+| 修前基线 | 上一轮提交态（`de9d454`），无设置入口守卫 | `99A18C5337136091412B76EA3BDCDA9A3ADC12A422BE3542EE59D0CDCA3DE0BC` | 1821828 |
+| 取证构建（12.2/12.3 的帧） | `SWITCH_DELAY_FOR_EVIDENCE=25000`、`SEMESTER_SWITCH_TOAST_MILLIS_FOR_EVIDENCE=60000` | `F3B6D863F2F50A57506E160F6AE5878B2D94EE5795AAA08381B1AC6E9E898CA4` | 1822596 |
+| 提交态（本轮门禁数字来源） | 全部开关复原 | `69E480AE85F5A90EFC805CDF7CD8707CE570DE9EB3C6907F8E4895169396D087` | 1822596 |
+
+### 12.7 这一轮没做到 / 存疑
+
+1. **分栏态（右栏 `detailStack`）的返回守卫没有设备观察**：本 ticket 的设备是 phone（单栏），
+   模拟器无法旋转/改视口。只给了结构性论据（`routeTo` 被两个 destination 共用）。
+2. 修前那一帧的对照是**同一台设备上换装上一轮提交态产物**做的（不是同一次构建内开关翻转），
+   但两次的代码差异只有这一处守卫（`git diff` 可核）。
+
