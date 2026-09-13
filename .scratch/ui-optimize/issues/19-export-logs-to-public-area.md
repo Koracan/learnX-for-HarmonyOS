@@ -191,3 +191,29 @@ D. 门禁与纪律
 （现在 `/storage/media/100/local/files/Docs/Download` 为空；两份文件已存到本地证据目录 `orchestrator-round4/`）；
 应用私有目录 4 个历史文件未清；未点退出登录，未改任何永久设置；设备锁已释放。
 主树 `fade90a`，工作区干净，领先 `origin/main` 62。
+
+### Comment（2026-09-13 晚）：落点改走系统文件选择器 —— 解 AGC 的 ACL 上传阻塞
+
+**结论先行**：AGC「上传产品」报的 `ACL permission consistency` 已消除。包里不再请求
+`ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY`（装机后 `bm dump` 与交付产物解包后的 `module.json` 都**只剩 `INTERNET`**），
+`node scripts/check-release-profile.mjs` → `RESULT: OK`。导出改走 `DocumentViewPicker.save()`：用户自己挑位置，
+应用侧不需要任何权限 —— 这正是本 ticket 判据 A 里写明的备选路线。
+
+**为什么非改不可**：那条权限是**受 ACL 限制**的权限，而发布 Profile（`keys/learnOHRelease.p7b`）的
+`acls.allowed-acls` 是空的；工具链本地不查这条，只有 AGC 侧拦。先试过 AGC 那条路（申请受限 ACL 权限 +
+重新生成发布 Profile），下载回来的 `keys/learnOH-2Release.p7b` 仍是 `allowed-acls: []` ⇒ 改成把权限从包里去掉。
+
+**设备实测（模拟器 `Pura 90` / `127.0.0.1:5555` / hdc 实测 `phone` + API 23；真机没碰）**：
+
+- 选 `Download` 保存 ⇒ 文件在 `/storage/media/100/local/files/Docs/Download`，属主 `20001006`（file_manager 一族，不是应用沙箱 uid）；
+  界面 / hilog / `ls -l` / `file recv` **四处一致**（48 条 / 6481 字节 / `learnOH-1789307405990.log`，首行 `learnOH 日志导出`）。
+- 取消 ⇒ `[picker] resCode is -1` → `state=cancelled`、`[ui.toast] text=已取消导出`；公共目录与私有兜底目录**都没有多出文件**。
+- 副产品：模拟器上 `install -r` 报过 `9568332 install sign info inconsistent`（原装那份是 09-11 那批 debug 材料签的，
+  `appIdentifier` 不同）；`uninstall` 后重装通过。日后换签名材料的调试装机可能再遇到。
+
+**门禁**（主树，取证件与提交态都在同一棵树）：单测 `Tests run: 455, Failure: 0, Error: 0, Pass: 455, Ignore: 0`
+（mtime 22:03:38，**改回取证开关之后**重跑）；`assembleHap`（release 签名）`BUILD SUCCESSFUL` 且 `ERROR`/`ErrorCode`/`COMPILE RESULT` 0/0/0；
+四脚本全绿；`check-release-profile` OK。i18n 降级文案 4 → 3 条、键总量 318 → 317（生成物与生成器输入同一次改）。
+
+**过程证据**：`.scratch/ui-optimize/evidence/19-export-logs-to-public-area.md` 的「追加（2026-09-13 晚）」一节；
+帧在 `.dsh/logs/picker-frames/`（本地，不入库）。**没做到**：真机（API 24）未验；带 Toast 的帧来自取证构建。

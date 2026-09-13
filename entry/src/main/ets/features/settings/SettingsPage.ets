@@ -22,13 +22,13 @@
  * ## 两处**增补**（参考实现没有）
  *
  *   1. **「导出日志」一行**（图标 `description`）：core/log/LogExport.ets 的
- *      `exportLogs()` 把日志写到**用户拿得到**的公共目录（运行时申请下载目录权限），
- *      不可用时才显式降级到应用私有目录。带 Toast 反馈；
- *      **导出的文件落在哪要看得见**：Toast 与列表下方那一行都给出落盘路径的
- *      **完整路径**（Toast 几秒就没了，留在屏幕上的那一行才是用户回头能查到的地方）。
- *      两种结局用两套文案：写入公共目录时说"已导出…保存位置"；降级到私有目录时
- *      额外说清"文件管理器里看不到"以及为什么（权限被拒 / 平台不支持 / 目录不可写），
- *      所以"导出去了但其实拿不到"不可能被误读成成功（见 core/log/LogExportTarget.ets）。
+ *      `exportLogs()` 拉起**系统「保存到…」选择器**，写到用户自己挑的位置（不需要任何权限）；
+ *      选择器不可用 / 没走通 / 那处写不进去时才显式降级到应用私有目录。带 Toast 反馈；
+ *      **导出的文件落在哪要看得见**：Toast 与列表下方那一行都给出落点的
+ *      **完整位置**（Toast 几秒就没了，留在屏幕上的那一行才是用户回头能查到的地方）。
+ *      两种结局用两套文案：写入选中位置时说「已导出…保存位置」；降级到私有目录时
+ *      额外说清「文件管理器里看不到」以及为什么（平台不支持选择器 / 选择器没走通 / 写不进去），
+ *      所以「导出去了但其实拿不到」不可能被误读成成功（见 core/log/LogExportTarget.ets）。
  *   2. **Mock 模式自证行**（只在 mock 用户下出现，见 mockBanner）：要求
  *      「不发起真实网络请求」**可证明**，而计数必须打在**消费点**上 ——
  *      这一行显示的就是 data/remote/NetworkAudit 的实时计数（两个 http 出口共用同一个计数器）。
@@ -249,7 +249,7 @@ export struct SettingsPage {
       // 下面 hilog 里那条 describe 必然描述同一次决策的同一条路径。
       const args: Array<string | number> = report.message.args;
       const summary: string = i18nService.t(report.message.key, args[0], args[1], args[2], args[3]);
-      if (report.plan.destination === LogExportDestination.PUBLIC
+      if (report.plan.destination === LogExportDestination.PICKED
         || report.plan.destination === LogExportDestination.PRIVATE) {
         // 落点变了（公共目录 / 私有兜底），留在屏幕上的这一行必须跟着变。
         this.exportedSummary = summary;

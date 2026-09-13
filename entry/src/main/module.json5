@@ -51,19 +51,6 @@
     "requestPermissions": [
       {
         "name": "ohos.permission.INTERNET"
-      },
-      {
-        // 「导出日志」把文件写到用户拿得到的公共「下载」目录；应用私有沙箱（filesDir）
-        // 在文件管理器与 hdc 里都看不到，用户等于拿不到文件。该权限是 normal 级
-        // user_grant：可以声明并运行期申请，被拒时导出会显式降级到私有目录并说明。
-        "name": "ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY",
-        "reason": "$string:log_export_permission_reason",
-        "usedScene": {
-          "abilities": [
-            "EntryAbility"
-          ],
-          "when": "inuse"
-        }
       }
     ]
   }

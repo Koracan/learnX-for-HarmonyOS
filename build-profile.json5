@@ -1,48 +1,18 @@
 {
   "app": {
-    "signingConfigs": [
-      {
-        "name": "default",
-        "type": "HarmonyOS",
-        "material": {
-          "certpath": "C:\\Users\\korac\\.ohos\\config\\default_learnOH_6uz4OuodasnedkLdS2S-oUS2qoFbrIeEEZyZDvk8iHg=.cer",
-          "keyAlias": "debugKey",
-          "keyPassword": "0000001B2C15BA480B2EC3F79CC34D2C91CEDA112F5D53C5ACA4451A6C67031DECFF48F53D0CCEA83F0E0D",
-          "profile": "C:\\Users\\korac\\.ohos\\config\\default_learnOH_6uz4OuodasnedkLdS2S-oUS2qoFbrIeEEZyZDvk8iHg=.p7b",
-          "signAlg": "SHA256withECDSA",
-          "storeFile": "C:\\Users\\korac\\.ohos\\config\\default_learnOH_6uz4OuodasnedkLdS2S-oUS2qoFbrIeEEZyZDvk8iHg=.p12",
-          "storePassword": "0000001B159F9228DC3BF497DD1931AE3E4641CC757C67E75EC381DB8F92DD81F8970EA98046F2B146A2C9"
-        }
-      },
-      {
-        "name": "release",
-        "type": "HarmonyOS",
-        "material": {
-          "certpath": "C:\\Users\\korac\\.ohos\\config\\release_learnOH_6uz4OuodasnedkLdS2S-oUS2qoFbrIeEEZyZDvk8iHg=.cer",
-          "keyAlias": "debugKey",
-          "keyPassword": "0000001B172F087362DA97D8E1C45B2C615B60D52F75059B4E3A4459C27DDC7E8011C1F3E5D99370635054",
-          "profile": "C:\\Users\\korac\\.ohos\\config\\release_learnOH_6uz4OuodasnedkLdS2S-oUS2qoFbrIeEEZyZDvk8iHg=.p7b",
-          "signAlg": "SHA256withECDSA",
-          "storeFile": "C:\\Users\\korac\\.ohos\\config\\release_learnOH_6uz4OuodasnedkLdS2S-oUS2qoFbrIeEEZyZDvk8iHg=.p12",
-          "storePassword": "0000001BE438B551D79121965ADFAC84C7ED3A41834DAA7F97603654FF62D2916544683A798E32F2248968"
-        }
-      }
-    ],
     "products": [
       {
         "name": "default",
-        // Local debug/device builds use the auto-generated debug signature above.
-        // For AppGallery / release packaging, change this to "release" so the app is signed
-        // with the original published learnOH certificate.
-        "signingConfig": "default",
-        "targetSdkVersion": "6.1.0(23)",
-        "compatibleSdkVersion": "6.1.0(23)",
+        "signingConfig": "release",
+        "targetSdkVersion": "6.0.0(20)",
+        "compatibleSdkVersion": "6.0.0(20)",
         "runtimeOS": "HarmonyOS",
         "buildOption": {
           "strictMode": {
             "caseSensitiveCheck": true,
             "useNormalizedOHMUrl": true
-          }
+          },
+          "nativeCompiler": "BiSheng"
         }
       }
     ],
@@ -52,6 +22,34 @@
       },
       {
         "name": "release"
+      }
+    ],
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "C:\\Users\\korac\\.ohos\\config\\default_learnOH_DXEg9BE3Nxv9Zl5kHaJcSXIzH5pZHoiAU-KKeyb624E=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001B5A866B8413CFA41A6777C9E83CAC39ED1000F294B800F3DA5B35315897836CF01607E39487EFED",
+          "profile": "C:\\Users\\korac\\.ohos\\config\\default_learnOH_DXEg9BE3Nxv9Zl5kHaJcSXIzH5pZHoiAU-KKeyb624E=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "C:\\Users\\korac\\.ohos\\config\\default_learnOH_DXEg9BE3Nxv9Zl5kHaJcSXIzH5pZHoiAU-KKeyb624E=.p12",
+          "storePassword": "0000001B3AF3E2BF35C4F73FD1259B00438AEED4A8D54398DCDE15D9140835717F83AFB7F7861201AE3A3A"
+        }
+      },
+      {
+        "name": "release",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "D:/Koracan/source/harmony/learnOH/keys/learnOH.cer",
+          "keyAlias": "learnOH",
+          "keyPassword": "0000001F8282979D2A8820E344AC3EF3B53EB9EFC84F0B5668E4F2BF2266B958832DAA754FD3E6FF6992C346B0F076",
+          "profile": "D:/Koracan/source/harmony/learnOH/keys/learnOHRelease.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "D:/Koracan/source/harmony/learnOH/keys/learnOH.p12",
+          "storePassword": "0000001FE582690CBBDD7C9139DA43B6AB9AC4D36BC3520595FA699608BDC5B8B6DBD7C3E0B39242D655B689992CF1"
+        }
       }
     ]
   },

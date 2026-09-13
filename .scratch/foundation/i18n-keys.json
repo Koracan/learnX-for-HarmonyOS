@@ -1,8 +1,8 @@
 {
-  "total": 318,
+  "total": 317,
   "referenceCount": 178,
   "localCount": 8,
-  "uiCount": 132,
+  "uiCount": 131,
   "referenceKeys": [
     "back",
     "notices",
@@ -2019,44 +2019,10 @@
       "origin": "ui"
     },
     {
-      "key": "__ui_export_private_denied",
-      "name": "ui_export_private_denied",
-      "zhValue": "已导出 %1$s 条 / %2$s 字节\n保存位置：%3$s\n（申请「下载目录」权限被拒绝，文件在应用私有目录内，文件管理器里看不到；可在系统「设置 → 应用」里为 learnOH 打开该权限后重试）",
-      "enValue": "Exported %1$s records / %2$s bytes\nSaved to: %3$s\n(The Downloads-folder permission was denied, so the file stays in the app-private folder and is not visible in Files; enable it for learnOH under Settings → Apps and try again)",
-      "zhPlaceholders": [
-        "{0}",
-        "{1}",
-        "{2}"
-      ],
-      "enPlaceholders": [
-        "{0}",
-        "{1}",
-        "{2}"
-      ],
-      "origin": "ui"
-    },
-    {
-      "key": "__ui_export_private_blocked",
-      "name": "ui_export_private_blocked",
-      "zhValue": "已导出 %1$s 条 / %2$s 字节\n保存位置：%3$s\n（「下载目录」权限已被永久拒绝，权限弹窗不会再出现；请到系统「设置 → 应用 → learnOH → 权限」里手动打开后重试）",
-      "enValue": "Exported %1$s records / %2$s bytes\nSaved to: %3$s\n(The Downloads-folder permission is permanently denied and the dialog will not appear again; open it manually under Settings → Apps → learnOH → Permissions and try again)",
-      "zhPlaceholders": [
-        "{0}",
-        "{1}",
-        "{2}"
-      ],
-      "enPlaceholders": [
-        "{0}",
-        "{1}",
-        "{2}"
-      ],
-      "origin": "ui"
-    },
-    {
       "key": "__ui_export_private_unsupported",
       "name": "ui_export_private_unsupported",
-      "zhValue": "已导出 %1$s 条 / %2$s 字节\n保存位置：%3$s\n（本设备不支持公共目录（%4$s），文件在应用私有目录内，文件管理器里看不到）",
-      "enValue": "Exported %1$s records / %2$s bytes\nSaved to: %3$s\n(This device does not support public folders (%4$s); the file stays in the app-private folder and is not visible in Files)",
+      "zhValue": "已导出 %1$s 条 / %2$s 字节\n保存位置：%3$s\n（本设备不支持系统文件选择器（%4$s），文件在应用私有目录内，文件管理器里看不到）",
+      "enValue": "Exported %1$s records / %2$s bytes\nSaved to: %3$s\n(This device does not support the system file picker (%4$s); the file stays in the app-private folder and is not visible in Files)",
       "zhPlaceholders": [
         "{0}",
         "{1}",
@@ -2072,10 +2038,29 @@
       "origin": "ui"
     },
     {
-      "key": "__ui_export_private_unwritable",
-      "name": "ui_export_private_unwritable",
-      "zhValue": "已导出 %1$s 条 / %2$s 字节\n保存位置：%3$s\n（公共目录当前不可写（%4$s），文件在应用私有目录内，文件管理器里看不到）",
-      "enValue": "Exported %1$s records / %2$s bytes\nSaved to: %3$s\n(The public folder is not writable right now (%4$s); the file stays in the app-private folder and is not visible in Files)",
+      "key": "__ui_export_private_pick_failed",
+      "name": "ui_export_private_pick_failed",
+      "zhValue": "已导出 %1$s 条 / %2$s 字节\n保存位置：%3$s\n（系统文件选择器没走通（%4$s），文件在应用私有目录内，文件管理器里看不到）",
+      "enValue": "Exported %1$s records / %2$s bytes\nSaved to: %3$s\n(The system file picker did not complete (%4$s); the file stays in the app-private folder and is not visible in Files)",
+      "zhPlaceholders": [
+        "{0}",
+        "{1}",
+        "{2}",
+        "{3}"
+      ],
+      "enPlaceholders": [
+        "{0}",
+        "{1}",
+        "{2}",
+        "{3}"
+      ],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_export_private_write_failed",
+      "name": "ui_export_private_write_failed",
+      "zhValue": "已导出 %1$s 条 / %2$s 字节\n保存位置：%3$s\n（写入你选择的位置失败（%4$s），文件在应用私有目录内，文件管理器里看不到）",
+      "enValue": "Exported %1$s records / %2$s bytes\nSaved to: %3$s\n(Writing to the location you picked failed (%4$s); the file stays in the app-private folder and is not visible in Files)",
       "zhPlaceholders": [
         "{0}",
         "{1}",

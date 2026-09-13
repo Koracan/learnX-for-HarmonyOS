@@ -24,23 +24,20 @@ export const UI_STRINGS = [
   ['ui_export_logs', '导出日志为文本文件', 'Export logs to a text file'],
   ['ui_exported', '已导出 {0} 条 / {1} 字节\n保存位置：{2}', 'Exported {0} records / {1} bytes\nSaved to: {2}'],
   ['ui_export_failed', '导出失败：{0}', 'Export failed: {0}'],
-  // --- 导出日志改到公共目录（ticket 19）新增 ---
-  // 公共目录走不通时的四条降级文案。它们与上面的 ui_exported **必须**能区分：
-  // ui_exported 说的是"已导出，位置在公共目录，你在文件管理器里能找到"；
-  // 这四条说的是"文件确实写了，但落在应用私有目录里，应用外拿不到"，并各自给出原因。
-  // {0} 记录数、{1} 字节数、{2} 完整落盘路径、{3} 平台原因要点（目录不可用那两条才用得上）。
-  ['ui_export_private_denied',
-    '已导出 {0} 条 / {1} 字节\n保存位置：{2}\n（申请「下载目录」权限被拒绝，文件在应用私有目录内，文件管理器里看不到；可在系统「设置 → 应用」里为 learnOH 打开该权限后重试）',
-    'Exported {0} records / {1} bytes\nSaved to: {2}\n(The Downloads-folder permission was denied, so the file stays in the app-private folder and is not visible in Files; enable it for learnOH under Settings → Apps and try again)'],
-  ['ui_export_private_blocked',
-    '已导出 {0} 条 / {1} 字节\n保存位置：{2}\n（「下载目录」权限已被永久拒绝，权限弹窗不会再出现；请到系统「设置 → 应用 → learnOH → 权限」里手动打开后重试）',
-    'Exported {0} records / {1} bytes\nSaved to: {2}\n(The Downloads-folder permission is permanently denied and the dialog will not appear again; open it manually under Settings → Apps → learnOH → Permissions and try again)'],
+  // --- 导出日志：落点由系统文件选择器决定（应用不申请任何权限）---
+  // 选中位置走不通时的三条降级文案。它们与上面的 ui_exported **必须**能区分：
+  // ui_exported 说的是「已导出，位置就是你挑的那个，在文件管理器里能找到」；
+  // 这三条说的是「文件确实写了，但落在应用私有目录里，应用外拿不到」，并各自给出原因。
+  // {0} 记录数、{1} 字节数、{2} 完整落盘位置、{3} 平台原因要点。
   ['ui_export_private_unsupported',
-    '已导出 {0} 条 / {1} 字节\n保存位置：{2}\n（本设备不支持公共目录（{3}），文件在应用私有目录内，文件管理器里看不到）',
-    'Exported {0} records / {1} bytes\nSaved to: {2}\n(This device does not support public folders ({3}); the file stays in the app-private folder and is not visible in Files)'],
-  ['ui_export_private_unwritable',
-    '已导出 {0} 条 / {1} 字节\n保存位置：{2}\n（公共目录当前不可写（{3}），文件在应用私有目录内，文件管理器里看不到）',
-    'Exported {0} records / {1} bytes\nSaved to: {2}\n(The public folder is not writable right now ({3}); the file stays in the app-private folder and is not visible in Files)'],
+    '已导出 {0} 条 / {1} 字节\n保存位置：{2}\n（本设备不支持系统文件选择器（{3}），文件在应用私有目录内，文件管理器里看不到）',
+    'Exported {0} records / {1} bytes\nSaved to: {2}\n(This device does not support the system file picker ({3}); the file stays in the app-private folder and is not visible in Files)'],
+  ['ui_export_private_pick_failed',
+    '已导出 {0} 条 / {1} 字节\n保存位置：{2}\n（系统文件选择器没走通（{3}），文件在应用私有目录内，文件管理器里看不到）',
+    'Exported {0} records / {1} bytes\nSaved to: {2}\n(The system file picker did not complete ({3}); the file stays in the app-private folder and is not visible in Files)'],
+  ['ui_export_private_write_failed',
+    '已导出 {0} 条 / {1} 字节\n保存位置：{2}\n（写入你选择的位置失败（{3}），文件在应用私有目录内，文件管理器里看不到）',
+    'Exported {0} records / {1} bytes\nSaved to: {2}\n(Writing to the location you picked failed ({3}); the file stays in the app-private folder and is not visible in Files)'],
   // 用户在选择器里主动取消：既不是失败也不是成功，给一条中性提示。
   ['ui_export_cancelled', '已取消导出', 'Export cancelled'],
   ['ui_locale_live_demo', '语言切换（无需重启）', 'Language switch (no restart)'],

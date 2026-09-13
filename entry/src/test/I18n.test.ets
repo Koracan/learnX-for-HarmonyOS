@@ -51,17 +51,17 @@ const LOCAL_ADDITION_COUNT: number = 8;
  * 文件详情的「交给系统打开方式」1 个（文件还没落盘时的可读说明）；
  * 提交入口被拦下时那两句（正在提交中 / 没有可提交的内容）2 个 —— 已截止那句复用参考实现已有的键；
  * 学期切换编排 4 个（切换中 / 全部成功 / 部分失败 / 全部失败）；
- * 日志导出落点 5 个（权限被拒 / 永久拒绝 / 平台不支持 / 目录不可写四条降级文案 + 用户取消）。
+ * 日志导出落点 4 个（选择器不支持 / 选择器没走通 / 写入所选位置失败三条降级文案 + 用户取消）。
  */
-const UI_STRING_COUNT: number = 132;
-/** 迁移后的资源键总数（也是 I18N_KEY_COUNT 的期望值）：178 + 8 + 132。 */
-const TOTAL_KEY_COUNT: number = 318;
+const UI_STRING_COUNT: number = 131;
+/** 迁移后的资源键总数（也是 I18N_KEY_COUNT 的期望值）：178 + 8 + 131。 */
+const TOTAL_KEY_COUNT: number = 317;
 
 const REFERENCE_SAMPLE: string[] = ['loh_back', 'loh_notices', 'loh_assignments', 'loh_files', 'loh_courses'];
 const LOCAL_ADDITIONS: string[] = ['loh_fall', 'loh_spring', 'loh_summer'];
 const UI_SAMPLES: string[] = [
   'ui_app_name', 'ui_language', 'ui_export_logs', 'ui_exported',
-  'ui_export_private_denied', 'ui_export_private_blocked', 'ui_export_cancelled',
+  'ui_export_private_unsupported', 'ui_export_private_write_failed', 'ui_export_cancelled',
   'ui_notice_publish_time', 'ui_weekday_thursday', 'ui_month_sep',
   'ui_assignments_empty', 'ui_assignment_past_due', 'ui_assignment_graded_by_at',
   'ui_assignment_excellent', 'ui_assignment_excellent_by', 'ui_assignment_excellent_mark_label'

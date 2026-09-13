@@ -1,42 +1,32 @@
 /*
- * 日志导出的**设备侧编排**：探测公共目录 → 申请运行时权限 → 按纯逻辑选定的目标写盘。
+ * 日志导出的**设备侧编排**：拉起系统文件选择器 → 按纯逻辑选定的目标写盘 → 量真实字节数。
  *
  * 决策全部在 LogExportTarget.ets（纯逻辑，离线可测）；这里只做三件只有设备上才成立的事，
  * 并且每一件都把**实际生效值**打进 hilog：
- *   1. 探测：Environment.getUserDownloadDir() 的返回路径或平台错误码；
- *   2. 权限：requestPermissionsFromUser 的 authResults 与 dialogShownResults
- *      （弹窗没出现 + 被拒 = 永久拒绝，文案要告诉用户去系统设置里开）；
- *   3. 落盘：写完之后 statSync 量到的**真实字节数** —— 它就是外部 ls -l 会看到的那个数，
- *      也是界面文案里那个字节数的唯一出处（两者必然逐字一致）。
+ *   1. 选择：`picker.DocumentViewPicker.save()` 的返回 URI（或空列表 = 用户取消）与平台错误码；
+ *   2. 落盘：写完之后 statSync 量到的**真实字节数** —— 它就是外部 ls -l 会看到的那个数，
+ *      也是界面文案里那个字节数的唯一出处（两者必然逐字一致）；
+ *   3. 写盘失败时带着平台原话重新决策一次（降级到私有目录），不把失败报成成功。
  *
- * 降级是显式的：公共目录不可用（权限被拒 / 平台不支持 / 写不进去）时落回应用私有目录，
- * 但结局类别与文案都会说明"外部拿不到"，绝不假装导出到了用户拿得到的地方。
+ * **不申请任何权限**：位置是用户在系统选择器里自己挑的，应用侧不需要 `READ_WRITE_*_DIRECTORY`
+ * 这类受限权限（它们要 ACL 放行，发布 Profile 里没有，AGC 上传会报 ACL permission consistency）。
+ *
+ * 降级是显式的：选择器不可用 / 用户没选成 / 选中的位置写不进去时落回应用私有目录，
+ * 但结局类别与文案都会说明「外部拿不到」，绝不假装导出到了用户拿得到的地方。
  */
 
-import { Environment, fileIo as fs } from '@kit.CoreFileKit';
-import { abilityAccessCtrl, common, Permissions } from '@kit.AbilityKit';
+import { fileIo as fs, picker } from '@kit.CoreFileKit';
+import { common } from '@kit.AbilityKit';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { LogBuffer, logBuffer } from './LogBuffer';
 import { Logger } from './Logger';
 import {
-  LogExportDestination, LogExportDirState, LogExportMessage, LogExportPermission, LogExportPlan,
-  LogExportPublicDir, describeLogExportPlan, logExportDirStateName, logExportFileName,
-  logExportMessage, logExportPermissionName, planLogExport
+  LogExportDestination, LogExportMessage, LogExportPickResult, LogExportPickState, LogExportPlan,
+  classifyPickError, classifyPickedUris, describeLogExportPlan, logExportFileName,
+  logExportMessage, logExportPickStateName, planLogExport
 } from './LogExportTarget';
 
 const logger: Logger = new Logger('core.log.export');
-
-/** 公共「下载」目录所需的运行时权限（module.json5 里已声明）。 */
-const DOWNLOAD_DIRECTORY_PERMISSION: Permissions = 'ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY';
-
-/** 平台错误码：能力不支持 / 权限未授予。 */
-const ERR_NOT_SUPPORTED: number = 801;
-const ERR_PERMISSION_DENIED: number = 201;
-
-/** authResults 的三个取值：0 已授予 / -1 未授予 / 2 请求无效（平台没受理这次申请）。 */
-const AUTH_GRANTED: number = 0;
-const AUTH_DENIED: number = -1;
-const AUTH_INVALID: number = 2;
 
 /** 一次导出的完整结果（界面只消费 message 与 plan.path）。 */
 export interface LogExportReport {
@@ -57,102 +47,44 @@ function errorText(error: BusinessError): string {
 }
 
 /**
- * 探测公共「下载」目录。
+ * 拉起系统「保存到…」，把用户挑的位置变成一次决策输入。
  *
- * 这里**不**申请权限：权限弹窗只该在确实需要时弹一次，调用方（exportLogs）拿到
- * NEEDS_PERMISSION 之后才去申请，再回来重探一次。
+ * 三件实测事实都从这里出来：返回的 URI、空列表（用户取消）、以及平台错误码 ——
+ * 码到结局的映射在纯逻辑里（`classifyPickError` / `classifyPickedUris`），这里只负责量。
  */
-export function probePublicDownloadDir(): LogExportPublicDir {
+export async function pickLogExportTarget(context: common.Context, fileName: string): Promise<LogExportPickResult> {
   try {
-    const dir: string = Environment.getUserDownloadDir();
-    if (dir.length === 0) {
-      return { state: LogExportDirState.UNWRITABLE, path: '', error: 'getUserDownloadDir() returned an empty path' };
+    const options: picker.DocumentSaveOptions = new picker.DocumentSaveOptions();
+    options.newFileNames = [fileName];
+    const documentPicker: picker.DocumentViewPicker = new picker.DocumentViewPicker(context);
+    const uris: Array<string> | undefined = await documentPicker.save(options);
+    const state: LogExportPickState = classifyPickedUris(uris);
+    const shown: string = uris === undefined ? '[]' : JSON.stringify(uris);
+    logger.info('log export pick: state=' + logExportPickStateName(state) + ' uris=' + shown);
+    if (state === LogExportPickState.PICKED && uris !== undefined) {
+      return { state: state, uri: uris[0], error: '' };
     }
-    if (!fs.accessSync(dir)) {
-      return { state: LogExportDirState.UNWRITABLE, path: dir, error: 'directory does not exist: ' + dir };
-    }
-    return { state: LogExportDirState.AVAILABLE, path: dir, error: '' };
+    // 取消是用户的选择：不给它配错误文本，文案里也不能出现「失败」。
+    return { state: state, uri: '', error: state === LogExportPickState.CANCELLED ? '' : 'no uri returned' };
   } catch (error) {
     const failure: BusinessError = error as BusinessError;
     const text: string = errorText(failure);
-    if (failure.code === ERR_NOT_SUPPORTED) {
-      return { state: LogExportDirState.UNSUPPORTED, path: '', error: text };
-    }
-    if (failure.code === ERR_PERMISSION_DENIED) {
-      return { state: LogExportDirState.NEEDS_PERMISSION, path: '', error: text };
-    }
-    return { state: LogExportDirState.UNWRITABLE, path: '', error: text };
+    const state: LogExportPickState = classifyPickError(failure.code);
+    logger.error('log export pick failed: state=' + logExportPickStateName(state)
+      + ' code=' + String(failure.code) + ' error=' + text);
+    return { state: state, uri: '', error: text };
   }
 }
 
-/**
- * 申请公共目录权限，返回**实际生效**的授予状态。
- *
- * dialogShownResults 缺失时按"弹窗出现过"处理（保守：宁可说"被拒绝，可重试"，
- * 也不要把一次普通拒绝说成"永久拒绝，去系统设置里开"）。
- */
-export async function requestDownloadDirectoryPermission(context: common.Context): Promise<LogExportPermission> {
-  try {
-    const manager: abilityAccessCtrl.AtManager = abilityAccessCtrl.createAtManager();
-    const result = await manager.requestPermissionsFromUser(context, [DOWNLOAD_DIRECTORY_PERMISSION]);
-    const results: Array<number> = result.authResults;
-    const first: number = results.length > 0 ? results[0] : AUTH_DENIED;
-    let shown: boolean = true;
-    const shownResults: Array<boolean> | undefined = result.dialogShownResults;
-    if (shownResults !== undefined && shownResults.length > 0) {
-      shown = shownResults[0];
-    }
-    const reasons: Array<number> | undefined = result.errorReasons;
-    const reasonText: string = reasons === undefined ? 'n/a' : JSON.stringify(reasons);
-    logger.info('log export permission: name=' + DOWNLOAD_DIRECTORY_PERMISSION
-      + ' authResults=' + JSON.stringify(results)
-      + ' dialogShown=' + shown.toString()
-      + ' errorReasons=' + reasonText
-      + ' effective=' + permissionNameFor(first, shown));
-    if (first === AUTH_GRANTED) {
-      return LogExportPermission.GRANTED;
-    }
-    if (first === AUTH_DENIED) {
-      // 用户的选择：尊重它，不再往公共目录写。
-      return shown ? LogExportPermission.DENIED : LogExportPermission.BLOCKED;
-    }
-    // 其余（含 2 = 请求无效）：平台没受理，这让"能不能写"成为一个实测问题。
-    return LogExportPermission.NOT_REQUESTABLE;
-  } catch (error) {
-    logger.error('log export permission request failed: ' + errorText(error as BusinessError));
-    return LogExportPermission.NOT_REQUESTABLE;
-  }
-}
-
-/** 权限结果的三种结局名（只给 hilog 用）。 */
-function permissionNameFor(authResult: number, dialogShown: boolean): string {
-  if (authResult === AUTH_GRANTED) {
-    return 'granted';
-  }
-  if (authResult === AUTH_DENIED) {
-    return dialogShown ? 'denied' : 'blocked';
-  }
-  return 'not-requestable';
-}
-
-/** 目录不存在就建（私有兜底目录 filesDir/logs 首次导出时并不存在）。 */
+/** 私有兜底目录不存在就建（filesDir/logs 首次导出时并不存在）。 */
 function ensureDirectory(dir: string): void {
   if (!fs.accessSync(dir)) {
     fs.mkdirSync(dir, true);
   }
 }
 
-/** 写文件并返回**磁盘上的真实字节数**；任何失败都抛给调用方。 */
-function writeLogFile(path: string, text: string): number {
-  ensureDirectory(path.substring(0, path.lastIndexOf('/')));
-  const file: fs.File = fs.openSync(path, fs.OpenMode.READ_WRITE | fs.OpenMode.CREATE | fs.OpenMode.TRUNC);
-  let written: number = 0;
-  try {
-    // 字符串进来由平台按 UTF-8 编码写出，writeSync 返回的是**字节数**（不是字符串长度）。
-    written = fs.writeSync(file.fd, text);
-  } finally {
-    fs.closeSync(file);
-  }
+/** 落盘后的真实字节数（stat 失败时退回 writeSync 的返回值）＋ 一条自证日志。 */
+function reportWritten(path: string, text: string, written: number): number {
   let bytes: number = written;
   try {
     bytes = fs.statSync(path).size;
@@ -168,61 +100,71 @@ function writeLogFile(path: string, text: string): number {
 }
 
 /**
- * 导出日志：把内存缓冲写到一个**用户拿得到**的位置。
+ * 写**用户选中的位置**（选择器给的 URI）：URI 由系统授权，既不需要建目录也不需要权限。
+ * 任何失败都抛给调用方 —— 由它带着平台原话重新决策（降级），不许吞掉。
+ */
+function writeLogFileAtUri(uri: string, text: string): number {
+  const file: fs.File = fs.openSync(uri, fs.OpenMode.READ_WRITE | fs.OpenMode.TRUNC);
+  let written: number = 0;
+  try {
+    // 字符串进来由平台按 UTF-8 编码写出，writeSync 返回的是**字节数**（不是字符串长度）。
+    written = fs.writeSync(file.fd, text);
+  } finally {
+    fs.closeSync(file);
+  }
+  return reportWritten(uri, text, written);
+}
+
+/** 写私有兜底路径（先建目录再写），返回磁盘上的真实字节数；任何失败都抛给调用方。 */
+function writeLogFile(path: string, text: string): number {
+  ensureDirectory(path.substring(0, path.lastIndexOf('/')));
+  const file: fs.File = fs.openSync(path, fs.OpenMode.READ_WRITE | fs.OpenMode.CREATE | fs.OpenMode.TRUNC);
+  let written: number = 0;
+  try {
+    written = fs.writeSync(file.fd, text);
+  } finally {
+    fs.closeSync(file);
+  }
+  return reportWritten(path, text, written);
+}
+
+/**
+ * 导出日志：把内存缓冲写到**用户在系统选择器里挑的位置**。
  *
- * 依次是：探测公共目录 → 必要时申请权限并重探 → 决策（planLogExport）→ 写盘。
- * 公共目录"列得出来但写不进去"时重新决策一次落回私有目录 —— 降级必须显式，
- * 不许把一次写失败报成"已导出到公共目录"。
+ * 依次是：拉起选择器 → 决策（planLogExport）→ 写盘；写不进去就带原因重新决策一次落回私有目录。
+ * 用户取消既不写盘也不报错；降级必须显式 —— 不许把一次写失败报成「已导出到你选的位置」。
  */
 export async function exportLogs(context: common.Context, buffer: LogBuffer = logBuffer): Promise<LogExportReport> {
   const text: string = buffer.toText();
   const recordCount: number = buffer.size();
   const timestamp: number = Date.now();
 
-  let publicDir: LogExportPublicDir = probePublicDownloadDir();
-  logger.info('log export probe: state=' + logExportDirStateName(publicDir.state)
-    + ' path=' + publicDir.path + ' error=' + publicDir.error);
-
-  let permission: LogExportPermission = LogExportPermission.GRANTED;
-  const supported: boolean = publicDir.state === LogExportDirState.AVAILABLE
-    || publicDir.state === LogExportDirState.NEEDS_PERMISSION;
-  if (supported) {
-    permission = await requestDownloadDirectoryPermission(context);
-    if (permission === LogExportPermission.GRANTED) {
-      // API 11 那条重载在未授权时直接抛 201、拿不到路径，所以授权之后必须重探。
-      publicDir = probePublicDownloadDir();
-    }
-    logger.info('log export after permission: permission=' + logExportPermissionName(permission)
-      + ' state=' + logExportDirStateName(publicDir.state)
-      + ' path=' + publicDir.path + ' error=' + publicDir.error);
-  }
-
+  const pick: LogExportPickResult = await pickLogExportTarget(context, logExportFileName(timestamp));
   let plan: LogExportPlan = planLogExport({
-    publicDir: publicDir,
-    permission: permission,
+    pick: pick,
+    writeError: '',
     privateDir: context.filesDir,
-    timestamp: timestamp,
-    cancelled: false
+    timestamp: timestamp
   });
   logger.info('log export plan: ' + describeLogExportPlan(plan));
 
   let byteLength: number = 0;
-  if (plan.destination === LogExportDestination.PUBLIC) {
+  if (plan.destination === LogExportDestination.PICKED) {
     try {
-      byteLength = writeLogFile(plan.path, text);
+      byteLength = writeLogFileAtUri(plan.path, text);
     } catch (error) {
-      const detail: string = 'permission=' + logExportPermissionName(permission)
-        + ' write=' + errorText(error as BusinessError);
-      logger.error('log export public write failed, re-planning to the private fallback: ' + detail);
+      const detail: string = 'picked=' + plan.path + ' write=' + errorText(error as BusinessError);
+      logger.error('log export picked-target write failed, re-planning to the private fallback: ' + detail);
       plan = planLogExport({
-        publicDir: { state: LogExportDirState.UNWRITABLE, path: publicDir.path, error: detail },
-        permission: permission,
+        pick: pick,
+        writeError: detail,
         privateDir: context.filesDir,
-        timestamp: timestamp,
-        cancelled: false
+        timestamp: timestamp
       });
       logger.info('log export re-plan: ' + describeLogExportPlan(plan));
-      byteLength = writeLogFile(plan.path, text);
+      if (plan.destination === LogExportDestination.PRIVATE) {
+        byteLength = writeLogFile(plan.path, text);
+      }
     }
   } else if (plan.destination === LogExportDestination.PRIVATE) {
     byteLength = writeLogFile(plan.path, text);

@@ -233,3 +233,110 @@
   `entry/src/main/module.json5`（声明 `READ_WRITE_DOWNLOAD_DIRECTORY` + reason + usedScene）、
   `entry/src/main/resources/{base,zh_CN,en_US}/element/string.json`（权限理由串，非 i18n 前缀，生成器会保留）、
   `scripts/i18n-ui-strings.mjs` + 5 个 i18n 生成物、`entry/src/test/{I18n,List}.test.ets`。
+
+---
+
+## 追加（2026-09-13 晚）：落点改走**系统文件选择器** —— 解 AGC 的 ACL 上传阻塞
+
+**为什么要改**：AGC「上传产品」报 `ACL permission consistency`。`module.json5` 当时请求的
+`ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY` 是**受 ACL 限制**的权限，而发布 Profile
+（`keys/learnOHRelease.p7b`）的 `acls.allowed-acls` 是**空的**（已发布 1.0.2 那份也是空的）。
+工具链**本地不查**这条 ⇒ 构建一路绿灯，只有 AGC 侧拦。AGC 那条路当天也试过：申请受限 ACL 权限后
+重新生成的 `keys/learnOH-2Release.p7b` 仍是 `allowed-acls: []`（真 release Profile、同一张发布证书、
+同一 `app-identifier`，但勾选项没生效）⇒ 改走本 ticket 判据 A 里写明的**备选路线**：
+`DocumentViewPicker.save()`（用户自己挑位置，应用不需要任何权限）。
+
+**改了什么**
+
+- `core/log/LogExportTarget.ets`：纯决策换成「选择器结局 + 写盘失败原因 → 落点/结局」；
+  四条结局 = 写进选中位置 / 降级私有目录 / 用户取消 / 彻底失败。
+- `core/log/LogExport.ets`：`picker.DocumentViewPicker.save()` 拉选择器 → 写返回的 URI；
+  801 → 降级；空列表 → 取消；写 URI 失败 → 带平台原话重决策一次再降级。**全程不申请任何权限**。
+- `module.json5` 删掉那条受限权限声明；三份 `string.json` 删掉 `log_export_permission_reason`。
+- i18n：降级文案四条（权限被拒 / 永久拒绝 / 不支持 / 不可写）→ 三条（不支持 / 选择器没走通 / 写入所选位置失败），
+  键总量 318 → 317（生成物与生成器输入同一次改）。
+
+### 取证的设备与构建（**真机没碰**）
+
+- 设备：`devecocli emulator start "Pura 90"` ⇒ hdc 实测 `127.0.0.1:5555` 的 `const.product.devicetype=phone`、`const.ohos.apiversion=23`。
+  真机 `3FYBB25407201890` 只读了一次 UDID（`E3519E1A…`，与 debug Profile 的 `device-ids` 逐字一致），**没有装卸任何东西**。
+- 装机用构建（debug 签名 —— 发布签名无法本地安装）：`assembleHap --no-incremental` → `.dsh/logs/picker-hap-debug.log`（`BUILD SUCCESSFUL`，`ERROR`/`ErrorCode`/`COMPILE RESULT` 各 0）。
+  模拟器上原有那一份是 09-11 那批 debug 材料签的（`appIdentifier 6917593286879743422`）⇒ `install -r` 报 `9568332 install sign info inconsistent`；
+  `uninstall` 后重装通过（本份 `appIdentifier 6918719185719356548`）。
+- **帧取证用构建**：`TOAST_MILLIS_FOR_EVIDENCE` 临时置 60000（3 秒窗口必然抓不到帧）。提交态已改回 0
+  （`git status` 对该文件为空），并在**改回之后重跑了全部单测**。下面两张带 Toast 的帧来自那一版取证构建。
+
+### 论断 1｜导出落到用户挑的位置，且外部拿得到（四路一致）
+
+Mock 模式（`guest/guest`）→ 设置 → 「导出日志为文本文件」→ 在选择器里选 `Download` → 点 ✓ 保存。原始 hilog：
+
+    21:51:44.882 [picker] getDocumentPickerSaveResult saveResult: errorcode is = 0, selecturi is = file://docs/storage/Users/currentUser/Download/******g, usersavesuffix = -1
+    21:51:44.882 [core.log.export] log export pick: state=picked uris=["file://docs/storage/Users/currentUser/Download/learnOH-1789307405990.log"]
+    21:51:44.882 [core.log.export] log export plan: outcome=exported-picked destination=picked fallback=none dir=file://docs/storage/Users/currentUser/Download path=file://docs/storage/Users/currentUser/Download/learnOH-1789307405990.log
+    21:51:44.883 [core.log.export] log export wrote file: path=file://docs/storage/Users/currentUser/Download/learnOH-1789307405990.log textLength=6411 writeSync=6481 statSize=6481
+    21:51:44.884 [core.log.export] log export done: outcome=exported-picked destination=picked fallback=none … records=48 bytes=6481
+    21:51:44.885 [features.settings] log export reported: outcome=exported-picked destination=picked … records=48 bytes=6481
+
+- `hdc -t 127.0.0.1:5555 shell ls -l /storage/media/100/local/files/Docs/Download` 的原始输出（两次成功导出后）：
+
+      total 24576
+      -rw-rw---- 1 20001006 file_manager 6481 2026-09-13 21:51 learnOH-1789307405990.log
+      -rw-rw---- 1 20001006 file_manager 6481 2026-09-13 22:01 learnOH-1789308047902.log
+
+  属主是 `20001006`（file_manager 一族），**不是**应用沙箱 uid ⇒ 确实落在共享公共目录里。
+- `hdc file recv` → `FileTransfer finish, Size:6481, File count = 1, time:54ms`；取回后 `line0=learnOH 日志导出`、`line2=记录数: 48/500`。
+- 界面（`devecocli ui layout` 的原始节点文本）常驻行与 Toast 都是同一句：
+
+      "已导出 48 条 / 6481 字节\n保存位置：file://docs/storage/Users/currentUser/Download/learnOH-1789308047902.log"  常驻行 bounds=[0,2145,1320,2334]；Toast bounds=[98,2307,1222,2478]
+
+  ⇒ 界面 48/6481、hilog 48/6481、`ls -l` 6481、`file recv` 6481 **四处一致**。
+- 帧：`.dsh/logs/picker-frames/01-picker-download.png`（选择器：标题「将文件保存至 "Download"」、预填 `learnOH-1789307405990.log`）、
+  `02-exported-toast.png`。
+
+### 论断 2｜用户取消 = 一条中性提示，且**什么都不写**
+
+在同一个选择器里点左上角 X。原始 hilog：
+
+    22:02:29.029 [picker] MakeResultWithPickerCallBack: resCode is -1.
+    22:02:29.029 [core.log.export] log export pick: state=cancelled uris=[]
+    22:02:29.030 [core.log.export] log export plan: outcome=cancelled destination=none fallback=none dir= path=
+    22:02:29.030 [core.log.export] log export done: outcome=cancelled destination=none fallback=none … records=54 bytes=0
+    22:02:29.030 [ui.toast] toast shown: millis=60000 hasAction=false text=已取消导出
+    22:02:29.030 [features.settings] log export reported: outcome=cancelled destination=none … records=54 bytes=0
+    界面节点："已取消导出" bounds=[98,2421,1222,2478]
+
+- **取消在平台侧的表现实测是「resolve 成空数组」**（`resCode is -1`、`selecturi is` 为空），不是 reject ⇒
+  `classifyPickedUris([])` → `CANCELLED`。代码里那张 `USER_CANCELLED_CODES` 因此保持为空（有单测遍历它，日后实测到 reject 的码直接补进去即可）。
+- 取消之后：公共目录没有多出文件（只有两次成功导出那两个），私有兜底目录
+  `/data/app/el2/100/base/com.koracan.learnOH/haps/entry/files/logs` **不存在** ⇒ 取消没有写任何东西。
+- 帧：`.dsh/logs/picker-frames/03-cancel-toast.png`。
+
+### 论断 3｜包里不再请求任何受限权限（这条就是 ACL 阻塞的解法）
+
+    hdc -t 127.0.0.1:5555 shell bm dump -n com.koracan.learnOH | Select-String ohos.permission
+    "name": "ohos.permission.INTERNET"                      ← 只剩这一条
+
+交付产物（release 签名）解包后的 `module.json` 同样只剩这一条；包内 `resources.index` 里已经没有 `log_export_permission_reason`：
+
+      ohos.permission.INTERNET
+      log_export_permission_reason 命中数 = 0
+      pack.info: versionCode 2000000 / versionName 2.0.0
+
+    node scripts/check-release-profile.mjs
+    RESULT: OK —— 这个 Profile 可以打发布包。
+
+### 门禁（都在主树 `D:\Koracan\source\harmony\learnOH` 跑）
+
+| 项 | 原始结果 |
+| --- | --- |
+| 单测（**改回取证开关之后**重跑） | `Tests run: 455, Failure: 0, Error: 0, Pass: 455, Ignore: 0`；`test_result.txt` mtime `2026-09-13 22:03:38`；日志里 `ERROR`/`ErrorCode`/`COMPILE RESULT` 命中 0 |
+| 打包（release 签名） | `BUILD SUCCESSFUL in 10 s 885 ms`；`ERROR`/`ErrorCode`/`COMPILE RESULT` 命中 **0**；`entry-default-signed.hap` 5357187 B @ 22:04:04 |
+| 四个脚本 | `check-domain-purity` PASS / `check-import-graph` PASS / `check-i18n-keys` **RESULT: OK** / `check-generated-fresh` PASS（退出码全 0） |
+| 上架前置检查 | `node scripts/check-release-profile.mjs` → **RESULT: OK** |
+
+### 没做到 / 存疑
+
+- **真机（API 24）上没验**：只用了模拟器（与 ticket 19 的口径一致）；真机那台的应用数据保持原样，没有装卸。
+- 平台在选择器返回里给的 `usersavesuffix = -1`（是否由用户选了后缀）没有解释，只记录原话。
+- 带 Toast 的那两张帧来自**取证构建**（`TOAST_MILLIS_FOR_EVIDENCE=60000`）；提交态的 3 秒窗口抓不到帧，
+  提交态这一条的判据是 `ui_export_cancelled` 的单测 + `[ui.toast]` 自证行 + 取消后零落盘（都在这份文件里）。

@@ -71,6 +71,14 @@ hvigor 入口：``C:/Program Files/Huawei/DevEco Studio/tools/hvigor/bin/hvigorw
 
 ## 签名
 
-签名材料与配置见 `docs/sign.md`。
-**发布签名/打包已移出工程范围**（账号所有者自行处理）：仓库里 `build-profile.json5` 名为 `release` 的那份签名配置，
-其 `.p7b` 实测是 ``type: debug`` + `development-certificate`，**不是发布证书** —— 别再把它当发布通道用。
+签名材料、两条签名配置的用途、**怎么解 p7b 看真实字段**、以及**上架前必须满足的 ACL 一致性**，全部在 `docs/sign.md`（那里有可复现的解码命令与实测表格）。
+
+**结论：本文件（以及任何文档）里关于签名的论断，动手前先自己解一遍 p7b 复核**，命令见 `docs/sign.md`。
+
+**怎么自己判**（一条命令，不碰设备、不碰网络）：
+
+    node scripts/check-release-profile.mjs                       # 检查 build-profile.json5 里 release 配置所指的 Profile
+    node scripts/check-release-profile.mjs --profile <某.p7b>     # 检查刚下载、还没写进 build-profile 的那一份
+
+它硬校验 `type=release` / `app_gallery` / `bundle-name` / 内嵌证书与 `material.certpath` 一致，
+并把 `module.json5` 的请求权限与 `acls.allowed-acls` 逐条对照：受限权限缺一条就 `RESULT: FAIL`。
