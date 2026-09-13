@@ -7,7 +7,7 @@
 
 **Blocked by:** None（可立即开始）
 
-**Status:** ready-for-agent
+**Status:** verified（统筹者独立复现：自己在设备上取到课程详情页「图标与标题同一行」的 dump + 两个设置子页同行/靠上对照 + 门禁 427 绿；见 2026-09-13 第三条 Comment）
 
 **判据**
 - [ ] **先盘一遍（交付物的一部分）**：列出所有带返回按钮的页面/页头（至少覆盖 文件、课程、设置及其子页、公告详情、作业详情），
@@ -94,3 +94,29 @@
 - **合并**：按统筹者提醒先合并 `main`（t14 的 `SemesterSelectionPage` 改动）；自动合并成功，
   t14 的 `activeSemesterId()` 读 `pendingSemesterId || semesterId` 与同步 `select()` 都在，
   我这边的返回图标 + 同行也都在。
+
+### 2026-09-13 · 统筹者验收：**verified**（含我自己补的那条设备证据）
+
+**A. 我补上了你报「做不到」的那条**（课程详情页的设备对照）
+- 你判断 5557 上「课程/文件列表 0 条 ⇒ 无入口可点」。我复核后认为这个阻塞**是瞬时的**：你报完约 5 分钟后，5557 自己的日志（`hilog -x`，16:31:04）写着
+  `data.courses semesters resolved current=2026-2027-1 list=9 listOk=true`、`data.files fetched courses=2 items=4 elapsedMs=58 failures=0` ⇒ 数据是能出来的。
+- 我改用**有真实数据**的 5555（装的就是你 `b47c458` 那份产物，我才编的），自己点进课程详情取了帧与 dump：
+  **返回图标 `[75,196][150,271]` vs 标题 `[212,190][2160,278] "英语听说交流（A）"` ⇒ y 区间重叠 = 同一行**；返回是图标不是文字。
+- 同设备另取两页作旁证：学期切换页 图标 `[75,183][150,258]` vs 标题 `[212,177][2160,265]`（同行），列表首行 y=**366**（修前该页标题在 `[50,247][2160,335]`、上方还有一行文字「返回」）；沉浸式模式页 图标/标题同行，首个内容行 y≈**406**（你报的修前是 1023）。
+- 对照：同一次 5555 上文件 tab 是 `全部 4` 且有 4 条文件 ⇒ 「0 条」不是代码行为。
+
+**B. 门禁（我在你的树 `b47c458` 里重跑，不采信自述）**
+- 单测 `Tests run: 427, Failure: 0, Error: 0, Pass: 427`（`test_result.txt` mtime **16:33:38**，本轮）；`assembleHap --no-incremental` exit 0、`BUILD SUCCESSFUL` 1 次、搜 `ERROR:`/`ErrorCode`/`COMPILE RESULT` **各 0**；
+  解包 `ets/modules.abc` = 1,794,692 B、SHA256 `E2629AE9E4F155BC429333F8145B1054412A0B7303EB366A9DF178EB595D7091`；四脚本 PASS / PASS / `RESULT: OK` / PASS。
+- 卫生：`git diff main...HEAD` 没碰 i18n 资源/键、没有图片、没有 `.scratch/migration/**`、注释里没有工单/台账编号、`*_FOR_EVIDENCE` 无改动；新增 6 处 `AppIcon.ARROW_BACK`、`loh_back` 仍作为可读 label 保留。
+
+**C. 合并安全（我重点查了）**：你 merge 了 main（`110dab8`），t14 的语义**没有被丢掉** —— `SemesterSelectionPage.ets:63` 仍是 `pendingSemesterId || semesterId`、`:89` 仍有 `semester selection dismissed`，同时 `:117` 是新的图标返回。
+  ⇒ 两条线在同一文件上的改法是叠加的，不是互相覆盖。
+
+**D. 验收时发现的一条残留（不阻塞本 ticket，另记候选）**：沉浸式模式页会把诊断串 **`immersive settings: immersiveMode=false`** 当正文渲染出来（来源 `data/settings/ImmersiveSettings.ets:140`）。
+  这是**既有**行为（`main` 上同样有，不是本 ticket 引入），但中文界面里露一行英文诊断，我登记为候选。
+
+**E. 我认下的两条**：① 文件页「失败态」修后帧缺失 —— 它改的是同一个 `.align(Alignment.Top)`，且空态/失败态并存时无法同时取证，接受为源码级；
+  ② 分栏态未取证（只有 phone）—— 本次改的是页头 Row 与内容容器对齐，与宽度无关，接受为限制并记在案。
+
+**F. 派单情报被证伪的两条（记下来）**：「纵向居中」不在设置 tab 根与文件列表，而在**设置四个子页的 Scroll** 与**文件页加载/失败态**；公告/作业/文件三个详情页**本来就**是图标 + 同行，被你误列进候选。
