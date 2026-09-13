@@ -11,7 +11,8 @@
 import { describe, it, expect } from '@ohos/hypium';
 import {
   DETAIL_ROUTE_NAMES, SPLIT_VIEW_BREAKPOINT_VP, SPLIT_VIEW_MASTER_WIDTH,
-  SplitMigrationPlan, isSplitDetailRoute, resolveSplitViewActive, splitMigrationPlan
+  SplitMigrationPlan, isSplitDetailRoute, resolveSplitViewActive, shouldReplaceDetailTop,
+  splitMigrationPlan
 } from '../main/ets/features/shell/SplitView';
 
 export default function splitViewTest() {
@@ -95,6 +96,23 @@ export default function splitViewTest() {
       const none: SplitMigrationPlan = splitMigrationPlan(['Notices']);
       expect(none.keepCount).assertEqual(1);
       expect(none.detailNames.length).assertEqual(0);
+    });
+
+    it('replaces the detail top instead of popping and pushing a duplicate', 0, () => {
+      // 回归保护（2026-09-13）：分栏下点另一条列表项时，右栏栈顶仍是**同名**详情路由。
+      // 当时用 `pop(false)` + `pushPath()` 两步实现 —— 同一次同步块里 ArkUI 会把两次栈变更合并，
+      // 目的地不重建（详情页 `aboutToAppear` 不再执行）⇒ 右栏停在**第一条**的陈旧内容。
+      // 现在改为单次原子 `replacePath`；这里钉住"什么时候该替换"这个决策，
+      // 将来若有人改回 pop+push 的写法，这条断言会先失败。
+      expect(shouldReplaceDetailTop(['AssignmentDetail'], 'AssignmentDetail')).assertTrue();
+      // 栈空 → 没有可替换的，走 push
+      expect(shouldReplaceDetailTop([], 'AssignmentDetail')).assertFalse();
+      // 栈顶是**别的**路由 → 走 push（保留上一级详情）
+      expect(shouldReplaceDetailTop(['AssignmentDetail'], 'FileDetail')).assertFalse();
+      // 只有**栈顶**同名才算：同名的那条在下面时仍然走 push
+      expect(shouldReplaceDetailTop(['CourseDetail', 'FileDetail'], 'CourseDetail')).assertFalse();
+      // 多级详情链：栈顶同名 → 替换栈顶，不动下面几级
+      expect(shouldReplaceDetailTop(['CourseDetail', 'FileDetail'], 'FileDetail')).assertTrue();
     });
   });
 }

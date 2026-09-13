@@ -11,7 +11,9 @@
 **/evidence
 
 # 各 ticket 的过程文件（hilog 原始拉取、layout dump、探针截图）——**不进版本库**，
-# 只作工作副本；真正的证据放各自的 `evidence/` 并 force-add。
+# 只作工作副本。
 release/logs
+# 缺陷复现/定位的过程证据（截图 + layout dump），同样只留本地。
+defect
 migration/sm2-verify
 auth/tools/credentials.local.txt

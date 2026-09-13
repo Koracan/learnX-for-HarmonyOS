@@ -187,9 +187,47 @@ export function migrateDetailRoutesBack(detail: NavPathStack, master: NavPathSta
  * 列表项点击 → 打开详情。
  *
  * 单栏：照 ticket 03/04 的做法压到本 tab 的**主栈**上（行为一字未改）。
- * 分栏：压到**右栏**的详情栈；若右栏栈顶已是**同名**路由，先弹出再压
- * （参考实现是用 `detailNavigatorRef.current.navigate(name, params)`，react-navigation
- * 对栈顶同名路由是"换参数、不再压栈"——这里对齐这个可观察行为）。
+ * 分栏：压到**右栏**的详情栈；若右栏栈顶已是**同名**路由，则用 `replacePath` **原子替换**
+ * （参考实现是 `detailNavigatorRef.current.navigate(name, params)`，react-navigation 对栈顶同名路由
+ * 是“换参数、不再压栈”——这里对齐这个可观察行为）。
+ *
+ * 【2026-09-13 修一个真机+模拟器共有的缺陷】原实现是 `pop(false)` 之后紧接着 `pushPath`
+ * —— 两步在**同一个同步块**里，ArkUI 把两次栈变更合并处理，弹出通知被吞掉，
+ * `pushPath` 之后栈内容与原来等价 ⇒ **已有的 `NavDestination` 不会重建**
+ * ⇒ 详情页的 `aboutToAppear` 不再执行、页面持有的是**第一次**的 `param`。
+ * 可观察表现（ticket 18 真机复验发现，统筹在模拟器平板上独立复现）：
+ *   第 1 次点列表项 → `tapped` + `detail appear`，右栏正确；
+ *   第 2 次点**另一条** → **只有 `tapped`、没有 `detail appear`**，右栏仍显示第一条；
+ *   连带后果：右栏页面持有的陈旧对象会让**提交入口按上一条作业的截止时间**判定。
+/**
+ * 右栏栈顶已是同名路由时，应当**替换**而不是“先弹再压”。
+ *
+ * 抽成纯函数的目的：把“用哪个导航调用”这个**决策**钉进单测（`SplitView.test.ets`），
+ * 因为踩过的那个坑正是“决策看起来对、实现却静默失效”：
+ * `pop(false)` 紧跟 `pushPath()` 在同一个同步块里会被 ArkUI 合并处理，目的地不重建（详见下面 `pushDetailFromMaster` 的说明）。
+ *
+ * 参考实现对应物：react-navigation 的 `navigate(name, params)` 对栈顶同名路由是“换参数、不再压栈”。
+ */
+export function shouldReplaceDetailTop(detailNames: string[], name: string): boolean {
+  return detailNames.length > 0 && detailNames[detailNames.length - 1] === name;
+}
+
+/**
+ * 列表项点击 → 打开详情。
+ *
+ * 单栏：照 ticket 03/04 的做法压到本 tab 的**主栈**上（行为一字未改）。
+ * 分栏：压到**右栏**的详情栈；若右栏栈顶已是**同名**路由，则用 `replacePath` **原子替换**。
+ *
+ * 【2026-09-13 修一个真机+模拟器共有的缺陷】原实现是 `pop(false)` 之后紧接着 `pushPath` ——
+ * 两步在**同一个同步块**里，ArkUI 把两次栈变更合并处理，弹出通知被吞掉，
+ * `pushPath` 之后栈内容与原来等价 ⇒ **已有的 `NavDestination` 不会重建**
+ * ⇒ 详情页的 `aboutToAppear` 不再执行、页面持有的是**第一次**的 `param`。
+ * 可观察表现（ticket 18 真机复验发现，统筹在模拟器平板上独立复现）：
+ *   第 1 次点列表项 → `tapped` + `detail appear`，右栏正确；
+ *   第 2 次点**另一条** → **只有 `tapped`、没有 `detail appear`**，右栏仍显示第一条；
+ *   连带后果：右栏页面持有的陈旧对象会让**提交入口按上一条作业的截止时间**判定。
+ * 修法：栈顶同名时改用单次 `replacePath`（API 23 已有，见 `navigation.d.ts:1229`），
+ * 它是一次原子替换 ⇒ 旧 `NavDestination` 被销毁、新页面重建并拿到新 `param`。
  */
 export function pushDetailFromMaster(master: NavPathStack, detail: NavPathStack,
   split: boolean, name: string, param: Object, animated: boolean = true): void {
@@ -198,15 +236,15 @@ export function pushDetailFromMaster(master: NavPathStack, detail: NavPathStack,
     return;
   }
   const names: string[] = detail.getAllPathName();
-  if (names.length > 0 && names[names.length - 1] === name) {
-    detail.pop(false);
+  if (shouldReplaceDetailTop(names, name)) {
+    // 原子替换：**不要**写成 pop + pushPath（那个组合不重建目的地，见上面说明）。
+    // animated 默认 true（四个 tab 页的行为一字未改）。搜索页传 false，对应参考实现
+    // `Search.tsx:54-63` 给进右栏的那次 navigate 补 `disableAnimation: true`（单栏的 push 不补）。
+    detail.replacePath({ name: name, param: param }, animated);
+    return;
   }
-  // animated 默认 true（四个 tab 页的行为一字未改）。搜索页传 false，对应参考实现
-  // `Search.tsx:54-63` 给进右栏的那次 navigate 补 `disableAnimation: true`（单栏的 push 不补）。
-  // 注意：动画开关是 pushPath 的**第二个参数**（NavigationOptions），不是 NavPathInfo 的字段。
   detail.pushPath({ name: name, param: param }, animated);
 }
-
 /**
  * 把判据结果写进 AppStorage（**消费点在各个 tab 页**：它们订阅 `SPLIT_VIEW_ACTIVE_KEY` 决定版式）。
  * 这里同时打一行"实际生效值"日志，取证时按消费点核对（AGENTS.md 的开关自证口径）。

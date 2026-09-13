@@ -4,7 +4,7 @@
 
 **Blocked by:** 09（公告切真实数据 + 快照）
 
-**Status:** verified-partial（模拟器口径；1/4/5 通过、2 一半且 PDF 转 ticket 18、3 机制成立、6 转 18）
+**Status:** verified（模拟器 + 真机口径；1/4/5 通过、**2 的 PDF 于 2026-09-13 在真机闭合**、3 机制成立；图片预览仍无样本，转 ticket 18 附注）
 
 - [x] 列表按上传时间倒序，显示大小与类型（我独立复验：春季 95 条、每行类型+大小+相对时间）
 - [ ] 下载显示进度，完成后可预览；PDF 与图片在应用内打开，无需跳转第三方
@@ -75,7 +75,7 @@ ticket 10 的作业详情把**四类附件**（attachment / submittedAttachment 
 | # | 验收 | 结论 | 独立证据 | 可重跑命令 |
 | --- | --- | --- | --- | --- |
 | 1 | 列表按上传时间倒序、显示大小与类型 | **达成** | `evidence/A1-files-tab-autumn-list.png`（4 条；每行 `ZIP 212.0M` = 类型 + 大小） | `aa start`（无覆盖）→ `devecocli ui click --device 127.0.0.1:5555 660 2640` → `hilog -x` 里 `data.files fetched courses=2 items=4 … failures=0`、`files refresh done: items=4` |
-| 2 | 下载显示进度，完成后可预览；PDF / 图片应用内 | **一半：进度达成；PDF 未达成（平台缺口）；图片未抓到样本** | 进度：`evidence/D1-progress-layout-during-download.json`（`下载中` / `330.64 MB / 700.48 MB` / `47.000000`）+ `D2-download-completed-info-panel.png`；PDF 缺口：`B2-pdfview-crash-hilog.txt`（`does not provide an export name 'pdfViewManager'`）与 `B4-pdf-preview-unsupported-note.png`（如实提示，不崩不跳第三方） | 点第 3 行（700 MB ZIP）→ 立刻 `devecocli ui layout --device 127.0.0.1:5555 --format json`（应见"下载中"与已接收/总量） |
+| 2 | 下载显示进度，完成后可预览；PDF / 图片应用内 | **PDF 于 2026-09-13 在真机上闭合**（见 ticket 18 真机复验 D1）；**图片仍未抓到样本** | PDF 真机：`D1-pdf-in-app-preview-light.jpeg` + `D1-pdf-preview-hilog.txt`（`preview pdf ok: pages=18`、画面为第 1 页正文 + `1 / 18` 翻页条）；模拟器侧进度证据见 `D1-progress-layout-during-download.json`（`下载中` / `330.64 …`） |
 | 3 | 会话过期下载到登录页 → 识别 + 提示 + 无损坏文件 | **机制达成（注入替身单测）；设备侧未抓到** | `entry/src/test/FileDownload.test.ets` 的 `neverOpensTheFileGateWhenTheResponseIsALoginPage`（`openCalls===0`、无文件、原因 `html-login-page`）与 `turnsALoginPageIntoRequiresEnrollmentWithoutLeavingAFile`（任务两次都 403、`requiresEnrollment=true`、无文件） | `hvigorw … test --no-incremental` |
 | 4 | 分享面板可调起；含中文与空格的路径可用 | **达成** | `evidence/C2-share-panel.png`（系统分享面板 + 文件卡片）+ hilog `file detail share uri: file://…/%E8%BD%AF%E4%BB%B6…-16%20abstractio%20and%20refinement.pdf`（中文百分号编码、空格 `%20`） | 打开该 PDF → 点"分享"（1074,206）→ `hilog -x` 里 `file detail share uri/utd/calling show` |
 | 5 | 清理缓存后文件真正消失；两个设置均生效 | **达成** | 设置：`file download plan: useDocumentDir=true omitCourseName=true root=…/files/learnX-files … path=…/期末复习.pdf`（根=文档、文件名不含课程名）+`E2-file-settings-page.png`；清理：`E3/E4` + `file cache cleared: … removed=true` + **清理后重开同一文件 `fromCache=false`**（`E5-redownload-after-clear.png`） | `aa start … --ps lohFileUseDocumentDir 1 --ps lohFileOmitCourseName 1`；随后在文件设置页点"清空文件缓存"→"确定" |
@@ -151,3 +151,16 @@ ticket 10 的作业详情把**四类附件**（attachment / submittedAttachment 
 #### 5. 取样代价
 
 1 次全量单测、2 次冷启动 + 3 次点击 + 3 次 layout/截图 + 2 次全量 hilog + 1 次 hap 解包（约 6 分钟设备窗口）。**设备锁与构建锁均已释放。**
+
+### 边界说明（2026-09-13，由 ticket 18 真机复验带入）—— PDF 应用内预览**已闭合**，且模拟器那条"平台缺口"的定性要收窄
+
+- **变了什么**：本 ticket 验收第 2 条的 PDF 那一半，当时记为"未达成（平台缺口）"并转 ticket 18。
+  2026-09-13 在真机（MatePad Air / API 24）上复验**通过**：点开 PDF 看到**第 1 页正文** + `1 / 18` 翻页条，
+  hilog 消费点 `file download … contentType="application/pdf" contentLength=283252` → `preview pdf ok: pages=18`；
+  帧 `D1-pdf-in-app-preview-light.jpeg`（ticket 18 的真机证据目录）。
+- **原证据还成立到哪一步**：模拟器侧那两条**仍然成立**——`PdfView` 组件在**模拟器（API 23）**上运行期确实缺 `pdfViewManager`；
+  `pdfservice` 在模拟器上也确实加载失败。所以台账第 23 条**不用改**：它描述的是**模拟器**的行为。
+  **但要收窄它的适用范围**：那条是**环境相关**的，不是"HarmonyOS 上 PDF 预览不可用"。
+- **对实现的影响：无。** 本工程当年选 `pdfService`（而非 `PdfView` 组件）是对的 —— 正因为换了 `pdfService`，
+  真机才渲染得出来。**不要把组件装回去**（模拟器会崩）。
+- 可观察量转移到哪里：无需转移；图片预览仍无样本（本账号 95 个文件全是 PDF），留在 ticket 18 的未验证清单。

@@ -173,4 +173,136 @@
 - **H1 全部截图必须取自 ticket 11.5 之后**的构建（白底/中性深灰 + 矢量图标 + 作业页头无学期/覆盖徽标/未完成计数，第 6 条）。
 - **H2 真机 = API 24**、模拟器 = API 23：**同一台真机的证据不能替代模拟器证据，反之亦然**；每张图/每份日志按实标注设备名。
 - **H3 把真机上新发现的缺陷按票据流程登记**（不要在 ticket 18 里静默修掉）。
+---
+
+### ticket 18 真机复验交付（2026-09-13，由执行 agent 追加；**Status 留给统筹**）
+
+**设备**：HUAWEI MatePad Air `3FYBB25407201890`，实测 `devicetype=tablet` / `apiversion=24` / `BKY-W20` / 软件 `BKY-W20N 6.1.0.135`。
+**产物**：`.scratch/release/artifacts/v1.1.0-debug-1000042.hap`（4,992,248 B，SHA256 `66644F…022F`），装机后 `versionName=1.1.0 / versionCode=1000042`。
+**源码状态**：取证起点 HEAD `9f8cd218c8f30b0c8d66fe3f50b1e30843ee071d`（工作区脏：`M AppScope/app.json5`）；取证中途发布线把 HEAD 推进到 `a99e0010…`，**证据全部对应 `9f8cd2…`**。
+**证据目录**：`.scratch/release/evidence/`（逐文件论断表见其 `README.md`）。**注意该目录被 `.scratch/.gitignore` 的 `**/evidence` 排除，入库需 `git add -f`**。
+**门禁**：`check-domain-purity` PASS、`check-import-graph` PASS（WARN 仅入口文件）、`check-i18n-keys` RESULT: OK、`check-generated-fresh` PASS。本轮**未构建**（未持构建锁）。
+
+#### A–H 逐项结论
+
+| 项 | 结论 | 证据 |
+| --- | --- | --- |
+| **A1 真机接入** | **通过** | `A1-real-device-identity-and-fresh-install.txt`、`A1-fresh-install-enrollment-and-iconfont-hilog.txt` |
+| A2 版本与签名（2.0.0 / 2000000 / release） | **未做**（发布线负责，本轮只装 1.1.0-debug） | — |
+| A3 升级路径 / 全新安装 | **部分**：全新安装路径已取证（装机前 `bm dump` 失败 → `HandleBundleFirstLaunch` → `no persisted credentials -> login page`）；**1.1.0→2.0.0 覆盖安装未做** | 同上 |
+| A4 README / AGENTS.md | **未做**（发布线） | — |
+| **B1 转竖屏详情仍在屏上** | **通过** | `B0/B1` 帧 + `B1-B3-rotation-to-portrait-hilog.txt` |
+| **B2 转回横屏仍双栏、详情还在、主栏 393vp** | **通过** | `B2` 帧 + `B2-B3-rotate-back-hilog.txt` + `B2-static-main-pane-393vp.txt`（884px/2.25=392.9vp） |
+| **B3 全程不重复取数** | **通过**（旋转前后均无第二条 `data.assignments fetched`、无 `network request`；文件详情另有 `fromCache=true` 正向证据） | `D1b-file-reopen-fromCache-true-hilog.txt` |
+| **B4 设置子页旋转** | **部分通过**：横屏右栏基线 + 竖屏单栏 + 转回横屏落右栏三段齐全；**缺「横屏→竖屏后子页仍在屏上」那一帧**（账号所有者裁定取消），只有「文件子页」同类旁证 | `B4-immersive-settings-rotation.txt` |
+| **B5 搜索页旋转** | **未做**（账号所有者裁定取消） | — |
+| **C1 数据处理器待账号验证项** | **未做**（未逐条回填夹具） | — |
+| **C2 完整登记 / 指纹三点 / asset store on API 24** | **通过**：真机完成含 doubleAuth(短信) 的登记；`formFieldDom=saveFingerXhr=persistedReadBack=6c1615dc` 三处同值 | `C2-real-device-enrolment-and-fingerprint.txt` |
+| **C3① 断网启动 + 恢复后重试** | **未做**（冷启动可能打掉唯一凭据，风险评估后未执行） | — |
+| **C3② 会话 cookie 不落盘** | **通过**（真机存储扫描，应用自有持久化文件命中数全 0） | `C3-session-cookie-not-persisted-scan.txt` |
+| **C3③ 信任过期 ⇒ 显式回登录页** | **未做**（需要制造信任过期，无可控手段） | — |
+| **D1 PDF 应用内预览** | **通过（闭合）**：看到 PDF 第 1 页正文 + `1 / 18` 翻页条；`preview pdf ok: pages=18` | `D1-pdf-in-app-preview-light.jpeg`、`D1-pdf-preview-hilog.txt`、`D1-pdf-preview-real-device.txt` |
+| **D2 图片应用内预览** | **未做**：95 个样本全是 PDF，本账号无图片样本；沙箱 shell 不可写、提交页 picker 又不可达，无法本地放入 | — |
+| **D3 分享面板 + 原始 hilog** | **通过** | `D3-file-share-sheet-light.jpeg`、`D3-share-raw-hilog.txt` |
+| **D4 会话过期下载到登录页** | **未做（可选）** | — |
+| **E1 底色取色（浅/深 + 深色课程列表）** | **通过**：浅 `R=G=B=255`、深 `R=G=B=28`、深色课程列表 `R=G=B=28`；并证明截图非灰度 | `E1-background-colour-samples-real-device.txt`、`E1-dark-courses-list.jpeg` |
+| **E2 内嵌图标字体** | **通过**：`icon font ready: attempted=true ready=true`，`receipt=[…=undefined]`（与模拟器一致、不影响判定）；界面为扁平矢量字形 | `E2-icon-font-real-device.txt` |
+| **E3 相对时间中间档（小时/天）** | **未做**，原因比预想的更硬：页头的相对时间是**在页面构造那一刻算一次就冻住**的（实测同一页面从 09:36 到 09:47 一直停在「42 分钟前更新」），而本工程**只有旋转或重启才会重建页面** —— 旋转被裁定取消、重启会丢会话（见下）。沙箱 shell 不可写也让「注入 `fetchedAtMillis`」这条老路在真机上不可用 | — |
+| **E4 页头版式** | **通过**：三项都落在标题行区域内（逐值 bounds） | `E4-header-layout-real-device.txt` |
+| **E5 英文（en-US）** | **未做**：语言跟随系统，切换需改系统语言（或重建带 `FORCE_ENGLISH_FOR_EVIDENCE` 的产物，本轮无构建锁） | — |
+| **F 各域截图** | **大部分通过**：公告列表/详情、作业列表（空态 + 57 条真实数据）/详情、文件列表/详情、课程列表/详情、学期选择、搜索三域 + 结果进右栏、设置主页 + 沉浸式/学期/文件/关于/帮助五个子页 | 见 `README.md` 的 F 表 |
+| **F：提交页（含二次确认）** | **未通过 —— 账号事实导致不可达**（已复核归因，见下）：**全账号 9 个学期逐一遍历**，凡有作业的学期都满足 `pastDue == all`（共 546 条，**没有一条**截止时间在未来）⇒ 入口的 `isPastDeadline` 恒真 | `F5-assignment-submission-not-reachable.txt`、`F5-semester-sweep-pastDue-counters.txt` |
+| **G1 登出** | **未做（按派工先问，见下）** | — |
+| **G2 导出日志落盘实证** | **通过**：文件真实存在（设备侧 4,246,288 B），内容可读（504 行、表头 `记录数: 500/500`） | `G2-export-logs-real-device.txt`、`G2-exported-log-file-sample.log` |
+| **G3 外链 / mailto** | **通过**：隐私政策 → 系统浏览器并加载正文；`mailto:` → 邮件应用接管、收件人已填 | `G3-external-links-real-device.txt` |
+| **G4 `immersiveAvoidFrontCamera`** | **通过（记为「无」）**：开关持久化+显示，但**无任何窗口/布局调用与重测量**；沉浸式主开关则**有**可观察效果（可用高度 751.1→817.8vp） | `G4-immersive-switches-real-device.txt` |
+| **G5 从设置页切学期是否联动课程 tab** | **未取得干净证据（被学期覆盖混淆）** | `G5-settings-semester-vs-courses-tab.txt` |
+| **H1 截图取自 11.5 之后** | **满足**（作业页头无学期/无徽标/无未完成计数可见于 F3/F4） | — |
+| **H2 证据按实标注设备** | **满足**（全目录标「真机 MatePad Air / API 24」） | — |
+| **H3 新缺陷登记** | **见下「真机新发现」** | — |
+
+#### 未验证项与复现条件（全部是「需要有人/有资源在场」，不是「漏做」）
+
+1. **B4 竖屏 P1 帧 / B5 搜索页旋转** —— 账号所有者裁定取消来回转屏。复现条件：有人愿意配合两次物理旋转。
+   旋转只能靠人：`devecocli emulator rotate` 对真机同样被 Emulator ≥7.0 的版本门挡住；真机无 `wm`；WMS dump 无旋转选项。
+2. **C3① 断网启动 + 恢复后重试** —— 需要冷启动，而 ticket 08 已记录免短信纯 HTTP 重登**失败**，冷启动可能打掉本机唯一凭据。
+   复现条件：账号所有者愿意承担「可能再走一次短信登记」的风险。
+3. **E3 小时/天档** —— 三条路都不通：① `fetchedAtMillis` 注入需要写应用沙箱，而 shell 用户**不可写**；
+   ② 「等自然到点」不够 —— 页头的相对时间**在页面构造时算一次就冻结**（实测 09:36→09:47 一直显示「42 分钟前更新」），
+   而页面重建的触发只有**旋转**（已被裁定取消）或**重启**（会丢会话）；③ 天档还要再等一天。
+   复现条件：做一次旋转（或接受重启风险）让页面重建，且快照 fetchedAt 已跨过 60 分钟 / 24 小时。
+4. **E5 英文** —— 需要改系统语言（设备级），或重建带 `FORCE_ENGLISH_FOR_EVIDENCE` 的产物（本轮无构建锁）。
+5. **G5** —— 本轮为拿到真实作业必须开学期覆盖，而覆盖对**设置子页与课程 tab 两个 store 都权威**，
+   所以「课程 tab 不变」不能区分「本来就不联动」与「覆盖压住了」。
+   复现条件：**不带 `--ps lohSemester`** 冷启动 → 设置页切学期 → 看课程 tab 页头。
+6. **D2 图片预览** —— 本账号 95 个文件全是 PDF；沙箱不可写、提交页 picker 不可达，无法放入本地图片。
+7. **A3 的 1.1.0→2.0.0 覆盖安装**、**A2/A4**、**C1**、**C3③**、**D4** —— 见上表，均未做。
+
+#### 真机新发现（按票据流程登记，**未静默修**）
+
+1. **【严重】分栏态下点列表里的**第二条**条目，右栏详情不更新（停在第一条）。**
+   复现（作业 tab，分栏，任选一个学期）：先把右栏详情 pop 掉 → 点第 1 条（正常出现）→ 点第 2 条。
+   日志：第 2 次只有 `assignment tapped: id=…` 而**没有** `assignment detail appear`；
+   画面：左栏高亮已经移到第 2 条，右栏仍是第 1 条的标题/截止时间。
+   公告 tab 同样（两次 `notice tapped`、零次 `notice detail appear`）。
+   连带后果：之后点提交入口时判定用的是**陈旧对象** —— `submission entry blocked: past deadline=2026-06-28`，
+   而刚点的那条截止时间是 `2025-05-03` / `2025-06-20`（甚至是别的学期）。
+   取证：`DEFECT-splitview-detail-not-updating.txt` + `DEFECT-splitview-detail-row1/row2.jpeg` + 三份 hilog。
+   **边界**：只在真机取证；**未**在模拟器对照，因此不声称真机特有。首次打开是正常的，只有同栈第二次及以后不重建。
+
+2. **公告详情里的内嵌图片（课程微信群二维码）渲染为破图占位符** —— `F2-notices-detail-light-right-pane.jpeg`。
+   疑因：WebView 以 `baseUrl=https://learn.tsinghua.edu.cn/learnoh/notice-detail.html` 灌入正文，相对 `img src` 解析到合成路径。
+   **边界**：未在模拟器对照，**不声称真机特有**，请复核后再定性。
+3. **提交入口在「已截止」时静默不可达**（点上传图标无反应、无任何提示）—— 日志有 `submission entry blocked: past deadline=`。
+   拦截本身正确（是体验问题不是功能缺陷），但它直接导致 F 组的「提交页」在本账号下无法取证。
+   **归因已复核**（统筹点名要求）：不是缺陷、不是「这批作业恰好不开放」，而是**账号事实** ——
+   9 个学期逐一遍历，凡有作业的学期 `pastDue == all`（2025-2026-2: 57/57、2025-2026-1: 108/108、
+   2024-2025-2: 87/87、2024-2025-1: 66/66、2023-2024-3: 7/7、2023-2024-2: 163/163、2023-2024-1: 58/58；
+   2026-2027-1 与 2024-2025-3 为 0 条），共 546 条作业**没有一条**截止时间在未来。
+   取证：`F5-semester-sweep-pastDue-counters.txt`。**本轮没有、也不会真的提交任何作业。**
+4. **B2 帧里左栏底部有一条被部分拉出的滑动操作行**（旋转回横屏的瞬间；不影响论断，已注明）。定性未定，只出现一次。
+
+#### 请统筹裁定的两件
+
+- **G1（登出）**：按派工「做之前先问」。本机凭据是**刚真实登记出来的**，登出后重建需要账号所有者再做一次短信登记。
+  建议：**不做**（「凭据被清 + 回登录页」在 ticket 17 的模拟器口径上已闭合）。若仍要做，请明确「接受本机需要重新登记」。
+- **D1 是否据此闭合 ticket 11 唯一未闭合项**：真机 `preview pdf ok: pages=18` 且画面即 PDF 正文，我判为**可闭合**，
+
+#### 统筹跟进（2026-09-13）—— 第 1 条缺陷：**已独立复现、定位根因并修复**
+
+**① 独立复现（模拟器平板 MatePad Pro 13 / 1440vp 分栏，不是真机）**：
+按同一复现步骤跑，第 2 次点击**只有 `assignment tapped`、没有 `assignment detail appear`**，
+左栏高亮已移到第 2 条、右栏仍是第 1 条 ⇒ **这条缺陷不是真机特有，两平台共有**。
+（它自己在登记里写的边界"未在模拟器对照、不声称真机特有"是**负责任的保留**，现在有了答案。）
+取证：`.scratch/defect/R1-row1.png` / `R2-row2.png`（修复前）、`D3`–`D6`（定位过程）。
+
+**② 根因（读源码定位，不是猜）**：`features/shell/SplitView.ets` 的 `pushDetailFromMaster` **本来就**处理了"右栏栈顶同名"，
+但写法是**两步**：`detail.pop(false)` 之后紧接着 `detail.pushPath(…)`。
+这两步在**同一个同步块**里 —— ArkUI 把两次栈变更合并处理、弹出通知被吞掉，
+`pushPath` 之后栈内容与原来**等价** ⇒ **已有的 `NavDestination` 不重建**。
+决定性判据：`assignment detail appear` 打在 `AssignmentDetailPage.aboutToAppear()`（:95-98），
+它没打出来 = 页面**根本没被重建**，于是页面持有的还是第一次的 `param`（这解释了三处现象，含"提交入口按陈旧对象判定"）。
+
+**③ 修复**：改为**单次原子** `detail.replacePath({name, param}, animated)`（API 23 已有：`navigation.d.ts:1229`）。
+同时把"什么时候该替换"抽成纯函数 `shouldReplaceDetailTop(detailNames, name)` 并加单测 ——
+**目的是钉住这个决策**：这个坑的本质是"决策看起来对、实现静默失效"，所以要让将来改回 "pop+push" 的写法被测试挡下。
+覆盖面：`pushDetailFromMaster` 是**全部五个 tab + 搜索页**的列表→详情唯一入口（12 处调用），一处修复覆盖全部。
+
+**④ 修复验证（同一判别测试，修复前后对比）**：
+
+| | 修复前 | 修复后 |
+| --- | --- | --- |
+| 第 2 次点击的日志 | 只有 `assignment tapped` | `assignment tapped` **+** `assignment detail appear`（**同 id**） |
+| 右栏内容 | 停在**第 1 条**（演绎验证编程作业 / 成绩 10） | 跟随到**被点的那条**（第十二次作业 / 成绩 100） |
+
+取证：`.scratch/defect/R4-decisive.png` + 同轮 hilog（`assignment tapped` 与 `assignment detail appear` 的 id 相同）。
+**注意**：第一次尝试时第 1 拍没落上日志，我没有据此认定修好，而是**在"右栏已有详情"的状态下再点一条**做了决定性测试 ——
+因为只有那个场景才会走到 `replacePath` 分支。
+门禁：单测 **389 / 0 / 0 / 389**（基线一致，无回归）+ 新增 1 条回归断言。
+
+**⑤ 仍未处理（如实留着）**：登记里的第 2、3、4 条（公告内嵌二维码破图 / 提交入口静默不可达 / B2 帧里的滑动行）。
+第 2 条我另有一条同类观察（**秋季**下文件域报 `semester resolution failed: no xnxq in current semester response`），
+与它可能同源（都是相对/合成 URL 或响应解析问题），需要有单独的 ticket 去查，不在本 ticket 顺手改。
+  因此**不需要**把「如实提示 + 分享」定为 accepted-deviations 第 22 条的终态替代标准（**我未改台账**）。
+
 
