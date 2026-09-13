@@ -11,12 +11,16 @@
  *   - 详情时间是**绝对时间 + 星期**（中文 `YYYY 年 M 月 D 日 dddd HH:mm`、
  *     英文 `MMM D, YYYY HH:mm`），与列表的**相对时间**是两条路；
  *   - 附件名规则逐字对齐参考实现 helpers/fs.ts:215-226（含 `a.` 与 `.gitignore` 两个边界）。
+ *
+ * 另加正文地址重写一类：相对地址解析到**这次请求的响应地址**的目录，绝对 / 协议相对 /
+ * `data:` 地址不动，`_csrf` 追加那一段逐字冻结（详见 NoticeUrlRewrite 一组）。
  */
 
 import { describe, it, expect } from '@ohos/hypium';
 import {
   DEFAULT_DARK_BACKGROUND, MEASURE_SCRIPT, TemplateAssets, buildNoticeContent, buildCsrfScript,
-  escapeScriptEndTags, getWebViewTemplate, jsStringLiteral, removeTags, sanitizeColor
+  escapeScriptEndTags, getWebViewTemplate, jsStringLiteral, removeTags, removeDotSegments,
+  resolveNoticeUrl, sanitizeColor, siteOrigin
 } from '../main/ets/domain/render/WebViewTemplate';
 import {
   NoticeDateText, formatNoticeDate
@@ -33,6 +37,80 @@ const KATEX_MARK: string = 'KATEX-SCRIPT-MARK';
 const DARK_MARK: string = 'DARKREADER-SCRIPT-MARK';
 const STYLE_MARK: string = 'KATEX-STYLE-MARK';
 
+/**
+ * 这条公告的**响应地址**：真机快照里 '课程信息和微信群' 那条的 `url` 字段（原文照抄）。
+ * 它是带 query 的真实请求地址，正文里的相对地址按它那一层目录解析。
+ */
+const NOTICE_URL: string = 'https://learn.tsinghua.edu.cn/f/wlxt/kcgg/wlkc_ggb/student/beforeViewXs'
+  + '?wlkcid=2026-2027-1152227978&id=26ef84e8a00ef07901a08e94955a3541';
+/** 上面那个地址的目录层（相对地址应当落在这里）。 */
+const NOTICE_DIR: string = 'https://learn.tsinghua.edu.cn/f/wlxt/kcgg/wlkc_ggb/student/';
+/** 真机那条公告正文里二维码图片的 src（绝对 https，逐字照抄自快照）。 */
+const REAL_QR_SRC: string = 'https://learn.tsinghua.edu.cn/b/wlxt/common/downloadFiles'
+  + '?wjid=2022312735_GG_17890984733309341171fc6-db4f-4d62-8393-69a7576df97c'
+  + '&wlkcid=2026-2027-1152227978';
+
+/**
+ * 真实形状的公告正文夹具：相对路径 img src、协议相对 //、绝对 http(s)、data: 内联图，
+ * 以及站点表单里的 `_csrf` 隐藏字段（正文内容，不参与地址重写）。
+ */
+const REAL_SHAPED_BODY: string = '<p>请大家扫下面的二维码加入我们的课程微信群。</p>\n'
+  + '  <p><img height="1200" src="' + REAL_QR_SRC + '" width="820"></p>\n'
+  + '  <p><img src="images/group-qr.png" width="300"></p>\n'
+  + '  <p><a href="//learn.tsinghua.edu.cn/f/info/xxfb">站内公告</a></p>\n'
+  + '  <p><a href="https://www.example.com/path?a=1&amp;b=2">站外</a></p>\n'
+  + '  <p><img src="data:image/png;base64,iVBORw0KGgo="></p>\n'
+  + '  <form><input type="hidden" name="_csrf" value="TOKEN-123"></form>';
+
+/**
+ * `_csrf` 追加那一段的**逐字冻结**：重写条件（hostname 以 tsinghua.edu.cn 结尾）与追加方式
+ * （已有 query 用 `&`，否则用 `?`）必须一字未改。改到它这条断言就会红。
+ */
+const CSRF_APPEND_GOLDEN: string = [
+  'function addCSRFTokenToUrl(url, token) {',
+  '  var fragment = "";',
+  '  var raw = String(url);',
+  '  var hashIndex = raw.indexOf("#");',
+  '  if (hashIndex >= 0) {',
+  '    fragment = raw.substring(hashIndex);',
+  '    raw = raw.substring(0, hashIndex);',
+  '  }',
+  '  if (!/^[a-zA-Z][a-zA-Z0-9+.\\-]*:\\/\\//.test(raw)) {',
+  '    return url;',
+  '  }',
+  '  var prefix = ' + jsStringLiteral(LEARN_URL) + ';',
+  '  if (prefix.length > 0 && raw.indexOf(prefix) === 0) {',
+  '    raw = raw.substring(prefix.length);',
+  '  }',
+  '  var slash = raw.indexOf("/");',
+  '  var authority = slash >= 0 ? raw.substring(0, slash) : raw;',
+  '  var path = slash >= 0 ? raw.substring(slash) : "/";',
+  '  var at = authority.lastIndexOf("@");',
+  '  if (at >= 0) {',
+  '    authority = authority.substring(at + 1);',
+  '  }',
+  '  var colon = authority.lastIndexOf(":");',
+  '  var hostname = colon >= 0 ? authority.substring(0, colon) : authority;',
+  '  var shouldAppend = hostname.length === 0;',
+  '  if (!shouldAppend) {',
+  '    var suffix = "tsinghua.edu.cn";',
+  '    shouldAppend = hostname === suffix',
+  '      || hostname.substring(hostname.length - suffix.length - 1) === "." + suffix;',
+  '  }',
+  '  if (!shouldAppend) {',
+  '    return url;',
+  '  }',
+  '  var query = path.indexOf("?");',
+  '  var addition = "_csrf=" + encodeURIComponent(token);',
+  '  if (query < 0) {',
+  '    path = path + "?" + addition;',
+  '  } else {',
+  '    path = path + "&" + addition;',
+  '  }',
+  '  return authority + path + fragment;',
+  '}',
+].join('\n') + '\n';
+
 /** 一套可辨识的假资产：断言"资产被拼进来了"而不依赖 630 KB 真资产。 */
 function assets(withDark: boolean): TemplateAssets {
   return {
@@ -42,8 +120,9 @@ function assets(withDark: boolean): TemplateAssets {
   };
 }
 
-function build(content: string, dark: boolean, token: string, withDarkAsset: boolean): string {
-  return getWebViewTemplate(content, dark, SURFACE, token, LEARN_URL, assets(withDarkAsset));
+function build(content: string, dark: boolean, token: string, withDarkAsset: boolean,
+  base: string = NOTICE_URL): string {
+  return getWebViewTemplate(content, dark, SURFACE, token, LEARN_URL, base, assets(withDarkAsset));
 }
 
 /** 中文词表（与资源里的 ui_weekday_* 同值）。 */
@@ -141,11 +220,11 @@ export default function noticeDetailTest() {
 
     it('escapes a hostile csrf token instead of breaking out of the literal', 0, () => {
       const hostile: string = "'+alert(1)+'";
-      const script: string = buildCsrfScript(hostile, LEARN_URL);
+      const script: string = buildCsrfScript(hostile, LEARN_URL, NOTICE_URL);
       // 未转义的形态必须消失；留下的是被反斜杠转义的那个（于是它只是字符串内容）。
       expect(script.includes("'"+'+alert(1)+'+"'")).assertFalse();
       expect(script.includes("\\'" + '+alert(1)+' + "\\'")).assertTrue();
-      const backslash: string = buildCsrfScript('a\\b', LEARN_URL);
+      const backslash: string = buildCsrfScript('a\\b', LEARN_URL, NOTICE_URL);
       expect(backslash.includes("'a\\\\b'")).assertTrue();
     });
 
@@ -193,6 +272,101 @@ export default function noticeDetailTest() {
       expect(MEASURE_SCRIPT.includes('window.learnOHMeasure = measure')).assertTrue();
     });
   });
+
+/**
+ * 公告详情正文里的地址重写：相对地址解析到**这次请求的响应地址**所在的站点目录。
+ *
+ * 注入脚本跑在页面里、Host 单测到不了 DOM，所以脚本侧只能断言「基址与分支都在」；
+ * 解析规则本身钉在 `resolveNoticeUrl`（与脚本里的 `resolveSiteUrl` 同一套规则）。
+ */
+describe('features.notices.detail.NoticeUrlRewrite', () => {
+  it('resolvesRelativePathsAgainstTheResponseUrlDirectory', 0, () => {
+    expect(resolveNoticeUrl('images/group-qr.png', NOTICE_URL))
+      .assertEqual(NOTICE_DIR + 'images/group-qr.png');
+    expect(resolveNoticeUrl('./images/group-qr.png', NOTICE_URL))
+      .assertEqual(NOTICE_DIR + 'images/group-qr.png');
+    // `..` 回到上一级（响应地址那一层目录的父目录）。
+    expect(resolveNoticeUrl('../gg/qr.png', NOTICE_URL))
+      .assertEqual('https://learn.tsinghua.edu.cn/f/wlxt/kcgg/wlkc_ggb/gg/qr.png');
+    // 根相对：落在站点根，与响应地址的目录无关。
+    expect(resolveNoticeUrl('/b/wlxt/common/downloadFiles?wjid=1&wlkcid=2', NOTICE_URL))
+      .assertEqual('https://learn.tsinghua.edu.cn/b/wlxt/common/downloadFiles?wjid=1&wlkcid=2');
+    // 相对地址的 query / fragment 要跟着走。
+    expect(resolveNoticeUrl('qr.png?v=2#frag', NOTICE_URL))
+      .assertEqual(NOTICE_DIR + 'qr.png?v=2#frag');
+  });
+
+  it('keepsAbsoluteProtocolRelativeDataAndFragmentUrlsUntouched', 0, () => {
+    expect(resolveNoticeUrl(REAL_QR_SRC, NOTICE_URL)).assertEqual(REAL_QR_SRC);
+    expect(resolveNoticeUrl('https://www.example.com/path?a=1&b=2', NOTICE_URL))
+      .assertEqual('https://www.example.com/path?a=1&b=2');
+    // 协议相对交给浏览器按文档 scheme 解析，不要拼成 base + '//host'。
+    expect(resolveNoticeUrl('//learn.tsinghua.edu.cn/f/info/xxfb', NOTICE_URL))
+      .assertEqual('//learn.tsinghua.edu.cn/f/info/xxfb');
+    expect(resolveNoticeUrl('data:image/png;base64,iVBORw0KGgo=', NOTICE_URL))
+      .assertEqual('data:image/png;base64,iVBORw0KGgo=');
+    expect(resolveNoticeUrl('mailto:zhaoyn22@mails.tsinghua.edu.cn', NOTICE_URL))
+      .assertEqual('mailto:zhaoyn22@mails.tsinghua.edu.cn');
+    expect(resolveNoticeUrl('#note', NOTICE_URL)).assertEqual('#note');
+    expect(resolveNoticeUrl('', NOTICE_URL)).assertEqual('');
+    // 没有可用的站点来源时不猜——写死的合成路径正是这么来的。
+    expect(resolveNoticeUrl('qr.png', '')).assertEqual('qr.png');
+    expect(resolveNoticeUrl('qr.png', 'notice-detail.html')).assertEqual('qr.png');
+  });
+
+  it('derivesTheDirectoryFromTheResponseUrlNotFromASyntheticPath', 0, () => {
+    expect(siteOrigin(NOTICE_URL)).assertEqual(LEARN_URL);
+    // 同一条公告、两个不同请求地址 ⇒ 相对地址落到各自的目录。
+    const sibling: string = LEARN_URL + '/f/wlxt/kcgg/wlkc_ggb/student/other?wlkcid=1&id=2';
+    expect(resolveNoticeUrl('qr.png', sibling))
+      .assertEqual('https://learn.tsinghua.edu.cn/f/wlxt/kcgg/wlkc_ggb/student/qr.png');
+    expect(resolveNoticeUrl('qr.png', NOTICE_URL)).assertEqual(NOTICE_DIR + 'qr.png');
+    // 响应地址没有目录时按站点根算（`https://host` 与 `https://host/` 同义）。
+    expect(resolveNoticeUrl('qr.png', LEARN_URL)).assertEqual(LEARN_URL + '/qr.png');
+    expect(resolveNoticeUrl('qr.png', LEARN_URL + '/')).assertEqual(LEARN_URL + '/qr.png');
+    // base 的 query / fragment 不参与目录推导。
+    expect(resolveNoticeUrl('qr.png', LEARN_URL + '/a/b?x=1#frag')).assertEqual(LEARN_URL + '/a/qr.png');
+  });
+
+  it('leavesTheRealShapedBodyUrlsResolvableAndKeepsTheCsrfField', 0, () => {
+    const html: string = build(buildNoticeContent(REAL_SHAPED_BODY, EMPTY_TEXT), false, 'TOKEN-123', false);
+    // 基址就是这条公告的响应地址（不是合成路径）。
+    expect(html.includes('var learnOhBase = ' + jsStringLiteral(NOTICE_URL) + ';')).assertTrue();
+    // 正文原样进入模板：站内绝对图、相对图、协议相对链接、data: 图都在。
+    expect(html.includes(REAL_QR_SRC)).assertTrue();
+    expect(html.includes('src="images/group-qr.png"')).assertTrue();
+    expect(html.includes('href="//learn.tsinghua.edu.cn/f/info/xxfb"')).assertTrue();
+    expect(html.includes('src="data:image/png;base64,iVBORw0KGgo="')).assertTrue();
+    // `_csrf` 隐藏字段是正文内容：重写只动 href/src，不碰表单字段。
+    expect(html.includes('name="_csrf" value="TOKEN-123"')).assertTrue();
+  });
+
+  it('appliesResolveSiteUrlBeforeTheUnchangedCsrfStep', 0, () => {
+    const script: string = buildCsrfScript('TOKEN-123', LEARN_URL, NOTICE_URL);
+    expect(script.includes('function resolveSiteUrl(url, base)')).assertTrue();
+    expect(script.includes('function schemeEnd(url)')).assertTrue();
+    expect(script.includes('function removeDotSegments(path)')).assertTrue();
+    // href / src 两条路径都先解析、再追加 _csrf。
+    expect(script.includes('addCSRFTokenToUrl(resolveSiteUrl(url, learnOhBase), csrfToken)')).assertTrue();
+    expect(script.includes('addCSRFTokenToUrl(resolveSiteUrl(src, learnOhBase), csrfToken)')).assertTrue();
+    // 解析只认「有没有 scheme」，与 _csrf 的 hostname 条件彼此独立。
+    expect(script.includes('if (schemeEnd(url) > 0) { return url; }')).assertTrue();
+  });
+
+  it('keepsTheCsrfRewriteConditionAndAppendByteIdentical', 0, () => {
+    const script: string = buildCsrfScript('TOKEN-123', LEARN_URL, NOTICE_URL);
+    expect(script.includes(CSRF_APPEND_GOLDEN)).assertTrue();
+    // 旧行为仍然成立：站内绝对地址被还原成根相对并带 _csrf；站外地址原样。
+    expect(script.includes('var csrfToken = ' + jsStringLiteral('TOKEN-123') + ';')).assertTrue();
+  });
+
+  it('resolvesDotSegmentsLikeRfc3986', 0, () => {
+    expect(removeDotSegments('/a/b/c/./../../g')).assertEqual('/a/g');
+    expect(removeDotSegments('/a/b/../../../g')).assertEqual('/g');
+    expect(removeDotSegments('/a/b/c/')).assertEqual('/a/b/c/');
+    expect(removeDotSegments('/./a')).assertEqual('/a');
+  });
+});
 
   describe('features.notices.detail.NoticeDateText', () => {
     it('formats the Chinese absolute time with the weekday', 0, () => {

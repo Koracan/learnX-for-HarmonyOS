@@ -215,11 +215,259 @@ export const MEASURE_SCRIPT: string = `
 `;
 
 /**
- * CSRF 注入脚本（参考实现 html.ts:60-86）。`token` / `learnUrl` 都过 jsStringLiteral，
- * 于是 token 里的引号、反斜杠不能逃逸出字面量。
+ * scheme（含冒号）结束处的下标；不是 `scheme:` 开头时返回 0。
+ * 手写扫描而不是正则：`resolveNoticeUrl` 与注入脚本里的 `schemeEnd` 必须逐字同构。
  */
-export function buildCsrfScript(token: string, learnUrl: string): string {
-  return 'function addCSRFTokenToUrl(url, token) {\n'
+function schemeEnd(url: string): number {
+  if (url.length === 0) {
+    return 0;
+  }
+  const first: number = url.charCodeAt(0);
+  const firstIsAlpha: boolean = (first >= 65 && first <= 90) || (first >= 97 && first <= 122);
+  if (!firstIsAlpha) {
+    return 0;
+  }
+  for (let i = 1; i < url.length; i++) {
+    const code: number = url.charCodeAt(i);
+    const ch: string = url.charAt(i);
+    const isAlpha: boolean = (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
+    const isDigit: boolean = code >= 48 && code <= 57;
+    if (isAlpha || isDigit || ch === '+' || ch === '-' || ch === '.') {
+      continue;
+    }
+    return ch === ':' ? i + 1 : 0;
+  }
+  return 0;
+}
+
+/** `scheme://authority` 这一段（不含路径 / 查询 / 片段）；不是网络绝对地址时返回空串。 */
+export function siteOrigin(url: string): string {
+  const end: number = schemeEnd(url);
+  if (end === 0 || url.substring(end, end + 2) !== '//') {
+    return '';
+  }
+  let stop: number = url.length;
+  const slash: number = url.indexOf('/', end + 2);
+  if (slash >= 0 && slash < stop) {
+    stop = slash;
+  }
+  const query: number = url.indexOf('?', end + 2);
+  if (query >= 0 && query < stop) {
+    stop = query;
+  }
+  const hash: number = url.indexOf('#', end + 2);
+  if (hash >= 0 && hash < stop) {
+    stop = hash;
+  }
+  return url.substring(0, stop);
+}
+
+/** base 的目录（含末尾 `/`）；查询与片段先丢掉。`origin` 必须是它的来源段。 */
+function baseDirectory(base: string, origin: string): string {
+  const rest: string = base.substring(origin.length);
+  let stop: number = rest.length;
+  const query: number = rest.indexOf('?');
+  if (query >= 0 && query < stop) {
+    stop = query;
+  }
+  const hash: number = rest.indexOf('#');
+  if (hash >= 0 && hash < stop) {
+    stop = hash;
+  }
+  const path: string = rest.substring(0, stop);
+  const slash: number = path.lastIndexOf('/');
+  if (slash < 0) {
+    return origin + '/';
+  }
+  return origin + path.substring(0, slash + 1);
+}
+
+/** RFC 3986 §5.2.4 的去点段；输入是以 `/` 开头的路径。 */
+export function removeDotSegments(path: string): string {
+  const out: string[] = [];
+  let input: string = path;
+  while (input.length > 0) {
+    if (input.indexOf('../') === 0) {
+      input = input.substring(3);
+      continue;
+    }
+    if (input.indexOf('./') === 0) {
+      input = input.substring(2);
+      continue;
+    }
+    if (input.indexOf('/./') === 0) {
+      input = '/' + input.substring(3);
+      continue;
+    }
+    if (input === '/.') {
+      input = '/';
+      continue;
+    }
+    if (input.indexOf('/../') === 0) {
+      input = '/' + input.substring(4);
+      out.pop();
+      continue;
+    }
+    if (input === '/..') {
+      input = '/';
+      out.pop();
+      continue;
+    }
+    if (input === '.' || input === '..') {
+      break;
+    }
+    let next: number = input.indexOf('/', 1);
+    if (next < 0) {
+      next = input.length;
+    }
+    out.push(input.substring(0, next));
+    input = input.substring(next);
+  }
+  return out.join('');
+}
+
+/**
+ * 把正文里的相对地址解析到站点地址；注入脚本里的 `resolveSiteUrl` 与它同一套规则。
+ *
+ * | 输入 | 结果 |
+ * | --- | --- |
+ * | 带 scheme（`https:` / `data:` / `mailto:` …） | 原样返回 |
+ * | `//host/path`（协议相对） | 原样返回，交给浏览器按文档 scheme 解析 |
+ * | `#fragment` / 空串 | 原样返回 |
+ * | `/path`（根相对） | 站点来源 + `/path` |
+ * | `a/b` / `./a` / `../a`（路径相对） | base 的目录 + 相对路径，再去掉点段 |
+ *
+ * `base` 是**这次请求的响应地址**（公告详情就是带 query 的 `beforeViewXs`）：同一条公告
+ * 换一个请求地址会解析到不同目录，这正是相对地址该有的行为。base 不是网络绝对地址时
+ * 原样返回——没有可用的站点来源，不猜。
+ */
+export function resolveNoticeUrl(url: string, base: string): string {
+  if (url.length === 0) {
+    return url;
+  }
+  if (schemeEnd(url) > 0) {
+    return url;
+  }
+  if (url.substring(0, 2) === '//' || url.charAt(0) === '#') {
+    return url;
+  }
+  const origin: string = siteOrigin(base);
+  if (origin.length === 0) {
+    return url;
+  }
+  let path: string = url;
+  let suffix: string = '';
+  let cut: number = -1;
+  const query: number = url.indexOf('?');
+  if (query >= 0) {
+    cut = query;
+  }
+  const hash: number = url.indexOf('#');
+  if (hash >= 0 && (cut < 0 || hash < cut)) {
+    cut = hash;
+  }
+  if (cut >= 0) {
+    path = url.substring(0, cut);
+    suffix = url.substring(cut);
+  }
+  const combined: string = path.charAt(0) === '/'
+    ? origin + path
+    : baseDirectory(base, origin) + path;
+  return origin + removeDotSegments(combined.substring(origin.length)) + suffix;
+}
+
+/**
+ * 注入脚本里 `resolveSiteUrl` 一族（与 `resolveNoticeUrl` 同一套规则）。
+ * 页面里没有 `URL` 构造器可用，所以这段必须是自足的手写实现；
+ * 用模板字符串而不是单引号拼接，是为了和上面的纯函数保持逐行可对照。
+ */
+const RESOLVE_SITE_URL_SCRIPT: string = `
+function schemeEnd(url) {
+  if (!url || url.length === 0) { return 0; }
+  var first = url.charCodeAt(0);
+  if (!((first >= 65 && first <= 90) || (first >= 97 && first <= 122))) { return 0; }
+  for (var i = 1; i < url.length; i++) {
+    var code = url.charCodeAt(i);
+    var ch = url.charAt(i);
+    var isAlpha = (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
+    var isDigit = code >= 48 && code <= 57;
+    if (isAlpha || isDigit || ch === "+" || ch === "-" || ch === ".") { continue; }
+    return ch === ":" ? i + 1 : 0;
+  }
+  return 0;
+}
+function siteOrigin(url) {
+  var end = schemeEnd(url);
+  if (end === 0 || url.substring(end, end + 2) !== "//") { return ""; }
+  var stop = url.length;
+  var slash = url.indexOf("/", end + 2);
+  if (slash >= 0 && slash < stop) { stop = slash; }
+  var query = url.indexOf("?", end + 2);
+  if (query >= 0 && query < stop) { stop = query; }
+  var hash = url.indexOf("#", end + 2);
+  if (hash >= 0 && hash < stop) { stop = hash; }
+  return url.substring(0, stop);
+}
+function baseDirectory(base, origin) {
+  var rest = base.substring(origin.length);
+  var stop = rest.length;
+  var query = rest.indexOf("?");
+  if (query >= 0 && query < stop) { stop = query; }
+  var hash = rest.indexOf("#");
+  if (hash >= 0 && hash < stop) { stop = hash; }
+  var path = rest.substring(0, stop);
+  var slash = path.lastIndexOf("/");
+  if (slash < 0) { return origin + "/"; }
+  return origin + path.substring(0, slash + 1);
+}
+function removeDotSegments(path) {
+  var out = [];
+  var input = path;
+  while (input.length > 0) {
+    if (input.indexOf("../") === 0) { input = input.substring(3); continue; }
+    if (input.indexOf("./") === 0) { input = input.substring(2); continue; }
+    if (input.indexOf("/./") === 0) { input = "/" + input.substring(3); continue; }
+    if (input === "/.") { input = "/"; continue; }
+    if (input.indexOf("/../") === 0) { input = "/" + input.substring(4); out.pop(); continue; }
+    if (input === "/..") { input = "/"; out.pop(); continue; }
+    if (input === "." || input === "..") { break; }
+    var next = input.indexOf("/", 1);
+    if (next < 0) { next = input.length; }
+    out.push(input.substring(0, next));
+    input = input.substring(next);
+  }
+  return out.join("");
+}
+function resolveSiteUrl(url, base) {
+  if (!url) { return url; }
+  if (schemeEnd(url) > 0) { return url; }
+  if (url.substring(0, 2) === "//" || url.charAt(0) === "#") { return url; }
+  var origin = siteOrigin(base);
+  if (!origin) { return url; }
+  var path = url;
+  var suffix = "";
+  var cut = -1;
+  var query = url.indexOf("?");
+  if (query >= 0) { cut = query; }
+  var hash = url.indexOf("#");
+  if (hash >= 0 && (cut < 0 || hash < cut)) { cut = hash; }
+  if (cut >= 0) { path = url.substring(0, cut); suffix = url.substring(cut); }
+  var combined = path.charAt(0) === "/" ? origin + path : baseDirectory(base, origin) + path;
+  return origin + removeDotSegments(combined.substring(origin.length)) + suffix;
+}
+`;
+
+/**
+ * 链接重写注入脚本：**先**把相对地址解析到站点地址（`resolveSiteUrl`），**再**按原有条件
+ * 与追加方式补 `_csrf`（`addCSRFTokenToUrl`）。两件事条件彼此独立：解析只认「有没有
+ * scheme」，追加只认「hostname 是否 tsinghua.edu.cn」。
+ *
+ * `token` / `learnUrl` / `baseUrl` 都过 jsStringLiteral，于是里面的引号、反斜杠不能逃逸出
+ * 字面量。`baseUrl` 是这次请求的响应地址（由调用方从公告记录推导），不是合成路径。
+ */
+export function buildCsrfScript(token: string, learnUrl: string, baseUrl: string): string {
+  return RESOLVE_SITE_URL_SCRIPT
+    + 'function addCSRFTokenToUrl(url, token) {\n'
     + '  var fragment = "";\n'
     + '  var raw = String(url);\n'
     + '  var hashIndex = raw.indexOf("#");\n'
@@ -262,13 +510,14 @@ export function buildCsrfScript(token: string, learnUrl: string): string {
     + '  return authority + path + fragment;\n'
     + '}\n'
     + 'var csrfToken = ' + jsStringLiteral(token) + ';\n'
+    + 'var learnOhBase = ' + jsStringLiteral(baseUrl) + ';\n'
     + 'document.addEventListener("DOMContentLoaded", function () {\n'
     + '  var nodes = document.querySelectorAll("[href]");\n'
     + '  for (var i = 0; i < nodes.length; i++) {\n'
     + '    var element = nodes[i];\n'
     + '    var url = element.getAttribute("href");\n'
     + '    if (url) {\n'
-    + '      element.setAttribute("href", addCSRFTokenToUrl(url, csrfToken));\n'
+    + '      element.setAttribute("href", addCSRFTokenToUrl(resolveSiteUrl(url, learnOhBase), csrfToken));\n'
     + '    }\n'
     + '  }\n'
     + '  var sources = document.querySelectorAll("[src]");\n'
@@ -276,7 +525,7 @@ export function buildCsrfScript(token: string, learnUrl: string): string {
     + '    var node = sources[j];\n'
     + '    var src = node.getAttribute("src");\n'
     + '    if (src) {\n'
-    + '      node.setAttribute("src", addCSRFTokenToUrl(src, csrfToken));\n'
+    + '      node.setAttribute("src", addCSRFTokenToUrl(resolveSiteUrl(src, learnOhBase), csrfToken));\n'
     + '    }\n'
     + '  }\n'
     + '});\n';
@@ -449,6 +698,7 @@ export function replaceAllLiteral(text: string, from: string, to: string): strin
  * @param backgroundColor DarkReader 的 `darkSchemeBackgroundColor`（surface 色）
  * @param csrfToken CSRF 令牌（会话态；Mock 下为空串）
  * @param learnUrl learn 站点前缀，用来把绝对 URL 还原成 "//host/path" 形态
+ * @param baseUrl 这次请求的响应地址：相对链接 / 图片按它解析到站点地址
  * @param assets 外部资产（katex 样式与脚本、可选 darkreader）
  */
 export function getWebViewTemplate(
@@ -457,6 +707,7 @@ export function getWebViewTemplate(
   backgroundColor: string,
   csrfToken: string,
   learnUrl: string,
+  baseUrl: string,
   assets: TemplateAssets
 ): string {
   let out: string = templateShell(content, darkMode, sanitizeColor(backgroundColor));
@@ -465,6 +716,6 @@ export function getWebViewTemplate(
   if (darkMode) {
     out = replaceAllLiteral(out, TOKEN_DARK, assets.darkReaderScript === undefined ? '' : assets.darkReaderScript);
   }
-  out = replaceAllLiteral(out, '{{csrf}}', buildCsrfScript(csrfToken, learnUrl));
+  out = replaceAllLiteral(out, '{{csrf}}', buildCsrfScript(csrfToken, learnUrl, baseUrl));
   return out;
 }
