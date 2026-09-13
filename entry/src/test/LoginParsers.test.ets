@@ -65,7 +65,7 @@ export default function loginParsersTest() {
       expect(isNoLoginResponse(200, 'https://learn/f/login_timeout', '')).assertTrue();
       expect(isNoLoginResponse(200, 'https://learn/x', LOGIN_TIMEOUT_BODY)).assertTrue();
       expect(isNoLoginResponse(200, 'https://learn/x', '{"ok":1}')).assertFalse();
-      // 原生处理器路径：**恰好等于** '[]'（锁定语义，带空格就不算）
+      // 原生处理器路径：**恰好等于** '[]'（带空格就不算）
       expect(isEmptyListResult(EMPTY_LIST_BODY)).assertTrue();
       expect(isEmptyListResult('[] ')).assertFalse();
       expect(isEmptyListResult(' [ ]')).assertFalse();

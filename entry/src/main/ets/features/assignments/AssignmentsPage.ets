@@ -26,7 +26,7 @@
  * | 项 | 参考实现 | 这里 |
  * | --- | --- | --- |
  * | 课程名 / 标题（removeTags）/ 描述预览（2 行） | :43-48, :94-98 | 同 |
- * | 状态标记 | 五个图标：附件(橙 MCI) / 已提交(绿勾 MCI) / 已评分(MaterialIcons grade) / 答案(蓝 MCI) / 优秀(MCI medal) | 同序同色，用**同一份字体的同一批码位**（ticket 11.5，见 docs/accepted-deviations.md 第 16 条改判） |
+ * | 状态标记 | 五个图标：附件(橙 MCI) / 已提交(绿勾 MCI) / 已评分(MaterialIcons grade) / 答案(蓝 MCI) / 优秀(MCI medal) | 同序同色，用**同一份字体的同一批码位**（ticket 11.5） |
  * | 截止时间那句 | `dayjs().isAfter(deadline) ? fromNow()+'截止' : '还剩 '+to(deadline,true)`（:103-108） | **绝对时间**（站点原文 `YYYY-MM-DD HH:mm`）+ 状态标记"未到期 / 已截止" |
  * | 过滤 | FilterList 下拉（unfinished / finished / all / fav / archived / hidden） | 六个筛选片，**顺序与计数口径照 Filter.tsx:153-218**；默认视图 unfinished 照 settings.ts:26 |
  *
@@ -230,7 +230,7 @@ export struct AssignmentsPage {
    * 页头那一行"相对更新时间"（ticket 11.5 Part B）：`刚刚更新` / `N 分钟前更新` / …。
    * 数据源仍是快照的 `fetchedAtMillis`（不新增取数）；四档边界在 `ui/components/UpdatedTime.ets`。
    *
-   * 原 `semesterText()` 已删除：学期只在**课程页头**显示（账号所有者点名，见台账第 24 条）。
+   * 原 `semesterText()` 已删除：学期只在**课程页头**显示（账号所有者点名）。
    */
   private updatedText(): string {
     return updatedTimeText(this.store.fetchedAtMillis, Date.now());
@@ -273,7 +273,7 @@ export struct AssignmentsPage {
 
   /**
    * 分栏开关翻转（消费点自证）：进分栏把主栈上的详情段搬到右栏、左栏回列表；
-   * 退出分栏把右栏的详情搬回主栈（**本工程补做**，见台账第 28 条）。
+   * 退出分栏把右栏的详情搬回主栈（**本工程补做**）。
    */
   onSplitViewChanged(): void {
     if (this.splitActive) {
@@ -305,7 +305,6 @@ export struct AssignmentsPage {
    *   - `当前学期 <学期>`：学期**只在课程页**显示（这正是参考实现的做法，见 `screens/Courses.tsx:48-50`）；
    *   - `取证覆盖生效` 徽标：对用户无意义（覆盖生效的机制证据在 hilog 的消费点行）；
    *   - `未完成 n`：筛选片里已有同一个数字，重复。
-   * 有意偏离与替代验收标准见 docs/accepted-deviations.md 第 24 条。
    * **注意**：这里删掉的只是**界面元素**，取数与筛选行为一行未动。
    */
   @Builder
@@ -447,7 +446,7 @@ export struct AssignmentsPage {
    *   附件（MCI `attachment` orange500）→ 已提交（MCI `check` green500）→
    *   已评分（MaterialIcons `grade` red500）→ 有答案（MCI `key-variant` blue500）→
    *   优秀作业（MCI `medal` yellow500）。
-   * ticket 11.5：与参考实现**同一份字体、同一批码位**（台账第 16 条的改判），不再是 emoji。
+   * ticket 11.5：与参考实现**同一份字体、同一批码位**，不再是 emoji。
    */
   @Builder
   statusIcons(spec: AssignmentRowSpec) {

@@ -20,7 +20,7 @@
  * 本工程每个 tab 已经各有一个 `Navigation + NavPathStack`（选型见 `features/shell/ShellTabs.ets`
  * 文件头），所以同构的翻法是**每个 tab 再加一个详情栈**：左=列表栈，右=详情栈。
  *
- * ## 有意偏离参考实现的一处（台账 `docs/accepted-deviations.md` 第 28 条）
+ * ## 有意偏离参考实现的一处
  *
  * 参考实现只在**进分栏**时迁移（`!lastSplitEnabled.current`），**退出分栏时把详情留在右栏、
  * 左栏停在列表** ⇒ 竖屏回退会把正在看的详情丢掉。本 ticket 验收第 3 条要求
@@ -66,7 +66,7 @@ export const SPLIT_VIEW_MASTER_HIDDEN_KEY: string = 'lohSplitViewMasterHidden';
  * **补的那一条：`ImmersiveSettings`**（ticket 17）。参考实现的白名单里有其余四个设置子页
  * （`SemesterSelection` / `FileSettings` / `About` / `Help`），唯独漏了沉浸式设置页 ——
  * 后果是"平板横屏下从设置页点进沉浸式 → 再旋转一次 → 该页被留在 393vp 的左栏"。
- * 本工程把这一条补齐，理由与替代验收标准见 `docs/accepted-deviations.md` 第 30 条。
+ * 本工程把这一条补齐。
  */
 export const DETAIL_ROUTE_NAMES: string[] = [
   'NoticeDetail',
@@ -162,7 +162,7 @@ export function migrateDetailRoutesInto(master: NavPathStack, detail: NavPathSta
 }
 
 /**
- * 退出分栏：把右栏的详情整段搬回主栈（本工程对参考实现的**补做**，见台账第 28 条）。
+ * 退出分栏：把右栏的详情整段搬回主栈（本工程对参考实现的**补做**）。
  *
  * 主栏导航一直在树上，所以这里可以同步做完；不这样做的话，竖屏（单栏）会只剩列表，
  * 正在浏览的详情就丢了（参考实现 `splitEnabled=false` 时只渲染 masterChild，正是这个后果）。

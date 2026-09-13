@@ -12,7 +12,7 @@
  *      都返回 `requiresEnrollment() === true`，绝不静默失败、绝不把空列表交给界面；
  *   2. **绝不用 Mock / 空列表兜底**：这里没有任何"失败就返回空集合"的分支。
  *
- * 与台账第 2 条的关系（docs/reference-quirks.md，已复审）：`SessionGate` 原样保留原生路径
+ * `SessionGate` 原样保留原生路径
  * 『结果恰好是 '[]' 时重登』的语义；**新增**的是"重登之后仍然是 '[]'"这一支——06 交付时
  * 用 `ReAuthRunResult.sessionLostAfterReAuth` 标记它并留了"调用方据此升级为 Enrollment"的口子，
  * 本文件就是那个调用方：`AuthedTaskRunner` 把它翻成 requiresEnrollment，**不出现空列表**。
@@ -277,7 +277,7 @@ export class AuthedRunResult {
 
   /**
    * 由 SessionGate 的结果映射。**这里是"不出现空列表"的落点**：
-   * 原生路径在重登后仍然返回 '[]' 时会静默成功（台账第 2 条的已知缺口），
+   * 原生路径在重登后仍然返回 '[]' 时会静默成功，
    * 我们把它显式翻成"需要重新验证"，值也不往上传。
    */
   static fromGate(result: ReAuthRunResult): AuthedRunResult {

@@ -229,7 +229,7 @@ export struct SettingsPage {
     }
   }
 
-  /** 分栏开关翻转（消费点自证；口径与四个 tab 页一致，见台账第 28 条）。 */
+  /** 分栏开关翻转（消费点自证；口径与四个 tab 页一致）。 */
   onSplitViewChanged(): void {
     if (this.splitActive) {
       AppStorage.setOrCreate(SPLIT_VIEW_MASTER_HIDDEN_KEY, false);

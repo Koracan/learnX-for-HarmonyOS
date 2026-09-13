@@ -17,7 +17,7 @@
  *
  * 【ticket 16】断点分栏：本页多了一个**详情栈**（`detailStack`）。单栏时详情照旧压在主栈上
  *   （ticket 03/04 的行为一字未改）；双栏时列表留在 393vp 的左栏、详情进右栏，
- *   进/出分栏时两栈之间的迁移见 features/shell/SplitView.ets 的文件头与台账第 28 条。
+ *   进/出分栏时两栈之间的迁移见 features/shell/SplitView.ets 的文件头。
  *
  * 【ticket 09】数据源已从 Mock 换成真实仓库（data/notices/RealNoticeRepository）。
  * 【ticket 14】加了收藏 / 归档 / 屏蔽：过滤条 + 滑动操作 + 撤销 Toast。
@@ -254,7 +254,7 @@ export struct NoticesPage {
 
   /**
    * 分栏开关翻转（消费点自证）：进分栏把主栈上的详情段搬到右栏、左栏回列表；
-   * 退出分栏把右栏的详情搬回主栈（**本工程补做**，见台账第 28 条），这样正在浏览的详情不丢。
+   * 退出分栏把右栏的详情搬回主栈（**本工程补做**），这样正在浏览的详情不丢。
    */
   onSplitViewChanged(): void {
     if (this.splitActive) {
@@ -283,7 +283,7 @@ export struct NoticesPage {
    * 页头（ticket 11.5 Part B，账号所有者点名）：**标题 + 相对更新时间同一行**。
    *
    * 参考实现的页头是居中的 `HeaderTitle(title, subtitle)` 且**没有**更新时间元素
-   * （有意偏离，见 docs/accepted-deviations.md 第 24 条）。
+   * （有意偏离）。
    *
    * 【ticket 14】原来这里还有一枚"未读 n"：**已移除**。参考实现的未读数是过滤条上的角标
    * （FilterList.tsx:246 / Filter.tsx:181-187），而本 ticket 落地过滤条后同一信息会出现两处
@@ -426,7 +426,7 @@ export struct NoticesPage {
    *   未读（MCI `checkbox-blank-circle`，`Colors.blue500`）。
    *
    * ticket 11.5 起这三个标记是**与参考实现同源**的字体图标（内嵌同一份 MCI TTF，同一批码位），
-   * 不再是 emoji / 自绘圆点；仍不用 SymbolGlyph（理由见台账第 16 条的改判）。
+   * 不再是 emoji / 自绘圆点；仍不用 SymbolGlyph。
    * 图标本身不带文字，故每个都带 accessibilityText（键已声明）。
    */
   @Builder
@@ -448,7 +448,7 @@ export struct NoticesPage {
       }
       if (isUnread(spec.notice)) {
         // 参考实现：MCI checkbox-blank-circle（蓝色）。ticket 11.5 起不再是"画出来的圆点"，
-        // 而是同一个字形的字体图标（形状判据升级，见台账第 16 条的改判）。
+        // 而是同一个字形的字体图标（形状判据升级）。
         // 与改动前一致：未读圆点**没有** accessibilityText（原来是自绘 Column），
         // 不新增无障碍节点属性；回退态下它显示目录里的短名 '[new]'。
         IconGlyph({
@@ -547,8 +547,8 @@ export struct NoticesPage {
               notice: item,
               timeText: this.timeTextOf(item),
               // 标题与正文都过 removeTags（去注释/去标签/解码实体/折叠空白）：
-              // 契约是两层的——解析层不解码（docs/reference-quirks.md 第 4 条上半，锁定），
-              // 渲染层解码（同一张表的下半）。此前直接渲染 raw title，含标签时会露出字面量。
+              // 契约是两层的——解析层不解码，
+              // 渲染层解码。此前直接渲染 raw title，含标签时会露出字面量。
               titleText: removeTags(item.title),
               contentText: removeTags(item.content),
               attachmentLabel: this.s($r('app.string.ui_attachment_label')),

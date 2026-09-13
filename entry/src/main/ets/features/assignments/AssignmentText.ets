@@ -10,7 +10,7 @@
  *   2. **完成方式 / 提交方式**：两个 Chip（:153-161）。参考实现比较的是 thu-learn-lib 的
  *      **数字枚举**（`HomeworkCompletionType.GROUP === 2`、`HomeworkSubmissionType.OFFLINE === 0`，
  *      types.js:65-73），而列表接口下发的是站点原文（夹具里是 `'个人'` / `'网络学堂'`）。
- *      两者形状不一致这件事见 docs/reference-quirks.md 第 19 条（ticket 10 新增，含实测）。
+ *      两者形状不一致这件事（ticket 10 新增，含实测）。
  *   3. **截止状态**：卡片上是相对时间那句话（AssignmentCard.tsx:103-108）。
  *
  * 纯映射部分（`gradeLevelKey` / `isGroupCompletion` / `isOfflineSubmission` / `dueStatusKey` /

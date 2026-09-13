@@ -9,7 +9,7 @@
  *   3. CSRF 正则 /^.*&_csrf=(\S*)"/gm：'.*' **贪婪** ⇒ 每行取到的是**最后一个** &_csrf=，
  *      且必须有 '&' 前缀（:171-179）。语言正则要求整串标签精确匹配，含前导斜杠（:180-182）。
  *
- * 与 docs/reference-quirks.md 第 4 条一致：**不解码 HTML 实体**（照参考实现）。
+ * **不解码 HTML 实体**（照参考实现）。
  */
 
 /** 抽取 #sm2publicKey 的文本（真实页面是 div 的文本；兼容 input 的 value 形态）。 */
@@ -131,7 +131,7 @@ export function isNoLoginResponse(status: number, responseUrl: string, body: str
 
 /**
  * 原生处理器路径的判据：结果字符串**恰好等于** '[]'
- * （src/data/source.ts:104；语义见 docs/reference-quirks.md 第 2 条，锁定）。
+ * （src/data/source.ts:104）。
  */
 export function isEmptyListResult(body: string): boolean {
   return body === '[]';

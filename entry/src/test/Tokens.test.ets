@@ -1,7 +1,7 @@
 /*
  * 主题令牌单测：深浅两套都必须取到值、无 undefined；**语义强调色**与参考实现的字面量一致，
- * 而**底色家族 / 中性家族**自 ticket 11.5 起是**有意偏离**（全部 R=G=B，见
- * docs/accepted-deviations.md 第 25 条），因此这里多了一条"中性化 + elevation 阶梯"的断言。
+ * 而**底色家族 / 中性家族**自 ticket 11.5 起是**有意偏离**（全部 R=G=B），
+ * 因此这里多了一条"中性化 + elevation 阶梯"的断言。
  */
 
 import { describe, it, expect } from '@ohos/hypium';

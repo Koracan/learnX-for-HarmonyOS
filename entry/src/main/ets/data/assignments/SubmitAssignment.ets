@@ -16,7 +16,7 @@
  * 会话与降级**不在这里**：本用例只做"一次带会话的请求"，重登 / 只重试一次 / 显式降级
  * 全部由 `AuthedTaskRunner`（data/auth/SessionRestore）承担 —— 与三域仓储同一条路径。
  *
- * 所有请求都带 `?_csrf=`（docs/reference-quirks.md 第 17 条：裸请求会拿到站点自己的 403
+ * 所有请求都带 `?_csrf=`（裸请求会拿到站点自己的 403
  * 报错页，而 403 被判成"会话失效"）。
  */
 
@@ -240,8 +240,8 @@ export class AssignmentSubmitter {
     let last: SubmitOutcome = SubmitOutcome.transportError(0, 'not attempted');
     const run: AuthedRunResult = await this.executor.run(async (session: Session): Promise<TaskOutcome> => {
       last = await this.submitAssignment.send(session, plan, requestId, onProgress);
-      // responseUrl 必须是请求 URL：SessionGate 的 noLogin 判据之一就是 status===403
-      // （docs/reference-quirks.md 第 17 条），而参考实现也把 `login_timeout` 写在 URL 上。
+      // responseUrl 必须是请求 URL：SessionGate 的 noLogin 判据之一就是 status===403，
+      // 而参考实现也把 `login_timeout` 写在 URL 上。
       return {
         status: last.status,
         body: last.ok ? 'submitted' : (last.serverRejected ? 'error' : ''),

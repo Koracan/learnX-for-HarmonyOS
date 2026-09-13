@@ -12,7 +12,7 @@
  * ## 为什么它能给"真进度"
  *
  * `@ohos.net.http` 的 `requestInStream` 是**同一个 HTTP 平台模块**（不是
- * `@ohos.request` 那个下载库，台账第 1 条禁的正是后者）。它按块交付
+ * `@ohos.request` 那个下载库）。它按块交付
  * `dataReceive`（ArrayBuffer）+ `headersReceive`（Content-Length），
  * 于是"已接收字节 / 总字节"是**真实**的可观察量，不是估算。
  * **没有**假装百分比：Content-Length 缺失时 total = -1，界面走不确定进度。

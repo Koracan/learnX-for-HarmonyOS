@@ -1,7 +1,7 @@
 /*
  * `DownloadPort` 的设备实现：`@ohos.net.http` 的 `requestInStream`。
  *
- * 逐条对应台账第 1 条的要求（**HTTP 层解决，不搬 <5000 字节 + 含 <html> 的启发式**）：
+ * 逐条对应（**HTTP 层解决，不搬 <5000 字节 + 含 <html> 的启发式**）：
  *   - 响应头到达即把 `Content-Type` / `Content-Length` 交给 sink 判定；
  *   - sink 拒绝时立刻 `destroy()`，**一个字节都不落盘**；
  *   - 状态码在流结束后由调用方（FileDownloader）判定。

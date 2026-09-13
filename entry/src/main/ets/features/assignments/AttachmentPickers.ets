@@ -9,7 +9,7 @@
  *   - `photoAccessHelper.PhotoViewPicker(context).select({MIMEType: IMAGE_VIDEO_TYPE, maxSelectNumber:1})`
  *     → `Promise<PhotoSelectResult>`（`photoUris`）。
  *
- * ## 取消的判定（【平台事实】，模拟器实测见 ticket 13 的证据）
+ * ## 取消的判定（模拟器实测见 ticket 13 的证据）
  *
  * 参考实现的取消是**不算失败**的（取消后什么都不做）。HarmonyOS 侧：
  *   - 用户取消时 `select` 多数版本**正常 resolve 成空数组**；

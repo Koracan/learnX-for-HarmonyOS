@@ -123,7 +123,7 @@ export function sortNotices(notices: Notice[]): Notice[] {
 /**
  * 公告附件：优先 `class="ml-10"` 的链接，取到 `wjid` 后重拼标准下载地址。
  *
- * **照参考实现不解码 HTML 实体**（docs/reference-quirks.md 第 4 条）：正则直接匹配原始字节，
+ * **照参考实现不解码 HTML 实体**：正则直接匹配原始字节，
  * 所以 href 写成 `a&amp;b` 时，`wjid` 仍能取到（字符类 `[^"&]+` 在 `&` 处停下），
  * 但 downloadUrl 里保留 `&amp;` 原样。
  * 正则也保持参考实现的属性顺序要求（`class` 在 `href` 之前）。

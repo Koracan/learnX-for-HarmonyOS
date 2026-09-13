@@ -291,7 +291,6 @@ export function filesForFilter(filtered: FilteredFiles, filter: ContentFilter): 
  * 某一行的收藏状态 —— **取过滤后的 fav 分组**（参考实现 FilterList.tsx:210-215
  * 的 `fav?.some(f => f.id === item.id)`），不是原始 favorites 数组。
  * 这个差别在"屏蔽"视图里可见：一条已收藏但课程被屏蔽的条目会显示为**未收藏**。
- * 见 docs/reference-quirks.md 第 30 条。
  */
 export function isInGroupNotices(group: NoticeRecord[], id: string): boolean {
   for (let i = 0; i < group.length; i++) {

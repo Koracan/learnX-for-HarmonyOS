@@ -10,12 +10,11 @@
  * 移植后：网络走注入的 `FetchPort`，字段映射 / 四类附件 / 排序在 domain/parse/AssignmentParser。
  *
  * **次序是两步，别只做第二步**（ticket 10 在真实数据上修正）：processor 先按截止时间倒序，
- * 再切成"未到期（由近及远）/ 已过期（由远及近）"。见 `fetch` 内的注释与
- * docs/reference-quirks.md 第 19 条。
+ * 再切成"未到期（由近及远）/ 已过期（由远及近）"。见 `fetch` 内的注释。
  *
  * 另外每门课还会：
  *   3. POST `yxzylist` 取**优秀作业**列表，并对每条取优秀作业详情页（`viewYxzy`）解析附件；
- *      整段失败只 warn 一行（参考实现吞掉这条失败），见 docs/reference-quirks.md 第 21 条。
+ *      整段失败只 warn 一行（参考实现吞掉这条失败）。
  *
  * 锚点日志（验收项 1；ticket 10 补做后多了 `excellent=`）：
  *   data.assignments fetched courses=<n> items=<n> elapsedMs=<n> requests=<n> failures=<n>
@@ -345,8 +344,7 @@ export class AssignmentsFetcher {
    * 再对**每条**取优秀作业详情页（`viewYxzy?wlkcid=&xszyid=`）解析两枚附件。
    *
    * 失败语义照参考实现（`index.js:859-864`）：**整段被吞**，只 warn 一行，
-   * 作业列表、排序与其它课程都不受影响。详情页取不到时保留该条（只是没有附件），
-   * 见 docs/reference-quirks.md 第 21 条。
+   * 作业列表、排序与其它课程都不受影响。详情页取不到时保留该条（只是没有附件）。
    */
   private async fetchExcellent(courseId: string): Promise<ExcellentFetchOutcome> {
     const result: ExcellentFetchOutcome = { entries: [], requests: 1, failures: 0 };

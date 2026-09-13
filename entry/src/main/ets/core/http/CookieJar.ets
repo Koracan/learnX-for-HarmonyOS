@@ -252,7 +252,7 @@ export function parseSetCookie(one: string, requestUrl: string): JarCookie | und
 }
 
 /* ------------------------------------------------------------------ *
- * 平台 `response.cookies` 的**第二种形态**（ticket 08 实测，见 docs/reference-quirks.md）： 
+ * 平台 `response.cookies` 的**第二种形态**（ticket 08 实测）： 
  * Netscape cookie-file 行——**制表符分隔的 7 个字段**，不是 `name=value; attrs`。
  *
  * 为什么必须支持：`@ohos.net.http` 的 `HttpResponse.cookies` 文档只写

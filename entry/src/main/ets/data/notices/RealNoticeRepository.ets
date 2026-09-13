@@ -42,7 +42,7 @@ export interface AuthedTaskExecutor {
  * 取证开关：**在发起任何请求之前中止公告刷新**（提交态 `false`）。
  *
  * 用途只有一个：让**上一次成功刷新落盘的 `fetchedAtMillis`** 不被启动时那次刷新覆盖，
- * 从而能拍到页头的 `N 分钟前更新` 那一档（台账第 24 条的替代验收标准第 3 条要设备侧证据）。
+ * 从而能拍到页头的 `N 分钟前更新` 那一档。
  *
  * 实测的设备侧步骤（逐字命令与"注入值 → 画面文本"的对应见 `.scratch/icons/evidence/README.md` §7）：
  *   ① 用**提交态构建**启动一次 ⇒ 它成功刷新并落盘 `fetchedAtMillis = T0`

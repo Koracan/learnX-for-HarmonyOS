@@ -278,8 +278,8 @@ export default function noticeDetailTest() {
   });
 
   /**
-   * removeTags —— 参考实现 helpers/html.ts:11-22 的等价物（docs/reference-quirks.md 第 4 条
-   * 的**渲染层**那半）。ticket 09 补齐；它同时服务卡片标题、卡片正文预览与详情页标题。
+   * removeTags —— 参考实现 helpers/html.ts:11-22 的等价物。ticket 09 补齐；它同时服务
+   * 卡片标题、卡片正文预览与详情页标题。
    */
   describe('features.notices.detail.RemoveTags', () => {
     it('stripsCommentsTagsDecodesEntitiesAndCollapsesWhitespace', 0, () => {

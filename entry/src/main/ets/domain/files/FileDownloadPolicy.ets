@@ -5,7 +5,7 @@
  *
  * 参考实现（`reference/learnOH-old/src/helpers/fs.ts:125-158`）只能在**文件落盘之后**
  * 用"文件 < 5000 字节且内容含 `<html`/`location.href`"来**猜**"下载到的是登录页"。
- * 台账第 1 条把它登记为"平台下载库的补丁"，并要求新实现在 **HTTP 层**解决：
+ * 新实现在 **HTTP 层**解决：
  * 落盘前检查状态码与 `Content-Type`，命中 HTML 就**不写文件**。
  * 本文件就是那条判据；`<5000 字节 + 含 <html>` 这条启发式**没有**被搬过来。
  *
@@ -39,7 +39,7 @@ export function normalizeContentType(raw: string): string {
 /**
  * 命中 HTML 的判据（**只按 Content-Type**）：
  * `text/html` 与 `application/xhtml+xml`。
- * 站点自己的错误页也是 `text/html`（台账第 17 条实测 `status=403 text/html`），
+ * 站点自己的错误页也是 `text/html`（实测 `status=403 text/html`），
  * 所以未知状态的 HTML 一律按"会话/接口异常"处理，不落盘。
  */
 export function isHtmlLikeContentType(contentType: string): boolean {
@@ -99,7 +99,7 @@ export function evaluateDownloadResponse(status: number, contentType: string): D
 /**
  * 拒绝原因是否属于"会话没了"。
  *
- * HTML 登录页与 403 都算（台账第 17 条：站点对漏带 `_csrf` 的请求回自己的 403 页，
+ * HTML 登录页与 403 都算（站点对漏带 `_csrf` 的请求回自己的 403 页，
  * 而 `isNoLoginResponse` 把 403 当会话失效）；界面据此显示
  * `loh_session_expired` 而不是笼统的"下载失败"（验收第 3 条要"正确提示"）。
  */
@@ -148,7 +148,7 @@ export function appendCsrfToken(url: string, token: string): string {
 
 /**
  * 打日志前把 `_csrf` 的值抹掉（**会话凭证绝不进 hilog**，spec 第 4 节 / ADR-0004）。
- * 保留参数名，于是"这次请求带没带 _csrf"仍可从日志判读（台账第 17 条的教训）。
+ * 保留参数名，于是"这次请求带没带 _csrf"仍可从日志判读。
  */
 export function redactCsrfToken(url: string): string {
   const text: string = url === undefined || url === null ? '' : url;

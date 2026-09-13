@@ -10,8 +10,8 @@
  * | 进度条 | `<ProgressBar progress={progress}/>`（库的 `bytesWritten` **恒为 0**） | 平台 HTTP 层 `dataReceive` 的**真实**字节数 + `Content-Length`；无 Content-Length 时不显示百分比 |
  * | PDF 预览 | `react-native-pdf` 的 `<Pdf>` :170-175 | **HMS PDFKit** 的 `PdfView` + `loadDocument(path)` |
  * | 图片预览 | `<WebView source={{uri:'file://'+path}}/>` :176-188 | ArkUI **`Image`** + `image.createPixelMap(path)` |
- * | 其他类型 | 信息面板（标题/类型/体积/描述）+ 分享 + **跳系统打开方式** | 信息面板 + 分享；**不再外跳**（有意偏离，见 docs/reference-quirks.md 第 22 条） |
- * | 会话过期 | 落盘后按"小文件含 `<html`"猜（台账第 1 条） | 落盘前按 `Content-Type` 判定 → 不落盘 + `loh_session_expired` |
+ * | 其他类型 | 信息面板（标题/类型/体积/描述）+ 分享 + **跳系统打开方式** | 信息面板 + 分享；**不再外跳**（有意偏离） |
+ * | 会话过期 | 落盘后按"小文件含 `<html`"猜 | 落盘前按 `Content-Type` 判定 → 不落盘 + `loh_session_expired` |
  *
  * 描述/体积：附件来源没有 `description`（`Attachment` 里就没有这个字段），
  * 所以描述行按参考实现显示 `loh_no_file_description`；体积优先显示站点给的文本，
@@ -225,7 +225,7 @@ export struct FileDetailPage {
    * 应用内预览：
    *   - PDF → `PdfController.loadDocument(path)`（HMS PDFKit），失败时**如实报错**；
    *   - 图片 → `image.createPixelMap(path)` → `Image(pixelMap)`。
-   * 两条都不跳第三方应用（有意偏离参考实现的"打开"动作，见台账第 22 条）。
+   * 两条都不跳第三方应用（有意偏离参考实现的"打开"动作）。
    */
   private async loadPreview(): Promise<void> {
     const kind: FileKind = this.kind();

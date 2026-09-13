@@ -233,7 +233,7 @@ export default function noticeParserTest() {
     });
 
     it('keepsHtmlEntitiesVerbatimOnTheGenericFallback', 0, () => {
-      // 参考实现锁定行为：正则不解码 HTML 实体（docs/reference-quirks.md 第 4 条）。
+      // 参考实现的正则不解码 HTML 实体。
       // 通用回退分支直接用 href 原文 ⇒ '&amp;' 原样保留；该分支也不推导附件 id。
       const attachment = parseNoticeAttachment(NOTICE_DETAIL_GENERIC_AMP_HTML, '课件.pdf');
       expect(attachment !== undefined).assertTrue();

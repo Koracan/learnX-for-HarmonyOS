@@ -83,7 +83,7 @@ export class EnrollmentSession {
    * @param browserCookieHeader `WebCookieManager.fetchCookieSync(LEARN_URL)` 的原始返回
    */
   async adopt(browserCookieHeader: string): Promise<EnrollmentSessionResult> {
-    // 与 LoginClient 登录前一样：显式重置，不依赖"反正 jar 是空的"（source.ts:11-46，锁定行为）
+    // 与 LoginClient 登录前一样：显式重置，不依赖"反正 jar 是空的"（source.ts:11-46）
     this.jar.reset();
     const imported: number = this.jar.absorbCookieHeader(browserCookieHeader, LEARN_ORIGIN);
     this.logger.info('enrollment session: harvested=' + imported.toString()

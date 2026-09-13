@@ -41,8 +41,7 @@
  * ## 与参考实现的两处界面级补充（本工程口径）
  *
  * 1. 取数有 loading / error 两个状态（参考实现的 redux 数据早就绪，没有这两个状态）；
- * 2. 页头是自绘的左对齐页头 + 左上角关闭按钮（参考实现是导航栏 header，close 图标在左侧），
- *    与台账第 24 条的页头口径一致。
+ * 2. 页头是自绘的左对齐页头 + 左上角关闭按钮（参考实现是导航栏 header，close 图标在左侧）。
  */
 
 import { ConfigurationConstant } from '@kit.AbilityKit';
@@ -265,7 +264,7 @@ export struct SearchPage {
       ROUTE_FILE_DETAIL, this.fileParams(file), !this.splitActive);
   }
 
-  /** 分栏开关翻转：与四个 tab 页同一套迁移（含退出分栏的对称回迁，台账第 28 条）。 */
+  /** 分栏开关翻转：与四个 tab 页同一套迁移（含退出分栏的对称回迁）。 */
   onSplitViewChanged(): void {
     if (this.splitActive) {
       AppStorage.setOrCreate(SPLIT_VIEW_MASTER_HIDDEN_KEY, false);

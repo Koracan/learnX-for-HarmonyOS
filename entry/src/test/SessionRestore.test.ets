@@ -265,7 +265,7 @@ export default function sessionRestoreTest() {
     });
 
     it('degradesWhenTheListIsStillEmptyAfterReAuth', 0, async () => {
-      // 台账第 2 条的已知缺口：原生路径在重登后仍是 '[]' 时会静默成功（界面看到空列表）。
+      // 已知缺口：原生路径在重登后仍是 '[]' 时会静默成功（界面看到空列表）。
       // 本 ticket 显式把它翻成"需要重新验证"，并且**不把空列表交给上层**。
       const auth: ScriptedAuth = new ScriptedAuth([okLoginWith('COLD'), okLoginWith('REAUTH')], 0);
       const harness: Harness = new Harness(auth);

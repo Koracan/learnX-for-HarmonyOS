@@ -13,8 +13,7 @@
  * `backdrop` / `surfaceDisabled` / `onSurfaceDisabled`）**不再等于参考实现**：全部改成
  * `R=G=B` 中性色（浅色底 = `#FFFFFF`，深色底 = `#1C1C1C`），但**保留 elevation 的明度阶梯**。
  * 品牌与语义强调色（`primary*` / `secondary*` / `tertiary*` / `error*` / `inversePrimary` /
- * `shadow` / `scrim`）**一字未动**。理由、逐令牌"改前 → 改后"与替代验收标准见
- * `docs/accepted-deviations.md` 第 25 条。
+ * `shadow` / `scrim`）**一字未动**。
  *
  * 排版来源：react-native-paper 5.15.0 的 MD3 typescale
  *   reference/learnOH-old/node_modules/react-native-paper/src/styles/themes/v3/tokens.tsx

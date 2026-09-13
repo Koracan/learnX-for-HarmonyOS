@@ -14,7 +14,7 @@
  *
  * ## 为什么不用 SymbolGlyph
  *
- * 台账 `docs/accepted-deviations.md` 第 16 条（**改判·仍是约束**）：符号 id 随系统字体版本变化，
+ * 符号 id 随系统字体版本变化，
  * 拿名字猜 id 会得到"编译通过、运行时空格"的失败模式。字体图标没有这个问题：码位来自随包字体本身。
  *
  * ## 为什么码位要用 String.fromCodePoint

@@ -3,7 +3,7 @@
  *
  * 覆盖：
  *   - **状态迁移**：三个域的收藏 / 归档与课程的屏蔽，逐条对齐参考实现 reducer 的
- *     flag 语义（含"置真 append 不去重"这条别修的怪癖，见 docs/reference-quirks.md 第 30 条）；
+ *     flag 语义（含"置真 append 不去重"这条别修的怪癖）；
  *   - **过滤语义**：all 排除归档与隐藏课程、fav 在 all 之上再筛、archived / hidden 用原始 items
  *     （reference/learnOH-old/src/data/selectors/filteredData.ts:69-169），以及各分组的计数；
  *   - **隐藏课程的内容从三个域同时消失**（工单验收第 3 条的列表那一半；搜索那一半归 ticket 15）；
@@ -129,7 +129,7 @@ export default function favoritesTest() {
       expect(favOff.noticeFavorites.length).assertEqual(0);
 
       // **append 不去重**（参考实现如此；从"屏蔽"视图再收藏一次会产生重复 id）
-      // 见 docs/reference-quirks.md 第 30 条 —— 这条断言就是"别顺手去重"的哨兵。
+      // 这条断言就是"别顺手去重"的哨兵。
       const twice = withFavorite(favOn, MarksDomain.NOTICE, 'n1', true);
       expect(twice.noticeFavorites.join(',')).assertEqual('n1,n1');
       expect(withFavorite(twice, MarksDomain.NOTICE, 'n1', false).noticeFavorites.length).assertEqual(0);

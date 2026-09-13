@@ -5,7 +5,7 @@
  * （node_modules/thu-learn-lib/lib/module/index.js:101-183），本文件逐步照搬，差异都在注释里写明：
  *
  *  1. 登录前**显式重置**内存 cookie jar（jar.reset + resetIdDomainSession）：
- *     对应参考实现 src/data/source.ts:11-46 的 clearLoginCookies（平台能力缺口补丁，锁定行为）。
+ *     对应参考实现 src/data/source.ts:11-46 的 clearLoginCookies（平台能力缺口补丁）。
  *  2. GET ID 登录表单 → 取 #sm2publicKey（真实页面是 div 的文本，已用抓下来的页面核实）。
  *  3. POST ID 登录检查：**multipart/form-data**（参考实现用 FormData），字段含恒为空的 i_captcha；
  *     口令字段是 '04' + SM2 密文（SM2 细节见 core/crypto/Sm2Cipher）。
@@ -136,7 +136,7 @@ export class LoginClient {
       return LoginResult.failure(FailReason.NO_CREDENTIAL, 'username/password/fingerPrint missing');
     }
 
-    // 1) 登录前显式重置：不依赖「反正 jar 是空的」（照 source.ts:11-46，锁定行为）
+    // 1) 登录前显式重置：不依赖「反正 jar 是空的」（照 source.ts:11-46）
     try {
       this.jar.reset();
       this.jar.resetIdDomainSession(ID_ORIGIN);

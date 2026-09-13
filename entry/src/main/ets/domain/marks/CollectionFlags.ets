@@ -14,7 +14,7 @@
  * | 取消隐藏 | `hidden.filter(id => id !== courseId)` | 同上 |
  * | 作业 / 文件两域 | 与公告同形 | data/reducers/assignments.ts:69-96、files.ts:67-94 |
  *
- * **append 不去重是参考实现的行为，不要"顺手修好"**（约束见 docs/reference-quirks.md 第 30 条）：
+ * **append 不去重是参考实现的行为，不要"顺手修好"**：
  * 界面上的收藏按钮状态取的是**过滤后**的 fav 分组（reference 的
  * components/FilterList.tsx:210-215 用 `fav?.some(...)`），因此在"屏蔽"视图里对一条
  * 已收藏、但课程被屏蔽的条目再点一次收藏，favorites 里会出现重复 id。

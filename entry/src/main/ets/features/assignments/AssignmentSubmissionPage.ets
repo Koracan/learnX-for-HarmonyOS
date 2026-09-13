@@ -6,19 +6,19 @@
  *
  * | 元素 | 参考实现 | 这里 |
  * | --- | --- | --- |
- * | 页头：返回 + 标题（作业提交）+ 右侧提交按钮 | :68, :250-276 | 自绘页头（本工程全部页面都 hideTitleBar(true)，见台账第 24 条） |
+ * | 页头：返回 + 标题（作业提交）+ 右侧提交按钮 | :68, :250-276 | 自绘页头（本工程全部页面都 hideTitleBar(true)） |
  * | 正文多行输入，初值 = removeTags(submittedContent) 去 --> | :81-85, :304-320 | 同（初值在 domain/assignments/SubmissionState） |
  * | 自定义附件名输入（仅在新附件存在时） | :107-109, :321-329 | 同 |
  * | 上传进度条 0..1 | :311 | 同（Progress） |
  * | 已提交附件行（新附件存在或移除态时加删除线） | :341-357 | 同 |
- * | 新附件行（可移除） | :358-393 | 行**不**可点（见交付里的偏离 27） |
+ * | 新附件行（可移除） | :358-393 | 行**不**可点 |
  * | 移除已上传 / 撤销移除 / 移除已选择 | :394-420 | 同（文案随状态切换） |
  * | 文件 / 照片两个入口 | :421-444 | 同（平台 picker，见 AttachmentPickers） |
  * | 上次提交时间 | :445-453 | 同（模式走 i18n 资源 ui_assignment_submission_time） |
  * | 提交二次确认弹窗 | :250-268 | 同（系统对话框，可取消） |
  * | 失败提示 + **不丢已填内容** | :233-237 | 同（状态机 submitFailed + 页内错误条 + toast） |
  * | 成功后清 pending、重取该课程作业、toast、goBack() | :225-232 | 重取用 CourseListStore.refresh()（本工程没有「按课程取数」这条路径） |
- * | pendingAssignmentData（之前分享的） | :294-302, :376-380 | **不移植**：本工程没有系统分享入口（偏离 26） |
+ * | pendingAssignmentData（之前分享的） | :294-302, :376-380 | **不移植**：本工程没有系统分享入口 |
  *
  * ## 为什么失败不丢内容可以在 host 上证明
  *
@@ -26,10 +26,10 @@
  * 的纯迁移函数，单测直接断言 submitFailed 之后 content / attachment / customAttachmentName
  * 三个字段与失败前**逐字段相同**，而不是靠截图。
  *
- * ## 与参考实现的已知差异（都在 docs/accepted-deviations.md）
+ * ## 与参考实现的已知差异
  *
- *   - 第 26 条：pendingAssignmentData（之前分享的）不移植 —— 本工程没有系统分享入口；
- *   - 第 27 条：新附件那一行不可点 —— 参考实现点它进 FileDetail（本地 URI 预览），
+ *   - pendingAssignmentData（之前分享的）不移植 —— 本工程没有系统分享入口；
+ *   - 新附件那一行不可点 —— 参考实现点它进 FileDetail（本地 URI 预览），
  *     而本工程的 FileDetail 契约是「先下载再预览」，本地未上传的 URI 不在该契约内。
  */
 import { ConfigurationConstant } from '@kit.AbilityKit';

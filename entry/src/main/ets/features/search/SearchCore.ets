@@ -10,7 +10,7 @@
  *
  * ## 为什么必须有 ①（**不要当「冗余」删掉**）
  *
- * docs/reference-quirks.md 第 5 条（锁定）：fuse 的 Bitap 与 flexsearch 的 cjk charset 对中文都
+ * fuse 的 Bitap 与 flexsearch 的 cjk charset 对中文都
  * **按码点逐字切分**，匹配不了拼音/同音字；这段 includes 手工层是 CJK 语料下的**必要补偿**
  * （源码注释原文：「由于未知原因，fuse.js 会漏掉一些明显匹配的结果」）。工单验收第 2 条也要求保留它。
  *

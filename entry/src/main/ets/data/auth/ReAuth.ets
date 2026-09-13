@@ -1,7 +1,7 @@
 /*
  * 重登协调（data/auth）：把参考实现的**两条**重登路径合成一个出口。
  *
- * 台账 docs/reference-quirks.md 第 2 条（锁定）：参考实现有两个触发条件，各有出处——
+ * 参考实现有两个触发条件，各有出处——
  *   A. 原生处理器路径：结果字符串**恰好等于** '[]'（src/data/source.ts:104），重登后**只重试一次**；
  *   B. thu-learn-lib 路径：noLogin(res) = URL 含 login_timeout 或 status == 403
  *      （node_modules/thu-learn-lib/lib/module/index.js:21），重登后仍 noLogin → NOT_LOGGED_IN，

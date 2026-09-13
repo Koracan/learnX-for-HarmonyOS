@@ -29,8 +29,7 @@
  * 2. **优秀作业已交付**（ticket 10 补做）：数据来自参考实现那条**独立接口**
  *    `/b/wlxt/kczy/zy/student/yxzylist`（每门课一次 POST）+ 每条一次
  *    `viewYxzy?wlkcid=&xszyid=` 详情页（`AssignmentParser` 末尾那一节、
- *    `AssignmentsFetcher.fetchExcellent`）；失败**整段被吞**（只 warn），
- *    见 docs/reference-quirks.md 第 21 条。
+ *    `AssignmentsFetcher.fetchExcellent`）；失败**整段被吞**（只 warn）。
  *
  * 3. **附件点击的落点**：参考实现 `handleFileOpen` 传的 `id` 是**附件 id**
  *    （AssignmentDetail.tsx:134；对比公告详情传的是公告 id，NoticeDetail.tsx:64）。
@@ -40,7 +39,7 @@
  *
  * 描述为什么走 Web 容器而不是纯文本：参考实现把描述喂给 `getWebViewTemplate`
  * （:122-130），模板里带 KaTeX 的 auto-render（`$$…$$` 与 `\(…\)` 才排版，
- * 单 `$` 不排版 —— docs/reference-quirks.md 第 9 条锁定）。纯 Text 渲染会把公式
+ * 单 `$` 不排版）。纯 Text 渲染会把公式
  * 变成字面量。
  */
 import { ConfigurationConstant } from '@kit.AbilityKit';
@@ -94,7 +93,7 @@ export struct AssignmentDetailPage {
 
   aboutToAppear(): void {
     // 站点原文进 hilog：完成方式 / 提交方式的**实际取值**决定 AssignmentText 的映射
-    // （参考实现比较数字枚举，而站点可能下发中文标签，见 docs/reference-quirks.md 第 19 条）。
+    // （参考实现比较数字枚举，而站点可能下发中文标签）。
     logger.info('assignment detail appear: id=' + this.assignment.id
       + ' deadline=' + this.assignment.deadline
       + ' submitted=' + this.assignment.submitted.toString()
@@ -534,7 +533,7 @@ export struct AssignmentDetailPage {
 
   /**
    * 一条优秀作业（参考实现 AssignmentDetail.tsx:327-363 的一段 Fragment）：
-   * MCI `medal`（黄色；ticket 11.5 前这里是 emoji，理由见台账第 16 条的改判）
+   * MCI `medal`（黄色；ticket 11.5 前这里是 emoji）
    * + 附件名（可点 → FileDetail）+ "X的优秀作业"。
    */
   @Builder

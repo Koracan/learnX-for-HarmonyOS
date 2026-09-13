@@ -67,7 +67,7 @@ export const NOTICE_DETAIL_ML10_HTML: string = `<div class="content">
 /**
  * [反推] 公告详情页：href 里是 HTML 实体 `&amp;`。
  *
- * 用于锁定参考实现的**锁定行为**：解析正则不解码实体（docs/reference-quirks.md 第 4 条）。
+ * 这条例子的**行为**取自参考实现：解析正则不解码实体。
  * ml-10 分支会重拼 downloadUrl，所以实体在这里不影响结果；实体原样保留的路径见
  * NOTICE_DETAIL_GENERIC_AMP_HTML。
  */
@@ -91,7 +91,7 @@ export const NOTICE_DETAIL_PREVIEW_HTML: string = `<div class="content">
 /**
  * [反推] 公告详情页：**没有 ml-10**，只有一条通用下载链接，且 href 里是 `&amp;`。
  *
- * 这条用来锁定参考实现的锁定行为（docs/reference-quirks.md 第 4 条）：
+ * 这条的行为取自参考实现：
  * 正则不解码实体 ⇒ downloadUrl 里 `&amp;` **原样保留**，且通用回退分支不推导附件 id。
  */
 export const NOTICE_DETAIL_GENERIC_AMP_HTML: string = `<div class="content">

@@ -179,7 +179,7 @@ export const UI_STRINGS = [
   ['ui_file_settings_root', '当前保存位置：{0}', 'Current save location: {0}'],
   ['ui_file_settings_open', '文件设置', 'File settings'],
   // PDF 预览的翻页（`PdfView` 组件在模拟器上不可用，改用 pdfService 渲染单页 PixelMap，
-  // 见 docs/reference-quirks.md 第 22 条与 FileDetailPage 的 pdfDocument 字段说明）。
+  // 见 FileDetailPage 的 pdfDocument 字段说明）。
   ['ui_file_prev_page', '上一页', 'Previous page'],
   ['ui_file_next_page', '下一页', 'Next page'],
   ['ui_file_page_of', '第 {0} / {1} 页', 'Page {0} of {1}'],

@@ -26,7 +26,7 @@
  *    这里直接渲染（RenderService 已把 Web 引擎初始化提前到 aboutToAppear）。
  *    这条写进 ticket Comments 的有意差异。
  *
- * 3. **正文不做实体解码**（`docs/reference-quirks.md` 第 4 条）：正文是 HTML，
+ * 3. **正文不做实体解码**：正文是 HTML，
  *    交给 Web 容器渲染即可；参考实现的 `removeTags`（去标签 + he.decode 全实体集）
  *    只用在**标题**上。ticket 09 已把 `removeTags` 等价物实现在
  *    `domain/render/WebViewTemplate.ets`（标题用它，卡片正文预览也用它）。
@@ -240,7 +240,7 @@ export struct NoticeDetailPage {
   titleSection() {
     Column() {
       // 标题过 removeTags（参考实现 NoticeDetail.tsx:81 就是 removeTags(title)）：
-      // 解析层刻意不解码实体（docs/reference-quirks.md 第 4 条上半），解码在渲染层。
+      // 解析层刻意不解码实体，解码在渲染层。
       Text(removeTags(this.notice.title))
         .fontSize(this.theme().typography.headlineSmall.fontSize)
         .lineHeight(this.theme().typography.headlineSmall.lineHeight)

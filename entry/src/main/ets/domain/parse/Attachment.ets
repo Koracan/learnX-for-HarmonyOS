@@ -102,8 +102,8 @@ export function extractAttachment(htmlPart: string): Attachment | undefined {
   if (matched === null) {
     return undefined;
   }
-  // 不解码 HTML 实体：这是参考实现的**锁定行为**（docs/reference-quirks.md 第 4 条）。
-  // `&amp;` 会原样留在 downloadUrl 里，这正是参考实现的行为契约。
+  // 不解码 HTML 实体：这正是参考实现的行为契约。
+  // `&amp;` 会原样留在 downloadUrl 里。
   let downloadUrl: string = absoluteLearnUrl(matched[1]);
   downloadUrl = unwrapDownloadUrl(downloadUrl);
 

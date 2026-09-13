@@ -39,7 +39,7 @@ export function decodeHtmlEntities(input: string): string {
  * 常用命名实体的补全集（`he.decode` 的高频子集）。
  *
  * 为什么需要：`removeTags` 的契约是 `he.decode()` 的完整实体集
- * （docs/reference-quirks.md 第 4 条的**渲染层**那半）。ArkTS 里没有 `he`，
+ * （**渲染层**那半）。ArkTS 里没有 `he`，
  * 也不该引第三方包（domain 禁平台/上层依赖），所以自己实现：
  * **命名实体走下面的 `switch`（覆盖核心 6 个 + 排版/符号/希腊字母高频项），
  * 数字实体（十进制 / 十六进制）走公式，认不出的原样保留**——

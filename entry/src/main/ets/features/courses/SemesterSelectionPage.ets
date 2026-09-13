@@ -1,6 +1,6 @@
 /*
  * 学期切换页（ticket 12）—— 对齐参考实现 `screens/SemesterSelection.tsx`：
- * 列出可选学期（最新在前，台账第 3 条的排序），当前学期带**与参考实现同源的** check 图标，点一条即切换。
+ * 列出可选学期（最新在前），当前学期带**与参考实现同源的** check 图标，点一条即切换。
  *
  * 与参考实现的两处差异（都在 ticket Comments 里写明）：
  *   1. **位置**：参考实现把它放在"设置"栈里（`SettingsStackParams.SemesterSelection`），

@@ -409,13 +409,13 @@ function collapseWhitespace(text: string): string {
 /**
  * `removeTags` —— 参考实现 `reference/learnOH-old/src/helpers/html.ts:11-22` 的等价物。
  *
- * 依次做四件事（顺序与参考实现逐条一致，见 docs/reference-quirks.md 第 4 条的两层契约）：
+ * 依次做四件事（顺序与参考实现逐条一致）：
  *   1. 去 HTML 注释 `<!--...-->`；
  *   2. 去标签 `<...>`（允许跨行）；
  *   3. **实体解码**（`he.decode` 等价物，含 `&#39;` / `&#x27;` 数字实体，见 domain/parse/Text）；
  *   4. 折叠连续空白并 `trim`。
  *
- * **渲染层是"解码"的**：解析层刻意不解码（台账第 4 条上半，锁定），解码推迟到这里。
+ * **渲染层是"解码"的**：解析层刻意不解码，解码推迟到这里。
  * 公告卡片用它渲染**标题与正文预览**（NoticeCard.tsx:42,72）。
  * 解析或解码出错时返回空串（参考实现的 `catch { return '' }`）。
  */

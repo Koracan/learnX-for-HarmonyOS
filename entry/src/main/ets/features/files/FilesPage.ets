@@ -259,7 +259,7 @@ export struct FilesPage {
 
   /**
    * 分栏开关翻转（消费点自证）：进分栏把主栈上的详情段搬到右栏、左栏回列表；
-   * 退出分栏把右栏的详情搬回主栈（**本工程补做**，见台账第 28 条）。
+   * 退出分栏把右栏的详情搬回主栈（**本工程补做**）。
    */
   onSplitViewChanged(): void {
     if (this.splitActive) {

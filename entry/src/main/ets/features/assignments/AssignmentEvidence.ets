@@ -46,7 +46,7 @@ export function deadlineFromMillis(millis: number): string {
     + pad2(date.getDate()) + ' ' + pad2(date.getHours()) + ':' + pad2(date.getMinutes());
 }
 
-/** 夹具里的行间公式（KaTeX：`$$…$$` 才渲染，单 `$` 不渲染，见 docs/reference-quirks.md 第 9 条）。 */
+/** 夹具里的行间公式（KaTeX：`$$…$$` 才渲染，单 `$` 不渲染）。 */
 export const EVIDENCE_FORMULA_HTML: string =
   '<p>夹具描述：行间公式渲染取证。</p><p>$$E = mc^2$$</p>';
 

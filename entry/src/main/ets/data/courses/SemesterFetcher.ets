@@ -4,10 +4,10 @@
  * 路径逐字照参考实现 `thu-learn-lib/lib/module/urls.js`：
  *   - `LEARN_CURRENT_SEMESTER` = `/b/kc/zhjw_v_code_xnxq/getCurrentAndNextSemester`
  *   - `LEARN_SEMESTER_LIST`    = `/b/wlxt/kc/v_wlkc_xs_xktjb_coassb/queryxnxq`
- * 两者都**必须带 `?_csrf=`**（docs/reference-quirks.md 第 17 条：裸请求会得到站点自己的
+ * 两者都**必须带 `?_csrf=`**（裸请求会得到站点自己的
  * 403 报错页，而 `isNoLoginResponse` 把 403 当会话失效 ⇒ 会被误判成掉线并降级）。
  *
- * 排序照参考实现（台账第 3 条）：`semesters?.sort().reverse()` = 最新在前。
+ * 排序照参考实现：`semesters?.sort().reverse()` = 最新在前。
  * 这里用 `domain/model/Semester.sortSemesterIds(ids,'desc')`——它与 `sort().reverse()`
  * 在合法 id 上结果一致（单测 Semester.test.ets 已钉住），且对非法 id 不会静默错序。
  *

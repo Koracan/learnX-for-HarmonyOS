@@ -9,7 +9,7 @@
  *     这样"用户的短信验证结果"与"应用的会话"是同一个会话，不存在再登一次时服务端又要求
  *     二次验证的不确定性。
  *
- * ArkWeb 的三条实测约束（ticket 04，见 ui/components/HtmlWebView.ets 注释与 reference-quirks 第 8 条）：
+ * ArkWeb 的三条实测约束（ticket 04，见 ui/components/HtmlWebView.ets 注释）：
  *   1. `runJavaScript` 的返回值恒为 null ⇒ 页面里的值只能经 `javaScriptProxy` 回传；
  *   2. `javaScriptProxy` 只注入对象、不执行脚本 ⇒ 注入脚本必须另经 `javaScriptOnDocumentStart`；
  *   3. 桥对象必须是 class 实例，方法名要出现在 `methodList` 里。

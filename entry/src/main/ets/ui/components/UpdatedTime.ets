@@ -5,7 +5,7 @@
  * 页面在构建 spec 时取一次（进入页面 / 下拉刷新时重取），与参考实现的"渲染时取一次"同口径。
  *
  * 分档是**纯函数**（`updatedTimeParts`），单测不需要 ICU / 资源即可钉住边界；
- * 措辞走 i18n 键（`ui_updated_*`），中英各一份。边界见 docs/accepted-deviations.md 第 24 条。
+ * 措辞走 i18n 键（`ui_updated_*`），中英各一份。
  */
 import { i18nService } from '../../core/i18n/I18n';
 import { I18nKey } from '../../core/i18n/I18nKeys';
