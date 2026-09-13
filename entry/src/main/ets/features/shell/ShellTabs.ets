@@ -17,12 +17,13 @@
  * 位置保留的取证方式：滚动公告列表 → 切到课程 → 切回公告，截图与无障碍树里
  * 仍是同一批条目。
  *
- * ## ticket 16（断点分栏）：本壳只负责**量尺寸与发布判据**
+ * ## ticket 16（断点分栏）：本壳负责**量尺寸与发布判据**，并按它定底栏宽度
  *
  * 参考实现把断点判据放在根布局上（`App.tsx:864-873` 的 `onLayout` 实测 + window/frame 退路），
  * 这里照做：根 `Column` 的 `onAreaChange` 量到的就是**本应用的渲染区**，比屏幕尺寸更贴近真实
  * 可用宽度（2in1 窗口化时两者会分叉）。判据与常量在 `./SplitView`，结果写进 AppStorage，
- * **消费点是每个 tab 页**（它们订阅 `SPLIT_VIEW_ACTIVE_KEY` 决定单栏/双栏版式）。
+ * **消费点有两处**：每个 tab 页（订阅 `SPLIT_VIEW_ACTIVE_KEY` 决定单栏/双栏版式），
+ * 以及本壳自己的底栏（分栏态收窄到主栏宽度，见 `bottomBarWidth`）。
  *
  * `Tabs + TabContent` 的选型**一字未改**：双栏只改每个 tab 内部的版式，
  * 五个 `TabContent` 子树照样不销毁（ticket 03 的"切 tab 保留浏览位置"因此不受影响）。
@@ -40,7 +41,9 @@ import { FilesPage } from '../files/FilesPage';
 import {
   FORCE_DARK_FOR_EVIDENCE, FORCE_ENGLISH_FOR_EVIDENCE, logEvidenceSwitchState
 } from '../notices/repository/NoticeRepositoryProvider';
-import { SPLIT_VIEW_BREAKPOINT_VP, publishSplitViewDecision } from './SplitView';
+import {
+  SPLIT_VIEW_ACTIVE_KEY, SPLIT_VIEW_BREAKPOINT_VP, bottomBarWidth, publishSplitViewDecision
+} from './SplitView';
 import { SettingsPage } from '../settings/SettingsPage';
 import { SearchPage } from '../search/SearchPage';
 import { SearchRouteParams, ROUTE_SEARCH } from '../search/SearchRoutes';
@@ -109,6 +112,11 @@ struct ShellTabBarItem {
 export struct ShellTabs {
   @StorageProp(COLOR_MODE_KEY) colorMode: number = ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT;
   @StorageLink(LOCALE_VERSION_KEY) localeVersion: number = 0;
+  /**
+   * 单栏 / 双栏开关：本组件是**发布方**（根布局的 onAreaChange 写进 AppStorage），
+   * 同时在这里订阅它 —— 底栏宽度要跟着它变（见 bottomBarWidth）。
+   */
+  @StorageProp(SPLIT_VIEW_ACTIVE_KEY) splitActive: boolean = false;
   @State activeIndex: number = ShellTab.NOTICES;
 
   private tabsController: TabsController = new TabsController();
@@ -273,7 +281,9 @@ export struct ShellTabs {
         }
       })
     }
-    .width('100%')
+    // 底栏宽度：分栏态 = 主栏宽度（'底栏只挂在左栏下方'，右栏的详情不被它割断）；
+    // 单栏态 = '100%'（横跨整屏，形态与改动前一致）。判据见 bottomBarWidth。
+    .width(bottomBarWidth(this.splitActive))
     .height(this.barHeight())
     .backgroundColor(this.theme().colors.surface)
     .border({ width: { top: this.theme().sizes.borderWidth }, color: this.theme().colors.outlineVariant })
@@ -341,6 +351,9 @@ export struct ShellTabs {
       }
       .width('100%')
       .height('100%')
+      // 子项左对齐：分栏态下底栏被收窄到主栏宽度，必须停在**左端**（= 主栏的那一端），
+      // 否则 Column 的默认居中会把它推到屏幕中间。Tabs 是 '100%' 宽，不受这一项影响。
+      .alignItems(HorizontalAlign.Start)
       .backgroundColor(this.theme().colors.background)
       // 断点判据的**尺寸来源**：根布局实测（旋转/缩放窗口时会跟着变）。
       // 对应参考实现根 View 的 onLayout（App.tsx:878-883）。

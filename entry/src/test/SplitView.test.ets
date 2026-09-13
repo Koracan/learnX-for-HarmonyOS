@@ -1,5 +1,5 @@
 /*
- * 断点分栏（ticket 16）单测：钉的是**判据**与**迁移计划**这两件纯逻辑。
+ * 断点分栏（ticket 16）单测：钉的是**判据**、**底栏宽度**与**迁移计划**这几件纯逻辑。
  *
  * 为什么这两件能上单测：它们与 ArkUI 无关（只有数字与字符串数组进、布尔/计划出），
  * 所以"750 边界""实测为 0 时退回退路尺寸""栈顶连续详情段怎么切"都能在 host 里逐条钉死；
@@ -11,8 +11,8 @@
 import { describe, it, expect } from '@ohos/hypium';
 import {
   DETAIL_ROUTE_NAMES, SPLIT_VIEW_BREAKPOINT_VP, SPLIT_VIEW_MASTER_WIDTH,
-  SplitMigrationPlan, isSplitDetailRoute, resolveSplitViewActive, shouldReplaceDetailTop,
-  splitMigrationPlan
+  SplitMigrationPlan, bottomBarWidth, isSplitDetailRoute, resolveSplitViewActive,
+  shouldReplaceDetailTop, splitMigrationPlan
 } from '../main/ets/features/shell/SplitView';
 
 export default function splitViewTest() {
@@ -45,6 +45,17 @@ export default function splitViewTest() {
       expect(resolveSplitViewActive(1440, 0, 1440, 1600)).assertFalse();
       // 退路自己也小于断点 → 单栏
       expect(resolveSplitViewActive(0, 0, 440, 952)).assertFalse();
+    });
+
+    it('narrows the bottom tab bar to the master column only in split view', 0, () => {
+      // 分栏态：底栏与主栏同宽 —— 底栏只挂在左栏下方，右栏的详情不被它割断。
+      // 期望值就是主栏那个既有常量（393vp），不新造宽度。
+      expect(bottomBarWidth(true)).assertEqual(SPLIT_VIEW_MASTER_WIDTH);
+      expect(bottomBarWidth(true)).assertEqual(393);
+      // 单栏态：仍横跨整屏（形态与改动前一致）。
+      expect(bottomBarWidth(false)).assertEqual('100%');
+      // 两个分支必须不同，否则"只在分栏态收敛"这条要求会静默失效。
+      expect(bottomBarWidth(true) === bottomBarWidth(false)).assertFalse();
     });
 
     it('recognises the reference whitelist plus the immersive settings page', 0, () => {
