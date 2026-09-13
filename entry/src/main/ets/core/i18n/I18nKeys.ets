@@ -20,7 +20,7 @@
  * Regenerate:  node scripts/generate-i18n-resources.mjs && node scripts/gen-i18n-keys.mjs
  * Verify:      node scripts/check-i18n-keys.mjs
  *
- * 309 keys; project-local additions: 8.
+ * 308 keys; project-local additions: 8.
  */
 export type I18nKey = 'loh_back'
   | 'loh_notices'
@@ -316,7 +316,6 @@ export type I18nKey = 'loh_back'
   | 'ui_file_omit_course_name_on'
   | 'ui_file_omit_course_name_off'
   | 'ui_file_settings_root'
-  | 'ui_file_settings_open'
   | 'ui_file_prev_page'
   | 'ui_file_next_page'
   | 'ui_file_page_of'
@@ -627,7 +626,6 @@ const ALL_KEYS: string[] = [
   'ui_file_omit_course_name_on',
   'ui_file_omit_course_name_off',
   'ui_file_settings_root',
-  'ui_file_settings_open',
   'ui_file_prev_page',
   'ui_file_next_page',
   'ui_file_page_of',
@@ -652,4 +650,4 @@ export function isI18nKey(value: string): boolean {
 }
 
 /** Total number of known keys; scripts/check-i18n-keys.mjs asserts this. */
-export const I18N_KEY_COUNT: number = 309;
+export const I18N_KEY_COUNT: number = 308;

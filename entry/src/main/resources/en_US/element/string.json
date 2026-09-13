@@ -1177,10 +1177,6 @@
       "value": "Current save location: %1$s"
     },
     {
-      "name": "ui_file_settings_open",
-      "value": "File settings"
-    },
-    {
       "name": "ui_file_prev_page",
       "value": "Previous page"
     },

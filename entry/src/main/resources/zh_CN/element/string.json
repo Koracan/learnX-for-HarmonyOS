@@ -1177,10 +1177,6 @@
       "value": "当前保存位置：%1$s"
     },
     {
-      "name": "ui_file_settings_open",
-      "value": "文件设置"
-    },
-    {
       "name": "ui_file_prev_page",
       "value": "上一页"
     },
