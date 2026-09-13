@@ -104,25 +104,43 @@ export function resolveSplitViewActive(measuredWidth: number, measuredHeight: nu
 }
 
 /**
- * 底栏宽度，按**主栏是否可见**分三档，优先级自上而下：
+ * 底栏版式：**是否显示** + **宽度**。
  *
- *   1. 主栏被隐藏（`SPLIT_VIEW_MASTER_HIDDEN_KEY` 为真，即文件详情的全屏态）⇒ `'100%'`。
- *      这时主栏宽度已经收成 0；底栏若还取主栏宽度，左下方会留下一条没有归属的色带。
- *      取整屏也就是回到改动前的形态。
- *   2. 分栏态（`SPLIT_VIEW_ACTIVE_KEY` 为真）⇒ 主栏宽度："底栏只占主栏"，
+ * 两个字段放在一起是有意的：可见性不是独立的开关，它和宽度同出一个判据；
+ * 拆成两个函数会让"什么时候该消失"与"该多宽"有机会各自漂移。
+ */
+export interface BottomBarLayout {
+  /** false = 用 `Visibility.None` 隐藏底栏（不占位）。 */
+  visible: boolean;
+  /** 可见时的宽度：`'100%'`（整屏）或主栏宽度（vp 数）。隐藏时该值不被消费。 */
+  width: string | number;
+}
+
+/**
+ * 底栏版式按**单栏 / 分栏 × 主栏是否可见**分三档：
+ *
+ *   1. 单栏态（`SPLIT_VIEW_ACTIVE_KEY` 为假）⇒ **显示**，`'100%'`（横跨整屏，形态与改动前一致）。
+ *   2. 分栏 + 主栏可见 ⇒ **显示**，主栏宽度："底栏只占主栏"，
  *      右栏的详情不会被一条横跨整屏的底栏割断。
- *   3. 其余（单栏态）⇒ `'100%'`，横跨整屏，形态与改动前一致。
+ *   3. 分栏 + 主栏被隐藏（`SPLIT_VIEW_MASTER_HIDDEN_KEY` 为真，文件详情的全屏态）⇒ **隐藏**。
+ *      全屏就是要把版面让给详情，此时无论是窄栏还是整屏底栏都是多余的。
+ *
+ * 隐藏的判据写成 `splitActive && masterHidden`，**不是**只看 `masterHidden`：主栏只在分栏态
+ * 才收得起来，万一单栏态残留了这个值，底栏不该凭空消失。
  *
  * 两个判据都是既有的布尔（**不新造断点**）。抽成纯函数（而不是把分支写在组件里）是为了
- * 把它钉进单测：本机模拟器不能旋转、不能缩放窗口，平板恒为横屏 ⇒ **单栏态在平板上排不出来**。
- * 返回 `string | number`（`'100%'` 或 vp 数）而不引 ArkUI 的 `Length`，是为了让它
+ * 把它钉进单测：本机模拟器不能旋转、不能缩放窗口，平板恒为横屏 ⇒ 单栏那一档在设备上排不出来。
+ * 宽度用 `string | number`（`'100%'` 或 vp 数）而不引 ArkUI 的 `Length`，是为了让它
  * 在 host 侧单测里也能编译（本模块的其它纯函数同样不依赖 ArkUI 类型）。
  */
-export function bottomBarWidth(splitActive: boolean, masterHidden: boolean): string | number {
-  if (masterHidden) {
-    return '100%';
+export function bottomBarLayout(splitActive: boolean, masterHidden: boolean): BottomBarLayout {
+  if (!splitActive) {
+    return { visible: true, width: '100%' };
   }
-  return splitActive ? SPLIT_VIEW_MASTER_WIDTH : '100%';
+  if (masterHidden) {
+    return { visible: false, width: '100%' };
+  }
+  return { visible: true, width: SPLIT_VIEW_MASTER_WIDTH };
 }
 
 /** 迁移计划：主栈里"栈顶连续的详情段"要从第几条开始搬。 */
