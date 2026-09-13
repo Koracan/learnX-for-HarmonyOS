@@ -5,7 +5,7 @@
 
 **Blocked by:** None（可立即开始）
 
-**Status:** ready-for-agent
+**Status:** verified（统筹者独立复现：同毫秒生效 + 课程 tab 换 7 门课 + 产物指纹 `42DD5D30…` 对得上 + 主树门禁 427/427；见 2026-09-13 第三条 Comment）
 
 **判据（每条都要设备证据或单测，不能只写看起来好了）**
 - [ ] **现象被拆开**：分别给出「卡顿」的**可测定义与数值**（例：点一下到勾选标记移动/列表重绘之间的时延 ms，取自 hilog 时间戳；或滚动一屏的卡顿证据），
@@ -95,3 +95,26 @@
 - 证据文档：`evidence/14-semester-switch-janky-and-ineffective.md`（图片/hilog/dump 只留本地，md 用 `git add -f` 入库）。
 - 未触碰 `.scratch/migration/**`；未清应用数据、未退出登录、未提交作业、未改设备级永久设置；未动 `SEMESTER_OVERRIDE_FOR_EVIDENCE` 语义与课程列表抓取口径。
 - `*_FOR_EVIDENCE` 族在提交态仍全为 `false`/空串（`SEMESTER_OVERRIDE_FOR_EVIDENCE=''`），本次没有为取证临时打开任何开关。
+
+### 2026-09-13 · 统筹者验收：**verified**（我自己复现了一遍，不只看自述）
+
+**A. 产物同一性（本 ticket 最容易出错的一环，我用自己的构建对了一遍）**
+- 我在 `learnOH-wt/t14`（`a8ed8bb`）里自己跑 `assembleHap --no-incremental`：解包 `ets/modules.abc` = **1,785,004 B**，SHA256 **`42DD5D30C25B84EEB0EB7682FB5D1BDD01E63873502BD1074CD21A7076D2CD47`** —— 与实现方报的**逐字符相同**。
+- 我自己在 abc 里做内容级检索，正/负对照都复现：`semester selection applied` / `semester selection dismissed` / `course list store wired` / `pendingSemesterId` / `semester row tapped` 命中；另一条 ticket 的 `evidenceTransitionDelegate` 与 `SLOW_TRANSITION_FOR_EVIDENCE` **不存在（-1）** ⇒ 这份产物里没有别人的代码。
+
+**B. 我自己在设备 5555 上复现（不是读它的日志）**
+- 我抓 hilog、自己点 `2025-2026 学年春季学期`：`semester row tapped` / `semester selected` / `semester selection applied` / `semester selection dismissed` **同在 `16:22:38.512`**，而 `course list applied … courses=7` 在 **`16:22:45.439`（+6.93 s）** ⇒ 「点击不卡」与「活儿没被删掉」两条都成立，量级与它的基线（7017 ms）一致。
+- 同一次操作后课程 tab 页头变 **`2025-2026 学年春季学期`**、计数 **`全部 7`**、七门课标题全换（西方音乐史 / 高技术战争 / 三年级男生台球 / 离散数学方法 / 偏微分方程 / 算法分析与设计基础 / 软件分析与验证）—— dump 是我自己的脚本解析的。
+- 我随后把学期**复原**回 `2026-2027 学年秋季学期` 并复核：页头回到秋季、`全部 2`、两门原课程；应用存活 pid 31601。
+
+**C. 门禁（我在 t14 树里重跑，不采信它跑完就删掉的那棵临时树）**
+- 单测：`Tests run: 427, Failure: 0, Error: 0, Pass: 427, Ignore: 0`（`test_result.txt` mtime **2026-09-13 16:21:55**，是本轮的）。
+- `assembleHap --no-incremental`：exit 0，`BUILD SUCCESSFUL` 1 次，搜 `ERROR:` / `ErrorCode` / `COMPILE RESULT` **各 0**。
+- 四脚本：domain-purity `PASS` / import-graph `PASS` / i18n `RESULT: OK` / generated-fresh `PASS`（exit 全 0）。
+- 卫生：`git grep FOR_EVIDENCE` 只剩既有开关且提交态全 `false`/空串（本次没有为取证打开任何开关）；改动文件里**没有** ticket/台账编号引用；未触碰 `.scratch/migration/**`；两个提交里**没有图片**。
+
+**D. 我改了一处它写错的数字**：证据文档把装机时刻写成 `16:11:16.672`，`updateTime` 的 epoch 换算实际是 **`16:11:25.672`**（差 9 秒）。已在文档里就地更正并标注。
+
+**E. 我认下的两条缺口（它如实报了，我也确认补不了）**：① 基线产物的 `modules.abc` 指纹拿不到（基线 hap 被同树里另一次构建覆盖），基线一侧只有 `updateTime` + `af163b4` 源码 + hilog；② 「不卡」只量化到「点击 → 选择被采纳」，**没有**渲染线程掉帧的测量。两条都不阻塞本 ticket 的判据。
+
+**F. 派单情报被证伪的一条（记下来）**：我原先猜「无效」出在 `SemesterOverride` 链上；实测该链正常消费了选择（`source=selection`），真正的断点是**选择的宿主**是每页各自 `new` 的 store。参照实现把选择放在全局 state、重取由消费方发起，这条参照把定性做得很干净。
