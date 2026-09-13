@@ -104,6 +104,57 @@ export class NoticeListStore {
     }
   }
 
+  /**
+   * 记下"这一条已经打开过"：先把界面上的这一条换成一个已读的**新记录**，
+   * 再把整个列表赋回去（蓝点与未读数立刻跟着变），最后交给数据源写进快照。
+   *
+   * 为什么要换新对象、而不是就地改 `item.hasRead`：`@Trace` 只看得到**被追踪字段本身**
+   * 的赋值。就地改数组元素里的属性不会通知视图，界面会停在旧画面上
+   * （实测：日志说已读、蓝点还在）。所以这里重建数组里的那一条，再赋值给 @Trace 字段。
+   *
+   * 界面先行是**有意**的：落盘是异步的、也可能失败，但用户刚点开这一条，
+   * 蓝点不该等到磁盘确认才消失。写盘失败只记日志，下一次刷新会带着集合重写。
+   */
+  async markRead(noticeId: string): Promise<void> {
+    let changed: boolean = false;
+    const next: NoticeRecord[] = [];
+    for (let i = 0; i < this.items.length; i++) {
+      const item: NoticeRecord = this.items[i];
+      if (item.id === noticeId && !item.hasRead) {
+        const read: NoticeRecord = {
+          id: item.id,
+          title: item.title,
+          content: item.content,
+          publisher: item.publisher,
+          courseId: item.courseId,
+          courseName: item.courseName,
+          courseTeacherName: item.courseTeacherName,
+          publishTimeMillis: item.publishTimeMillis,
+          hasRead: true,
+          markedImportant: item.markedImportant,
+          url: item.url
+        };
+        if (item.attachment !== undefined) {
+          read.attachment = item.attachment;
+        }
+        next.push(read);
+        changed = true;
+      } else {
+        next.push(item);
+      }
+    }
+    if (changed) {
+      this.items = next;
+      logger.info('notice marked read: id=' + noticeId
+        + ' unread=' + this.unreadCount().toString());
+    }
+    try {
+      await this.repository.markRead(noticeId);
+    } catch (error) {
+      logger.warn('markRead persist failed: id=' + noticeId + ' ' + (error as Error).message);
+    }
+  }
+
   /** 落地一个快照：仍按发布时间倒序排一次（对齐参考实现 action 的排序）。 */
   private apply(snapshot: NoticeSnapshot): void {
     this.items = sortNoticesDesc(snapshot.items);

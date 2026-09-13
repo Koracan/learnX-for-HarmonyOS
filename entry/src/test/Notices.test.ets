@@ -7,14 +7,16 @@
  *   2. 数据源契约断言，跑在**接口替身**（FakeSnapshotNoticeRepository）上 ——
  *      真实数据源（data/notices/RealNoticeRepository）的行为另有
  *      entry/src/test/NoticeRepository.test.ets 覆盖；
- *   3. NoticeListStore 的快照先行 + 后台刷新时序、失败保留旧数据、空集合空态。
+ *   3. NoticeListStore 的快照先行 + 后台刷新时序、失败保留旧数据、空集合空态；
+ *   4. 打开一条公告 → 它变已读、未读数下降（界面据此消失蓝点）。
  *
  * 【ticket 09 迁移】接口与 Mock 已从 features/notices/repository/ 搬到
  * data/notices/（Mock 从主源码树删除，7 条种子移进 test/fixtures/NoticeFixtures.ets）。
  */
 import { describe, it, expect } from '@ohos/hypium';
 import {
-  NOTICE_SNAPSHOT_SCHEMA_VERSION, NoticeRecord, NoticeRepository, NoticeSnapshot
+  NOTICE_SNAPSHOT_SCHEMA_VERSION, NoticeRecord, NoticeRepository, NoticeSnapshot,
+  mergeNoticeReadState
 } from '../main/ets/data/notices/NoticeRepository';
 import { mockNoticeRecords, rawMockNoticeIds } from './fixtures/NoticeFixtures';
 import {
@@ -39,6 +41,16 @@ function record(id: string, publishTime: string, hasRead: boolean): NoticeRecord
   };
 }
 
+/** 按 id 取列表里的那一行（找不到就抛，避免"没找到"被当成"断言通过"）。 */
+function rowOf(items: NoticeRecord[], id: string): NoticeRecord {
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].id === id) {
+      return items[i];
+    }
+  }
+  throw new Error('row not found: ' + id);
+}
+
 function ids(items: NoticeRecord[]): string[] {
   const out: string[] = [];
   for (const item of items) {
@@ -55,6 +67,9 @@ function join(items: NoticeRecord[]): string {
 class FakeSnapshotNoticeRepository implements NoticeRepository {
   private stored: NoticeSnapshot | null = null;
   private readonly source: NoticeRecord[];
+  private readIds: string[] = [];
+  /** 收到过的已读写入（断言"界面更新之后确实交给了数据源"）。 */
+  readonly markedIds: string[] = [];
 
   constructor(source: NoticeRecord[]) {
     this.source = source;
@@ -67,13 +82,20 @@ class FakeSnapshotNoticeRepository implements NoticeRepository {
   async refresh(): Promise<NoticeSnapshot> {
     // 契约要求数据源给出的 items 已按发布时间倒序（参考实现也是在数据层排序）。
     const snapshot: NoticeSnapshot = {
-      items: sortNoticesDesc(this.source),
+      items: mergeNoticeReadState(sortNoticesDesc(this.source), this.readIds),
       fetchedAtMillis: Date.now(),
       schemaVersion: NOTICE_SNAPSHOT_SCHEMA_VERSION,
       fromSnapshot: false
     };
     this.stored = snapshot;
     return snapshot;
+  }
+
+  async markRead(noticeId: string): Promise<void> {
+    if (noticeId.length > 0 && !this.readIds.includes(noticeId)) {
+      this.readIds.push(noticeId);
+    }
+    this.markedIds.push(noticeId);
   }
 }
 
@@ -91,6 +113,9 @@ class SnapshotThenFailRepository implements NoticeRepository {
 
   async refresh(): Promise<NoticeSnapshot> {
     throw new Error('offline');
+  }
+
+  async markRead(noticeId: string): Promise<void> {
   }
 }
 
@@ -264,6 +289,31 @@ export default function noticesTest() {
       await store.loadOnce();
       expect(join(store.items)).assertEqual('c,b,a');
     });
+
+    it('openingANoticeMarksItReadAndLowersTheUnreadCount', 0, () => {
+      const repository: FakeSnapshotNoticeRepository = new FakeSnapshotNoticeRepository([
+        record('n1', '2020-09-25 07:21', false),
+        record('n2', '2020-09-10 16:22', false)
+      ]);
+      const store: NoticeListStore = new NoticeListStore(repository);
+      return store.loadOnce().then(() => {
+        expect(store.unreadCount()).assertEqual(2);
+        const before: NoticeRecord[] = store.items;
+        const unreadRow: NoticeRecord = rowOf(before, 'n1');
+        // 打开详情（NoticesPage.openDetail）调的就是这一条。
+        return store.markRead('n1').then(() => {
+          expect(store.unreadCount()).assertEqual(1);
+          expect(rowOf(store.items, 'n1').hasRead).assertTrue();
+          // 换过对象：就地改 hasRead 不会通知 @Trace（实测蓝点会留在画面上）。
+          expect(rowOf(store.items, 'n1') === unreadRow).assertFalse();
+          expect(store.items === before).assertFalse();
+          // 其它条目原样保留（没有为了改一条而整表重建对象）。
+          expect(rowOf(store.items, 'n2') === rowOf(before, 'n2')).assertTrue();
+          // 已读集合已经交给数据源（持久化的入口）。
+          expect(repository.markedIds.includes('n1')).assertTrue();
+        });
+      });
+    });
   });
 }
 
@@ -289,5 +339,8 @@ class SnapshotWithFreshRepository implements NoticeRepository {
       fromSnapshot: false
     };
     return snapshot;
+  }
+
+  async markRead(noticeId: string): Promise<void> {
   }
 }

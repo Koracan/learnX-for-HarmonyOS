@@ -7,8 +7,10 @@
  *   2. **失败显式降级，绝不返回空列表**：AuthedTaskRunner 判定
  *      requiresEnrollment=true 时 refresh() 必须 reject；
  *   3. **快照先读**：解码成功 → fromSnapshot=true 且带抓取时间；版本不符/内容损坏 →
- *      返回 null 并**在日志里给出原因**（验收第 6 条）；
- *   4. **序列化 round-trip**：encode(decode) 与 schemaVersion 判定。
+ *      返回 null 并**在日志里给出原因**；
+ *   4. **序列化 round-trip**：encode(decode) 与 schemaVersion 判定；
+ *   5. **已读随快照持久化**：markRead 落盘 → 冷启动读回并合并；站点仍报未读时保持已读；
+ *      刷新会整份覆盖快照，因此刷新前也必须先把盘上的已读集合合并回来。
  *
  * 全部注入式，无平台依赖（不碰 prefs / 网络）。
  */
@@ -92,7 +94,9 @@ class FakeSnapshotPort implements NoticeSnapshotPort {
     if (this.payload.length === 0) {
       return {
         present: false,
-        decoded: { items: [], fetchedAtMillis: 0, discardReason: 'absent', onDiskVersion: -1 }
+        decoded: {
+          items: [], fetchedAtMillis: 0, readNoticeIds: [], discardReason: 'absent', onDiskVersion: -1
+        }
       };
     }
     return { present: true, decoded: decodeNoticeSnapshot(this.payload) };
@@ -121,6 +125,11 @@ function domainNotice(id: string): Notice {
     courseTeacherName: '周世东',
     attachment: { name: 'a.pdf', downloadUrl: 'https://learn.tsinghua.edu.cn/b/x' }
   };
+}
+
+/** 与 noticeRecordOf 同一条路径：把 domain 公告写成界面记录（给"盘上已有快照"的用例当夹具）。 */
+function domainRecord(id: string): NoticeRecord {
+  return noticeRecordOf(domainNotice(id));
 }
 
 /** 在日志环形缓冲里找最近一条含 needle 的记录，返回其 message（空串=没有）。 */
@@ -215,12 +224,99 @@ export default function noticeRepositoryTest() {
 
     it('discardsACorruptedSnapshotWithoutThrowing', 0, async () => {
       const port: FakeSnapshotPort = new FakeSnapshotPort();
-      port.payload = '{"schemaVersion":1,"fetchedAtMillis":1,"items":[{"id":"x"}]}';
+      port.payload = '{"schemaVersion":2,"fetchedAtMillis":1,"readNoticeIds":[],"items":[{"id":"x"}]}';
       const repository: RealNoticeRepository = new RealNoticeRepository(
         new FakeExecutor(false), new FakeNoticeSource([]), port, logger);
       const snapshot: NoticeSnapshot | null = await repository.loadSnapshot();
       expect(snapshot === null).assertTrue();
       expect(latestLog('data.notices', 'discarded').includes('item_0_title')).assertTrue();
+    });
+
+    it('persistsARecordAsReadWithoutTouchingTheFetchTime', 0, async () => {
+      const port: FakeSnapshotPort = new FakeSnapshotPort();
+      const repository: RealNoticeRepository = new RealNoticeRepository(
+        new FakeExecutor(false), new FakeNoticeSource([domainNotice('n1')]), port, logger);
+
+      await repository.refresh();
+      const fetchedAt: number = (await repository.loadSnapshot() as NoticeSnapshot).fetchedAtMillis;
+
+      // 打开详情 → 已读；刷新被掐掉（页面失焦）时落盘的就是 markRead 这一次。
+      await repository.markRead('n1');
+      expect(port.saved.length).assertEqual(2);
+      const persisted = JSON.parse(port.saved[1]) as Record<string, Object>;
+      expect(JSON.stringify(persisted['readNoticeIds'])).assertEqual('["n1"]');
+      expect(persisted['fetchedAtMillis'] as number).assertEqual(fetchedAt);
+      expect(persisted['schemaVersion'] as number).assertEqual(NOTICE_SNAPSHOT_SCHEMA_VERSION);
+      // 内容项与已读集合在同一份记录里（不新开一份存储）。
+      expect((persisted['items'] as Object[]).length).assertEqual(1);
+
+      // 冷启动读回：这一条仍然是已读。
+      const reloaded: NoticeSnapshot | null = await repository.loadSnapshot();
+      expect(reloaded !== null).assertTrue();
+      if (reloaded !== null) {
+        expect(reloaded.items[0].id).assertEqual('n1');
+        expect(reloaded.items[0].hasRead).assertTrue();
+      }
+    });
+
+    it('doesNotRewriteTheSnapshotWhenTheSameNoticeIsOpenedAgain', 0, async () => {
+      const port: FakeSnapshotPort = new FakeSnapshotPort();
+      const repository: RealNoticeRepository = new RealNoticeRepository(
+        new FakeExecutor(false), new FakeNoticeSource([domainNotice('n1')]), port, logger);
+      await repository.refresh();
+      const afterRefresh: number = port.saved.length;
+      await repository.markRead('n1');
+      expect(port.saved.length).assertEqual(afterRefresh + 1);
+      await repository.markRead('n1');
+      expect(port.saved.length).assertEqual(afterRefresh + 1);
+    });
+
+    it('keepsTheReadStateAcrossARefreshThatStillReportsItUnread', 0, async () => {
+      const port: FakeSnapshotPort = new FakeSnapshotPort();
+      const repository: RealNoticeRepository = new RealNoticeRepository(
+        new FakeExecutor(false), new FakeNoticeSource([domainNotice('n1')]), port, logger);
+      await repository.refresh();
+      await repository.markRead('n1');
+      // 站点仍然说这一条没读过（sfyd 没变）：合并后界面必须仍是已读。
+      const refreshed: NoticeSnapshot = await repository.refresh();
+      expect(refreshed.items[0].hasRead).assertTrue();
+      const reread: NoticeSnapshot | null = await repository.loadSnapshot();
+      expect(reread !== null).assertTrue();
+      if (reread !== null) {
+        expect(reread.items[0].hasRead).assertTrue();
+      }
+    });
+
+    it('mergesAPersistedReadSetBeforeRefreshingSoAReadStateSurvivesColdStart', 0, async () => {
+      const port: FakeSnapshotPort = new FakeSnapshotPort();
+      // 盘上是上一次运行留下的：内容项说未读，本地集合记着 n1 已读。
+      port.payload = '{"schemaVersion":' + NOTICE_SNAPSHOT_SCHEMA_VERSION.toString()
+        + ',"fetchedAtMillis":1,"readNoticeIds":["n1"],"items":['
+        + JSON.stringify(domainRecord('n1')) + ']}';
+      const repository: RealNoticeRepository = new RealNoticeRepository(
+        new FakeExecutor(false), new FakeNoticeSource([domainNotice('n1')]), port, logger);
+      // refresh() 会整份覆盖快照：不先合并盘上的已读集合，这次刷新就会把它抹掉。
+      const refreshed: NoticeSnapshot = await repository.refresh();
+      expect(refreshed.items[0].hasRead).assertTrue();
+      const persisted = JSON.parse(port.saved[port.saved.length - 1]) as Record<string, Object>;
+      expect(JSON.stringify(persisted['readNoticeIds'])).assertEqual('["n1"]');
+    });
+
+    it('mergesThePersistedReadSetIntoTheSnapshotItHandsBack', 0, async () => {
+      const port: FakeSnapshotPort = new FakeSnapshotPort();
+      port.payload = '{"schemaVersion":' + NOTICE_SNAPSHOT_SCHEMA_VERSION.toString()
+        + ',"fetchedAtMillis":123,"readNoticeIds":["n1"],"items":['
+        + JSON.stringify(domainRecord('n1')) + ',' + JSON.stringify(domainRecord('n2')) + ']}';
+      const repository: RealNoticeRepository = new RealNoticeRepository(
+        new FakeExecutor(false), new FakeNoticeSource([]), port, logger);
+      const snapshot: NoticeSnapshot | null = await repository.loadSnapshot();
+      expect(snapshot !== null).assertTrue();
+      if (snapshot !== null) {
+        expect(snapshot.items.length).assertEqual(2);
+        expect(snapshot.items[0].hasRead).assertTrue();
+        expect(snapshot.items[1].hasRead).assertFalse();
+        expect(snapshot.fetchedAtMillis).assertEqual(123);
+      }
     });
   });
 
@@ -231,6 +327,8 @@ export default function noticeRepositoryTest() {
       const decoded: SnapshotDecodeResult = decodeNoticeSnapshot(payload);
       expect(decoded.discardReason).assertEqual('');
       expect(decoded.fetchedAtMillis).assertEqual(1600000000000);
+      // 没有写入过已读时：集合是空数组，不是缺字段。
+      expect(decoded.readNoticeIds.length).assertEqual(0);
       expect(decoded.items.length).assertEqual(items.length);
       for (let i = 0; i < items.length; i++) {
         expect(decoded.items[i].id).assertEqual(items[i].id);
@@ -245,14 +343,31 @@ export default function noticeRepositoryTest() {
       expect(decodeNoticeSnapshot('').discardReason).assertEqual('empty');
       expect(decodeNoticeSnapshot('{oops').discardReason).assertEqual('parse_failed');
       expect(decodeNoticeSnapshot('[]').discardReason).assertEqual('not_an_object');
-      expect(decodeNoticeSnapshot('{"schemaVersion":1}').discardReason).assertEqual('fetched_at_invalid');
+      // 结构版本已经变过：这一条钉的是"版本对、但抓取时间坏掉"那一支。
+      expect(decodeNoticeSnapshot('{"schemaVersion":2}').discardReason).assertEqual('fetched_at_invalid');
       expect(decodeNoticeSnapshot('{"fetchedAtMillis":1}').discardReason).assertEqual('version_missing');
-      expect(decodeNoticeSnapshot('{"schemaVersion":1,"fetchedAtMillis":1,"items":"x"}').discardReason)
+      expect(decodeNoticeSnapshot('{"schemaVersion":2,"fetchedAtMillis":1,"items":"x"}').discardReason)
         .assertEqual('items_missing');
       // 版本不符时仍要报出磁盘上的版本号（验收第 6 条"能识别旧版本"）。
       const stale: SnapshotDecodeResult = decodeNoticeSnapshot('{"schemaVersion":7,"fetchedAtMillis":1,"items":[]}');
       expect(stale.discardReason).assertEqual('version_mismatch:7');
       expect(stale.onDiskVersion).assertEqual(7);
+      // 已读集合形状不对：整条丢弃并给出原因，不抛异常。
+      expect(decodeNoticeSnapshot('{"schemaVersion":2,"fetchedAtMillis":1,"items":[],"readNoticeIds":"nope"}')
+        .discardReason).assertEqual('read_ids_invalid');
+      // 集合里混进非字符串成员：只丢那一项，其余照常读回（不因此丢弃内容）。
+      const tolerant: SnapshotDecodeResult = decodeNoticeSnapshot(
+        '{"schemaVersion":2,"fetchedAtMillis":1,"items":[],"readNoticeIds":["n1",7,"","n1","n2"]}');
+      expect(tolerant.discardReason).assertEqual('');
+      expect(tolerant.readNoticeIds.join(',')).assertEqual('n1,n2');
+    });
+
+    it('roundTripsTheLocalReadSet', 0, () => {
+      const payload: string = encodeNoticeSnapshot(NOTICE_SEED_RECORDS, 42, ['n-2', 'n-1', 'n-2', '']);
+      const decoded: SnapshotDecodeResult = decodeNoticeSnapshot(payload);
+      expect(decoded.discardReason).assertEqual('');
+      // 去重 + 丢空串，顺序保持写入序。
+      expect(decoded.readNoticeIds.join(',')).assertEqual('n-2,n-1');
     });
 
     it('turnsADecodedPayloadIntoASnapshotThatIsMarkedAsFromSnapshot', 0, () => {
