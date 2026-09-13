@@ -102,27 +102,38 @@ export struct SemesterSelectionPage {
     this.refreshing = false;
   }
 
+  /**
+   * 页头：返回图标与标题**同一行**（标题不再另占一行）。
+   *
+   * 图标是图标闭集里既有的返回箭头，外框固定 40vp×40vp（点击区不小于改动前那行 labelLarge
+   * 文字，行高只有约 20–24vp）；`label` 传可读文案，字体未就绪时回退分支直接把它画出来。
+   */
   @Builder
   header() {
     Column() {
       Row() {
-        Text(this.s($r('app.string.loh_back')))
-          .fontSize(this.theme().typography.labelLarge.fontSize)
-          .fontColor(this.theme().colors.primary)
-          .onClick(() => {
-            if (this.stack !== null) {
-              this.stack.pop();
-            }
+        Stack() {
+          IconGlyph({
+            icon: AppIcon.ARROW_BACK, glyphSize: this.theme().sizes.iconMedium,
+            color: this.theme().colors.primary, label: this.s($r('app.string.loh_back'))
           })
+        }
+        .width(this.theme().sizes.controlHeight)
+        .height(this.theme().sizes.controlHeight)
+        .onClick(() => {
+          if (this.stack !== null) {
+            this.stack.pop();
+          }
+        })
+        Text(this.s($r('app.string.loh_semester_selection')))
+          .fontSize(this.theme().typography.headlineSmall.fontSize)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(this.theme().colors.onSurface)
+          .layoutWeight(1)
+          .margin({ left: this.theme().sizes.space3 })
       }
       .width('100%')
-      .margin({ bottom: this.theme().sizes.space2 })
-
-      Text(this.s($r('app.string.loh_semester_selection')))
-        .fontSize(this.theme().typography.headlineSmall.fontSize)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(this.theme().colors.onSurface)
-        .width('100%')
+      .alignItems(VerticalAlign.Center)
 
       if (!this.listAvailable()) {
         Text(this.s($r('app.string.ui_course_semester_list_unavailable')))
@@ -137,8 +148,8 @@ export struct SemesterSelectionPage {
     .padding({
       left: this.theme().sizes.contentPadding,
       right: this.theme().sizes.contentPadding,
-      top: this.theme().sizes.space4,
-      bottom: this.theme().sizes.space3
+      top: this.theme().sizes.space3,
+      bottom: this.theme().sizes.space2
     })
   }
 

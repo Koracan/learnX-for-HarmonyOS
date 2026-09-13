@@ -530,6 +530,8 @@ export struct FilesPage {
         endMargin: this.theme().sizes.contentPadding
       })
 
+      // 加载 / 失败态**靠上**：整屏 100% 高的容器一旦居中，首行内容就浮在页面中部，
+      // 列表一旦为空或报错，观感与"内容靠上"的列表页完全不同。文字仍水平居中。
       if (this.store !== null && this.store.isInitialLoading()) {
         Column() {
           LoadingProgress()
@@ -540,6 +542,7 @@ export struct FilesPage {
         .width('100%')
         .height('100%')
         .justifyContent(FlexAlign.Center)
+        .align(Alignment.Top)
       } else if (this.store !== null && this.store.hasError()) {
         Column() {
           Text(this.errorText())
@@ -550,7 +553,13 @@ export struct FilesPage {
         .width('100%')
         .height('100%')
         .justifyContent(FlexAlign.Center)
-        .padding(this.theme().sizes.contentPadding)
+        .align(Alignment.Top)
+        .padding({
+          left: this.theme().sizes.contentPadding,
+          right: this.theme().sizes.contentPadding,
+          top: this.theme().sizes.space4,
+          bottom: this.theme().sizes.contentPadding
+        })
       } else if (this.visibleFiles().length === 0 && this.store !== null && !this.store.isBusy()) {
         EmptyState({
           message: this.filter === ContentFilter.ALL

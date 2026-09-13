@@ -156,27 +156,33 @@ export struct CourseDetailPage {
   @Builder
   header() {
     Column() {
-      Stack() {
-        IconGlyph({
-          icon: AppIcon.ARROW_BACK, glyphSize: this.theme().sizes.iconMedium,
-          color: this.theme().colors.primary, label: this.s($r('app.string.loh_back'))
-        })
-      }
-      .width(this.theme().sizes.controlHeight)
-      .height(this.theme().sizes.controlHeight)
-      .onClick(() => {
-        if (this.stack !== null) {
-          this.stack.pop();
+      // 返回与课程名**同一行**（课程名不再另占一行）；教师名留在下面一行。
+      Row() {
+        Stack() {
+          IconGlyph({
+            icon: AppIcon.ARROW_BACK, glyphSize: this.theme().sizes.iconMedium,
+            color: this.theme().colors.primary, label: this.s($r('app.string.loh_back'))
+          })
         }
-      })
-      Text(this.params.courseName)
-        .fontSize(this.theme().typography.headlineSmall.fontSize)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(this.theme().colors.onSurface)
-        .maxLines(2)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
-        .width('100%')
-        .margin({ top: this.theme().sizes.space2 })
+        .width(this.theme().sizes.controlHeight)
+        .height(this.theme().sizes.controlHeight)
+        .onClick(() => {
+          if (this.stack !== null) {
+            this.stack.pop();
+          }
+        })
+        Text(this.params.courseName)
+          .fontSize(this.theme().typography.headlineSmall.fontSize)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(this.theme().colors.onSurface)
+          .maxLines(2)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .layoutWeight(1)
+          .margin({ left: this.theme().sizes.space3 })
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Center)
+
       if (this.params.courseTeacherName.length > 0) {
         Text(this.params.courseTeacherName)
           .fontSize(this.theme().typography.labelMedium.fontSize)

@@ -31,6 +31,8 @@ import {
 } from '../../data/settings/FileSettings';
 import { fileRepository, fileSettingsStore } from './repository/FileRepositoryProvider';
 import { FileSettingsRouteParams } from './FileRoutes';
+import { AppIcon } from '../../ui/icons/IconCatalog';
+import { IconGlyph } from '../../ui/icons/IconGlyph';
 
 const logger: Logger = new Logger('features.files.settings');
 
@@ -154,29 +156,37 @@ export struct FileSettingsPage {
 
   build() {
     Column() {
+      // 页头：返回图标与标题**同一行**（标题不再另占一行）。
+      // 图标放在固定 40vp×40vp 的 Stack 里：a11y 文案就是 label，点击区不缩。
       Row() {
-        Text(this.s($r('app.string.loh_back')))
-          .fontSize(this.theme().typography.labelLarge.fontSize)
-          .fontColor(this.theme().colors.primary)
-          .onClick(() => {
-            if (this.stack !== null) {
-              this.stack.pop();
-            }
+        Stack() {
+          IconGlyph({
+            icon: AppIcon.ARROW_BACK, glyphSize: this.theme().sizes.iconMedium,
+            color: this.theme().colors.primary, label: this.s($r('app.string.loh_back'))
           })
+        }
+        .width(this.theme().sizes.controlHeight)
+        .height(this.theme().sizes.controlHeight)
+        .onClick(() => {
+          if (this.stack !== null) {
+            this.stack.pop();
+          }
+        })
+        Text(this.s($r('app.string.ui_file_settings_title')))
+          .fontSize(this.theme().typography.headlineSmall.fontSize)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(this.theme().colors.onSurface)
+          .layoutWeight(1)
+          .margin({ left: this.theme().sizes.space3 })
       }
       .width('100%')
+      .alignItems(VerticalAlign.Center)
       .padding({
         left: this.theme().sizes.contentPadding,
+        right: this.theme().sizes.contentPadding,
         top: this.theme().sizes.space3,
         bottom: this.theme().sizes.space2
       })
-
-      Text(this.s($r('app.string.ui_file_settings_title')))
-        .fontSize(this.theme().typography.headlineSmall.fontSize)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(this.theme().colors.onSurface)
-        .width('100%')
-        .padding({ left: this.theme().sizes.contentPadding, right: this.theme().sizes.contentPadding })
 
       Scroll() {
         Column() {
@@ -241,6 +251,8 @@ export struct FileSettingsPage {
       }
       .layoutWeight(1)
       .width('100%')
+      // 内容比视口短时停在顶部：Scroll 默认会把子内容居中，页面看起来"浮在半空"。
+      .align(Alignment.Top)
     }
     .width('100%')
     .height('100%')
