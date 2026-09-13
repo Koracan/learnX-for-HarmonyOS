@@ -12,7 +12,7 @@
 
 **Blocked by:** None（可立即开始）
 
-**Status:** open
+**Status:** verified（统筹者独立复现：门禁 441 绿 + 分栏态 A/B（加载 / 不返回 / 结果提示 / 四列表 7-57-17-95）+ 失败注入 partial + 产物指纹逐字一致；见文末 2026-09-13 统筹者验收）
 
 **判据（每条都要设备证据或单测，不能只写看起来好了）**
 
@@ -271,3 +271,25 @@ C. 证据
 - 设备学期 = **2026-2027 学年秋季学期**（站点当前学期），运行期覆盖为空。
 - 已换回**提交态** HAP；`wt/t17` 工作区干净；文字证据入库，图片/dump/hilog 只在本地。
 - **窗口关闭**。
+
+### 2026-09-13 · 统筹者验收：**verified**（门禁我自己重跑 + 在**另一台设备**上重做 A/B + 分栏与失败路径我自己补了设备观察）
+
+**A. 产物同一性（我自己编）**：补充轮前（`de9d454`）解包 `ets/modules.abc` = `99A18C53…` / 1,821,828 B；补充轮后（`483dcce`）= `69E480AE…` / 1,822,596 B —— 两次都与实现方报的**逐字符相同**。
+
+**B. 门禁（我自己在 `wt/t17` 里重跑）**：补充轮后删 `entry/.test` + `test --no-incremental` ⇒ `Tests run: 441, Failure: 0, Error: 0, Pass: 441, Ignore: 0`（`test_result.txt` mtime **18:44:18**）；`assembleHap --no-incremental` 搜 `ERROR`/`ErrorCode`/`COMPILE RESULT` 各 0；四脚本 PASS / PASS / `RESULT: OK` / PASS，且跑完生成器后 `git status` 为空。
+
+**C. 我在设备 `127.0.0.1:5559`（tablet / **分栏态**；我自己装的这份提交态产物）上重做了 1、2 两条症状的 A/B**：
+- **切换中**：设备侧连拍（`snapshot_display`）抓到遮罩帧：背景压暗 + 居中卡片 `正在切换学期…` + 目标学期，且勾选标记已移到新选那一行。
+- **不自动返回**：切换结束后学期页**仍在屏幕上**（右栏仍是学期列表、勾选在春季）—— 修前同一台设备上这一页会立刻 pop（我的 before 基线里右栏露出的是栈里前一个页面）。
+- **结果提示**：`semester switch finished: target=2025-2026-2 result=success domains=[courses=ok(7) notices=ok(17) files=ok(95)] elapsedMs=7986`，紧跟着 `toast shown: millis=3000 … text=已切换到2025-2026 学年春季学期`。
+- **四个列表都不用手动刷新**：课程 春季 / 全部 7、作业 全部 57、公告 全部 17（未读 7）、文件 全部 95；修前同设备基线是 2 / 0 / 2（站点当前学期）/ 4。
+- **手动刷新也不再「无效」**：文件 `effective semester=2025-2026-2 source=selection siteCurrent=2026-2027-1`、公告 `data.notices.source effective semester=2025-2026-2 source=selection … courses=7`。
+- 取证后设备复原到 `2026-2027 学年秋季学期`（课程 全部 2 / 文件 全部 4），运行期覆盖全程为空。
+
+**D. 我打回的一条 + 我替它补上的分栏观察**：设置入口原先没有返回守卫（`SettingsPage` 的 NavDestination 既没传 `onSwitchInFlight` 也没挂 `onBackPressed`）⇒ 在途按系统返回会 pop、提示落在已销毁页面上。它在 `483dcce` 里补齐；它自己如实登记「分栏（右栏 detailStack）只有结构性论据、没有设备观察」。**我用同一序列（设置 → 学期页 → 点一行 → 0.9 s 后 `uitest uiInput keyEvent Back`）在分栏态复现**：Back 之后学期页**仍在**（右栏 dump 仍是学期列表、勾选在春季），切换在 18:46:20.377 以 success 结束并打出提示 ⇒ 该缺口由我这边补上设备观察。
+
+**E. 失败路径（我自己编了一次注入构建）**：`NOTICES_REFRESH_FAILURE_FOR_EVIDENCE=true`（另把结果提示时长切到 60000 ms 以便 dump 得到），abc `F58FC1DE…`。分栏态切换 秋季→春季：`result=partial domains=[courses=ok(7) notices=fail(2) files=ok(95)] elapsedMs=8068`，**界面 dump 里真的读到** `已切换到2025-2026 学年春季学期，但公告刷新失败：notice refresh aborted by evidence switch`（bounds `[844,1671,2824,1704]`）⇒「某一域失败不假装成功」在设备上成立（这正是实现中修掉的 `allSettled` 永远 fulfilled ⇒ 每次失败都报成功那一类）。收尾已 `git checkout` 复原两个开关（`git show HEAD` 自证 `false` / `0`、`wt/t17` 工作区干净），并把设备换回**合并后**的提交态产物。
+
+**F. 合并**：`wt/t17` 并入 main = `0c6351c`。唯一内容冲突在 `SettingsPage.ets`（t18 的 `exportedSummary` 与 t17 的 `semesterSwitchInFlight` 落在同一处），手工保留两者；i18n 生成物按「重跑两个生成器 + `git diff` 为空」收敛（`check-generated-fresh` PASS；`ui_exported` 的三占位符与 `loh_immersive_mode_description` 的新值都在）。合并后 main 终验：`Tests run: 441`（mtime 18:48:37）、打包 0/0/0、四脚本 PASS/OK/PASS、abc `46915DFD…` / 1,821,648 B。
+
+**G. 我确认的缺口（与实现方一致，均不阻塞判据）**：① **「课程 / 作业修前完全不刷新」没有复现** —— 在 5559 与 5555 上都是 ~8–9 s 后自己跟上；本 ticket 真正的修法是「把这段等待变成有反馈的加载」，而不是「修好一个不存在的取数」；② 设备侧「全失败」档仍只有单测（我的注入只做到 partial）；③ 实现方那轮失败注入构建的 abc 未记录（我这轮补了 `F58FC1DE…`）；④ 本 ticket 新增了**两个**取证开关（`SWITCH_DELAY_FOR_EVIDENCE` / `SEMESTER_SWITCH_TOAST_MILLIS_FOR_EVIDENCE`），提交态都是 0 且各有 OffAtCommit 单测 —— 记下来，供以后判断取证开关面是否继续膨胀。
