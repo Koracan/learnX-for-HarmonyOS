@@ -39,7 +39,7 @@ import { ToastController, ToastOverlay } from '../../ui/components/Toast';
 import { ContentSwipeActions } from '../../ui/components/SwipeActions';
 import { AppIcon } from '../../ui/icons/IconCatalog';
 import { IconGlyph } from '../../ui/icons/IconGlyph';
-import { updatedTimeText } from '../../ui/components/UpdatedTime';
+import { PAGE_SHOWN_AT_KEY, pageHeaderUpdatedText } from '../shell/PageShown';
 import { SessionHeaderProvider, createSessionHeaderProvider, logSessionHeaderState } from '../../core/web/SessionHeaderProvider';
 import { ContentFilter } from '../../domain/marks/ContentFilter';
 import { MarksDomain, MarksTab } from '../../domain/marks/CollectionFlags';
@@ -87,6 +87,12 @@ export struct NoticesPage {
   @StorageProp(COLOR_MODE_KEY) colorMode: number = ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT;
   /** 语言版本号；变化时本组件重建并重新取串。 */
   @StorageLink(LOCALE_VERSION_KEY) localeVersion: number = 0;
+  /**
+   * 「页面被显示」的时刻（AppStorage）：切走再切回、或从后台回到前台时由
+   * `features/shell/PageShown.ets` 的 `markPageShown()` 刷新。
+   * 页头那一行读它 ⇒ 键一变就用新的时间基准重算（这就是"相对时间不再冻结"的机制）。
+   */
+  @StorageProp(PAGE_SHOWN_AT_KEY) pageShownAtMillis: number = 0;
   /** Refresh 组件自身的两态绑定。 */
   @State refreshing: boolean = false;
   /** 当前过滤视图（初值 = 参考实现 settings.ts:24-29 的 notice 默认值 all）。 */
@@ -152,9 +158,12 @@ export struct NoticesPage {
    * 页头那一行"相对更新时间"（ticket 11.5 Part B）：`刚刚更新` / `N 分钟前更新` / …。
    * 原来的"更新于 HH:mm:ss · N 分钟前"是**绝对时间 + ICU 相对措辞**两段拼接；
    * 账号所有者裁定只保留相对措辞，四档边界在 `ui/components/UpdatedTime.ets`（有单测）。
+   *
+   * 时间基准是"本页最近一次被显示的时刻"（`features/shell/PageShown.ets`）：切走再切回、
+   * 回到前台都会重算；实现只有那一处，本页只订阅键并把两个数传进去。
    */
   private updatedText(): string {
-    return updatedTimeText(this.store.fetchedAtMillis, Date.now());
+    return pageHeaderUpdatedText(this.store.fetchedAtMillis, this.pageShownAtMillis);
   }
 
   /* ------------------------------------------------------------------ *

@@ -432,6 +432,29 @@ ticket 11 的设备证据里保留了两段：`PdfView` 崩溃的 hilog（上文
 `src/screens/Courses.tsx:48-50`；`entry/src/main/ets/features/{assignments/AssignmentsPage,courses/CoursesPage,notices/NoticesPage,files/FilesPage}.ets` 的 `header()`；
 `entry/src/main/ets/ui/components/UpdatedTime.ets`；`entry/src/test/UpdatedTime.test.ets`；ticket 11.5 的逐屏截图。
 
+**【追记 · ticket 03（界面优化轮），2026-09-13】相对时间的"重算时机"改了：从"构建那一刻算一次"变成"每次页面被显示时重算"**
+
+- **变了什么**：页头那一行的时间**基准**从"求值那一刻的 `Date.now()`"改成"**本页最近一次被显示的时刻**"
+  （AppStorage 键 `lohPageShownAtMillis`；动作 `markPageShown()` **只有一处实现**，在
+  `entry/src/main/ets/features/shell/PageShown.ets`）。两个触发源都汇进它：切 tab（底栏点击 + `Tabs.onChange`）
+  与**回到前台**（`EntryAbility.onForeground`），另加壳层首次显示。**没有**定时器 —— 仍是"被显示时算一次"，
+  不是"每秒刷新"（本条第 4 项后半那句"不每秒重算"继续成立）。
+- **为什么**：本条第 4 项写的意图是"**只在进入页面** / 刷新后取一次"，但实现只在页面**构建那一刻**算过一次：
+  `TabContent` 的子组件实例是持久的、`build()` 不因切 tab 重跑（`onPageShow` 又是 `@Entry` 级生命周期，
+  这四个页面是 shell 里的子组件，拿不到）。⇒ 隔夜切回来页头还写着"刚刚更新"。所以这次不是推翻本条，
+  而是让实现在"重新进入页面"这件事上**对得上本条的措辞**。数据源（快照 `fetchedAtMillis`）、四档措辞、
+  边界单测**一字未改**（`ui/components/UpdatedTime.ets` 与 `UpdatedTime.test.ets` 都不在本次 diff 里）。
+- **原证据还成立到哪一步**：本条第 4 项与替代验收第 3 条前一半（四档边界由单测钉住）**全部仍然成立**；
+  第 3 条后一半"设备侧用**注入快照时间戳**拍两帧"不再是**唯一**路径 —— 本轮改用**不碰设备存储**的做法
+  （等真实两分钟 + 切走切回 / 回前台）取到两帧，原方法仍可用。
+  各行"节点构成"类证据（ticket 11.5 的逐屏截图、ticket 01 的页头 layout dump）也不受影响：那一行**仍然在**；
+  但它的取值现在会在页面被重新显示时变新 ⇒ **新拍的 dump 里那一行的文本可能不再是"刚刚更新"**，
+  按"节点存在 / 措辞属于哪一档"读，不要按"文本恒为刚刚更新"读。本次改动**新增**了一处页头语言之外的
+  全局状态（AppStorage 键），不含任何设备级设置、不含持久化。
+- **取证**：`.scratch/ui-optimize/evidence/03-relative-time-refresh.md`（同一台 MatePad Pro 13 / `127.0.0.1:5559`：
+  `刚刚更新` → `3 分钟前更新` → `6 分钟前更新`，两帧间隔均 ≥2 分钟且未改设备时钟）；
+  实现见 `entry/src/main/ets/features/shell/PageShown.ets` 与四个列表页的 `updatedText()`。
+
 ---
 
 ## 25. 全应用底色去品红：M3 紫种子的**底色族 + 中性族**改中性灰（参考实现是 `rgb(255,251,255)` 那一套）—— 已复审（ticket 11.5，账号所有者裁定）
