@@ -24,8 +24,7 @@
  * 要求"**即时生效**，重启后保持"。本工程照做：切换后立刻调
  * `core/window/ImmersiveWindow.applyImmersiveMode`（隐藏 / 恢复状态栏与导航栏）并写 preferences。
  * **那句说明文字仍按参考实现原样显示**——它是**迁移键**（由 reference 的词典生成），
- * 改它会让 `check-generated-fresh` 失败，且会偏离参考实现的文案。这处"文案与行为不完全一致"
- * 已在交付说明里如实登记。
+ * 改它会让 `check-generated-fresh` 失败，且会偏离参考实现的文案。这处"文案与行为不完全一致"是有意保留的。
  */
 
 import { ConfigurationConstant, common } from '@kit.AbilityKit';

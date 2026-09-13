@@ -36,8 +36,8 @@
  * 3. **附件点击的落点**：参考实现 `handleFileOpen` 传的 `id` 是**附件 id**
  *    （AssignmentDetail.tsx:134；对比公告详情传的是公告 id，NoticeDetail.tsx:64）。
  *    这里照作业那条走（`noticeId` 字段名沿用既有 `FileDetailRouteParams`，
- *    它是"文件缓存目录名"；字段名不改是为了不动已验收的导航契约 ——
- *    见边界说明）。`FileDetail` 的**真身**（下载/预览/分享）归文件详情页。
+ *    它是"文件缓存目录名"；字段名不改是为了不动已验收的导航契约）。
+ *    `FileDetail` 的**真身**（下载/预览/分享）归文件详情页。
  *
  * 描述为什么走 Web 容器而不是纯文本：参考实现把描述喂给 `getWebViewTemplate`
  * （:122-130），模板里带 KaTeX 的 auto-render（`$$…$$` 与 `\(…\)` 才排版，

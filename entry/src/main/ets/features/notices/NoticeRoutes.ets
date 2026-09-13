@@ -25,7 +25,7 @@ export const ROUTE_NOTICE_DETAIL: string = 'NoticeDetail';
  * `noticeId` 装的是**附件 id**（参考实现 AssignmentDetail.tsx:134 传的就是附件 id，
  * 与公告详情 NoticeDetail.tsx:64 传公告 id 不同）。这个字段的真身是"文件缓存目录名"
  * （参考实现 helpers/fs.ts:54 用它拼目录），所以两种来源都能用；字段名保留 `noticeId`
- * 是为了不动已验收的导航契约 —— 见边界说明。
+ * 是为了不动已验收的导航契约。
  */
 export const ROUTE_FILE_DETAIL: string = 'FileDetail';
 
@@ -49,7 +49,7 @@ export interface FileDetailRouteParams {
    * 公告详情与作业详情的构造点**一行都不用改**，已验收的导航契约（字段名与形状）
    * 也不变。加它们的理由：课程详情的文件标签页本来就有 size/uploadTime/description
    * （`CourseFileDetailRouteParams`），而文件详情真身落地后那条路由也走本页面，
-   * 于是不需要第二套参数类型（见交付说明）。
+   * 于是不需要第二套参数类型。
    */
   /** 站点给出的体积文本（如 `139.54KB`）；附件通常没有。 */
   size?: string;

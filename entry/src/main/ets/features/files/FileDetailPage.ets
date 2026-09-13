@@ -163,7 +163,7 @@ export struct FileDetailPage {
   private request(refresh: boolean): FileDownloadRequest {
     return {
       downloadUrl: this.params.downloadUrl,
-      // 边界说明：附件 id 可能是空串，cacheKeyFor 会兜底到地址末段。
+      // 附件 id 可能是空串，cacheKeyFor 会兜底到地址末段。
       cacheKey: cacheKeyFor(this.params.noticeId, this.params.downloadUrl),
       courseName: this.params.courseName,
       title: this.params.title,

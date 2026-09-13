@@ -359,7 +359,7 @@ export default function fileDownloadTest() {
     });
 
     it('fallsBackToTheDownloadUrlTailWhenTheIdIsEmpty', 0, () => {
-      // 边界说明：作业附件的 id 可能是空串。
+      // 作业附件的 id 可能是空串。
       const key: string = cacheKeyFor('', PATH_FORM_URL);
       expect(key).assertEqual('2023011272_ZY_178014313120047eacdb87a-作业1.pdf');
       expect(key.length > 0).assertTrue();

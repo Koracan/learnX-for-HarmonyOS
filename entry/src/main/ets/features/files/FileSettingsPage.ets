@@ -6,7 +6,7 @@
  *     文案分别是 `fileUseDocumentDir` / `fileOmitCourseName`，各带一段 caption；
  *   - `FileSettings.tsx:94-100` "清空文件缓存" → `removeFileDir()`（带确认对话框）。
  *
- * ## 归属（写进边界说明）
+ * ## 归属
  *
  * **值/语义/生效逻辑在本文件**（`data/settings/FileSettings` + `FileDownloader`），
  * 本页是**文件 tab 自己的入口**；**全局设置页的入口与外观归全局设置**。

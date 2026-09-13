@@ -19,11 +19,11 @@
  * `handlePush`（`:27-35`）同义 —— 有右栏就进右栏、否则压本 tab 的主栈
  * （本工程的对应物是分栏，见 features/shell/SplitView.ets 的 pushDetailFromMaster）。
  *
- * ## 两处**增补**（参考实现没有，理由见交付说明）
+ * ## 两处**增补**（参考实现没有）
  *
  *   1. **「导出日志」一行**（图标 `description`）：core/log/LogBuffer.ets 把
- *      `exportLogs()` 的调用方明确留给「settings 切片的「导出日志」」，本工程的
- *      What to build 也列了它。带 Toast 反馈（`ui_exported` / `ui_export_failed`）。
+ *      `exportLogs()` 的调用方明确留给「settings 切片的「导出日志」」，本工程
+ *      也列了它。带 Toast 反馈（`ui_exported` / `ui_export_failed`）。
  *   2. **Mock 模式自证行**（只在 mock 用户下出现，见 mockBanner）：要求
  *      「不发起真实网络请求」**可证明**，而计数必须打在**消费点**上 ——
  *      这一行显示的就是 data/remote/NetworkAudit 的实时计数（两个 http 出口共用同一个计数器）。

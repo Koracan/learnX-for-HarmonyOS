@@ -3,7 +3,7 @@
  *
  * 用 [设备] 真实向量（模拟器产出，.scratch/migration/sm2-verify/arkts-wire.txt）锁定：
  * '04' + X(64) + Y(64) + C3(64) + C2，且各段按 32 字节**左侧补零**。
- * 平台加密本身（cryptoFramework）只能在设备上验（见未验证项）。
+ * 平台加密本身（cryptoFramework）只能在设备上验。
  */
 
 import { describe, it, expect } from '@ohos/hypium';

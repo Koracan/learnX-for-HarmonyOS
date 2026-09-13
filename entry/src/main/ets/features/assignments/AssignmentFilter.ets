@@ -14,7 +14,7 @@
  *
  * **本文件不做排序**：顺序由 `data/remote/AssignmentsFetcher` 用
  * `domain/parse/AssignmentParser.compareAssignmentsByUpcoming` 一次定好，
- * 界面层再排一次就会出现"两套排序"（见统筹提示 C）。
+ * 界面层再排一次就会出现"两套排序"。
  *
  * 纯函数、无平台依赖、无 i18n，是单测的主战场（entry/src/test/AssignmentList.test.ets）。
  */

@@ -11,15 +11,15 @@
  * | 初值 | `useState(route.params?.query ?? '')`（`:39`） | `@Prop initialQuery`（入口参数见 SearchRoutes） |
  * | 空查询自动聚焦 | `isFocused && searchQuery === ''` → `searchRef.current?.focus()`（`:41-45`） | `focusWhenEmpty()`（进页面 + 从详情返回时各一次，见 `onNavBarStateChange`），并在 `onFocus` 打消费点日志 |
  * | 进详情 | 有右栏引用则 `navigate` 进右栏并补 `disableAnimation: true`；否则 `navigation.push`（`:54-63`） | `pushDetailFromMaster(..., animated: !splitActive)`；单栏压本页自己的栈，分栏压右栏 |
- * | 排序/召回 | `useSearch`：手工精确/前缀合并层 + fuse + 按 id 去重（手工在前） | `features/search/SearchCore`（同构三段；引擎是本工程自写的加权评分，理由与边界见该文件头与交付说明） |
+ * | 排序/召回 | `useSearch`：手工精确/前缀合并层 + fuse + 按 id 去重（手工在前） | `features/search/SearchCore`（同构三段；引擎是本工程自写的加权评分，理由与边界见该文件头） |
  *
  * ## 数据从哪来（**不是**全局 state，这一点与参考实现不同）
  *
  * 参考实现的搜索页从 redux 的 `state.notices/assignments/files.items` 取数（`:35-37`）。
- * 本工程没有一个全局内容 store（每个 tab 页各持一份，见相关说明），所以这里
+ * 本工程没有一个全局内容 store（每个 tab 页各持一份），所以这里
  * **复用课程线的同一次抓取**（`CourseListStore` 的一次 refresh 同时给出课程 + 三域内容，
  * 且读同一份"实际生效学期"），与 `AssignmentsPage` 完全同一处置。代价 = 打开搜索页时多一次抓取
- * （与"进两个 tab = 两次抓取"同一代价，见交付说明）。
+ * （与"进两个 tab = 两次抓取"同一代价）。
  *
  * ## 喂进检索的条目 = **原始条目只排除被屏蔽课程**
  *
@@ -35,8 +35,7 @@
  * `useDetailNavigator()` 进**同一个右栏**。本工程的搜索页是盖在 ShellTabs 之上的根级页面，
  * 没有"外面那个右栏"可用，所以把同一套版式（`SPLIT_VIEW_MASTER_WIDTH` + 1px Divider +
  * `pushDetailFromMaster`）搬进本页内部，**可观察行为一致**（结果点开在右栏、左栏保留高亮）。
- * 与参考实现的唯一差别：右栏起始是空态（不会沿用"进搜索页之前那个右栏详情"），
- * 这一条写在交付说明的未验证/差异项里。
+ * 与参考实现的唯一差别：右栏起始是空态（不会沿用"进搜索页之前那个右栏详情"）。
  *
  * ## 与参考实现的两处界面级补充（本工程口径）
  *

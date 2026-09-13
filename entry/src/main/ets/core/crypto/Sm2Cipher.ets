@@ -11,7 +11,7 @@
  *
  * 纯函数（`normalizeSm2PublicKey` / `leftPadHex32` / `assembleCipherText`）与平台调用分开：
  * 前者用真实设备产出的密文向量单测（`.scratch/migration/sm2-verify/arkts-wire.txt`），
- * 后者只能在设备上验（见未验证项）。
+ * 后者只能在设备上验。
  */
 
 import { cryptoFramework } from '@kit.CryptoArchitectureKit';

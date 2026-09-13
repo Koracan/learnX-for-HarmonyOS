@@ -24,7 +24,7 @@
  *   - 过滤语义逐行对齐参考实现 data/selectors/filteredData.ts（见 features/marks/FilteredContent）；
  *   - `未读 n` 从页头**移到过滤条**：参考实现的未读数就是 FilterList / Filter 上的角标
  *     （components/FilterList.tsx:246、Filter.tsx:181-187），页头没有这个元素 ——
- *     同一信息不再两处显示（对账结论见交付说明）。
+ *     同一信息不再两处显示。
  */
 import { ConfigurationConstant } from '@kit.AbilityKit';
 import { PLAIN_PALETTE, ThemeTokens, resolveTheme } from '../../ui/theme/Tokens';
@@ -344,8 +344,8 @@ export struct NoticesPage {
 
   /**
    * 过滤条：五个视图与各自的角标计数，顺序照参考实现 Filter.tsx:153-218
-   * （all → unread → fav → archived → hidden）。参考实现是下拉列表，这里是同屏筛选片
-   * （既有的版式选择，见交付里的偏离说明）；**计数口径一字未改**。
+   * （all → unread → fav → archived → hidden）。参考实现是下拉列表，这里是同屏筛选片；
+   * **计数口径一字未改**。
    */
   @Builder
   filterRow() {

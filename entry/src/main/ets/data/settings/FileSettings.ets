@@ -7,7 +7,7 @@
  * `reference/learnOH-old/src/data/reducers/settings.ts:22` 的两个默认值都是 `false`；
  * `src/screens/FileSettings.tsx` 用 `setSetting('fileUseDocumentDir'|'fileOmitCourseName', value)` 写；
  * 两个值唯一的消费点是 `src/helpers/fs.ts:26-33,59-63`（落盘根目录与文件名形状）。
- * 本文件把"值 + 语义"收在一处，UI 入口归全局设置页（见边界说明）。
+ * 本文件把"值 + 语义"收在一处，UI 入口归全局设置页。
  *
  * ## 为什么还带一个运行时覆盖
  *

@@ -25,7 +25,7 @@ import {
 // 过滤视图的实现从 features/assignments/AssignmentFilter 收敛到
 // features/marks/FilteredContent（收藏 / 归档 / 屏蔽与这三种视图是同一套过滤语义）。
 // 本文件里原来的 matchesFilter / filterAssignments / countAssignments 断言**期望值一字未改**，
-// 只是调用点换成了新的等价实现（边界说明见追加节）。
+// 只是调用点换成了新的等价实现。
 import { ContentFilter } from '../main/ets/domain/marks/ContentFilter';
 import { assignmentsForFilter, selectFilteredAssignments } from '../main/ets/features/marks/FilteredContent';
 import {

@@ -23,7 +23,6 @@
  * 参考实现是 `Object.keys(packageJson.dependencies)` 动态列，本工程根 `oh-package.json5` 的
  * `dependencies` **是空的**（只有 `@ohos/hypium` / `@ohos/hamock` 两个 devDependency，跑单测用，
  * 不进 hap）。照抄那份名单会列出一堆本工程根本没用的包，所以这里**如实说明没有第三方运行时依赖**。
- * 取舍与判据见交付说明。
  */
 
 import { ConfigurationConstant } from '@kit.AbilityKit';

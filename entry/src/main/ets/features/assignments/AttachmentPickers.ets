@@ -15,8 +15,7 @@
  *   - 用户取消时 `select` 多数版本**正常 resolve 成空数组**；
  *   - 也可能抛出错误。我们无法可靠区分「用户取消」与「真失败」，所以：
  *     空数组 / 取不到 URI ⇒ cancelled（不发 toast）；抛异常 ⇒ failed（发 `loh_file_pick_failed`）。
- *   若实测发现取消走的是抛异常那条路，界面会多一条失败提示 —— 这是**已知的平台差异**，
- *   在交付说明里按实测结果记录。
+ *   若实测发现取消走的是抛异常那条路，界面会多一条失败提示 —— 这是**已知的平台差异**。
  *
  * 本文件只做「拿到 URI → PickedAttachment」；字节读取在 data/assignments/DeviceAttachmentReader。
  */

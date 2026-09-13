@@ -33,7 +33,7 @@
  * 截止时间那句为什么换措辞：dayjs 的 `humanize`（"5 个月前" / "还剩 3 天"）在平台侧没有等价物 ——
  * `Intl.RelativeTimeFormat` 只能给 "5个月前" / "3天后"，无法去掉/加上参考那句前后缀。
  * 与其拼出"还剩 3天后"这种两种语言都不通顺的句子，这里显示**站点自己的截止时间原文**
- * 加一枚**本地化状态标记**（未到期 / 已截止），语义等价且可截图核对。详见交付说明。
+ * 加一枚**本地化状态标记**（未到期 / 已截止），语义等价且可截图核对。
  */
 import { ConfigurationConstant } from '@kit.AbilityKit';
 import { PLAIN_PALETTE, ThemeTokens, resolveTheme } from '../../ui/theme/Tokens';
@@ -181,7 +181,7 @@ export struct AssignmentsPage {
   /**
    * 消费点自证：把**实际生效的学期与来源**连同作业条数、六组计数打进 hilog。
    * 作业线的取证要求"既要看到 data.courses effective semester=… source=override，
-   * 也要看到作业消费点的行"（见统筹提示）。
+   * 也要看到作业消费点的行"。
    */
   private logApplied(reason: string): void {
     const items: Assignment[] = this.sourceAssignments();

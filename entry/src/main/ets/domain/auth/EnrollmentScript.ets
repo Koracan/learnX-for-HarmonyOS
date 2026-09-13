@@ -8,7 +8,7 @@
  *      没给值时才写**——二次验证页自己已经在 body 里放了正确的指纹（D1 修复，见 patchSaveFinger）；
  *   3. 让页面自己把 localStorage 里的 fingerGenPrint 吐回 DOM（localstorageUtil.getFinger3FromLocal）。
  *
- * **明确不做**（idp-login-flow.md 里逐条列出的那一节）：旧实现对 jQuery.fn.submit 的猴补丁——它只是为了把
+ * **明确不做**（idp-login-flow.md）：旧实现对 jQuery.fn.submit 的猴补丁——它只是为了把
  * FormData 经 postMessage 回传 RN；我们的 HTTP 侧凭据由本工程自己持有，不需要那条通道。
  * 单测里有一条断言"产物里不含 jQuery.fn.submit"，防止有人日后把它加回来。
  *

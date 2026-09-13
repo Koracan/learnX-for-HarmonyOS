@@ -137,7 +137,7 @@ export enum AppIcon {
    *
    * **这是本工程对参考实现的一处增补**（参考实现 Settings.tsx 没有这一项）：
    * `core/log/LogBuffer.ets` 明确把 `exportLogs()` 的调用方留给「settings 切片的「导出日志」」，
-   * 而本工程也列了它。理由与替代验收标准见交付说明的「偏离与增补」。
+   * 而本工程也列了它。
    */
   DESCRIPTION = 'description',
   /* --- 文件详情顶栏与「详情 / 预览」切换用到的字形。

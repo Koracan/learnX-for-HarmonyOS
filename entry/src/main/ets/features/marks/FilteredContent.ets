@@ -332,8 +332,7 @@ export function isHiddenCourse(hiddenCourseIds: string[], courseId: string): boo
  * 搜索页喂给检索的条目 = **原始 items 减去被屏蔽课程的条目**。
  *
  * 为什么用原始 items：参考实现 `screens/Search.tsx:35-37` 取的是 `state.X.items`
- * （**不是**列表用的 `all` 分组）⇒ **已归档的条目仍会被搜到**。这一条照做，
- * 归档项仍进搜索，见交付说明。
+ * （**不是**列表用的 `all` 分组）⇒ **已归档的条目仍会被搜到**。这一条照做。
  *
  * 为什么还要减一次：「隐藏课程的内容不出现」——被屏蔽课程的内容
  * 在四个列表里已经消失，搜索里也必须消失，否则同一门课会从搜索这个入口漏出来。

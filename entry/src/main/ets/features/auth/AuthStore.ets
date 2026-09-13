@@ -242,7 +242,7 @@ export class AuthStore {
    *
    * | 参考实现 | 这里 |
    * | --- | --- |
-   * | `dataSource.logout()`（**服务端**注销会话） | **不移植**：本工程的数据层没有"服务端登出"这个用例。见偏离说明 |
+   * | `dataSource.logout()`（**服务端**注销会话） | **不移植**：本工程的数据层没有"服务端登出"这个用例。 |
    * | `clearLoginCookies()`（清 WebView / 平台 cookie） | `session.clear()`（内存 cookie jar + Session + 凭据缓存） |
    * | `dispatch(clearStore())`（清 state） | `credentials.clear()`（asset store 里的持久化凭据）+ 把 store 显式降级回 `UNENROLLED` |
    *

@@ -14,8 +14,8 @@
  * ## 两条有意加固（**不是**参考实现的行为，逐条写清理由）
  *
  * 1. **目录名/缓存键兜底**：参考实现用 `file.id` 当目录名；真实数据里作业附件的
- *    `id` 可能是**空串**（下载地址是路径形态，没有 `fileId=`/`wjid=` 参数，
- *    见边界说明）。空串当目录名会把不同文件全落进同一层
+ *    `id` 可能是**空串**（下载地址是路径形态，没有 `fileId=`/`wjid=` 参数）。
+ *    空串当目录名会把不同文件全落进同一层
  *    `root/<课程名>/`，互相覆盖。`cacheKeyFor()` 因此兜底到 downloadUrl 的末段。
  * 2. **路径分隔符清洗**：标题里若含 `/` 会把路径切成两层（参考实现也会，但那是 bug
  *    而非契约）；清洗只动**文件系统保留字符**，中文与空格**原样保留**（
@@ -115,7 +115,7 @@ export function downloadUrlFileName(url: string): string {
 
 /**
  * 缓存目录名 / 去重键：优先用站点给出的 id，**id 为空串时兜底到下载地址末段**
- * （边界说明：作业附件的 id 可能是空串）。
+ * （作业附件的 id 可能是空串）。
  */
 export function cacheKeyFor(id: string, downloadUrl: string): string {
   const trimmed: string = id === undefined || id === null ? '' : id.trim();
