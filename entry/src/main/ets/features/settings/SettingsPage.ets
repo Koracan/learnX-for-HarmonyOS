@@ -45,7 +45,7 @@ import { EmptyState } from '../../ui/components/EmptyState';
 import { AuthStore, authStore } from '../auth/AuthStore';
 import { isMockMode } from '../mock/MockMode';
 import { CourseListStore } from '../courses/CourseListStore';
-import { createCourseRepository } from '../courses/repository/CourseRepositoryProvider';
+import { courseListStore } from '../courses/CourseListStoreProvider';
 import { SemesterSelectionPage } from '../courses/SemesterSelectionPage';
 import { SemesterSelectionRouteParams, ROUTE_SEMESTER_SELECTION } from '../courses/CourseRoutes';
 import { FileSettingsPage } from '../files/FileSettingsPage';
@@ -183,7 +183,7 @@ export struct SettingsPage {
 
   private openSemesterSelection(): void {
     if (this.courseStore === null) {
-      this.courseStore = new CourseListStore(createCourseRepository());
+      this.courseStore = courseListStore();
     }
     const store: CourseListStore = this.courseStore;
     const params: SemesterSelectionRouteParams = { activeSemesterId: '' };

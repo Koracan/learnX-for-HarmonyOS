@@ -47,7 +47,7 @@ import { NoticeRecord } from '../../data/notices/NoticeRepository';
 import { NoticeDetailPage } from '../notices/NoticeDetailPage';
 import { ROUTE_NOTICE_DETAIL } from '../notices/NoticeRoutes';
 import { CourseListStore } from './CourseListStore';
-import { createCourseRepository } from './repository/CourseRepositoryProvider';
+import { courseListStore } from './CourseListStoreProvider';
 import { openSearch } from '../search/SearchEntry';
 import {
   CourseDetailRouteParams, CourseFileDetailRouteParams, SemesterSelectionRouteParams,
@@ -104,7 +104,8 @@ export struct CoursesPage {
   /** 当前过滤视图；初值 = 参考实现 settings.ts:28 的 course 默认值 all。 */
   @State filter: ContentFilter = ContentFilter.ALL;
 
-  private store: CourseListStore = new CourseListStore(createCourseRepository());
+  /** 进程内单例：学期选择与课程列表在所有页面之间共享（见 CourseListStoreProvider）。 */
+  private store: CourseListStore = courseListStore();
   /** 进程内单例：屏蔽一门课要立刻影响公告 / 作业 / 文件三个列表。 */
   private flags: CollectionFlagsStore = collectionFlagsStore();
   private toast: ToastController = new ToastController();

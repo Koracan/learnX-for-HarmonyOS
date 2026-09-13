@@ -50,3 +50,48 @@
 ### 2026-09-13 · 统筹者派单
 - 现象按账号所有者原话：「设置页的学期切换卡顿且无效」。**先把「无效」定义清楚再动手**；若诊断发现它其实是另一处机制（例如页面根本没消费选择、或列表缓存没失效），
   照实改判并在 Comment 里写明**前提如何被修正**。若修法要动到别人已验收证据所依赖的前提（学期覆盖开关、课程列表抓取口径），先停下来报告，不要悄悄改。
+
+### 2026-09-13 · 实现与自证
+
+**结论先行**：两条症状是**同一个根因的两面** —— 学期选择既不是共享状态（每个页面各自 `new` 一份 `CourseListStore`），又被绑在一整轮重取数上（点击 await 到取数结束才写状态、才 pop）。
+修复 = 进程内单例 `courseListStore()` + `selectSemester` 同步记录 + 整轮取数移出点击关键路径。
+「卡顿」7017 ms → **≤1 ms**；「无效」已变成「设置里选春季，课程 tab 直接是春季 7 门课，且没有新取数」。
+
+**前提修正（派单情报被证伪的一条）**：派单说「无效很可能在 `SemesterOverride` 这条链上（选择没被 refresh 消费）」。
+**这条不成立**：`CourseFetchSource` 确实消费了选择（实测 `effective semester=2025-2026-2 source=selection`），
+`SemesterOverride` 的优先级（覆盖 > 选择 > 站点当前）原样可用。真正的断点是**选择的宿主**：写进了设置页自己那一份 store，课程 tab 那一份看不到。
+参照系是参考实现：`SemesterSelection.tsx:38-40` 的选择是**纯全局状态写入**，重取由消费方 `Courses.tsx:20-32` 监听后发起。
+
+逐条打勾：
+
+- [x] **现象被拆开**：「卡顿」= 点击一行到选择被采纳的时延，基线 **7017 ms**（tap `16:01:21.938` → `course list applied` `16:01:28.955`，取自 hilog 毫秒）；
+      「无效」的确切含义是**勾动了、设置页也换了，但课程 tab 不受影响**（不是「勾选没动」，也不是「退出重进又回去」）。
+      证据：`evidence/frames-t14/baseline/h02-aftertap-28s.txt` 与 `c03-courses-layout.json`（课程 tab 仍是「2026-2027 学年秋季学期」/`全部 2`）。
+- [x] **根因落到代码**：`features/settings/SettingsPage.ets:87,186,469` 造并交出自己的一份 store；`features/courses/CoursesPage.ets:107` 另造一份；
+      选择存在私有字段 `features/courses/CourseListStore.ets:44 selectedSemesterId`；卡顿侧是 `SemesterSelectionPage.ets:72` 的 await 挂在 `CourseListStore.ets:107` 的整轮 refresh 上，`:74` 才 pop。
+      证据：`git show af163b4:...` 的上述行号（提交 `d677f05` 里已改）。
+- [x] **修完不卡**：同一套手势、同一口径（hilog 毫秒）—— tap / `semester selection applied` / `semester selection dismissed` **同在 `16:12:47.086`**；
+      整轮取数仍在跑，但已在关键路径之外（`course list applied` @ `16:12:53.643`，+6557 ms，与基线的 7017 ms 同量级，说明活儿没被删掉）。
+      证据：`evidence/frames-t14/after/h11-aftertap-early.txt`、`h12-aftertap-late.txt`。
+- [x] **修完有效**：同一次点击后课程 tab 页头变 `2025-2026 学年春季学期`、计数 `全部 7`、七门课标题全换（西方音乐史／高技术战争／三年级男生台球／离散数学方法／偏微分方程／算法分析与设计基础／软件分析与验证）。
+      **判别性**：进课程 tab **没有**新的 `effective semester=`/`course list applied` 行 ⇒ 换学期只能来自共享状态，排除「课程 tab 自己又按站点当前学期取了一次」。
+      证据：`evidence/frames-t14/after/a02-courses-tab/screenshot-1789287226814.png` + `a02-courses-layout.json` + `h13-courses-tab.txt`。
+- [x] **单测**：沿用既有 `CourseRepository` 缝注入假仓储，在 `entry/src/test/CourseData.test.ets` 新增 `data.courses.CourseListStore` 三条 ——
+      输入「选择的 semesterId + 抓取结果」，输出「生效的 semesterId / 课程集合」，并钉住「同步记录」与「失败不清空旧值、不留在途标记」。
+      证据：干净树 `Tests run: 427, Failure: 0, Error: 0`（`test_result.txt` mtime `2026-09-13 16:09:54`）。
+- [x] **状态复原**：在同一台设备点回 `2026-2027 学年秋季学期`（`16:15:13.493` tap → `16:15:14.331` applied，courses=2），
+      切换页勾选回到秋季（check bounds `[2110,435,2160,485]`），课程 tab 回到秋季 / `全部 2`。
+      证据：`after/a03-semester-page-restored.json`、`after/a04-final-courses.json`。
+- [x] **门禁**（**全部在干净树 `learnOH-wt/t14-clean` = `d677f05` 里重跑**，不是在被占用的 t14 里）：单测 427/427；
+      `assembleHap --no-incremental` 搜 `ERROR`/`ErrorCode`/`COMPILE RESULT` 零命中；四脚本 domain-purity PASS / import-graph PASS / i18n `RESULT: OK` / generated-fresh PASS。
+      产物指纹（解包 `ets/modules.abc`，1,785,004 B）= `42DD5D30C25B84EEB0EB7682FB5D1BDD01E63873502BD1074CD21A7076D2CD47`；负对照 `evidenceTransitionDelegate` 命中 0（不含别的 ticket 的代码）。
+
+**没做到 / 存疑**：
+1. 基线产物的 `ets/modules.abc` 指纹**拿不到**：基线 hap 被同一棵树里另一次构建覆盖（该树当时被另一条 ticket 占用，其 `updateTime` 显示它的产物从未装到本设备）。
+   基线一侧的同一性判据只能是「装机 `updateTime` = `15:58:06.832`（我的基线产物 mtime 15:57:22）+ 基线源码 `af163b4` + hilog」。
+2. 「不卡」只量化到「点击 → 选择被采纳」，**没有**量化后台取数期间渲染线程是否掉帧（HTML/JSON 解析仍在 UI 线程）。**没抓到**不等于不存在。
+
+**过程与边界**：
+- 证据文档：`evidence/14-semester-switch-janky-and-ineffective.md`（图片/hilog/dump 只留本地，md 用 `git add -f` 入库）。
+- 未触碰 `.scratch/migration/**`；未清应用数据、未退出登录、未提交作业、未改设备级永久设置；未动 `SEMESTER_OVERRIDE_FOR_EVIDENCE` 语义与课程列表抓取口径。
+- `*_FOR_EVIDENCE` 族在提交态仍全为 `false`/空串（`SEMESTER_OVERRIDE_FOR_EVIDENCE=''`），本次没有为取证临时打开任何开关。
