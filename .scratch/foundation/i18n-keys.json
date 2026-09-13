@@ -1,8 +1,8 @@
 {
-  "total": 309,
+  "total": 311,
   "referenceCount": 180,
   "localCount": 8,
-  "uiCount": 121,
+  "uiCount": 123,
   "referenceKeys": [
     "back",
     "notices",
@@ -3067,6 +3067,24 @@
       "name": "ui_opensource_dependencies_none",
       "zhValue": "本应用不包含第三方运行时依赖，只使用 HarmonyOS SDK 提供的系统能力。",
       "enValue": "This app bundles no third-party runtime dependencies; it uses only the HarmonyOS SDK system capabilities.",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_assignment_submit_blocked_uploading",
+      "name": "ui_assignment_submit_blocked_uploading",
+      "zhValue": "正在提交中，请稍候",
+      "enValue": "Submission in progress; please wait",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_assignment_submit_blocked_nothing_to_submit",
+      "name": "ui_assignment_submit_blocked_nothing_to_submit",
+      "zhValue": "请先填写正文或选择附件，再提交",
+      "enValue": "Write something or pick an attachment before submitting",
       "zhPlaceholders": [],
       "enPlaceholders": [],
       "origin": "ui"

@@ -42,9 +42,10 @@ import { Assignment, Attachment } from '../../domain/model/ContentItem';
 import { UploadProgress } from '../../data/remote/Port';
 import { AssignmentSubmitter, SubmitOutcome } from '../../data/assignments/SubmitAssignment';
 import {
-  SubmissionState, canSubmit, initialSubmissionState, planSubmission, submitFailed,
-  submitStarted, submitSucceeded, withAttachmentPicked, withContent, withCustomAttachmentName,
-  withPickedAttachmentRemoved, withRemoveAttachmentToggled, withUploadProgress
+  SubmissionState, SubmitBlockReason, canSubmit, initialSubmissionState, planSubmission,
+  submitBlockReason, submitFailed, submitStarted, submitSucceeded, withAttachmentPicked,
+  withContent, withCustomAttachmentName, withPickedAttachmentRemoved,
+  withRemoveAttachmentToggled, withUploadProgress
 } from '../../domain/assignments/SubmissionState';
 import { PickedAttachment } from '../../domain/assignments/SubmissionForm';
 import { formatNoticeDate, NoticeDateText } from '../../domain/render/NoticeDateText';
@@ -54,6 +55,7 @@ import { AppIcon } from '../../ui/icons/IconCatalog';
 import { IconGlyph } from '../../ui/icons/IconGlyph';
 import { CourseListStore } from '../courses/CourseListStore';
 import { FileDetailRouteParams, ROUTE_FILE_DETAIL } from '../notices/NoticeRoutes';
+import { submissionBlockedKey } from './AssignmentText';
 import { AttachmentPickers, PickOutcome } from './AttachmentPickers';
 import { createAssignmentSubmitter } from './repository/AssignmentSubmissionProvider';
 
@@ -230,6 +232,40 @@ export struct AssignmentSubmissionPage {
     this.applyPickOutcome(outcome, 'photos');
   }
 
+  /**
+   * 「提交」此刻不能走的原因（`undefined` = 可以走）。
+   *
+   * 判定只有一份：`domain/assignments/SubmissionState.submitBlockReason`。按钮的外观、
+   * 点击时说的话都读它，避免"灰按钮"与"提示"各判一套。
+   *
+   * **本页不把截止时间算进来**（第一项固定传 `false`）：逾期与否的最终裁判是站点
+   * （补交截止 `bjjzsj` 那一支也是站点说了算），本地在这里再发明一道闸，可能挡住一次
+   * 合法的补交；参考实现的提交按钮同样只读"在飞 / 有没有内容"，完全不读截止
+   * （AssignmentSubmission.tsx:274-276）。进本页的唯一入口在作业详情页，那里已经判过截止。
+   */
+  private blockReason(): SubmitBlockReason | undefined {
+    return submitBlockReason(false, this.state);
+  }
+
+  /**
+   * 点「提交」：能走才进二次确认（与改动前同一条路径）；不能走就说**为什么**。
+   *
+   * 改动前这里是一个 `enabled(false)` 的灰按钮：点下去既没有请求、也没有任何说明
+   * （未选附件 / 正在提交中两种情形看起来一模一样）。拦截本身一字未改 ——
+   * 能否提交的判据仍是 `canSubmit` 那一套（本页不看截止），不能走时依然**不发任何请求**。
+   */
+  private handleSubmitPress(): void {
+    const reason: SubmitBlockReason | undefined = this.blockReason();
+    if (reason !== undefined) {
+      logger.info('submission blocked: reason=' + reason
+        + ' xszyid=' + this.studentHomeworkId()
+        + ' deadline=' + this.assignment.deadline);
+      this.toast(i18nService.t(submissionBlockedKey(reason)));
+      return;
+    }
+    this.confirmThenSubmit();
+  }
+
   /** 二次确认（参考实现 :250-268）：取消 ⇒ 什么都不做。 */
   private async confirmThenSubmit(): Promise<void> {
     const options: promptAction.ShowDialogOptions = {
@@ -326,10 +362,12 @@ export struct AssignmentSubmissionPage {
       Text(this.s($r('app.string.loh_submit')))
         .fontSize(this.theme().typography.titleMedium.fontSize)
         .fontWeight(FontWeight.Bold)
-        .fontColor(canSubmit(this.state) ? this.theme().colors.primary : this.theme().colors.onSurfaceDisabled)
-        .enabled(canSubmit(this.state))
+        // 不能提交时外观仍是灰的（判据与改动前一致），但**保持可点**：
+        // 点下去要说清是"已截止 / 正在提交中 / 没有可提交的内容"里的哪一种。
+        .fontColor(this.blockReason() === undefined
+          ? this.theme().colors.primary : this.theme().colors.onSurfaceDisabled)
         .onClick(() => {
-          this.confirmThenSubmit();
+          this.handleSubmitPress();
         })
     }
     .width('100%')

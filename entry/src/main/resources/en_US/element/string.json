@@ -1235,6 +1235,14 @@
     {
       "name": "ui_opensource_dependencies_none",
       "value": "This app bundles no third-party runtime dependencies; it uses only the HarmonyOS SDK system capabilities."
+    },
+    {
+      "name": "ui_assignment_submit_blocked_uploading",
+      "value": "Submission in progress; please wait"
+    },
+    {
+      "name": "ui_assignment_submit_blocked_nothing_to_submit",
+      "value": "Write something or pick an attachment before submitting"
     }
   ]
 }

@@ -227,5 +227,18 @@ export const UI_STRINGS = [
   // 所以**如实说明没有第三方运行时依赖**，而不是照抄参考实现那份名单。
   ['ui_opensource_dependencies_none',
     '本应用不包含第三方运行时依赖，只使用 HarmonyOS SDK 提供的系统能力。',
-    'This app bundles no third-party runtime dependencies; it uses only the HarmonyOS SDK system capabilities.']
+    'This app bundles no third-party runtime dependencies; it uses only the HarmonyOS SDK system capabilities.'],
+  // --- 提交入口被拦下时的那两句 ---
+  // 提交按钮在"不能提交"时不再是一个点了没反应的灰按钮，而是说清原因。
+  // 三种原因三句话：已截止复用参考实现已有的 loh_assignment_past_deadline（它说的就是这件事，
+  // AssignmentDetail.tsx:84 的 assignmentPastDeadline），这里只补另外两种。
+  //   - 正在提交中：上一次还没跑完，再点一次不该叠第二次请求；
+  //   - 没有可提交的内容：正文、新附件、移除已上传附件三者都没有 —— 参考实现此时
+  //     只把按钮置灰（AssignmentSubmission.tsx:274-276），没有任何文字。
+  ['ui_assignment_submit_blocked_uploading',
+    '正在提交中，请稍候',
+    'Submission in progress; please wait'],
+  ['ui_assignment_submit_blocked_nothing_to_submit',
+    '请先填写正文或选择附件，再提交',
+    'Write something or pick an attachment before submitting']
 ];

@@ -44,11 +44,12 @@ const LOCAL_ADDITION_COUNT: number = 8;
  * ticket 11.5 4 个（页头的相对更新时间四档 —— 见 scripts/i18n-ui-strings.mjs）；
  * ticket 14 3 个（滑动按钮/长按菜单的三个"反向动作"说法：取消收藏 / 取消归档 / 取消屏蔽）；
  * ticket 17 2 个（Mock 模式自证行 / 关于页"没有第三方运行时依赖"那一句）；
- * 文件详情的「交给系统打开方式」1 个（文件还没落盘时的可读说明）。
+ * 文件详情的「交给系统打开方式」1 个（文件还没落盘时的可读说明）；
+ * 提交入口被拦下时那两句（正在提交中 / 没有可提交的内容）2 个 —— 已截止那句复用参考实现已有的键。
  */
-const UI_STRING_COUNT: number = 121;
+const UI_STRING_COUNT: number = 123;
 /** 迁移后的资源键总数（也是 I18N_KEY_COUNT 的期望值）。 */
-const TOTAL_KEY_COUNT: number = 309;
+const TOTAL_KEY_COUNT: number = 311;
 
 const REFERENCE_SAMPLE: string[] = ['loh_back', 'loh_notices', 'loh_assignments', 'loh_files', 'loh_courses'];
 const LOCAL_ADDITIONS: string[] = ['loh_fall', 'loh_spring', 'loh_summer'];

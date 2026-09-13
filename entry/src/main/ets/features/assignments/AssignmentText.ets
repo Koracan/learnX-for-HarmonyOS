@@ -14,7 +14,7 @@
  *   3. **截止状态**：卡片上是相对时间那句话（AssignmentCard.tsx:103-108）。
  *
  * 纯映射部分（`gradeLevelKey` / `isGroupCompletion` / `isOfflineSubmission` / `dueStatusKey` /
- * `emptyStateKey`）**不碰 i18n、不碰平台**，可被 host 单测直接断言；
+ * `submissionBlockedKey` / `emptyStateKey`）**不碰 i18n、不碰平台**，可被 host 单测直接断言；
  * 取串部分集中在文件末尾，界面只调它们。
  */
 
@@ -22,6 +22,7 @@ import { Assignment } from '../../domain/model/ContentItem';
 import { i18nService } from '../../core/i18n/I18n';
 import { I18nKey } from '../../core/i18n/I18nKeys';
 import { parseTimestamp } from '../../domain/parse/Text';
+import { SubmitBlockReason } from '../../domain/assignments/SubmissionState';
 import { isPastDeadline } from './AssignmentFilter';
 import { ContentFilter } from '../../domain/marks/ContentFilter';
 
@@ -76,6 +77,23 @@ export function isOfflineSubmission(value: string): boolean {
 /** 截止状态标记的资源键（验收第 1 条"状态标记"里"未到期 / 已过期"那一枚）。 */
 export function dueStatusKey(deadline: string, nowMillis: number): I18nKey {
   return isPastDeadline(deadline, nowMillis) ? 'ui_assignment_past_due' : 'ui_assignment_upcoming';
+}
+
+/**
+ * 提交走不了 → 资源键。三种原因**必须是三句不同的话**：
+ *   - 已截止：直接用参考实现为这件事准备的那句（`AssignmentDetail.tsx:84` 的
+ *     `assignmentPastDeadline`），不另造近义文案；
+ *   - 正在提交中：请用户等这一次跑完，不要叠第二次；
+ *   - 没有可提交的内容：正文、新附件、移除开关三者都没有。
+ */
+export function submissionBlockedKey(reason: SubmitBlockReason): I18nKey {
+  if (reason === 'past_deadline') {
+    return 'loh_assignment_past_deadline';
+  }
+  if (reason === 'uploading') {
+    return 'ui_assignment_submit_blocked_uploading';
+  }
+  return 'ui_assignment_submit_blocked_nothing_to_submit';
 }
 
 /**
