@@ -56,7 +56,7 @@ export class HttpDownloadPort implements DownloadPort {
   }
 
   async download(session: Session, url: string, sink: DownloadSink): Promise<DownloadStreamResult> {
-    // **消费点自证**（ticket 17 验收第 5 条）：流式下载是第二个真实出口。
+    // **消费点自证**：流式下载是第二个真实出口。
     noteNetworkAttempt('download', url);
     const request = http.createHttp();
     let contentType: string = '';

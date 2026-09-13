@@ -26,7 +26,7 @@ export const LEARN_ORIGIN_FIXTURE: string = 'https://learn.tsinghua.edu.cn';
  * 取回后用 UTF-8 原样保存，只做换行规范化。
  *
  * 它的作用是**反例**：证明三域解析器在真实站点 HTML 上不会误报（不产生任何条目/附件）。
- * 该页确实含参考实现 ticket 06 所需的 `sm2publicKey` 元素（本夹具因此也是那一项的佐证）。
+ * 该页确实含参考实现所需的 `sm2publicKey` 元素（本夹具因此也是那一项的佐证）。
  */
 export const REAL_ID_LOGIN_HTML: string = `<!DOCTYPE html>
 <html>

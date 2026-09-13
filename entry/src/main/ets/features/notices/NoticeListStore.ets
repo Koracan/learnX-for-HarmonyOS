@@ -1,8 +1,8 @@
 /*
- * 公告列表的界面状态（spec.md 第 3 节：@ObservedV2 / @Trace，视图直接读）。
+ * 公告列表的界面状态（@ObservedV2 / @Trace，视图直接读）。
  *
  * 视图不碰 Repository 的调用时序：它只读这里的 @Trace 字段。取数、快照先后
- * 顺序（先 loadSnapshot() 再 refresh()）都封在这里，ticket 09 换成真实实现时
+ * 顺序（先 loadSnapshot() 再 refresh()）都封在这里，换成真实实现时
  * 这一段不用动。
  */
 import { Logger } from '../../core/log/Logger';
@@ -50,7 +50,7 @@ export class NoticeListStore {
    *
    * 下拉刷新（phase=REFRESHING）不能再叠一个居中 spinner：参考实现刷新时只有
    * RefreshControl 自己的指示器、列表照常可见，两个指示器同转会像卡了个浮层。
-   * 这个缺陷在验收时被抓到（见 ticket Comments「验收后修复」）。
+   * 这个缺陷在验收时被抓到（当时做了「验收后修复」）。
    */
   isInitialLoading(): boolean {
     return this.phase === NoticeLoadPhase.LOADING && this.items.length === 0;

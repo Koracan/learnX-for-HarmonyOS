@@ -4,7 +4,7 @@
  * 参考实现把这几项放进 redux-persist 的 `auth` 切片、用 react-native-secure-key-store 落盘
  * （reference/learnOH-old/src/data/reducers/root.ts:46-56 的 whitelist：
  *  username / password / fingerPrint / fingerGenPrint / fingerGenPrint3）。
- * 本工程的对应物是 **asset store（DEVICE_UNLOCKED，无额外开关）**，见 spec 第 4 节；
+ * 本工程的对应物是 **asset store（DEVICE_UNLOCKED，无额外开关）**；
  * 这里只负责"记录 ↔ 文本"，不碰任何平台 API，因此可在 host 单测里逐条断言。
  *
  * **会话 cookie / CSRF 绝不在这里**（ADR-0004）：那是内存态，本文件没有它们的字段，
@@ -21,7 +21,7 @@ export interface CredentialRecord {
   schemaVersion: number;
   username: string;
   password: string;
-  /** **我们生成的**设备指纹：它必须与 saveFinger 上报给服务端的值逐字相同（验收第 2 条）。 */
+  /** **我们生成的**设备指纹：它必须与 saveFinger 上报给服务端的值逐字相同。 */
   fingerPrint: string;
   /** 站点自己写在页面里的两个指纹（来自 localStorage），我们只如实保存与回放。 */
   fingerGenPrint: string;
@@ -61,7 +61,7 @@ export function encodeCredentialRecord(record: CredentialRecord): string {
  * 落盘文本 → 记录。
  *
  * 失败一律返回 undefined（不抛异常）：JSON 损坏、版本不认识、字段缺失或类型不对，
- * 都按"没有凭据"处理——spec 第 5 节要求显式降级回 Enrollment，而不是拿半条记录去重登。
+ * 都按"没有凭据"处理——要求显式降级回 Enrollment，而不是拿半条记录去重登。
  */
 export function decodeCredentialRecord(text: string): CredentialRecord | undefined {
   if (text.length === 0) {

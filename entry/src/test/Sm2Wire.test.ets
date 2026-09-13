@@ -1,9 +1,9 @@
 /*
- * SM2 上线密文组装单测（ticket 06，验收第 3 条的可本地验证部分）。
+ * SM2 上线密文组装单测（可本地验证部分）。
  *
  * 用 [设备] 真实向量（模拟器产出，.scratch/migration/sm2-verify/arkts-wire.txt）锁定：
  * '04' + X(64) + Y(64) + C3(64) + C2，且各段按 32 字节**左侧补零**。
- * 平台加密本身（cryptoFramework）只能在设备上验，见 ticket 06 Comments 的未验证项。
+ * 平台加密本身（cryptoFramework）只能在设备上验。
  */
 
 import { describe, it, expect } from '@ohos/hypium';

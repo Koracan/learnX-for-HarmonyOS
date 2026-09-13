@@ -24,7 +24,7 @@
  * `oh-package.json5`, npm-style CJS entry (`dayjs.min.js`), and locale loading
  * through a dynamic `require('./locale/' + name)`, which ArkTS rejects. The
  * platform already ships a complete, locale-correct implementation, so the
- * choice here is `@ohos.intl` plus a thin adapter. See the ticket Comments.
+ * choice here is `@ohos.intl` plus a thin adapter.
  *
  * ## Shape
  *

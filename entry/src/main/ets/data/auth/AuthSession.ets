@@ -1,11 +1,11 @@
 /*
  * 会话持有者（data/auth）：**纯内存**的 cookie jar + Session + 当前凭据。
  *
- * ADR-0004 / spec 第 4 节：会话 cookie 与 CSRF **只在内存、不落盘**；这个类没有、也不该有
- * 任何 preferences / 文件 / asset 调用。冷启动重建会话见 data/auth/SessionRestore（ticket 08，
+ * ADR-0004：会话 cookie 与 CSRF **只在内存、不落盘**；这个类没有、也不该有
+ * 任何 preferences / 文件 / asset 调用。冷启动重建会话见 data/auth/SessionRestore（
  * 用这里持有的凭据走纯 HTTP 重登），本文件只提供"会话放哪儿"。
  *
- * 为什么把凭据也放这里：重登（08）需要"凭据 + jar"一起用，而两者都是内存单例；
+ * 为什么把凭据也放这里：重登需要"凭据 + jar"一起用，而两者都是内存单例；
  * 持久化那一份由 CredentialStore 负责，这里只缓存刚读到的那一份，避免每次请求都读 asset。
  */
 

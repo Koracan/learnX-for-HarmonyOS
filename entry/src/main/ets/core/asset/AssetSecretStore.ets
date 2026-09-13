@@ -1,7 +1,7 @@
 /*
  * asset store 实现（core）：凭据落盘的平台侧，唯一 import @kit.AssetStoreKit 的文件。
  *
- * spec 第 4 节：凭据（账号/密码/设备指纹）→ asset store，**DEVICE_UNLOCKED**，**无额外开关**。
+ * 凭据（账号/密码/设备指纹）→ asset store，**DEVICE_UNLOCKED**，**无额外开关**。
  * 即：设备解锁后应用可直接读，不弹生物识别/口令框——与参考实现
  * （react-native-secure-key-store，reference/learnOH-old/src/helpers/secureStorage.ts）的
  * 用户可见行为一致：登记一次之后冷启动不再要求任何输入。
@@ -12,7 +12,7 @@
  *     （错误码是 asset 的定义域，照原样记录，便于对照官方错误表）。
  *
  * 与 domain 的关系：这里 import `domain/parse/Utf8` 的**纯叶子工具**做文本 ↔ 字节，
- * 属于 spec 第 2 节明确允许的例外（core 允许引用受纯度保护的纯叶子工具）。
+ * 属于分层约定明确允许的例外（core 允许引用受纯度保护的纯叶子工具）。
  */
 
 import { asset } from '@kit.AssetStoreKit';

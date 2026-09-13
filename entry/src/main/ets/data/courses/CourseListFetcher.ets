@@ -1,7 +1,7 @@
 /*
- * 学生课程列表抓取（data/courses，ticket 12）——**课程这条线的唯一取数实现**。
+ * 学生课程列表抓取（data/courses）——**课程这条线的唯一取数实现**。
  *
- * 本文件是 ticket 09 那份 `data/notices/CourseListFetcher` 的完整版：路径、语言段、
+ * 本文件是 `data/notices/CourseListFetcher` 那份的完整版：路径、语言段、
  * 手工抽 `xnxq` 的写法全部保留，**新增**的是"按指定学期取"（学期切换要它）与
  * 逐字段解析出的完整课程条目（`CourseEntry`）。旧文件已改成**转发层**，
  * 于是"取数逻辑"只有这一份（见 data/notices/CourseListFetcher.ets 的文件头）。
@@ -22,13 +22,13 @@
  * | `kxh` | `courseIndex` | 课序号（`Number()`） |
  *
  * **没做的**：参考实现还给每门课补一次 `LEARN_COURSE_TIME_LOCATION`（上课时间地点）。
- * 那需要每课多一次请求，而 ticket 12 的验收（课程名 / 教师 / 三类计数）不需要它，
- * 故本 ticket 不取；见 ticket Comments 的未验证项。
+ * 那需要每课多一次请求，而本页面的功能（课程名 / 教师 / 三类计数）不需要它，
+ * 故本文件不取。
  *
  * ## 原始响应可见性
  *
  * 每轮抓取都会把课程列表响应的**前 1800 字符**打进 hilog（`raw preview`）——
- * 验收要求"课程条数与顺序与站点原始响应对照"，而 ticket 09 的教训是
+ * 验收要求"课程条数与顺序与站点原始响应对照"，而此前的教训是
  * "在把失败归因给站点之前，先把我们收到的东西变成可观察量"。超长时显式标注截断。
  */
 
@@ -140,8 +140,8 @@ export function parseCourseEntries(body: string): CourseEntry[] | undefined {
 /**
  * 课程列表响应 → 课程名表（`courseId → {name, teacherName}`）。
  *
- * **ticket 09 的既有口径原样保留**：`name` 取 `kcm`（不是 `zywkcm`）、**不解码实体**。
- * 这条被 ticket 09 的验收（公告卡片的 `courseName`）钉住，本 ticket 不动它；
+ * **既有口径原样保留**：`name` 取 `kcm`（不是 `zywkcm`）、**不解码实体**。
+ * 这条被公告卡片的 `courseName` 钉住，本文件不动它；
  * 卡片显示名另走 `CourseEntry.name`（参考实现口径）。两者的差异会在
  * `raw preview` 之后由 `nameFields` 一行自证（实测两个字段是否相同）。
  */
@@ -166,7 +166,7 @@ export function parseCourseList(body: string): Record<string, CourseName> | unde
   return names;
 }
 
-/** 抓取结果：完整条目 + 兼容 ticket 09 的课程名表 + 为诊断留的计数。 */
+/** 抓取结果：完整条目 + 兼容公告路径的课程名表 + 为诊断留的计数。 */
 export class CourseListResult {
   /** `courseId → {name(kcm), teacherName}`；公告/作业/文件解析器用它。 */
   readonly names: Record<string, CourseName>;
@@ -189,7 +189,7 @@ export class CourseListResult {
 export interface CourseListSource {
   /**
    * 抓取指定学期的课程列表。
-   * @param semesterId 为空时按站点当前学期取（ticket 09 的调用点依赖这条默认行为）。
+   * @param semesterId 为空时按站点当前学期取（公告路径的调用点依赖这条默认行为）。
    */
   fetch(session: Session, semesterId?: string): Promise<CourseListResult>;
 }
@@ -236,7 +236,7 @@ export class HttpCourseListSource implements CourseListSource {
   }
 
   /**
-   * 逐字段自证：`kcm`（ticket 09 的公告 courseName）与 `zywkcm`（参考实现的显示名）
+   * 逐字段自证：`kcm`（公告卡片的 courseName）与 `zywkcm`（参考实现的显示名）
    * 在**真实响应**上是否相同。这行是"课程/学期字段逐字段与站点原始响应对照"的一半。
    */
   private logNameFields(entries: CourseEntry[]): void {

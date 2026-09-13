@@ -1,5 +1,5 @@
 /*
- * 图标目录（ticket 11.5）单测。
+ * 图标目录单测。
  *
  * 这里钉的是**码位表本身**：字形是不是真的从字体里取出来要在设备上看（PUA 码位缺字形时不报错，
  * 只空白 —— 所以截图是字形存在的唯一证据），但"我们抄的码位与参考实现的 glyphmap 一致"
@@ -37,17 +37,17 @@ const EXPECTED: ExpectedGlyph[] = [
   { icon: AppIcon.CHECK_CIRCLE, name: 'check-circle', family: IconFamily.MATERIAL, code: 0xE86C },
   { icon: AppIcon.ARROW_BACK, name: 'arrow-back', family: IconFamily.MATERIAL, code: 0xE5C4 },
   { icon: AppIcon.FILE_UPLOAD, name: 'file-upload', family: IconFamily.MATERIAL, code: 0xE2C6 },
-  // ticket 14（收藏 / 归档 / 隐藏课程）的滑动操作按钮：参考实现 CardWrapper.tsx 用的两族图标。
+  // 收藏 / 归档 / 隐藏课程的滑动操作按钮：参考实现 CardWrapper.tsx 用的两族图标。
   { icon: AppIcon.HEART, name: 'heart', family: IconFamily.MATERIAL_COMMUNITY, code: 0xF02D1 },
   { icon: AppIcon.HEART_OFF, name: 'heart-off', family: IconFamily.MATERIAL_COMMUNITY, code: 0xF0759 },
   { icon: AppIcon.ARCHIVE_ARROW_DOWN, name: 'archive-arrow-down', family: IconFamily.MATERIAL_COMMUNITY, code: 0xF1259 },
   { icon: AppIcon.ARCHIVE_ARROW_UP, name: 'archive-arrow-up', family: IconFamily.MATERIAL_COMMUNITY, code: 0xF125B },
   { icon: AppIcon.VISIBILITY, name: 'visibility', family: IconFamily.MATERIAL, code: 0xE8F4 },
   { icon: AppIcon.VISIBILITY_OFF, name: 'visibility-off', family: IconFamily.MATERIAL, code: 0xE8F5 },
-  // ticket 16（断点分栏）：文件详情页头的全屏/退出全屏，参考实现 FileDetail.tsx:110-111。
+  // 断点分栏：文件详情页头的全屏/退出全屏，参考实现 FileDetail.tsx:110-111。
   { icon: AppIcon.FULLSCREEN, name: 'fullscreen', family: IconFamily.MATERIAL, code: 0xE5D0 },
   { icon: AppIcon.FULLSCREEN_EXIT, name: 'fullscreen-exit', family: IconFamily.MATERIAL, code: 0xE5D1 },
-  // ticket 15（搜索）：页头右侧的入口与搜索页的关闭，参考实现 App.tsx:113-121,137-158。
+  // 搜索：页头右侧的入口与搜索页的关闭，参考实现 App.tsx:113-121,137-158。
   { icon: AppIcon.SEARCH, name: 'search', family: IconFamily.MATERIAL, code: 0xE8B6 },
   { icon: AppIcon.CLOSE, name: 'close', family: IconFamily.MATERIAL, code: 0xE5CD },
   // 文件详情顶栏与「详情 / 预览」切换：MaterialIcons 的 refresh / share / open-in-new / info

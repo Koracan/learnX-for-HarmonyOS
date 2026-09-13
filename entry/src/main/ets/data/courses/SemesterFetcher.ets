@@ -1,5 +1,5 @@
 /*
- * 学期抓取（data/courses，ticket 12）：站点当前学期 + 全部可选学期。
+ * 学期抓取（data/courses）：站点当前学期 + 全部可选学期。
  *
  * 路径逐字照参考实现 `thu-learn-lib/lib/module/urls.js`：
  *   - `LEARN_CURRENT_SEMESTER` = `/b/kc/zhjw_v_code_xnxq/getCurrentAndNextSemester`
@@ -11,7 +11,7 @@
  * 这里用 `domain/model/Semester.sortSemesterIds(ids,'desc')`——它与 `sort().reverse()`
  * 在合法 id 上结果一致（单测 Semester.test.ets 已钉住），且对非法 id 不会静默错序。
  *
- * **学期集合接口失败不致命**（ticket 12 的取舍，见 CourseFetchSource 的说明）：
+ * **学期集合接口失败不致命**（取舍见 CourseFetchSource 的说明）：
  * 课程与三类计数仍然可用，脚本覆盖（SemesterOverride）也不依赖这个接口。
  * 但失败会被记成 warn，并让 `semestersAvailable=false` 显式传到界面。
  */

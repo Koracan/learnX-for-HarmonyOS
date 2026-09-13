@@ -15,7 +15,7 @@
 
 | 夹具 | 成色 | 依据 |
 | --- | --- | --- |
-| `REAL_ID_LOGIN_HTML` | **抓取** | 开发机上 `Invoke-WebRequest 'https://id.tsinghua.edu.cn/f/login' -UseBasicParsing` 取回 **14719 字节**后原样保存（仅换行规范化）。页面公开、无需登录，含 ticket 06 所需 `#sm2publicKey`。用例里当作**反例**：三域解析器在真实站点 HTML 上不得凭巧合命中。 |
+| `REAL_ID_LOGIN_HTML` | **抓取** | 开发机上 `Invoke-WebRequest 'https://id.tsinghua.edu.cn/f/login' -UseBasicParsing` 取回 **14719 字节**后原样保存（仅换行规范化）。页面公开、无需登录，含 `#sm2publicKey`。用例里当作**反例**：三域解析器在真实站点 HTML 上不得凭巧合命中。 |
 | `NOTICE_DETAIL_ML10_HTML` | 反推 | 附件链接带 `class="ml-10"`、`href` 里是裸 `&`。形状取自参考实现 `fetchNotices` 的 ml-10 正则 + thu-learn-lib `result('.ml-10').attr('href')`。 |
 | `NOTICE_DETAIL_ML10_AMP_HTML` | 反推 | 同上，但 `href` 里是 HTML 实体 `&amp;`：用于锁定参考实现"不解码实体但 `wjid` 仍能取到"的行为。 |
 | `NOTICE_DETAIL_PREVIEW_HTML` | 反推 | `openNewWindow?...&downloadUrl=<percent-encoded>`，走参考实现的 `unwrapDownloadUrl`。 |
@@ -48,7 +48,7 @@ Node 的 `Buffer.from(s,'utf8').toString('base64')`（与 ArkTS 无关的独立�
 
 - 现在能证明的：解析、排序、Base64 容错、multipart 组装（本目录夹具 + 单测）；
 - 尚不能证明的：三域在真实会话下的条目数与耗时（代码与 `data.* fetched ... items=.. elapsedMs=..`
-  日志埋点已就绪，登录后只需看日志，见 ticket 05 Comments 的"待账号验证"一节）。
+  日志埋点已就绪，登录后只需看日志即可核对）。
 
 ## 不用资源文件的原因
 
@@ -62,11 +62,11 @@ local 单测环境里 `@ohos.util` 的文本能力实测不可用（TextEncoder/
 返回空值，见 `Utf8.test.ets` 的 `core.textChannels` 探针日志）。因此解析用例注入的是
 `TestHelpers` 里**纯 JS** 的 Base64 + UTF-8 实现；平台通道（`Base64Helper`）属于设备侧待复验项。
 
-## 认证夹具（ticket 06，AuthFixtures.ets）
+## 认证夹具（AuthFixtures.ets）
 
 | 夹具 | 成色 | 依据 |
 | --- | --- | --- |
-| `REAL_SM2_PUBLIC_KEY` / `REAL_ID_LOGIN_FORM_SNIPPET` | **抓取** | ID 登录页公开可访问，开发机上取回后原样保存的 `#sm2publicKey` 片段。真实页面里它是 **div 的文本**（不是 input 的 value），且公钥**带 `04` 前缀**（130 hex）——ticket 06 派单前这条只是推断，现在落实。 |
+| `REAL_SM2_PUBLIC_KEY` / `REAL_ID_LOGIN_FORM_SNIPPET` | **抓取** | ID 登录页公开可访问，开发机上取回后原样保存的 `#sm2publicKey` 片段。真实页面里它是 **div 的文本**（不是 input 的 value），且公钥**带 `04` 前缀**（130 hex）——派单前这条只是推断，现在落实。 |
 | `SM2_WIRE` / `SM2_WIRE_{X,Y,C3,C2}` | **设备** | 模拟器产出的真实上线密文（`.scratch/migration/sm2-verify/arkts-wire.txt`，256 hex）。纯组装函数必须由四段原样拼出它。 |
 | `ID_CHECK_WITH_TICKET_HTML`、`ID_CHECK_CAPTCHA_HTML`、`COURSE_LIST_PAGE_HTML`、`COURSE_LIST_PAGE_EN_HTML`、`LOGIN_TIMEOUT_BODY`、`EMPTY_LIST_BODY`、`SET_COOKIE_*`、`INPUT_STYLE_SM2_PUBLIC_KEY_HTML`、`SM2_WIRE_X_TRUNCATED` | 反推 | 由参考实现的字段/正则（`thu-learn-lib/lib/module/index.js:101-183` 与 `src/data/source.ts:104`）反推构造。课程列表页刻意含「同一行两个 `&_csrf=`」与「无 `&` 前缀的 `_csrf=`」两种形态，用来锁定贪婪正则的语义。 |
 

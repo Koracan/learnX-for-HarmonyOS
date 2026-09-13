@@ -1,5 +1,5 @@
 /*
- * 作业列表与详情的规则单测（ticket 10 验收项 1 / 2 / 4 的可测部分）。
+ * 作业列表与详情的规则单测（1 / 2 / 4 三块的可测部分）。
  *
  * 覆盖（每条都是"数字 / 边界 / 排序 / 状态"里的一类）：
  *   - 过滤视图与参考实现 selectFilteredAssignments 的取舍（unfinished = !submitted）；
@@ -22,10 +22,10 @@ import { RawAssignment, compareAssignmentsByUpcoming, gradeLevelOf, parseAssignm
 import {
   countPastDue, hasAnswer, isAssignmentListEmpty, isPastDeadline, isUpcomingDeadline
 } from '../main/ets/features/assignments/AssignmentFilter';
-// ticket 14：过滤视图的实现从 features/assignments/AssignmentFilter 收敛到
+// 过滤视图的实现从 features/assignments/AssignmentFilter 收敛到
 // features/marks/FilteredContent（收藏 / 归档 / 屏蔽与这三种视图是同一套过滤语义）。
 // 本文件里原来的 matchesFilter / filterAssignments / countAssignments 断言**期望值一字未改**，
-// 只是调用点换成了新的等价实现（边界说明见 ticket 10 的追加节）。
+// 只是调用点换成了新的等价实现。
 import { ContentFilter } from '../main/ets/domain/marks/ContentFilter';
 import { assignmentsForFilter, selectFilteredAssignments } from '../main/ets/features/marks/FilteredContent';
 import {
@@ -59,7 +59,7 @@ function idsOf(items: Assignment[]): string {
   return out;
 }
 
-/** 某个过滤视图下可见的条目（等价于 ticket 10 的 filterAssignments）。 */
+/** 某个过滤视图下可见的条目（等价于 filterAssignments）。 */
 function viewOf(items: Assignment[], filter: ContentFilter): Assignment[] {
   return assignmentsForFilter(selectFilteredAssignments(items, [], [], []), filter);
 }
@@ -141,7 +141,7 @@ export default function assignmentListTest() {
       expect(emptyStateKey(ContentFilter.ALL)).assertEqual('ui_assignments_empty');
       expect(emptyStateKey(ContentFilter.UNFINISHED)).assertEqual('ui_assignments_none_unfinished');
       expect(emptyStateKey(ContentFilter.FINISHED)).assertEqual('ui_assignments_none_finished');
-      // ticket 14 的三个新视图用参考实现 Empty 的那句（无内容），而不是"暂无作业"。
+      // 三个新视图用参考实现 Empty 的那句（无内容），而不是"暂无作业"。
       expect(emptyStateKey(ContentFilter.FAV)).assertEqual('loh_empty');
       expect(emptyStateKey(ContentFilter.ARCHIVED)).assertEqual('loh_empty');
       expect(emptyStateKey(ContentFilter.HIDDEN)).assertEqual('loh_empty');
@@ -280,7 +280,7 @@ export default function assignmentListTest() {
       const parsed: Assignment = parseAssignment(numeric, 'c1', {}, true, false);
       expect(parsed.submitTime).assertEqual(deadlineFromMillis(1780143131000));
       expect(parsed.lateSubmissionDeadline).assertEqual(deadlineFromMillis(1780243140000));
-      // 字符串原样保留（ticket 05 的既有行为）
+      // 字符串原样保留（既有行为）
       const strings: RawAssignment = {
         zyid: 'z5', scsj: '2020-08-30 10:00', bjjzsj: '2020-09-08 23:59'
       };

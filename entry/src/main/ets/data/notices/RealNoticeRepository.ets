@@ -1,5 +1,5 @@
 /*
- * 真实公告仓储（data/notices，ticket 09）：把三件事接起来——
+ * 真实公告仓储（data/notices）：把三件事接起来——
  *   1. **取数**：走 `AuthedTaskRunner`（数据路径的统一入口），它负责"先确保有会话
  *      （冷启动就是那次纯 HTTP 重登）+ 会话失效时重登且只重试一次 + 失败显式降级"；
  *      本文件**不自己造重登/重试/降级逻辑**（AGENTS.md 的硬约束）。
@@ -9,7 +9,7 @@
  * 两个"绝不"：
  *   - **绝不用空列表兜底**：取数失败一律 reject；`AuthedRunResult.requiresEnrollment`
  *     为真时抛错，并带 `requiresEnrollment=true` 的标记（界面据此回登录页）。
- *     spec 第 5 节与 ticket 03/08 的验收都要求"不把空列表交给界面"。
+ *     验收要求"不把空列表交给界面"。
  *   - **绝不让快照损坏变成崩溃**：读/解码/写三处都不抛（见 NoticeSnapshotSerialization）。
  */
 
@@ -32,7 +32,7 @@ import { NoticeSnapshotPort, SnapshotLoadResult, SnapshotSaveResult } from './No
  *
  * 签名**逐字**用 data/auth 的 `SessionTask` / `TaskOutcome`（而不是本地另立一套同形类型）：
  * ArkTS 不做结构类型（arkts-no-structural-typing），本地别名会让
- * `const e: AuthedTaskExecutor = authServices.runner` 直接编译失败（ticket 09 实测）。
+ * `const e: AuthedTaskExecutor = authServices.runner` 直接编译失败（实测）。
  */
 export interface AuthedTaskExecutor {
   run(task: SessionTask): Promise<AuthedRunResult>;

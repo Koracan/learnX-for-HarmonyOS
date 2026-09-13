@@ -8,10 +8,10 @@
  *   文件部分：multipart，字段名 `fileupload`，文件名 = 用户选定/改过的名字，MIME 按扩展名查表
  *   无正文且无附件且不移除 ⇒ **直接返回，不发请求**
  *
- * **没有 `id` 字段**。ticket 05 的 `UploadFormParams` 曾经是 `{id, xszyid}`，那是把
+ * **没有 `id` 字段**。早先的 `UploadFormParams` 曾经是 `{id, xszyid}`，那是把
  * 作业描述接口（`PostFormSpec.id`，发 `id=<zyid>`）的字段揉进了提交接口；参考实现的提交
  * 只发上面三个字段。`FetchPort.upload` 在本次改动前**没有任何调用点**（只有定义与实现），
- * 所以这次对齐不推翻任何已验收 ticket 的证据。
+ * 所以这次对齐不推翻任何已验收行为的证据。
  *
  * 会话与降级**不在这里**：本用例只做"一次带会话的请求"，重登 / 只重试一次 / 显式降级
  * 全部由 `AuthedTaskRunner`（data/auth/SessionRestore）承担 —— 与三域仓储同一条路径。
@@ -52,7 +52,7 @@ export class SubmitOutcome {
   readonly serverRejected: boolean;
   readonly status: number;
   readonly message: string;
-  /** 会话失效 / 降级：调用方据此回登录页（spec 第 5 节）。 */
+  /** 会话失效 / 降级：调用方据此回登录页。 */
   readonly requiresEnrollment: boolean;
   readonly diagnostic: string;
 

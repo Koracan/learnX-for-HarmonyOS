@@ -19,7 +19,7 @@
  *     而 preferences 是按键存取，多出来的一个键**是惰性的**，不会影响任何取值。
  *
  * 于是"旧数据不许炸"的判据落在：老沙箱启动后 `load` 正常返回（hilog 有 `immersive settings load`
- * 一行），`immersiveMode` 的旧值照旧生效。取证见交付节。
+ * 一行），`immersiveMode` 的旧值照旧生效。
  */
 
 import { preferences } from '@kit.ArkData';

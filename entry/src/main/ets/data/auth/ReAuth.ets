@@ -18,7 +18,7 @@
  * | 任意 | 登录本身失败 | —— | 失败（透传登录原因，requiresEnrollment=true） |
  *
  * 单飞照搬 source.ts:111-121 的 reAuthPromise：并发 N 个请求只触发一次登录。
- * 任何失败都 requiresEnrollment=true —— spec 第 5 节「任何非预期响应一律降级 Enrollment」，
+ * 任何失败都 requiresEnrollment=true —— 「任何非预期响应一律降级 Enrollment」，
  * 这条在代码里是显式的（见 AuthTypes.LoginResult.requiresEnrollment 与 ReAuthRunResult）。
  */
 
@@ -81,7 +81,7 @@ export class ReAuthRunResult {
     return new ReAuthRunResult(false, reason, '', reAuthAttempted, true, diagnostic);
   }
 
-  /** spec 第 5 节：失败一律降级到 Enrollment（唯一出口，改这里等于改 spec）。 */
+  /** 失败一律降级到 Enrollment（唯一出口）。 */
   requiresEnrollment(): boolean {
     return !this.ok;
   }

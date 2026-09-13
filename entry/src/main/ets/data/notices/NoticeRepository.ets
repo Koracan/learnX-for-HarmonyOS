@@ -1,9 +1,9 @@
 /*
  * 公告（Notice）数据源契约 —— features 只依赖本接口，不依赖任何具体实现。
  *
- * 【ticket 09 迁移】本文件与 `RealNoticeRepository` 原寄在 features/notices/repository/
- * （ticket 03 开工时 data/ 正被 ticket 05 占用）。按 spec.md 第 2 节的分层，Repository
- * 属 data/；本 ticket 把接口与实现一起迁到 data/notices/，并把 features 下的过渡文件删掉。
+ * 本文件与 `RealNoticeRepository` 原寄在 features/notices/repository/
+ * （搬迁时 data/ 正被别的切片占用）。按 spec.md 的分层，Repository
+ * 属 data/；接口与实现一起迁到 data/notices/，并把 features 下的过渡文件删掉。
  * 组装点只有一处：features/notices/repository/NoticeRepositoryProvider.ets。
  *
  * 形状说明：
@@ -30,7 +30,7 @@ export const NOTICE_SNAPSHOT_SCHEMA_VERSION: number = 2;
 export interface NoticeRecord {
   id: string;
   title: string;
-  /** 正文（HTML）。列表只用于 2 行预览（渲染前去标签），公告详情（ticket 04）用原文。 */
+  /** 正文（HTML）。列表只用于 2 行预览（渲染前去标签），公告详情用原文。 */
   content: string;
   /**
    * 附件（可选；参考实现里只有带附件的公告才有）。

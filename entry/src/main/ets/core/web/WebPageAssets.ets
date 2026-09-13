@@ -14,7 +14,7 @@
  * katex.min.css 在**复制进来时**已把 `url(fonts/` 重写成
  * `https://fastly.jsdelivr.net/npm/katex@0.16.27/dist/fonts/`（对应参考实现的
  * katexStyles.preval.js；版本取自 reference/learnOH-old/package.json）。**公式字体
- * 因此依赖外网 CDN**——离线时公式排版会退化，这一条写进 ticket 04 的证据说明。
+ * 因此依赖外网 CDN**——离线时公式排版会退化。
  *
  * 生产路径只有 `getRawFileContentSync`（字节 → 文本走 domain/parse/Utf8 纯实现，
  * 与解析层同一份代码）。host 单测环境没有 rawfile，构造时传 null 即可：读不到就落空串，

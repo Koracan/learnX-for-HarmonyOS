@@ -14,11 +14,11 @@
  * ## 两条有意加固（**不是**参考实现的行为，逐条写清理由）
  *
  * 1. **目录名/缓存键兜底**：参考实现用 `file.id` 当目录名；真实数据里作业附件的
- *    `id` 可能是**空串**（下载地址是路径形态，没有 `fileId=`/`wjid=` 参数，
- *    见 ticket 10 的边界说明第 2 条）。空串当目录名会把不同文件全落进同一层
+ *    `id` 可能是**空串**（下载地址是路径形态，没有 `fileId=`/`wjid=` 参数）。
+ *    空串当目录名会把不同文件全落进同一层
  *    `root/<课程名>/`，互相覆盖。`cacheKeyFor()` 因此兜底到 downloadUrl 的末段。
  * 2. **路径分隔符清洗**：标题里若含 `/` 会把路径切成两层（参考实现也会，但那是 bug
- *    而非契约）；清洗只动**文件系统保留字符**，中文与空格**原样保留**（验收第 4 条
+ *    而非契约）；清洗只动**文件系统保留字符**，中文与空格**原样保留**（
  *    明确要求"含中文与空格的路径可用"，所以绝不能做"把非 ASCII 换掉"这类清洗）。
  */
 
@@ -67,7 +67,7 @@ export function canPreviewInApp(fileType: string): boolean {
 /**
  * 清洗单个路径片段：只替换文件系统保留字符与控制字符。
  *
- * **中文、空格、点、括号、方括号一律保留** —— 验收第 4 条要求含中文与空格的路径可用，
+ * **中文、空格、点、括号、方括号一律保留** —— 要求含中文与空格的路径可用，
  * 所以这里不做任何"安全化到 ASCII"的转换。
  */
 export function sanitizePathSegment(text: string): string {
@@ -115,7 +115,7 @@ export function downloadUrlFileName(url: string): string {
 
 /**
  * 缓存目录名 / 去重键：优先用站点给出的 id，**id 为空串时兜底到下载地址末段**
- * （ticket 10 边界说明第 2 条：作业附件的 id 可能是空串）。
+ * （作业附件的 id 可能是空串）。
  */
 export function cacheKeyFor(id: string, downloadUrl: string): string {
   const trimmed: string = id === undefined || id === null ? '' : id.trim();
@@ -178,7 +178,7 @@ export function formatSize(bytes: number): string {
 }
 
 /**
- * 列表卡片上的一行元信息：`TYPE SIZE`（验收第 1 条"显示大小与类型"）。
+ * 列表卡片上的一行元信息：`TYPE SIZE`（"显示大小与类型"）。
  * 参考实现是 `[`${category}`, `${fileType.toUpperCase()}`, `${size}`].join(' ').trim()`；
  * 本工程没有 category，故只拼类型与体积，空的那一项不留下多余空格。
  */

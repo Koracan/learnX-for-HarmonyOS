@@ -1,5 +1,5 @@
 /*
- * 作业提交页（ticket 13）—— 逐项对齐参考实现
+ * 作业提交页 —— 逐项对齐参考实现
  * `reference/learnOH-old/src/screens/AssignmentSubmission.tsx`。
  *
  * ## 页面结构（对应参考实现行号）

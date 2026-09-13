@@ -1,5 +1,5 @@
 /*
- * 断点分栏（ticket 16）：常量、**纯判据**、路由迁移计划，以及三处共享的迁移助手。
+ * 断点分栏：常量、**纯判据**、路由迁移计划，以及三处共享的迁移助手。
  *
  * ## 与参考实现的对应关系（逐条给行号，便于复核）
  *
@@ -23,10 +23,10 @@
  * ## 有意偏离参考实现的一处
  *
  * 参考实现只在**进分栏**时迁移（`!lastSplitEnabled.current`），**退出分栏时把详情留在右栏、
- * 左栏停在列表** ⇒ 竖屏回退会把正在看的详情丢掉。本 ticket 验收第 3 条要求
+ * 左栏停在列表** ⇒ 竖屏回退会把正在看的详情丢掉。要求
  * "旋转 / 缩放窗口时正在浏览的详情不丢、不重复请求"，所以这里补上**对称的回迁**
  * （`migrateDetailRoutesBack`），并把迁移粒度从"栈顶一条"放宽到"栈顶连续的详情段"，
- * 以免回迁后右侧返回落到空白。理由与替代验收标准见该条。
+ * 以免回迁后右侧返回落到空白。
  */
 import { Logger } from '../../core/log/Logger';
 
@@ -63,7 +63,7 @@ export const SPLIT_VIEW_MASTER_HIDDEN_KEY: string = 'lohSplitViewMasterHidden';
  * 它的用途只有一个：判断主栈栈顶那段是不是"详情"，从而决定要不要迁到右栏。
  * 本工程的路由名与参考实现同名同义（见各 tab 目录下的 `*Routes.ets`）。
  *
- * **补的那一条：`ImmersiveSettings`**（ticket 17）。参考实现的白名单里有其余四个设置子页
+ * **补的那一条：`ImmersiveSettings`**。参考实现的白名单里有其余四个设置子页
  * （`SemesterSelection` / `FileSettings` / `About` / `Help`），唯独漏了沉浸式设置页 ——
  * 后果是"平板横屏下从设置页点进沉浸式 → 再旋转一次 → 该页被留在 393vp 的左栏"。
  * 本工程把这一条补齐。
@@ -226,7 +226,7 @@ export function migrateDetailRoutesBack(detail: NavPathStack, master: NavPathSta
 /**
  * 列表项点击 → 打开详情。
  *
- * 单栏：照 ticket 03/04 的做法压到本 tab 的**主栈**上（行为一字未改）。
+ * 单栏：照既有做法压到本 tab 的**主栈**上（行为一字未改）。
  * 分栏：压到**右栏**的详情栈；若右栏栈顶已是**同名**路由，则用 `replacePath` **原子替换**
  * （参考实现是 `detailNavigatorRef.current.navigate(name, params)`，react-navigation 对栈顶同名路由
  * 是“换参数、不再压栈”——这里对齐这个可观察行为）。
@@ -235,7 +235,7 @@ export function migrateDetailRoutesBack(detail: NavPathStack, master: NavPathSta
  * —— 两步在**同一个同步块**里，ArkUI 把两次栈变更合并处理，弹出通知被吞掉，
  * `pushPath` 之后栈内容与原来等价 ⇒ **已有的 `NavDestination` 不会重建**
  * ⇒ 详情页的 `aboutToAppear` 不再执行、页面持有的是**第一次**的 `param`。
- * 可观察表现（ticket 18 真机复验发现，统筹在模拟器平板上独立复现）：
+ * 可观察表现（真机复验发现，统筹在模拟器平板上独立复现）：
  *   第 1 次点列表项 → `tapped` + `detail appear`，右栏正确；
  *   第 2 次点**另一条** → **只有 `tapped`、没有 `detail appear`**，右栏仍显示第一条；
  *   连带后果：右栏页面持有的陈旧对象会让**提交入口按上一条作业的截止时间**判定。
@@ -255,14 +255,14 @@ export function shouldReplaceDetailTop(detailNames: string[], name: string): boo
 /**
  * 列表项点击 → 打开详情。
  *
- * 单栏：照 ticket 03/04 的做法压到本 tab 的**主栈**上（行为一字未改）。
+ * 单栏：照既有做法压到本 tab 的**主栈**上（行为一字未改）。
  * 分栏：压到**右栏**的详情栈；若右栏栈顶已是**同名**路由，则用 `replacePath` **原子替换**。
  *
  * 【2026-09-13 修一个真机+模拟器共有的缺陷】原实现是 `pop(false)` 之后紧接着 `pushPath` ——
  * 两步在**同一个同步块**里，ArkUI 把两次栈变更合并处理，弹出通知被吞掉，
  * `pushPath` 之后栈内容与原来等价 ⇒ **已有的 `NavDestination` 不会重建**
  * ⇒ 详情页的 `aboutToAppear` 不再执行、页面持有的是**第一次**的 `param`。
- * 可观察表现（ticket 18 真机复验发现，统筹在模拟器平板上独立复现）：
+ * 可观察表现（真机复验发现，统筹在模拟器平板上独立复现）：
  *   第 1 次点列表项 → `tapped` + `detail appear`，右栏正确；
  *   第 2 次点**另一条** → **只有 `tapped`、没有 `detail appear`**，右栏仍显示第一条；
  *   连带后果：右栏页面持有的陈旧对象会让**提交入口按上一条作业的截止时间**判定。

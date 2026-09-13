@@ -1,5 +1,5 @@
 /*
- * 作业提交（ticket 13）单测。
+ * 作业提交单测。
  *
  * 本账号**没有任何可提交的真实作业**（2026-2027 秋季 0 条；2025-2026 春季 57 条全部已截止），
  * 所以本轮判据是「提交链路的组装 + 状态机」用单测 + 假端口证明，而不是真实提交：
@@ -11,7 +11,7 @@
  *   4. `?_csrf=` 一定在 URL 上；
  *   5. 无正文、无附件、不移除 ⇒ **一个请求都不发**；
  *   6. 进度回调分段映射到 0..1；
- *   7. 失败后**已填正文与已选附件逐字段不变**（验收第 3 条的参考语义）；
+ *   7. 失败后**已填正文与已选附件逐字段不变**（参考语义）；
  *   8. 会话失效 ⇒ requiresEnrollment（走既有 AuthedTaskRunner 的降级口径）。
  *
  * 假端口/假执行器都**不实现任何平台调用**，所以这些断言在 host 单测里可重复。
@@ -277,7 +277,7 @@ export default function assignmentSubmissionTest() {
       expect(outcome.ok).assertFalse();
       expect(outcome.serverRejected).assertFalse();
       const failed: SubmissionState = submitFailed(uploading);
-      // 验收第 3 条：失败后**已填正文与已选附件逐字段不变**（参考实现 :233-237）。
+      // 失败后**已填正文与已选附件逐字段不变**（参考实现 :233-237）。
       expect(failed.content).assertEqual('带附件的正文');
       expect(failed.customAttachmentName).assertEqual('我的名字');
       const kept: PickedAttachment | undefined = failed.attachment;

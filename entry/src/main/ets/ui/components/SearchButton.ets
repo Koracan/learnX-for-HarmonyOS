@@ -1,5 +1,5 @@
 /*
- * 页头右侧的搜索入口（ticket 15）—— 四个内容 tab 的 `header()` 共用同一个按钮。
+ * 页头右侧的搜索入口 —— 四个内容 tab 的 `header()` 共用同一个按钮。
  *
  * 参考实现是导航栏的 `headerRight`：`App.tsx:137-158` 的 `getScreenOptions(title, hideSearch)`，
  * 默认给每个页头加一颗 MaterialIcons `search` 图标，点它 `navigation.navigate('SearchStack')`；

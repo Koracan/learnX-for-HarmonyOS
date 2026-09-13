@@ -1,5 +1,5 @@
 /*
- * 文件下载 / 路径 / 设置 / 清理缓存的单测（ticket 11 验收第 1-5 条的可测部分）。
+ * 文件下载 / 路径 / 设置 / 清理缓存的单测（1-5 五块的可测部分）。
  *
  * 全部用**注入替身**：DownloadPort（脚本化响应）、FileStore（内存文件系统）、
  * FileSettingsSource（固定设置）、AuthedTaskExecutor（模拟 SessionGate 的重登 / 只重试一次）。
@@ -8,7 +8,7 @@
  *   - 失败路径下目标路径不存在（= 不留下损坏文件）；
  *   - 会话失效时任务结果被翻成 requiresEnrollment=true（= 界面回登录页的机制）。
  *
- * 列表排序（验收第 1 条的次序）由既有的
+ * 列表排序由既有的
  * FileParser.test.ets -> sortsByUploadTimeDescendingWithIdTieBreak 钉住，这里不重复。
  */
 
@@ -359,7 +359,7 @@ export default function fileDownloadTest() {
     });
 
     it('fallsBackToTheDownloadUrlTailWhenTheIdIsEmpty', 0, () => {
-      // ticket 10 边界说明第 2 条：作业附件的 id 可能是空串。
+      // 作业附件的 id 可能是空串。
       const key: string = cacheKeyFor('', PATH_FORM_URL);
       expect(key).assertEqual('2023011272_ZY_178014313120047eacdb87a-作业1.pdf');
       expect(key.length > 0).assertTrue();
@@ -378,7 +378,7 @@ export default function fileDownloadTest() {
       expect(documentRoot.startsWith('/data/app/files/learnX-files/')).assertTrue();
       const omitted: string = expectedPath(false, true);
       expect(omitted.endsWith('/WJID-1/第 1 章 绪论.pdf')).assertTrue();
-      // 中文与空格**逐字保留**（验收第 4 条）。
+      // 中文与空格**逐字保留**。
       expect(withCourse.includes('通信与网络')).assertTrue();
       expect(withCourse.includes('第 1 章 绪论')).assertTrue();
     });
@@ -392,7 +392,7 @@ export default function fileDownloadTest() {
       expect(canPreviewInApp('pdf')).assertTrue();
       expect(canPreviewInApp('jpg')).assertTrue();
       expect(canPreviewInApp('zip')).assertFalse();
-      // 验收第 1 条"显示大小与类型"的那一行。
+      // "显示大小与类型"的那一行。
       expect(fileMetaLine('pdf', '1.50KB')).assertEqual('PDF 1.50KB');
       expect(fileMetaLine('', '1.50KB')).assertEqual('1.50KB');
       expect(fileMetaLine('pdf', '')).assertEqual('PDF');

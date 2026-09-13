@@ -1,17 +1,17 @@
 /*
  * 公告测试夹具（entry/src/test/fixtures）：参考实现 mock.ts 的 7 条公告，逐字保留。
  *
- * 【ticket 09 迁移】这个数组原来长在 features/notices/repository/MockNoticeRepository.ets
- * 里（ticket 03 的过渡位置）。本 ticket 把 Mock 从主源码树删掉（组装点已切真实数据源），
+ * 这个数组原来长在 features/notices/repository/MockNoticeRepository.ets
+ * 里（当时的过渡位置）。把 Mock 从主源码树删掉后（组装点已切真实数据源），
  * 但**测试仍然需要一份确定性的公告集合**，所以把它搬到测试夹具：
  *   - 时间保留参考实现的字符串形状（'YYYY-MM-DD HH:mm'），由 parseNoticeTime 换算成
  *     epoch 毫秒——与参考实现同一条解析路径，避免手抄时间戳出错；
  *   - 字面量数组写成**非时间顺序**：界面上呈现的倒序只可能来自 sortNoticesDesc，
  *     而不是数据恰好有序。单测里有一条用例断言"原始数组不是排好序的"，守住这一点。
  *
- * 【与 ticket 17 的边界】ticket 17（设置 + 正式 Mock 模式）要求"guest/guest 登录进入
- * Mock 模式"，届时会有一个**主源码树里的** Mock 数据源；本文件不是它的替代品，
- * ticket 17 可以复用这 7 条种子（或直接搬过去）。此处只服务单测。
+ * 【与设置页的边界】设置 + 正式 Mock 模式要求"guest/guest 登录进入
+ * Mock 模式"，于是有一个**主源码树里的** Mock 数据源；本文件不是它的替代品，
+ * 那套 Mock 可以复用这 7 条种子（或直接搬过去）。此处只服务单测。
  */
 import { Attachment } from '../../main/ets/domain/model/ContentItem';
 import { NoticeRecord } from '../../main/ets/data/notices/NoticeRepository';

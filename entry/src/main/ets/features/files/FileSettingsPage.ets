@@ -1,15 +1,15 @@
 /*
- * 文件设置页（ticket 11）：两个开关 + 清理缓存。
+ * 文件设置页：两个开关 + 清理缓存。
  *
  * 参考实现是 `screens/FileSettings.tsx`（挂在**设置栈**里）：
  *   - `FileSettings.tsx:57-84` 两个 `TableCell type="switch"`，
  *     文案分别是 `fileUseDocumentDir` / `fileOmitCourseName`，各带一段 caption；
  *   - `FileSettings.tsx:94-100` "清空文件缓存" → `removeFileDir()`（带确认对话框）。
  *
- * ## 归属（写进 ticket 17 的边界说明）
+ * ## 归属
  *
- * **值/语义/生效逻辑在本 ticket**（`data/settings/FileSettings` + `FileDownloader`），
- * 本页是**文件 tab 自己的入口**；**全局设置页的入口与外观归 ticket 17**。
+ * **值/语义/生效逻辑在本文件**（`data/settings/FileSettings` + `FileDownloader`），
+ * 本页是**文件 tab 自己的入口**；**全局设置页的入口与外观归全局设置**。
  * 两边读的是**同一个** `FileSettingsStore` 单例（`fileSettingsStore()`），不各造一套存储。
  *
  * ## 界面上的两行自证

@@ -1,5 +1,5 @@
 /*
- * 文件数据源与设置的**组装点**（composition root，ticket 11）。
+ * 文件数据源与设置的**组装点**（composition root）。
  *
  * 与 `features/courses/repository/CourseRepositoryProvider` 同一模式：
  * 界面只依赖 `FileRepository` 接口；数据路径**只经过** `AuthedTaskRunner`
@@ -9,7 +9,7 @@
  *   1. `HttpFileFetchSource`（学期 → 课程列表 → FilesFetcher）；
  *   2. `FileDownloader`（`HttpDownloadPort` + `DeviceFileStore` + 设置）；
  *   3. `FileSettingsStore`（值/语义在 `data/settings/FileSettings`，**持久化入口只此一处**；
- *      界面入口归 ticket 17）。
+ *      界面入口归全局设置）。
  *
  * Context 拿不到时**不回落成"能下载"**：返回一个"永远失败"的仓储，界面走错误态。
  */
@@ -55,7 +55,7 @@ function hostContext(): common.Context | null {
 
 let settingsStore: FileSettingsStore | null = null;
 
-/** 当前生效的文件设置 store（值/语义在 data/settings；界面入口归 ticket 17）。 */
+/** 当前生效的文件设置 store（值/语义在 data/settings；界面入口归全局设置）。 */
 export function fileSettingsStore(): FileSettingsStore {
   if (settingsStore === null) {
     const context: common.Context | null = hostContext();
@@ -106,7 +106,7 @@ function realFileRepository(): FileRepository {
 /**
  * 当前生效的文件数据源。
  *
- * Mock 模式（ticket 17）返回一个**每次新建**的薄包装：取数走样例、下载直接短路，
+ * Mock 模式返回一个**每次新建**的薄包装：取数走样例、下载直接短路，
  * 文件系统三件事委托给真实实现。为什么每次都新建而不是缓存：真实实现是单例，
  * 而 mock 开关可能在同一进程里被登出/再登录改掉（guest → 真实账号），
  * 缓存住 mock 包装会让第二次登录继续看样例数据。
@@ -124,7 +124,7 @@ export function fileRepository(): FileRepository {
  * 把 `AuthedTaskRunner` 显式适配成 `AuthedTaskExecutor`。
  *
  * 为什么不直接赋值：ArkTS 不做结构类型（arkts-no-structural-typing），两个形状相同的接口
- * 也不能互相赋值（ticket 09 实测）。适配器只有一行转发，并让"数据路径只经过
+ * 也不能互相赋值（实测）。适配器只有一行转发，并让"数据路径只经过
  * AuthedTaskRunner"这件事在类型上可见。
  */
 class RunnerTaskExecutor implements AuthedTaskExecutor {

@@ -1,5 +1,5 @@
 /*
- * 设置与 Mock 模式的**纯逻辑**单测（ticket 17）。
+ * 设置与 Mock 模式的**纯逻辑**单测。
  *
  * 覆盖四块（都是可以在 host 上离线断言的部分；界面组件与平台窗口调用不在单测里）：
  *   1. 沉浸式设置的值 / 语义：默认值、开关的写入口（参考实现 ImmersiveSettings.tsx 的
@@ -8,7 +8,7 @@
  *      并钉住落盘载荷里不再有被移除的那个字段；
  *   3. Mock 模式：guest/guest 的判据（逐字对齐 .env）、开关的默认值与进出；
  *   4. 样例数据：三个内容域 + 课程都非空、课程归属自洽、**样例仓储不产生任何网络请求**
- *      （`data/remote/NetworkAudit` 计数为 0 —— 验收第 5 条的离线那一半）。
+ *      （`data/remote/NetworkAudit` 计数为 0 —— 离线那一半）。
  */
 
 import { describe, it, expect } from '@ohos/hypium';
@@ -200,7 +200,7 @@ export default function settingsTest() {
     });
 
     it('serves sample data without issuing a single network request', 0, () => {
-      // **验收第 5 条的离线那一半**：NetworkAudit 的计数是进程级的，两个真实 http 出口
+      // **离线那一半**：NetworkAudit 的计数是进程级的，两个真实 http 出口
       // （HttpClient / HttpDownloadPort）都往它上面加；三个 mock 仓储一次都不该加。
       resetNetworkAudit();
       const notices: MockNoticeRepository = new MockNoticeRepository();

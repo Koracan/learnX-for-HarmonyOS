@@ -48,7 +48,7 @@ export function immersiveSettingsStore(): ImmersiveSettingsStore {
 /**
  * 启动时恢复沉浸式状态（`pages/Index` 在 aboutToAppear 里调用）。
  *
- * **"重启后保持"这条验收的落点**：参考实现的 `ImmersiveModeController`（`App.tsx:682-690`）
+ * **"重启后保持"的落点**：参考实现的 `ImmersiveModeController`（`App.tsx:682-690`）
  * 在挂载时就会 `Immersive.setImmersive(immersiveMode)`，值来自持久化的 redux state；
  * 这里读 preferences 再调平台窗口接口，语义相同。**实际生效值进 hilog**（消费点自证口径）。
  */

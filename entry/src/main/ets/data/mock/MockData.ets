@@ -8,7 +8,7 @@
  * `username === DUMMY_USERNAME && password === DUMMY_PASSWORD` 时 dispatch 它
  * （`screens/Login.tsx:43-46`），于是**一行请求都不发**。
  *
- * ## 本工程的做法（有意偏离，理由见 ticket 17 交付节）
+ * ## 本工程的做法（有意偏离）
  *
  * 本工程没有 redux，也没有"整棵 state"可以被替换：数据源是**四个注入式仓储**
  * （NoticeRepository / CourseRepository / FileRepository / 提交出口）。所以 Mock 模式
@@ -16,7 +16,7 @@
  * `data/mock/Mock*Repository`，界面与 store 一行都不用改。
  *
  * 样例数据**不逐字复制**参考实现那 723 行（那是另一套字段名的 RN state 快照），
- * 但**三个内容域 + 课程都要有可浏览的样例**（工单原文），所以这里按本工程的领域类型
+ * 但**三个内容域 + 课程都要有可浏览的样例**，所以这里按本工程的领域类型
  * （`domain/model/ContentItem` 与 `data/notices/NoticeRepository.NoticeRecord`）如实写一份。
  *
  * ## 数据是"活的"

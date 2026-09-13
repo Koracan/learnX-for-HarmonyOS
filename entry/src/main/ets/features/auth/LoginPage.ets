@@ -6,10 +6,10 @@
  *   - 点「登录」先弹**说明对话框**（loh_sso / loh_sso_note），确认后才打开网页——
  *     参考实现就是这么做的，用户需要知道"接下来要在网页里完成短信验证"；
  *   - 网页登记容器以**覆盖层**的形式盖在本页上（不另起路由）：于是"用户中途放弃/验证失败
- *     回到登录页"就是一次状态回落，不涉及导航栈，也就没有"半登记状态"可残留（验收第 4 条）。
+ *     回到登录页"就是一次状态回落，不涉及导航栈，也就没有"半登记状态"可残留。
  *
- * 【ticket 17】参考实现里"mock 账号"那一支（`Login.tsx:43-46`：`username === DUMMY_USERNAME &&
- * password === DUMMY_PASSWORD` ⇒ `dispatch(setMockStore())`）**已在 ticket 17 落地**：
+ * 参考实现里"mock 账号"那一支（`Login.tsx:43-46`：`username === DUMMY_USERNAME &&
+ * password === DUMMY_PASSWORD` ⇒ `dispatch(setMockStore())`）**已落地**：
  * 见下面 `handleLoginTap` 里 `isMockCredentials` 那一段 —— 它**先于** SSO 说明对话框，
  * 因此 mock 登录既不打开网页、也不发任何请求。
  */
@@ -30,7 +30,7 @@ const logger: Logger = new Logger('features.login');
  * 登录表单的最大宽度（vp）。
  *
  * **出处：参考实现 `screens/Login.tsx:127-130`** —— `inputs: { width: '100%', maxWidth: 480 }`，
- * 外层 `root` 是 `alignItems: 'center'`。ticket 16 在平板上实测（模拟器 MatePad Pro 13，
+ * 外层 `root` 是 `alignItems: 'center'`。在平板上实测过（模拟器 MatePad Pro 13，
  * 1440vp 横向）本页**整屏拉伸**（两个输入框与按钮各 2848px / 2880px ⇒ 约 1424vp），
  * 是移植时漏掉了这条约束，不是有意偏离 —— 所以这里是**补回参考实现的行为**。
  * 单栏（电话）本来就是 100% < 480vp，加上限后观感不变。
@@ -60,7 +60,7 @@ export struct LoginPage {
   /**
    * 回到本页时的提示（由 AuthStore.failure 决定）。
    *
-   * ticket 08 验收第 3 条要求"说明需要重新验证"，所以静默重登失败（REAUTH）与断网（OFFLINE）
+   * 要求"说明需要重新验证"，所以静默重登失败（REAUTH）与断网（OFFLINE）
    * 各有**自己的**文案，不能笼统地说"登录失败"——用户需要知道该做什么（重新验证 / 检查网络）。
    */
   private failureHint(): string {
@@ -98,7 +98,7 @@ export struct LoginPage {
     return this.failureHint();
   }
 
-  /** 用户点"重试"：只触发**一次**重登，不做静默循环（spec 第 5 节 / Q25）。 */
+  /** 用户点"重试"：只触发**一次**重登，不做静默循环（Q25）。 */
   private handleRetryTap(): void {
     this.hint = '';
     logger.info('login: user tapped retry for the silent re-auth');

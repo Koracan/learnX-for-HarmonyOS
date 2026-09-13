@@ -1,5 +1,5 @@
 /*
- * 公告解析与排序单测（ticket 05 验收项 3、4）。
+ * 公告解析与排序单测（3、4 两块）。
  *
  * 覆盖：
  *   - Base64 正文解码（成功 / 空串 / 畸形 base64 / 非法字符集 / 空 ggnr）与异常输入容错；
@@ -118,7 +118,7 @@ export default function noticeParserTest() {
     });
 
     /**
-     * 真实记录（模拟器 Pura 90，2026-09-12，ticket 09 取证）：
+     * 真实记录（模拟器 Pura 90，2026-09-12 取证）：
      * 站点的 `id` 是 `<ggid><学号>`，**不是** ggid 本身。参考实现只取 ggid，
      * 而 mock 数据里两者恰好相同，所以这条差异只在真实数据上显形。
      * 原始响应见 .scratch/notices/evidence/raw/learnoh_diag.txt（`C-c0-p0` 段）。

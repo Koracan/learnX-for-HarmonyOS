@@ -23,7 +23,7 @@ export interface RawNotice {
   /**
    * 站点给出的**主键**：`<ggid><学号>`（**不是** ggid 本身）。
    *
-   * 2026-09-12 模拟器实测（ticket 09，见 .scratch/notices/evidence/）：
+   * 2026-09-12 模拟器实测（见 .scratch/notices/evidence/）：
    * `"id":"26ef84e8a00ef07901a0755e06e333502023011272"` 而
    * `"ggid":"26ef84e8a00ef07901a0755e06e33350"` —— 前者是后者的**超串**（尾部接学号）。
    * 参考实现 mock 数据里二者恰好相同，所以只取 ggid 看不出差别；真实数据里会显形。

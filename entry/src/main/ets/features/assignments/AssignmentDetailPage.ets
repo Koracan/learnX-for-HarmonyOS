@@ -1,5 +1,5 @@
 /*
- * 作业详情页（ticket 10）—— 逐项对齐参考实现 `reference/learnOH-old/src/screens/AssignmentDetail.tsx`。
+ * 作业详情页 —— 逐项对齐参考实现 `reference/learnOH-old/src/screens/AssignmentDetail.tsx`。
  *
  * ## 页面结构（对应参考实现行号）
  *
@@ -19,25 +19,25 @@
  *
  * ## 三处必须说明的判断
  *
- * 1. **提交入口的边界**（ticket 10 建页、ticket 13 接上）：参考实现在 headerRight 放了一个
- *    上传按钮（:105-120），点它进 `AssignmentSubmission`。ticket 10 全程只读、不渲染该入口；
- *    ticket 13 把它接上：`submissionType !== OFFLINE` 时渲染 MaterialIcons `file-upload`，
+ * 1. **提交入口的边界**（建页时只读，提交线接上）：参考实现在 headerRight 放了一个
+ *    上传按钮（:105-120），点它进 `AssignmentSubmission`。建页时全程只读、不渲染该入口；
+ *    后来把它接上：`submissionType !== OFFLINE` 时渲染 MaterialIcons `file-upload`，
  *    点击先问一句"提交入口能不能走、走不了是为什么"（canSubmit 那条纯判定在
  *    `domain/assignments/SubmissionState.submitBlockReason`；本页只可能拿到"已截止"这一种
  *    原因，提示文案见 `AssignmentText.submissionBlockedKey`），不能走就只提示、不进页面，
  *    能走才把整个 `Assignment` 推给 `ROUTE_ASSIGNMENT_SUBMISSION`。
  *    **本页仍然只读**：不构造提交请求、不落任何表单字段；真正的写操作在提交页里由用户二次确认后发出。
  *
- * 2. **优秀作业已交付**（ticket 10 补做）：数据来自参考实现那条**独立接口**
+ * 2. **优秀作业已交付**（补做）：数据来自参考实现那条**独立接口**
  *    `/b/wlxt/kczy/zy/student/yxzylist`（每门课一次 POST）+ 每条一次
  *    `viewYxzy?wlkcid=&xszyid=` 详情页（`AssignmentParser` 末尾那一节、
  *    `AssignmentsFetcher.fetchExcellent`）；失败**整段被吞**（只 warn）。
  *
  * 3. **附件点击的落点**：参考实现 `handleFileOpen` 传的 `id` 是**附件 id**
  *    （AssignmentDetail.tsx:134；对比公告详情传的是公告 id，NoticeDetail.tsx:64）。
- *    这里照作业那条走（`noticeId` 字段名沿用 ticket 04 的 `FileDetailRouteParams`，
- *    它是"文件缓存目录名"；字段名不改是为了不动 ticket 04 已验收的导航契约 ——
- *    见 ticket 11 的边界说明）。`FileDetail` 的**真身**（下载/预览/分享）归 ticket 11。
+ *    这里照作业那条走（`noticeId` 字段名沿用既有 `FileDetailRouteParams`，
+ *    它是"文件缓存目录名"；字段名不改是为了不动已验收的导航契约）。
+ *    `FileDetail` 的**真身**（下载/预览/分享）归文件详情页。
  *
  * 描述为什么走 Web 容器而不是纯文本：参考实现把描述喂给 `getWebViewTemplate`
  * （:122-130），模板里带 KaTeX 的 auto-render（`$$…$$` 与 `\(…\)` 才排版，
@@ -259,7 +259,7 @@ export struct AssignmentDetailPage {
   @Builder
   headerRow() {
     Row() {
-      // 返回：参考实现的详情页是导航栈默认的 MaterialIcons `arrow-back`（ticket 11.5 前这里是
+      // 返回：参考实现的详情页是导航栈默认的 MaterialIcons `arrow-back`（此前这里是
       // 一个近似形状的字符 U+2039）。外层 Stack 保持**原有的 40×40 点击目标**，布局尺寸不变。
       Stack() {
         IconGlyph({
@@ -278,7 +278,7 @@ export struct AssignmentDetailPage {
         .fontSize(this.theme().typography.titleMedium.fontSize)
         .fontColor(this.theme().colors.onSurfaceVariant)
       Blank()
-      // 提交入口（ticket 13）：参考实现只在 `submissionType !== OFFLINE` 时渲染
+      // 提交入口：参考实现只在 `submissionType !== OFFLINE` 时渲染
       // headerRight 的那枚 MaterialIcons `file-upload`（AssignmentDetail.tsx:99-120）。
       if (!isOfflineSubmission(this.assignment.submissionType)) {
         Stack() {
@@ -543,7 +543,7 @@ export struct AssignmentDetailPage {
 
   /**
    * 一条优秀作业（参考实现 AssignmentDetail.tsx:327-363 的一段 Fragment）：
-   * MCI `medal`（黄色；ticket 11.5 前这里是 emoji）
+   * MCI `medal`（黄色；此前这里是 emoji）
    * + 附件名（可点 → FileDetail）+ "X的优秀作业"。
    */
   @Builder
@@ -610,7 +610,7 @@ export struct AssignmentDetailPage {
   /**
    * 只有文字的段标题（"作业内容"）。参考实现这一段**没有图标**：
    * 描述直接交给 `AutoHeightWebView`（AssignmentDetail.tsx:364-374），没有段标题。
-   * 我们保留自己的段标题文字（ticket 10 的信息层级），但不给它配图标——
+   * 我们保留自己的段标题文字（既有的信息层级），但不给它配图标——
    * 这比"随便挑一个参考实现没用过的图标"更忠实。
    */
   @Builder

@@ -1,16 +1,16 @@
 /*
  * 认证界面状态（features/auth）：登记生命周期与授权给 HTTP 客户端的会话。
  *
- * spec 第 3 节：领域 store 用 @ObservedV2 / @Trace，视图直接读。视图只读这里的字段，
+ * 领域 store 用 @ObservedV2 / @Trace，视图直接读。视图只读这里的字段，
  * 编排（读凭据 → 静默重登 / 打开网页登记 → 收割会话 → 落盘 → 回到主界面）封在本类里。
  *
  * 三条硬约束的落点：
- *   - **ticket 08 验收第 1 条**：`start()` 在冷启动时用持久化凭据走**纯 HTTP** 重建会话
+ *   - **冷启动重建会话**：`start()` 在冷启动时用持久化凭据走**纯 HTTP** 重建会话
  *     （data/auth/SessionRestore），用户无需任何输入；
- *   - **ticket 08 验收第 3 条**：任何非预期结果（含信任过期 / 403 / login_timeout / 断网）
+ *   - **任何非预期结果**（含信任过期 / 403 / login_timeout / 断网）
  *     走 `applyRestoreResult` 的失败支——**显式**回到 UNENROLLED 并给出可理解的提示，
  *     不停在 LOADING、不静默失败、**不出现空列表**（主壳只在有会话时才显示）；
- *   - **ticket 07 验收第 2/4/5 条**：保存的 fingerPrint 就是我们注入的那个（completeEnrollment
+ *   - **登记后的指纹**：保存的 fingerPrint 就是我们注入的那个（completeEnrollment
  *     里把"注入值 vs DOM 观测值"的一致性写成日志）；任何失败/取消都不写凭据；指纹只脱敏进日志。
  *
  * 会话绝不落盘（ADR-0004）：本文件不 import 任何 preferences / 文件 / asset 的写接口。
@@ -122,9 +122,9 @@ export class AuthStore {
   /**
    * 冷启动入口：读凭据 → **纯 HTTP 静默重建会话** → 主壳；任何失败都显式回登录页。
    *
-   * 与 ticket 07 的差别（有意）：07 只判定"有没有凭据"，本 ticket 追加"会话真的建起来了吗"。
+   * 与登记阶段的差别（有意）：登记只判定"有没有凭据"，这里追加"会话真的建起来了吗"。
    * 于是 ENROLLED 的含义从"已登记"收紧为"已登记**且**会话可用"——因为主壳要发真实请求，
-   * 让它带着一个不存在的会话显示数据，就是验收第 3 条禁止的"空列表"。
+   * 让它带着一个不存在的会话显示数据，就是被禁止的"空列表"。
    */
   async start(): Promise<void> {
     this.phase = AuthPhase.LOADING;
@@ -137,8 +137,8 @@ export class AuthStore {
   /**
    * 用户点"重试"：重走一次静默重登。
    *
-   * 刻意不做成自动轮询（spec 第 5 节 / Q25：不做静默重试循环）：这里是**一次**用户动作触发
-   * **一次**尝试。断网时界面给出提示，恢复网络后点一下即可成功（验收第 2 条）。
+   * 刻意不做成自动轮询（Q25：不做静默重试循环）：这里是**一次**用户动作触发
+   * **一次**尝试。断网时界面给出提示，恢复网络后点一下即可成功。
    * 失败时 phase 保持在 UNENROLLED（不闪回 LOADING），用户填了一半的输入不会被清掉。
    */
   async retryRestore(): Promise<void> {
@@ -157,7 +157,7 @@ export class AuthStore {
   }
 
   /**
-   * 运行期会话失效（ticket 09 的数据路径在 AuthedTaskRunner 判定 requiresEnrollment 时调用）：
+   * 运行期会话失效（数据路径在 AuthedTaskRunner 判定 requiresEnrollment 时调用）：
    * 显式回登录页并说明需要重新验证。**不是**主动过期提醒（那被 Q25 明确否掉），
    * 而是在服务端事实上拒绝之后被动降级。
    */
@@ -190,7 +190,7 @@ export class AuthStore {
   }
 
   /**
-   * 恢复结果的唯一出口：成功进主壳，**其余一律显式降级**（验收第 3 条）。
+   * 恢复结果的唯一出口：成功进主壳，**其余一律显式降级**。
    *
    * 注意这里没有、也不该有"失败就用 Mock / 空集合兜底"的分支：界面只有 ENROLLED 才会
    * 渲染主壳，所以降级后不存在"空列表"这种中间态。
@@ -216,7 +216,7 @@ export class AuthStore {
   }
 
   /**
-   * Mock 模式登录（ticket 17）：参考实现 `screens/Login.tsx:43-46` 的那一支。
+   * Mock 模式登录：参考实现 `screens/Login.tsx:43-46` 的那一支。
    *
    * **一行请求都不发、也不打开网页登记**：直接进主壳，数据由 `data/mock/Mock*Repository` 提供
    * （判据在 `features/mock/MockMode`，消费点在四个仓储 provider）。
@@ -238,15 +238,15 @@ export class AuthStore {
   }
 
   /**
-   * 退出登录（ticket 17）：参考实现 `Settings.tsx:37-57` 确认后那三个动作的对应物。
+   * 退出登录：参考实现 `Settings.tsx:37-57` 确认后那三个动作的对应物。
    *
    * | 参考实现 | 这里 |
    * | --- | --- |
-   * | `dataSource.logout()`（**服务端**注销会话） | **不移植**：本工程的数据层没有"服务端登出"这个用例。见 ticket 17 交付节的偏离说明 |
+   * | `dataSource.logout()`（**服务端**注销会话） | **不移植**：本工程的数据层没有"服务端登出"这个用例。 |
    * | `clearLoginCookies()`（清 WebView / 平台 cookie） | `session.clear()`（内存 cookie jar + Session + 凭据缓存） |
    * | `dispatch(clearStore())`（清 state） | `credentials.clear()`（asset store 里的持久化凭据）+ 把 store 显式降级回 `UNENROLLED` |
    *
-   * 验收第 4 条要的可观察量是"凭据被清除并回到登录页"，这三步合起来就是它。
+   * 要的可观察量是"凭据被清除并回到登录页"，这三步合起来就是它。
    * `credentials.clear()` 先于状态回落执行：清盘失败也照样回登录页，但日志里能看见 `cleared=false`。
    */
   async logout(): Promise<void> {
@@ -294,7 +294,7 @@ export class AuthStore {
     return true;
   }
 
-  /** 用户中途放弃（关闭网页 / 返回）。验收第 4 条：回到登录页，不残留半登记状态。 */
+  /** 用户中途放弃（关闭网页 / 返回）。回到登录页，不残留半登记状态。 */
   cancelEnrollment(): void {
     logger.info('enrollment cancelled by user: phase=' + this.phase);
     this.failure = AuthFailure.ABORTED;
@@ -306,15 +306,15 @@ export class AuthStore {
    * 登记成功：先建会话、再落盘，最后交给 HTTP 客户端与 Web 容器。
    *
    * 顺序是有意的——**会话建不起来就不写凭据**：否则重启后会以"已登记"启动但没有任何会话，
-   * 正是验收第 4 条要避免的"半登记状态"。
+   * 正是要避免的"半登记状态"。
    */
   async completeEnrollment(dom: EnrollmentDomValues, browserCookieHeader: string): Promise<boolean> {
     logger.info('enrollment roaming reached: ' + describeEnrollmentDomValues(dom));
-    // **生效指纹（验收第 2 条的落点）**：权威顺序见 resolveEnrollmentFingerPrint ——
+    // **生效指纹（应用侧指纹的落点）**：权威顺序见 resolveEnrollmentFingerPrint ——
     // saveFinger 的 XHR **实际发出**值 > 登录页 DOM 值 > 我们生成的兜底 UUID。
     // **D1（2026-09-12 设备实测）**：saveFinger 优先是必须的。信任按指纹登记，服务端记下的就是它在
     // saveFinger 里收到的那个值；旧代码落盘的是"表单 DOM 值"，而 saveFinger 被我们自己的 XHR patch
-    // 覆盖成了另一个值（32 vs 36），登记值与落盘值不一致 ⇒ ticket 08 的重登必然再要一次短信。
+    // 覆盖成了另一个值（32 vs 36），登记值与落盘值不一致 ⇒ 重登必然再要一次短信。
     // 三处同值（表单 / saveFinger / 落盘）由同一次登记的 dom 快照给出，来源打进日志。
     const resolvedFingerPrint: EnrollmentFingerPrint = resolveEnrollmentFingerPrint(this.fingerPrint, dom);
     const effectiveFingerPrint: string = resolvedFingerPrint.value;

@@ -7,11 +7,11 @@
  * `reference/learnOH-old/src/data/reducers/settings.ts:22` 的两个默认值都是 `false`；
  * `src/screens/FileSettings.tsx` 用 `setSetting('fileUseDocumentDir'|'fileOmitCourseName', value)` 写；
  * 两个值唯一的消费点是 `src/helpers/fs.ts:26-33,59-63`（落盘根目录与文件名形状）。
- * 本文件把"值 + 语义"收在一处，UI 入口归 ticket 17（见 ticket 17 的边界说明）。
+ * 本文件把"值 + 语义"收在一处，UI 入口归全局设置页。
  *
  * ## 为什么还带一个运行时覆盖
  *
- * 与 `data/courses/SemesterOverride` 同一理由：验收第 5 条要求"两个设置均生效"是
+ * 与 `data/courses/SemesterOverride` 同一理由：要求"两个设置均生效"是
  * **可复现**的，而应用在模拟器上每一次切换设置都要走界面点击（15–35s/次，且截图易退化）。
  * 覆盖只服务取证，被设置时就是权威值，并且**实际生效值每次都进 hilog**
  * （AGENTS.md：开关必须自证生效，且要打在**消费点**）。

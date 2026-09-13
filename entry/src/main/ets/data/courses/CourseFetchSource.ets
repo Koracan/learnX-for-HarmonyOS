@@ -1,19 +1,19 @@
 /*
- * 课程数据的设备侧抓取（data/courses，ticket 12）：把"学期解析 → 课程列表 →
+ * 课程数据的设备侧抓取（data/courses）：把"学期解析 → 课程列表 →
  * 三域抓取 → 计数"串成一次调用（一个 AuthedTaskRunner 任务里完成）。
  *
  * 语义要点（每条都有出处，别顺手改）：
  *
  * 1. **生效学期的优先级**：脚本/常量覆盖 > 界面选择 > 站点当前学期。
- *    覆盖只服务取证（ticket 10/13 要 2025-2026 春季的真实作业），被设置时就是权威值，
+ *    覆盖只服务取证（要 2025-2026 春季的真实作业），被设置时就是权威值，
  *    并且**实际生效值每次都进 hilog**（见 SemesterOverride.describeSemesterOverride）。
  * 2. **站点当前学期 0 门课 = 失败信号**：用户提供的事实是本账号本学期课程非空，
  *    所以"当前学期"返回空列表必须抛错，不许渲染成"你没事"。
  *    **显式切到别的学期**时空结果是合法空态（那条学期可能真的没选课）。
  * 3. **学期集合接口失败不致命**：课程与计数不依赖它；失败时退化成
  *    "站点当前学期 + 实际生效学期"两项，并把 `semestersAvailable=false` 传上去（界面据此提示）。
- * 4. 三域抓取交给 ticket 05 的 `NoticesFetcher` / `AssignmentsFetcher` / `FilesFetcher`
- *    （**不复制取数逻辑**），课程名表用 `CourseListResult.names`（ticket 09 的同一口径）。
+ * 4. 三域抓取交给 `NoticesFetcher` / `AssignmentsFetcher` / `FilesFetcher`
+ *    （**不复制取数逻辑**），课程名表用 `CourseListResult.names`（同一口径）。
  */
 
 import { Logger } from '../../core/log/Logger';

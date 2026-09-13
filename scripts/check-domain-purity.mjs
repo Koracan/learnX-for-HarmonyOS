@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * domain 纯度检查（ticket 01 验收项 A 的自动检查）。
+ * domain 纯度检查（A 项的自动检查）。
  *
  * 断言 entry/src/main/ets/domain/** 的源码**不引用**：
  *   - 平台：@ohos.* / @kit.* / @hms.*
@@ -10,7 +10,7 @@
  * 用法：node scripts/check-domain-purity.mjs
  * 退出码：0 = 通过；1 = 有违规；2 = 没扫到任何领域源文件（防止空跑误判为通过）。
  *
- * 依赖方向见 .scratch/migration/spec.md 第 2 节：features → data → domain，domain 不依赖任何上层。
+ * 依赖方向：features → data → domain，domain 不依赖任何上层。
  */
 
 import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';

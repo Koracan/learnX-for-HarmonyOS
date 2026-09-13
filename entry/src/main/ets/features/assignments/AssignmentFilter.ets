@@ -1,7 +1,7 @@
 /*
- * 作业列表/详情的纯规则（features/assignments，ticket 10）：过期判定、状态标记、空态判定。
+ * 作业列表/详情的纯规则（features/assignments）：过期判定、状态标记、空态判定。
  *
- * **过滤视图本身已不在本文件**（ticket 14）：all / unread / fav / archived / hidden /
+ * **过滤视图本身已不在本文件**：all / unread / fav / archived / hidden /
  * unfinished / finished 七个视图与收藏 / 归档 / 屏蔽是同一套语义，统一在
  * `features/marks/FilteredContent.ets`（逐行对齐参考实现 data/selectors/filteredData.ts）。
  * 这里只留"单条作业怎么看"的规则。
@@ -13,8 +13,8 @@
  * | 优秀作业标记 | `excellentHomeworkList.length > 0`（AssignmentCard.tsx:84-91） | `hasExcellentHomework` |
  *
  * **本文件不做排序**：顺序由 `data/remote/AssignmentsFetcher` 用
- * `domain/parse/AssignmentParser.compareAssignmentsByUpcoming` 一次定好（ticket 05 已验收），
- * 界面层再排一次就会出现"两套排序"（见 ticket 10 Comments 的统筹提示 C）。
+ * `domain/parse/AssignmentParser.compareAssignmentsByUpcoming` 一次定好，
+ * 界面层再排一次就会出现"两套排序"。
  *
  * 纯函数、无平台依赖、无 i18n，是单测的主战场（entry/src/test/AssignmentList.test.ets）。
  */

@@ -1,5 +1,5 @@
 /*
- * 快照的持久化端口（data/notices，ticket 09）。
+ * 快照的持久化端口（data/notices）。
  *
  * 端口只描述"存/取一段字符串"，**格式与版本判定在 NoticeSnapshotSerialization**，
  * 因此在单测里可以用内存替身跑通"读快照 → 版本不符丢弃 → 重建"整条逻辑，

@@ -1,9 +1,9 @@
 /*
- * 真实文件仓储（data/files，ticket 11）：取数 + 下载都走 `AuthedTaskRunner`
+ * 真实文件仓储（data/files）：取数 + 下载都走 `AuthedTaskRunner`
  * （data/auth/SessionRestore：先确保有会话 + 会话失效时重登且**只重试一次** + 失败显式降级）。
  * 本文件**不自己造重登/重试/降级逻辑**（AGENTS.md 的硬约束）。
  *
- * ## 下载这条路上"会话失效"是怎么被识别的（验收第 3 条）
+ * ## 下载这条路上"会话失效"是怎么被识别的
  *
  * 1. 落盘前判定（`domain/files/FileDownloadPolicy`）在响应头到达时看 `Content-Type`：
  *    命中 `text/html`（平台自动跟随 302 后，登录页就是这个形态）⇒ **一个字节都不写**，
@@ -40,7 +40,7 @@ export class RealFileRepository implements FileRepository {
    *
    * 为什么是"哨兵值 + 布尔标记"而不是 `| null`：ArkTS 的流分析看不到闭包里的赋值，
    * 会把字段窄化成 `null`，随后 `result.files` 直接报
-   * "Property 'files' does not exist on type 'never'"（ticket 11 实测）。
+   * "Property 'files' does not exist on type 'never'"（实测）。
    */
   private fetched: FileFetchResult = emptyFetchResult();
   private fetchedSet: boolean = false;

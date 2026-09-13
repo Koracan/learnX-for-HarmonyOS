@@ -4,7 +4,7 @@
  * 对应参考实现 `reference/learnOH-old/src/components/AutoHeightWebView.tsx`，
  * 两条桥都重新设计过（RN 的桥在 ArkWeb 上不存在）。
  *
- * ## 1. 测高（验收第 2 条：内容高度自适应、无内部滚动条）
+ * ## 1. 测高（内容高度自适应、无内部滚动条）
  *
  * 参考实现（:24-48）注入脚本取
  * `max(documentElement.clientHeight, documentElement.scrollHeight, body.clientHeight, body.scrollHeight)`
@@ -31,7 +31,7 @@
  * 互不相通的存储，正文里的子资源（图片）要带着同一个会话才会被站点鉴权。
  * 打开容器时把**实际生效值**（写入条数、容器存储里读回的条数与名字、令牌是否存在）打进 hilog。
  *
- * ## 3. 链接（验收第 4 条：行为明确 = 外部打开）
+ * ## 3. 链接（行为明确 = 外部打开）
  *
  * 参考实现（:50-55）`onNavigationStateChange` 里 `navigationType === 'click'` →
  * `stopLoading()` + `Linking.openURL(url)`，`originWhitelist: ['*']`。
@@ -62,7 +62,7 @@ const MEASURE_ATTEMPT_INTERVAL_MILLIS: number = 400;
 /**
  * 取证开关：加载完成后在页面里量一次**深色是否真的生效**，并把结果经桥写进 hilog。
  *
- * 为什么需要它："深浅色下正文对比度均可读"这条验收里，"没变深"有两种可能——
+ * 为什么需要它："深浅色下正文对比度均可读"这条要求里，"没变深"有两种可能——
  * DarkReader 没生效，或模板的 dark 分支没进去。只看截图分不出来，所以把页面侧的
  * 三个事实（DarkReader 是否定义/是否 enabled、body 的计算背景色、模板 dark 段是否在 DOM 里）
  * 打进我们自己的日志。**提交态 false**（它的实际生效值同时会被记一条日志，自证开关状态）。
@@ -77,7 +77,7 @@ const BRIDGE_NAME: string = 'learnOHBridge';
  *
  * 参考实现的模板给 `#root` 写 `height:100%`（html.ts:44-48），在 RN 的 WebView 里
  * 那是"填满容器"的意思。这里容器高度**由内容决定**，若保留 100% 就成了循环依赖：
- * `#root` 永远等于视口高，一旦内容更高就出现内部滚动条（验收第 2 条不允许），
+ * `#root` 永远等于视口高，一旦内容更高就出现内部滚动条（不允许），
  * 且 `scrollHeight` 会随原生设高而同步增长（每帧 +1，越量越高）。故让它回到
  * `height:auto`（内容撑开），`overflow` 也不再需要 `auto`。
  * 样式插在 katex 样式**之后**，`!important` 保证不被覆盖。
@@ -138,7 +138,7 @@ class LearnOhWebBridge {
 }
 
 /*
- * 打开外部链接的 `openExternalUrl` 已搬到 `ui/components/ExternalLink.ets`（ticket 17）：
+ * 打开外部链接的 `openExternalUrl` 已搬到 `ui/components/ExternalLink.ets`：
  * 设置页 / 帮助页 / 关于页要的是同一件事，实现只留一份。
  */
 
@@ -165,7 +165,7 @@ export struct HtmlWebView {
    */
   @Prop baseUrl: string = '';
 
-  /** 测到的内容高度（CSS px，当 vp 用；换算式见 ticket 04 Comments）。 */
+  /** 测到的内容高度（CSS px，当 vp 用；换算式见 HtmlWebView 的测高说明）。 */
   @State measuredHeight: number = 0;
 
   private loaded: boolean = false;
@@ -276,7 +276,7 @@ export struct HtmlWebView {
    *
    * **这是实测抓出来的缺陷**：`loadData` 只在 `onControllerAttached` 里调用一次，改
    * `@Prop isDark` 不会让 ArkWeb 重新加载（控制器已附着，`src` 也没变），于是控制条显示
-   * `dark=true`、正文却仍是浅色——验收第 5 条"切换后正文即时更新"因此不成立。
+   * `dark=true`、正文却仍是浅色——"切换后正文即时更新"因此不成立。
    * 修法就是在标志变化时自己再送一次（同时把 `loaded` 归位，见 loadHtmlFromCache）。
    */
   onThemeChanged(): void {

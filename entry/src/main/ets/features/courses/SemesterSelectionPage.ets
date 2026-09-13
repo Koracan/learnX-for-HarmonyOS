@@ -1,14 +1,14 @@
 /*
- * 学期切换页（ticket 12）—— 对齐参考实现 `screens/SemesterSelection.tsx`：
+ * 学期切换页 —— 对齐参考实现 `screens/SemesterSelection.tsx`：
  * 列出可选学期（最新在前），当前学期带**与参考实现同源的** check 图标，点一条即切换。
  *
- * 与参考实现的两处差异（都在 ticket Comments 里写明）：
+ * 与参考实现的两处差异（都已写明）：
  *   1. **位置**：参考实现把它放在"设置"栈里（`SettingsStackParams.SemesterSelection`），
- *      ticket 12 的交付物把它与课程放在一起（课程 tab 头部点学期名进入）。
+ *      本工程的交付物把它与课程放在一起（课程 tab 头部点学期名进入）。
  *      行为（列出 + 切换 + 列表随之更新）不变。
- *   2. **脚本入口**：参考实现只能靠界面点；本 ticket 另有
+ *   2. **脚本入口**：参考实现只能靠界面点；本工程另有
  *      `aa start --ps lohSemester <id>` 与构建期常量（见 data/courses/SemesterOverride.ets），
- *      因为 ticket 10/13 需要在无界面交互的情况下切到 2025-2026 春季学期取真实作业。
+ *      因为作业与提交需要在无界面交互的情况下切到 2025-2026 春季学期取真实作业。
  *
  * 学期集合接口不可用时（`semestersAvailable=false`）**不假装完整**：页面顶部显式说明，
  * 列表退化为"站点当前学期 + 实际生效学期"。

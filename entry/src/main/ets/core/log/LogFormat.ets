@@ -40,7 +40,7 @@ function pad(value: number, width: number): string {
  *
  * 为什么需要：hilog 的每条记录就是一行，平台侧按行切分；一条含换行的业务消息
  * （例如探针打印响应体片段、或异常消息里带换行）在 hilog 里会变成多条**不属于本**
- * tag 的记录，既丢前缀又难 grep。ticket 03/04 都靠"一条日志一行、前缀齐全"来判读。
+ * tag 的记录，既丢前缀又难 grep。判读一直靠"一条日志一行、前缀齐全"。
  * 只做压行，不做截断/脱敏——那是调用方的责任。
  */
 export function sanitizeLogMessage(message: string): string {

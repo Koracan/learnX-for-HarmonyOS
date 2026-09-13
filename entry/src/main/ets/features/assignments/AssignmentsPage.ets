@@ -1,14 +1,14 @@
 /*
- * 作业 tab（ticket 10）：作业列表 + 详情栈的根。
+ * 作业 tab：作业列表 + 详情栈的根。
  *
  * ## 数据来源：**复用课程线的同一次抓取**，不新造取数
  *
- * 统筹给的硬前提（ticket 10 的统筹补充第 1 条）：学期覆盖（`aa start --ps lohSemester …`）
+ * 统筹给的硬前提：学期覆盖（`aa start --ps lohSemester …`）
  * **只作用于课程那条线**；作业/公告/文件的 `fetchWithSession` 连学期参数都没有。
  * 如果作业 tab 自己去抓，在覆盖态下仍会取"站点当前学期"⇒ 2026-2027 秋季 ⇒ 空列表，
  * 而"空"同时也是账号事实 ⇒ 两个原因在日志上长得一样。
  *
- * 所以本页**直接用 `CourseListStore`**（ticket 12 交付的课程状态），它的
+ * 所以本页**直接用 `CourseListStore`**（课程状态），它的
  * `refresh()` → `data/courses/CourseFetchSource` 里读一次 `effectiveSemesterOverride()`
  * （优先级 override > 界面选择 > 站点当前学期**只有那一份实现**），并把三域内容装进
  * `CourseSnapshot`。作业线拿的就是 `snapshot.assignments` —— 覆盖态下就是春季那 57 条。
@@ -18,7 +18,7 @@
  *
  * `AssignmentsFetcher.fetch` 返回前已经用
  * `domain/parse/AssignmentParser.compareAssignmentsByUpcoming` 排好
- * （未到期在前由近及远、已过期在后由远及近，ticket 05 与参考实现逐条对齐）。
+ * （未到期在前由近及远、已过期在后由远及近，与参考实现逐条对齐）。
  * 这里**只过滤不排序**（见 AssignmentFilter.ets 的文件头）。
  *
  * ## 与参考实现 AssignmentCard.tsx 的对照
@@ -26,14 +26,14 @@
  * | 项 | 参考实现 | 这里 |
  * | --- | --- | --- |
  * | 课程名 / 标题（removeTags）/ 描述预览（2 行） | :43-48, :94-98 | 同 |
- * | 状态标记 | 五个图标：附件(橙 MCI) / 已提交(绿勾 MCI) / 已评分(MaterialIcons grade) / 答案(蓝 MCI) / 优秀(MCI medal) | 同序同色，用**同一份字体的同一批码位**（ticket 11.5） |
+ * | 状态标记 | 五个图标：附件(橙 MCI) / 已提交(绿勾 MCI) / 已评分(MaterialIcons grade) / 答案(蓝 MCI) / 优秀(MCI medal) | 同序同色，用**同一份字体的同一批码位** |
  * | 截止时间那句 | `dayjs().isAfter(deadline) ? fromNow()+'截止' : '还剩 '+to(deadline,true)`（:103-108） | **绝对时间**（站点原文 `YYYY-MM-DD HH:mm`）+ 状态标记"未到期 / 已截止" |
  * | 过滤 | FilterList 下拉（unfinished / finished / all / fav / archived / hidden） | 六个筛选片，**顺序与计数口径照 Filter.tsx:153-218**；默认视图 unfinished 照 settings.ts:26 |
  *
  * 截止时间那句为什么换措辞：dayjs 的 `humanize`（"5 个月前" / "还剩 3 天"）在平台侧没有等价物 ——
  * `Intl.RelativeTimeFormat` 只能给 "5个月前" / "3天后"，无法去掉/加上参考那句前后缀。
  * 与其拼出"还剩 3天后"这种两种语言都不通顺的句子，这里显示**站点自己的截止时间原文**
- * 加一枚**本地化状态标记**（未到期 / 已截止），语义等价且可截图核对。详见 ticket 10 的交付说明。
+ * 加一枚**本地化状态标记**（未到期 / 已截止），语义等价且可截图核对。
  */
 import { ConfigurationConstant } from '@kit.AbilityKit';
 import { PLAIN_PALETTE, ThemeTokens, resolveTheme } from '../../ui/theme/Tokens';
@@ -93,7 +93,7 @@ interface AssignmentRowSpec {
   gradedLabel: string;
   answerLabel: string;
   excellentLabel: string;
-  /** 双栏时这一行是不是"右栏正在显示的那一条"（主栏保留高亮，验收第 2 条）。 */
+  /** 双栏时这一行是不是"右栏正在显示的那一条"（主栏保留高亮）。 */
   selected: boolean;
 }
 
@@ -115,9 +115,9 @@ export struct AssignmentsPage {
   /** 进程内单例：与公告 / 文件 / 课程三个列表共用同一份收藏与屏蔽状态。 */
   private flags: CollectionFlagsStore = collectionFlagsStore();
   private toast: ToastController = new ToastController();
-  /** 主栈（ticket 10）：单栏时详情压在这里，也就是左栏。 */
+  /** 主栈：单栏时详情压在这里，也就是左栏。 */
   private stack: NavPathStack = new NavPathStack();
-  /** 右栏（详情）的栈（ticket 16）：见 features/shell/SplitView.ets 的文件头。 */
+  /** 右栏（详情）的栈：见 features/shell/SplitView.ets 的文件头。 */
   private detailStack: NavPathStack = new NavPathStack();
   /** 双栏开关：来源是根布局实测尺寸（features/shell/SplitView.ets），消费点就是这个版式。 */
   @StorageProp(SPLIT_VIEW_ACTIVE_KEY) @Watch('onSplitViewChanged') splitActive: boolean = false;
@@ -160,7 +160,7 @@ export struct AssignmentsPage {
   }
 
   /* ------------------------------------------------------------------ *
-   * ticket 14：收藏 / 归档 / 屏蔽（与公告 / 文件共用 features/marks 的同一套语义）
+   * 收藏 / 归档 / 屏蔽（与公告 / 文件共用 features/marks 的同一套语义）
    * ------------------------------------------------------------------ */
 
   /** 过滤后的六个分组（逐行对齐参考实现 selectFilteredAssignments）。 */
@@ -181,7 +181,7 @@ export struct AssignmentsPage {
   /**
    * 消费点自证：把**实际生效的学期与来源**连同作业条数、六组计数打进 hilog。
    * 作业线的取证要求"既要看到 data.courses effective semester=… source=override，
-   * 也要看到作业消费点的行"（见 ticket 10 的统筹提示第 1 条）。
+   * 也要看到作业消费点的行"。
    */
   private logApplied(reason: string): void {
     const items: Assignment[] = this.sourceAssignments();
@@ -233,7 +233,7 @@ export struct AssignmentsPage {
   }
 
   /**
-   * 页头那一行"相对更新时间"（ticket 11.5 Part B）：`刚刚更新` / `N 分钟前更新` / …。
+   * 页头那一行"相对更新时间"：`刚刚更新` / `N 分钟前更新` / …。
    * 数据源仍是快照的 `fetchedAtMillis`（不新增取数）；四档边界在 `ui/components/UpdatedTime.ets`。
    *
    * 原 `semesterText()` 已删除：学期只在**课程页头**显示（账号所有者点名）。
@@ -308,7 +308,7 @@ export struct AssignmentsPage {
   }
 
   /**
-   * 页头（ticket 11.5 Part B，账号所有者点名）：**只剩「标题 + 相对更新时间」一行**。
+   * 页头（账号所有者点名）：**只剩「标题 + 相对更新时间」一行**。
    *
    * 移除的三项与理由：
    *   - `当前学期 <学期>`：学期**只在课程页**显示（这正是参考实现的做法，见 `screens/Courses.tsx:48-50`）；
@@ -331,7 +331,7 @@ export struct AssignmentsPage {
           .margin({ left: this.theme().sizes.space2 })
           .maxLines(1)
         Blank()
-        // ticket 15：页头右侧的搜索入口（参考实现 App.tsx:137-158 的 headerRight）。
+        // 页头右侧的搜索入口（参考实现 App.tsx:137-158 的 headerRight）。
         SearchButton({
           isDark: this.isDark(),
           label: this.s($r('app.string.loh_search')),
@@ -354,7 +354,7 @@ export struct AssignmentsPage {
   }
 
   /**
-   * 过滤条（ticket 14）：六个视图与计数，**顺序与参考实现 Filter.tsx:153-218 一致**
+   * 过滤条：六个视图与计数，**顺序与参考实现 Filter.tsx:153-218 一致**
    * （unfinished → finished → all → fav → archived → hidden；作业没有 unread 视图）。
    */
   @Builder
@@ -455,7 +455,7 @@ export struct AssignmentsPage {
    *   附件（MCI `attachment` orange500）→ 已提交（MCI `check` green500）→
    *   已评分（MaterialIcons `grade` red500）→ 有答案（MCI `key-variant` blue500）→
    *   优秀作业（MCI `medal` yellow500）。
-   * ticket 11.5：与参考实现**同一份字体、同一批码位**，不再是 emoji。
+   * 与参考实现**同一份字体、同一批码位**，不再是 emoji。
    */
   @Builder
   statusIcons(spec: AssignmentRowSpec) {
@@ -488,7 +488,7 @@ export struct AssignmentsPage {
           marginLeft: spec.theme.sizes.space1
         })
       }
-      // 优秀作业（ticket 10 补做）：参考实现 AssignmentCard.tsx:84-91 的黄色 medal。
+      // 优秀作业（补做）：参考实现 AssignmentCard.tsx:84-91 的黄色 medal。
       if (hasExcellentHomework(spec.assignment)) {
         IconGlyph({
           icon: AppIcon.MEDAL, glyphSize: spec.theme.sizes.iconSmall,
@@ -560,7 +560,7 @@ export struct AssignmentsPage {
       top: spec.theme.sizes.space3,
       bottom: spec.theme.sizes.space3
     })
-    // 双栏时把"右栏正在显示的那一条"高亮出来（主栏保留高亮状态，验收第 2 条）。
+    // 双栏时把"右栏正在显示的那一条"高亮出来（主栏保留高亮状态）。
     .backgroundColor(spec.selected ? spec.theme.colors.surfaceVariant : spec.theme.colors.surface)
     .onClick(() => {
       this.openDetail(spec.assignment);
@@ -737,7 +737,7 @@ export struct AssignmentsPage {
   }
 
   /**
-   * 版式（ticket 16）：`Row` = 左栏 + **1px `Divider`** + 右栏，逐项对齐参考实现
+   * 版式：`Row` = 左栏 + **1px `Divider`** + 右栏，逐项对齐参考实现
    * `SplitView.tsx:109-135`。单栏时右栏整段不渲染、分隔线 `Visibility.None`（不占位）。
    */
   build() {

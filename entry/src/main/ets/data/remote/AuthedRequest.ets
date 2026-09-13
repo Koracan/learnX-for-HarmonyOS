@@ -1,14 +1,14 @@
 /*
- * 会话内请求的小工具（data/remote，ticket 09）：把"发一次 GET/POST 并把结果变成
+ * 会话内请求的小工具（data/remote）：把"发一次 GET/POST 并把结果变成
  * 可观察量"这一件事收在一处，供 data/notices 的课程列表与公告仓储使用。
  *
  * 为什么要它：`AuthedTaskRunner`（data/auth/SessionRestore）要的是一个
- * `(session) => Promise<TaskOutcome>` 的任务，而三域 Fetcher（ticket 05）接的是
+ * `(session) => Promise<TaskOutcome>` 的任务，而三域 Fetcher 接的是
  * `FetchPort` + `Session`。本文件是两者之间的桥：**不碰会话、不重试、不降级**——
  * 重登与降级全部留在 AuthedTaskRunner（AGENTS.md 明写"不要自己再造重登/重试/降级逻辑"）。
  *
  * 每个请求都把"我们发出去了什么"变成可观察量（状态码、字节数、带了几条 cookie）：
- * ticket 08 的教训是"在把失败归因给站点或架构之前，先证明自己发出去的请求是完备的"。
+ * 教训是"在把失败归因给站点或架构之前，先证明自己发出去的请求是完备的"。
  * **绝不落 cookie 值**，只落条数。
  */
 

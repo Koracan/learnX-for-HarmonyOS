@@ -1,5 +1,5 @@
 /*
- * 登录流单测（ticket 06）：7 步纯 HTTP 登录，端口与加密器都注入。
+ * 登录流单测：7 步纯 HTTP 登录，端口与加密器都注入。
  *
  * 覆盖：请求序列与 URL、**桌面 Chrome UA 出现在每个请求**（派单 2(a)）、
  * **登录前显式重置 cookie jar**（派单 2(b)）、multipart 字段（含恒空的 i_captcha）、
@@ -258,7 +258,7 @@ export default function loginFlowTest() {
     });
 
     it('flagsAnIdLoginPageReturnedInsteadOfATicket', 0, async () => {
-      // 「服务端要求浏览器」的降级路径（验收第 5 条）：回到登录页而不是给票据
+      // 「服务端要求浏览器」的降级路径：回到登录页而不是给票据
       const port: ScriptedRawPort = new ScriptedRawPort()
         .push(response(200, REAL_ID_LOGIN_FORM_SNIPPET, '', ID_LOGIN_URL))
         .push(response(200, REAL_ID_LOGIN_FORM_SNIPPET, '', ID_LOGIN_CHECK_URL));

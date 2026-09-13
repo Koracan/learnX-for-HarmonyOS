@@ -11,7 +11,7 @@
  * 写成 .ets 字符串字面量在编译期与内存上都不划算，所以：
  *   - 资产放 `entry/src/main/resources/rawfile/webview/`，运行时读出（core/web/WebPageAssets.ets）；
  *   - 本文件只做**拼装**，资产以参数传入 —— 于是它保持纯函数，可被 host 单测直接覆盖
- *     （ticket 04 Comments 第 5 节要求的断言语义）。
+ *     （断言语义）。
  *
  * ## 与参考实现的逐项对照
  *
@@ -44,8 +44,8 @@
  *
  * 参考实现把 `content` 直接拼进模板，模板里若干内联 `<script>`。正文里若含字面量
  * `</script>`，HTML 解析器会**提前结束**那个 script 元素，后续正文被当成裸 JS 执行
- * （参考实现的模板缺少 `</script>` 转义；同项目已为登录页注入面写过同类加固，
- * 见 spec 第 5 节）。这里把正文里的 `</script` 转义成 `<\/script`，对正文渲染无影响
+ * （参考实现的模板缺少 `</script>` 转义；同项目已为登录页注入面写过同类加固）。
+ * 这里把正文里的 `</script` 转义成 `<\/script`，对正文渲染无影响
  * （HTML 里 `<\/script` 不是有效标签，文本原样显示），但能堵住这条注入路径。
  * 单元测试 `escapesScriptEndTagsInContent` 守住它。
  */

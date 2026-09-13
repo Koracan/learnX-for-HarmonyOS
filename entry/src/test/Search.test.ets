@@ -1,5 +1,5 @@
 /*
- * 全局搜索单测（ticket 15）—— 钉住 `features/search/SearchCore.ets` 的三段结构与数据口径。
+ * 全局搜索单测 —— 钉住 `features/search/SearchCore.ets` 的三段结构与数据口径。
  *
  * 期望值全部来自参考实现 `reference/learnOH-old/src/hooks/useSearch.ts`：
  *   - 字段表与权重（:5-42）；
@@ -7,7 +7,7 @@
  *   - 手工在前 + 按 id 去重（:51-61）；
  *   - 空查询 = 全量（`String.includes('')` 恒真，参考实现的实际行为）。
  *
- * 数据口径（工单验收第 5 条 + ticket 14 转来的那半）：
+ * 数据口径（离线那半 + 过滤那半）：
  *   - 喂进检索的是**原始 items 只排除被屏蔽课程**（参考实现 Search.tsx:35-37 用 items，不是 all
  *     ⇒ 归档项仍会被搜到；本工程另加屏蔽排除）；
  *   - 排除动作复用 `features/marks/FilteredContent` 的 selector，不另写过滤谓词。
@@ -124,7 +124,7 @@ export default function searchTest() {
       expect(fieldScore('Data Structures', 'DATA STRUCTURES')).assertEqual(SCORE_EXACT);
       expect(fieldScore('Data Structures', 'DATA')).assertEqual(SCORE_PREFIX);
       expect(fieldScore('Intro to Data Structures', 'DATA')).assertEqual(SCORE_SUBSTRING);
-      // 大小写不敏感（工单验收第 2 条）
+      // 大小写不敏感
       expect(fieldScore('data', 'DATA')).assertEqual(SCORE_EXACT);
       // 空查询/空字段不产生分数
       expect(fieldScore('anything', '')).assertEqual(0);

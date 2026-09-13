@@ -4,8 +4,8 @@
  * 失败分类**照搬 thu-learn-lib 的 FailReason 字符串值**（node_modules/thu-learn-lib/lib/module/types.js:3-14），
  * 这样日志里的原因与参考实现可以逐字比对；新增项会显式标注「新增」。
  *
- * 边界（ticket 06 派单 D）：登录能力**通过入参接收账号/口令/三个指纹**，自己不读凭据库——
- * 凭据加密落盘归 ticket 07；可选注入 provider 只是为了兼容参考实现的调用形态。
+ * 边界：登录能力**通过入参接收账号/口令/三个指纹**，自己不读凭据库——
+ * 凭据加密落盘归 CredentialStore；可选注入 provider 只是为了兼容参考实现的调用形态。
  */
 
 import { Session } from '../remote/Requests';
@@ -24,9 +24,9 @@ export enum FailReason {
   NOT_LOGGED_IN = 'not logged in or login timeout',
   UNEXPECTED_STATUS = 'unexpected status',
   /**
-   * 新增（ticket 08）：**网络层根本没拿到响应**（平台失败时 status=0）。
+   * 新增：**网络层根本没拿到响应**（平台失败时 status=0）。
    *
-   * 为什么单独一类：验收第 2 条要求"断网启动给可理解的提示、网络恢复后重试能成功"。
+   * 为什么单独一类：断网启动要给可理解的提示、网络恢复后重试能成功。
    * 若把它并进 ERROR_FETCH_FROM_ID / NO_TICKET_IN_RESPONSE，日志与界面都会把"没网"
    * 说成"登录页改版/被拒"，用户拿不到可行动的提示。**它不是服务端给的错误码**，
    * 因此与 UNEXPECTED_STATUS（拿到响应但状态码非预期）刻意分开。
@@ -43,7 +43,7 @@ export function isNetworkFailure(status: number, ok: boolean): boolean {
   return !ok && status === 0;
 }
 
-/** 登录所需凭据（由 07 的凭据库或调用方提供；本模块不读盘）。 */
+/** 登录所需凭据（由凭据库或调用方提供；本模块不读盘）。 */
 export interface Credentials {
   username: string;
   password: string;
@@ -83,7 +83,7 @@ export class LoginResult {
   }
 
   /**
-   * spec 第 5 节：**任何非预期响应（含服务端拒绝）一律降级到 Enrollment**，
+   * **任何非预期响应（含服务端拒绝）一律降级到 Enrollment**，
    * 不做静默重试循环，也不做过期主动提醒（Q25）。
    *
    * 这里刻意做成「只有成功才不需要登记」：失败原因只用于诊断与日志，

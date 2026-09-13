@@ -50,7 +50,7 @@ export interface GetSpec {
  *   - `isDeleted` = 移除附件时 `'1'`，否则 `'0'`。
  *
  * **没有 `id`**：`id` 是**作业描述接口**的字段（见下面的 `PostFormSpec.id`，发 `id=<zyid>`），
- * ticket 05 曾把两个接口揉在一起。参考实现的提交不发 `id`（ticket 13 的字段对照表）。
+ * 这两个接口曾经揉在一起。参考实现的提交不发 `id`（见字段对照表）。
  * 字段顺序有意义：multipart 的文本部分按本对象的构造顺序写出。
  */
 export interface UploadFormParams {
@@ -89,7 +89,7 @@ export interface FetchPort {
   upload(session: Session, spec: UploadSpec, onProgress?: UploadProgressSink): Promise<HttpOutcome>;
 }
 /* ------------------------------------------------------------------ *
- * 扩展（ticket 06）：**原始请求**通道，供登录流使用。
+ * 扩展：**原始请求**通道，供登录流使用。
  *
  * 为什么不改 FetchPort：FetchPort 描述的是「三域抓取」那三种固定请求（args 已收敛成
  * courseId/id），登录要发的是 ID 域的表单页、multipart 检查请求、漫游 GET 与课程列表页，

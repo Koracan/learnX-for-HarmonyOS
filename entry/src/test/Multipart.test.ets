@@ -1,5 +1,5 @@
 /*
- * multipart/form-data 组装单测（ticket 05 验收项 5）。
+ * multipart/form-data 组装单测（第 5 块）。
  *
  * 断言到**字节**级别：CRLF、字段顺序、`fileupload` 字段名、文件名编码
  * （ASCII 名走 `filename`，非 ASCII 名在 `filename` 之外再给 RFC 5987 的 `filename*`），

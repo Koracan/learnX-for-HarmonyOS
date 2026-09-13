@@ -1,5 +1,5 @@
 /*
- * 作业解析与排序单测（ticket 05 验收项 2、4）。
+ * 作业解析与排序单测（2、4 两块）。
  *
  * 覆盖：
  *   - 列表字段映射（xszyid / zyid / wlkcid / bt / jzsj / bjjzsj / sfbj / zywcfs / zytjfs / scsj / cj / jsm / pynr）；
@@ -108,7 +108,7 @@ export default function assignmentParserTest() {
       // 规范化后的串能被 parseTimestamp 读回同一个瞬时（秒以下被截掉）。
       const truncated: number = expected.getTime() - expected.getSeconds() * 1000 - expected.getMilliseconds();
       expect(parseTimestamp(assignment.deadline)).assertEqual(truncated);
-      // 字符串截止时间一律原样保留（ticket 05 的既有行为不受影响）。
+      // 字符串截止时间一律原样保留（既有行为不受影响）。
       const stringRaw: RawAssignment =
         JSON.parse('{"zyid":"z2","jzsj":"2020-09-01 23:59"}') as RawAssignment;
       expect(parseAssignment(stringRaw, 'c1', {}, false, false).deadline).assertEqual('2020-09-01 23:59');

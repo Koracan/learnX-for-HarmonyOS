@@ -1,7 +1,7 @@
 /*
  * 内存环形缓冲 + 导出为文本文件。
  *
- * 导出入口 `exportLogs(context)` 供后续 settings 切片（ticket 17「导出日志」）直接调用：
+ * 导出入口 `exportLogs(context)` 供后续 settings 切片的「导出日志」直接调用：
  * 传入任意 Context（UIAbilityContext / ApplicationContext 均可），返回落盘路径与字节数。
  */
 

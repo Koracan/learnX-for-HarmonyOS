@@ -1,7 +1,7 @@
 /*
  * 应用与设备自述信息（core）：versionName 与 productModel，deviceName 的取值来源。
  *
- * spec 第 5 节：deviceName = HarmonyOS,learnOH/{versionName} ({productModel})，
+ * deviceName = HarmonyOS,learnOH/{versionName} ({productModel})，
  * **仅登记时上报**（HTTP 重登不带它，故不参与信任绑定）。
  *
  * 参考实现的对应物是 packageJson.version（src/screens/SSO.tsx:52，且没有型号段）
@@ -38,7 +38,7 @@ export function appVersionName(): string {
  *
  * 对应参考实现 `constants/DeviceInfo.ts:9` 的 `Info.getBuildNumber()`（react-native-device-info）：
  * 关于页用它拼 `v{version} (build {buildNo})`（`screens/About.tsx:27`）。HarmonyOS 侧最贴近
- * "构建号"的量就是 `versionCode`，故取它并在 ticket 17 交付节里写明这处口径换算。
+ * "构建号"的量就是 `versionCode`，故取它。
  */
 export function appVersionCode(): string {
   try {

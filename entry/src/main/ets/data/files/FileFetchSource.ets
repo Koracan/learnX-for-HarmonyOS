@@ -1,6 +1,6 @@
 /*
- * 文件 tab 的设备侧取数（data/files，ticket 11）：
- * 学期解析 → 课程列表 → `FilesFetcher`（ticket 05 的同一份实现，**不复制取数逻辑**）。
+ * 文件 tab 的设备侧取数（data/files）：
+ * 学期解析 → 课程列表 → `FilesFetcher`（同一份实现，**不复制取数逻辑**）。
  *
  * 学期的优先级与 `HttpCourseFetchSource` **完全一致**（覆盖 > 站点当前；
  * 文件 tab 没有"界面选择学期"这个入口，所以没有 selection 这一档）：

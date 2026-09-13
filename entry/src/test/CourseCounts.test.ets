@@ -1,5 +1,5 @@
 /*
- * 课程三类计数的单测（ticket 12）。
+ * 课程三类计数的单测。
  *
  * 逐条对齐参考实现 `data/selectors/filteredData.ts:24-49` 的 `selectCoursesWithCounts`：
  * 未读公告、**未提交且未截止**的作业、`isNew` 的文件；三门课之间互不串味。
@@ -87,7 +87,7 @@ export default function courseCountsTest() {
 
     /*
      * 真实数据缺陷的回归（2026-09-12 模拟器 Pura 90，2025-2026 春季学期）：
-     * 站点的作业 jzsj（截止时间）**不保证是字符串**。ticket 05 的 parseTimestamp 直接
+     * 站点的作业 jzsj（截止时间）**不保证是字符串**。parseTimestamp 直接
      * 对入参调用 raw.trim()，一个数字就让整条课程/作业链路抛 "undefined is not callable"。
      * 修法按 dayjs 对齐（数字 ⇒ epoch 毫秒；其它非字符串 ⇒ 不可解析）。
      * 证据：.scratch/courses/evidence/P1-hilog-probe.txt（含调用栈）。

@@ -1,5 +1,5 @@
 /*
- * 课程详情页（ticket 12）—— 对齐参考实现 `screens/CourseDetail.tsx`：
+ * 课程详情页 —— 对齐参考实现 `screens/CourseDetail.tsx`：
  * 三个标签页（公告 / 作业 / 文件），每页只列**本课程**的内容，点一条进对应详情。
  *
  * 与参考实现逐项对照：
@@ -9,14 +9,14 @@
  * | 三个标签页与顺序 | `routes = [notices, assignments, files]`（:144-148） | 同 |
  * | 数据来源 | 从全局 state 按 `courseId` 过滤（:161-172） | 从 `CourseListStore` 按 `courseId` 过滤 |
  * | 公告点击 | `navigation.push('NoticeDetail', item)`（:49） | 同（推入**课程 tab 自己的** NavPathStack） |
- * | 作业点击 | `navigation.push('AssignmentDetail', item)`（:85） | 同（详情页真身由 ticket 10 交付，参数就是整个 Assignment） |
- * | 文件点击 | `navigation.push('FileDetail', item)`（:115） | 同（详情页真身在 ticket 11，本轮为占位页） |
+ * | 作业点击 | `navigation.push('AssignmentDetail', item)`（:85） | 同（详情页真身交付，参数就是整个 Assignment） |
+ * | 文件点击 | `navigation.push('FileDetail', item)`（:115） | 同（详情页真身交付，曾为占位页） |
  * | 每页下拉刷新 | `getXxxForCourse(courseId)` | 复用课程 tab 的同一次刷新（`store.refresh()`）——本工程一次抓取就含三域 |
  * | 页头标题 = 课程名 | `navigation.setOptions({title: course.name})`（:198-200） | 页头显示课程名 + 教师 |
  *
  * 三处"不移植"：
  *   1. 参考实现用 `InteractionManager` 等转场结束才渲染（:150-155）；ArkUI 由框架管转场，
- *      这里直接渲染（与 ticket 04 的判断一致）；
+ *      这里直接渲染（与公告详情的判断一致）；
  *   2. 参考实现每个标签页各发一次"按课程取数"的 action；本工程的一次刷新已经带回三域，
  *      再各发一次会重复请求（3 个标签页 × N 门课），故不复制该行为；
  *   3. 参考实现**没有**空态以外的错误态（取数失败只在 redux 里留 error）；这里保留空态，
@@ -38,7 +38,7 @@ import { CourseListStore } from './CourseListStore';
 import {
   CourseDetailRouteParams, CourseFileDetailRouteParams, ROUTE_COURSE_FILE_DETAIL
 } from './CourseRoutes';
-// ticket 10：作业详情的路由与页面收敛在作业那条线（本页只推同一个路由）。
+// 作业详情的路由与页面收敛在作业那条线（本页只推同一个路由）。
 import { ROUTE_ASSIGNMENT_DETAIL } from '../assignments/AssignmentRoutes';
 import { ROUTE_NOTICE_DETAIL } from '../notices/NoticeRoutes';
 
@@ -122,7 +122,7 @@ export struct CourseDetailPage {
   private openAssignment(assignment: Assignment): void {
     logger.info('course detail assignment tapped: id=' + assignment.id);
     if (this.stack !== null) {
-      // ticket 10：详情页是真身（不再是占位页），参数就是整个 Assignment ——
+      // 详情页是真身（不再是占位页），参数就是整个 Assignment ——
       // 与参考实现 `navigation.push('AssignmentDetail', item)`（CourseDetail.tsx:85）一致。
       this.stack.pushPath({ name: ROUTE_ASSIGNMENT_DETAIL, param: assignment });
     }

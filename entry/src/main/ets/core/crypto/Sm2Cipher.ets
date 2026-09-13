@@ -1,7 +1,7 @@
 /*
  * SM2 口令加密（core/crypto）：产出与参考实现 `'04' + sm2.doEncrypt(password, publicKey)` 同构的密文。
  *
- * 变换串与排列的结论来自 spec 第 11 节待验证项 #1（已设备实测通过，证据在
+ * 变换串与排列的结论来自待验证项 #1（已设备实测通过，证据在
  * `.scratch/migration/sm2-verify/`）：
  *   - transformation = **`'SM2_256|SM3'`**（`'SM2|SM3'` 亦可；其它串见证据里的失败表）；
  *   - `initSync(ENCRYPT_MODE, pubKey, null)`（SM2 没有额外的模式参数）；
@@ -11,7 +11,7 @@
  *
  * 纯函数（`normalizeSm2PublicKey` / `leftPadHex32` / `assembleCipherText`）与平台调用分开：
  * 前者用真实设备产出的密文向量单测（`.scratch/migration/sm2-verify/arkts-wire.txt`），
- * 后者只能在设备上验（见 ticket 06 Comments 的未验证项）。
+ * 后者只能在设备上验。
  */
 
 import { cryptoFramework } from '@kit.CryptoArchitectureKit';
@@ -123,7 +123,7 @@ function buildPublicKey(normalized: string): cryptoFramework.PubKey {
  * 平台实现：把口令加密成参考实现同构的上线密文。
  *
  * **只能在设备上验**：cryptoFramework 是平台能力，本工程的 local 单测环境不提供实现
- * （与 `@ohos.util` 同类，见 ticket 05 的 D4 结论），所以单测只能覆盖纯函数那一段。
+ * （与 `@ohos.util` 同类），所以单测只能覆盖纯函数那一段。
  */
 export function encryptPasswordWithSm2(password: string, publicKeyHex: string): Sm2EncryptResult {
   const normalized: string = normalizeSm2PublicKey(publicKeyHex);

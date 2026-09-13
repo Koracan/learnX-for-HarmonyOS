@@ -1,10 +1,10 @@
 /*
  * 登记会话收割（data）：把浏览器里建立的会话交给 HTTP 客户端。
  *
- * spec 第 5 节：「onLoadIntercept 检测到 roaming URL 即成功 → **提取 cookie 同步给 HTTP jar**
+ * 「onLoadIntercept 检测到 roaming URL 即成功 → **提取 cookie 同步给 HTTP jar**
  * → 持久化凭据」。本文件就是中间那一步：
  *   1. 用浏览器给出的 Cookie 头重建内存 jar（ADR-0004：只在内存，绝不落盘）；
- *   2. 用这个会话 GET 一次学生课程列表页，取 **CSRF 令牌**与语言（正则与 ticket 06 共用）；
+ *   2. 用这个会话 GET 一次学生课程列表页，取 **CSRF 令牌**与语言（正则与 LoginParsers 共用）；
  *   3. 交给调用方一个可用的 Session（cookie 随响应轮换，随时用 sessionForLearn 重组）。
  *
  * 为什么不再做一次纯 HTTP 登录：浏览器已经完整走过「ID 登录 → 短信验证 → 漫游」，
@@ -12,7 +12,7 @@
  * 确实又登了一次（src/screens/SSO.tsx:60 → loginWithFingerPrint），那是它只能靠表单
  * 回传 FormData 的被动结果；本工程走 spec 明写的"提取 cookie"。
  *
- * 失败处理（spec 第 5 节 / Q25）：**任何非预期响应都返回失败，不重试、不轮询**，
+ * 失败处理（Q25）：**任何非预期响应都返回失败，不重试、不轮询**，
  * 由调用方降级回 Enrollment。
  */
 

@@ -1,5 +1,5 @@
 /*
- * 搜索页（ticket 15）—— 顶部搜索框 + 三个域的结果（公告 / 作业 / 文件），可跳详情。
+ * 搜索页 —— 顶部搜索框 + 三个域的结果（公告 / 作业 / 文件），可跳详情。
  *
  * ## 与参考实现的对应关系（逐条给行号）
  *
@@ -11,23 +11,23 @@
  * | 初值 | `useState(route.params?.query ?? '')`（`:39`） | `@Prop initialQuery`（入口参数见 SearchRoutes） |
  * | 空查询自动聚焦 | `isFocused && searchQuery === ''` → `searchRef.current?.focus()`（`:41-45`） | `focusWhenEmpty()`（进页面 + 从详情返回时各一次，见 `onNavBarStateChange`），并在 `onFocus` 打消费点日志 |
  * | 进详情 | 有右栏引用则 `navigate` 进右栏并补 `disableAnimation: true`；否则 `navigation.push`（`:54-63`） | `pushDetailFromMaster(..., animated: !splitActive)`；单栏压本页自己的栈，分栏压右栏 |
- * | 排序/召回 | `useSearch`：手工精确/前缀合并层 + fuse + 按 id 去重（手工在前） | `features/search/SearchCore`（同构三段；引擎是本工程自写的加权评分，理由与边界见该文件头与工单交付节） |
+ * | 排序/召回 | `useSearch`：手工精确/前缀合并层 + fuse + 按 id 去重（手工在前） | `features/search/SearchCore`（同构三段；引擎是本工程自写的加权评分，理由与边界见该文件头） |
  *
  * ## 数据从哪来（**不是**全局 state，这一点与参考实现不同）
  *
  * 参考实现的搜索页从 redux 的 `state.notices/assignments/files.items` 取数（`:35-37`）。
- * 本工程没有一个全局内容 store（每个 tab 页各持一份，见 ticket 10/12 的说明），所以这里
+ * 本工程没有一个全局内容 store（每个 tab 页各持一份），所以这里
  * **复用课程线的同一次抓取**（`CourseListStore` 的一次 refresh 同时给出课程 + 三域内容，
  * 且读同一份"实际生效学期"），与 `AssignmentsPage` 完全同一处置。代价 = 打开搜索页时多一次抓取
- * （与"进两个 tab = 两次抓取"同一代价，见 ticket 10 交付说明）。
+ * （与"进两个 tab = 两次抓取"同一代价）。
  *
  * ## 喂进检索的条目 = **原始条目只排除被屏蔽课程**
  *
- * 参考实现喂的是原始 `items`（不是列表用的 `all` 分组）⇒ **归档项仍会被搜到**；工单要求
- * 照做，只额外排除**被屏蔽课程**（验收第 5 条）。排除动作复用 features/marks/FilteredContent
+ * 参考实现喂的是原始 `items`（不是列表用的 `all` 分组）⇒ **归档项仍会被搜到**；要求
+ * 照做，只额外排除**被屏蔽课程**。排除动作复用 features/marks/FilteredContent
  * 的三个 `*ExcludingHiddenCourses`（判据仍出自同一份 selector），不是第二套过滤。
  *
- * ## 分栏（ticket 16）
+ * ## 分栏
  *
  * 搜索页自己就是一个"左栏 + 右栏"的版式：左栏 = 搜索框 + 结果（双栏时定宽 393vp），
  * 右栏 = 详情。理由：参考实现里 SearchStack 挂在**根**容器上，而根容器在分栏态下就是左栏
@@ -35,8 +35,7 @@
  * `useDetailNavigator()` 进**同一个右栏**。本工程的搜索页是盖在 ShellTabs 之上的根级页面，
  * 没有"外面那个右栏"可用，所以把同一套版式（`SPLIT_VIEW_MASTER_WIDTH` + 1px Divider +
  * `pushDetailFromMaster`）搬进本页内部，**可观察行为一致**（结果点开在右栏、左栏保留高亮）。
- * 与参考实现的唯一差别：右栏起始是空态（不会沿用"进搜索页之前那个右栏详情"），
- * 这一条写在工单交付节的未验证/差异项里。
+ * 与参考实现的唯一差别：右栏起始是空态（不会沿用"进搜索页之前那个右栏详情"）。
  *
  * ## 与参考实现的两处界面级补充（本工程口径）
  *
@@ -114,7 +113,7 @@ export struct SearchPage {
   private flags: CollectionFlagsStore = collectionFlagsStore();
   /** 单栏时详情压在这个栈上（= 左栏）；分栏时它只承载"结果列表"这一层。 */
   private stack: NavPathStack = new NavPathStack();
-  /** 右栏（详情）的栈（ticket 16 的同一套迁移助手）。 */
+  /** 右栏（详情）的栈（同一套迁移助手）。 */
   private detailStack: NavPathStack = new NavPathStack();
   private session: SessionHeaderProvider = createSessionHeaderProvider();
   private started: boolean = false;
@@ -318,7 +317,7 @@ export struct SearchPage {
           icon: AppIcon.CLOSE,
           glyphSize: this.theme().sizes.iconMedium,
           color: this.theme().colors.onSurface,
-          // 关闭按钮的无障碍文案复用具名键 `loh_back`（返回/Back）—— 不新造键（工单要求）。
+          // 关闭按钮的无障碍文案复用具名键 `loh_back`（返回/Back）—— 不新造键。
           label: this.s($r('app.string.loh_back'))
         })
       }
@@ -441,7 +440,7 @@ export struct SearchPage {
     .backgroundColor(spec.selected ? this.theme().colors.surfaceVariant : this.theme().colors.surface)
   }
 
-  /** 公告结果行：类型由段头给出，行内标出**所属课程**（工单验收第 1 条）。 */
+  /** 公告结果行：类型由段头给出，行内标出**所属课程**。 */
   @Builder
   noticeRow(item: NoticeRecord) {
     ListItem() {

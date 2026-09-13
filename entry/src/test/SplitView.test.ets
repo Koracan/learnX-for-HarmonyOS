@@ -1,5 +1,5 @@
 /*
- * 断点分栏（ticket 16）单测：钉的是**判据**、**底栏宽度**与**迁移计划**这几件纯逻辑。
+ * 断点分栏单测：钉的是**判据**、**底栏宽度**与**迁移计划**这几件纯逻辑。
  *
  * 为什么这两件能上单测：它们与 ArkUI 无关（只有数字与字符串数组进、布尔/计划出），
  * 所以"750 边界""实测为 0 时退回退路尺寸""栈顶连续详情段怎么切"都能在 host 里逐条钉死；
@@ -73,7 +73,7 @@ export default function splitViewTest() {
     });
 
     it('recognises the reference whitelist plus the immersive settings page', 0, () => {
-      // 参考实现 SplitView.tsx:55-65 是九条；**ticket 17 补了第十条** ImmersiveSettings
+      // 参考实现 SplitView.tsx:55-65 是九条；**后来补了第十条** ImmersiveSettings
       // （白名单里其余四个设置子页都在、唯独漏了它）。
       const expected: string[] = [
         'NoticeDetail', 'AssignmentDetail', 'FileDetail', 'CourseDetail',

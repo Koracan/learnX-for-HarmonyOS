@@ -114,7 +114,7 @@ function pad2(value: number): string {
  * 本工程把同一步提前到解析层：数字按本地时间格式化成 `YYYY-MM-DD HH:mm`
  * —— 也就是 `Assignment.deadline` 既定的形状，排序（parseTimestamp）与显示拿到同一个瞬时。
  *
- * **字符串一律原样保留**（ticket 05 的夹具与既有行为不受影响），只规范"非字符串"这一支。
+ * **字符串一律原样保留**（既有夹具与行为不受影响），只规范"非字符串"这一支。
  */
 export function normalizeDeadline(value: string): string {
   if (typeof value === 'string') {
@@ -314,7 +314,7 @@ export function compareAssignmentsByUpcoming(assignments: Assignment[], nowMs: n
 }
 
 /* ------------------------------------------------------------------ *
- * 优秀作业（ticket 10 补做）
+ * 优秀作业
  *
  * 参考实现：thu-learn-lib `getExcellentHomeworkListByHomework`（index.js:894-928）——
  * 对**同一门课**再 POST 一次 `/b/wlxt/kczy/zy/student/yxzylist`（表单与作业列表同一个

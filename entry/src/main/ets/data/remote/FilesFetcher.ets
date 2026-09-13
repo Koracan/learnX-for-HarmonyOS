@@ -5,7 +5,7 @@
  * `kjxxbByWlkcidAndSizeForStudent?wlkcid=..&size=200&_csrf=..`，
  * 响应 `object` 是数组，字段映射在 domain/parse/FileParser。
  *
- * 锚点日志（验收项 1）：
+ * 锚点日志：
  *   data.files fetched courses=<n> items=<n> elapsedMs=<n> requests=<n> failures=<n>
  */
 

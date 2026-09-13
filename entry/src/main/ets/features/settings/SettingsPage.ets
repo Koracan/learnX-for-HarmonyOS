@@ -1,5 +1,5 @@
 /*
- * 设置 tab（settings，ticket 17）—— 参考实现 `screens/Settings.tsx`（133 行）的移植，
+ * 设置 tab（settings）—— 参考实现 `screens/Settings.tsx`（133 行）的移植，
  * 并挂上 5 个子页（沉浸式 / 学期选择 / 文件设置 / 帮助 / 关于）。
  *
  * ## 逐行对照（顺序、图标、行为都照抄）
@@ -9,22 +9,22 @@
  * | 1 | 用户信息（`name ?? username ?? 'learnX'` + `department`） | —（头像） | 不可点 | `userCell` |
  * | 2 | 退出登录 | `person-remove` | 确认框 → logout + 清 cookie + 清 store | `logoutCell` |
  * | 3 | 沉浸式模式（**mock 用户不显示**） | `fullscreen` | 进子页 | `immersiveCell` |
- * | 4 | 学期选择 | `loop` | 进子页 | `semesterCell`（复用 ticket 12 的页面） |
- * | 5 | 文件设置 | `rule-folder` | 进子页 | `fileSettingsCell`（复用 ticket 11 的页面） |
+ * | 4 | 学期选择 | `loop` | 进子页 | `semesterCell`（复用学期切换页） |
+ * | 5 | 文件设置 | `rule-folder` | 进子页 | `fileSettingsCell`（复用文件设置页） |
  * | 6 | 隐私政策 | `policy` | **外链** | `privacyCell`（URL 逐字取自 `:101-105`） |
  * | 7 | 帮助与反馈 | `help` | 进子页 | `helpCell` |
  * | 8 | 关于 | `copyright` | 进子页 | `aboutCell` |
  *
  * `marginTop: 16` 的分组（`:76,84,97`）逐条保留：进子页的导航与参考实现的
  * `handlePush`（`:27-35`）同义 —— 有右栏就进右栏、否则压本 tab 的主栈
- * （本工程的对应物是 ticket 16 的分栏，见 features/shell/SplitView.ets 的 pushDetailFromMaster）。
+ * （本工程的对应物是分栏，见 features/shell/SplitView.ets 的 pushDetailFromMaster）。
  *
- * ## 两处**增补**（参考实现没有，理由见 ticket 17 交付节）
+ * ## 两处**增补**（参考实现没有）
  *
- *   1. **「导出日志」一行**（图标 `description`）：ticket 01 的 core/log/LogBuffer.ets 把
- *      `exportLogs()` 的调用方明确留给「settings 切片（ticket 17「导出日志」）」，本 ticket 的
- *      What to build 也列了它。带 Toast 反馈（`ui_exported` / `ui_export_failed`）。
- *   2. **Mock 模式自证行**（只在 mock 用户下出现，见 mockBanner）：验收第 5 条要求
+ *   1. **「导出日志」一行**（图标 `description`）：core/log/LogBuffer.ets 把
+ *      `exportLogs()` 的调用方明确留给「settings 切片的「导出日志」」，本工程
+ *      也列了它。带 Toast 反馈（`ui_exported` / `ui_export_failed`）。
+ *   2. **Mock 模式自证行**（只在 mock 用户下出现，见 mockBanner）：要求
  *      「不发起真实网络请求」**可证明**，而计数必须打在**消费点**上 ——
  *      这一行显示的就是 data/remote/NetworkAudit 的实时计数（两个 http 出口共用同一个计数器）。
  */
@@ -77,7 +77,7 @@ export struct SettingsPage {
   private toast: ToastController = new ToastController();
   /** 主栈（单栏时子页压在这里，也就是左栏）。 */
   private stack: NavPathStack = new NavPathStack();
-  /** 右栏（详情）的栈（ticket 16）。 */
+  /** 右栏（详情）的栈。 */
   private detailStack: NavPathStack = new NavPathStack();
   @StorageProp(SPLIT_VIEW_ACTIVE_KEY) @Watch('onSplitViewChanged') splitActive: boolean = false;
   @StorageProp(SPLIT_VIEW_MASTER_HIDDEN_KEY) masterHidden: boolean = false;
@@ -190,7 +190,7 @@ export struct SettingsPage {
     this.selectedId = ROUTE_SEMESTER_SELECTION;
     pushDetailFromMaster(this.stack, this.detailStack, this.splitActive,
       ROUTE_SEMESTER_SELECTION, params);
-    // **不阻塞导航**：先压栈再取数，学期列表填充后由 @Trace 自动刷新（ticket 12 的 store 是 @ObservedV2）。
+    // **不阻塞导航**：先压栈再取数，学期列表填充后由 @Trace 自动刷新（学期 store 是 @ObservedV2）。
     store.loadOnce();
     logger.info('semester selection opened from settings: split=' + this.splitActive.toString());
   }
@@ -279,7 +279,7 @@ export struct SettingsPage {
    * Mock 模式自证行（**只在 mock 用户下出现**）。
    *
    * 计数来自 data/remote/NetworkAudit —— 它由两个真实 http 出口（HttpClient / HttpDownloadPort）
-   * 共同维护，所以「界面可用 + 计数为 0」是同一张截图里可核的（验收第 5 条）。
+   * 共同维护，所以「界面可用 + 计数为 0」是同一张截图里可核的。
    */
   @Builder
   mockBanner() {
@@ -339,7 +339,7 @@ export struct SettingsPage {
           })
         }
 
-        // 4. 学期选择（复用 ticket 12 的页面）
+        // 4. 学期选择（复用学期切换页）
         TableCell({
           icon: AppIcon.LOOP,
           primaryText: this.s($r('app.string.loh_semester_selection')),
@@ -351,7 +351,7 @@ export struct SettingsPage {
           }
         })
 
-        // 5. 文件设置（复用 ticket 11 的页面）
+        // 5. 文件设置（复用文件设置页）
         TableCell({
           icon: AppIcon.RULE_FOLDER,
           primaryText: this.s($r('app.string.loh_file_settings')),

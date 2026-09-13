@@ -1,5 +1,5 @@
 /*
- * Mock 模式的**进程内开关**（features/mock，ticket 17）。
+ * Mock 模式的**进程内开关**（features/mock）。
  *
  * ## 参考实现出处
  *
@@ -23,8 +23,7 @@
  *
  * 会话与凭据都不落盘（ADR-0004），mock 模式是"这次登录用样例数据"的一种**运行期**状态：
  * 进程重启后回到登录页，重新用 guest/guest 进入。参考实现的 mock 状态会被 redux-persist
- * 写进 SecureStorage（`reducers/root.ts:46-56` 白名单含 username/password），本工程**有意不照抄**
- * （见 ticket 17 交付节的「偏离与增补」）。
+ * 写进 SecureStorage（`reducers/root.ts:46-56` 白名单含 username/password），本工程**有意不照抄**。
  */
 
 import { Logger } from '../../core/log/Logger';

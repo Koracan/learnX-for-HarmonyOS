@@ -33,7 +33,7 @@ export function createAssignmentSubmitter(): AssignmentSubmitter {
  * 把 `AuthedTaskRunner` 显式适配成 `AuthedTaskExecutor`。
  *
  * 为什么不直接赋值：ArkTS 不做结构类型（arkts-no-structural-typing），两个形状相同的接口
- * 也不能互相赋值（ticket 09 实测）。适配器只有一行转发，并让「数据路径只经过
+ * 也不能互相赋值（实测）。适配器只有一行转发，并让「数据路径只经过
  * AuthedTaskRunner」这件事在类型上可见。
  */
 class RunnerTaskExecutor implements AuthedTaskExecutor {

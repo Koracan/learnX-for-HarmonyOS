@@ -1,7 +1,7 @@
 /*
- * 公告详情（ticket 04）单测：模板拼装（纯区）、详情时间文案、附件名规则、Mock 附件字段。
+ * 公告详情单测：模板拼装（纯区）、详情时间文案、附件名规则、Mock 附件字段。
  *
- * 覆盖 ticket 04 Comments 第 5 节要求的断言语义 —— **不靠截图**：
+ * 覆盖断言语义 —— **不靠截图**：
  *   - 产物包含 viewport / #root / CSRF 注入脚本；
  *   - 深色开关**只**切换 DarkReader 段，浅色产物里没有 DarkReader；
  *   - 空正文落到 noNoticeContent 文案；
@@ -452,7 +452,7 @@ describe('features.notices.detail.NoticeUrlRewrite', () => {
   });
 
   /**
-   * removeTags —— 参考实现 helpers/html.ts:11-22 的等价物。ticket 09 补齐；它同时服务
+   * removeTags —— 参考实现 helpers/html.ts:11-22 的等价物。后来补齐；它同时服务
    * 卡片标题、卡片正文预览与详情页标题。
    */
   describe('features.notices.detail.RemoveTags', () => {
@@ -486,7 +486,7 @@ describe('features.notices.detail.NoticeUrlRewrite', () => {
     });
 
     it('makesTheRealNoticeTitleReadable', 0, () => {
-      // 真实公告形状：标题含标签与实体（ticket 09 的模拟器取证里 ggnrStr 就是这个形态）。
+      // 真实公告形状：标题含标签与实体（模拟器取证里 ggnrStr 就是这个形态）。
       // 单层解码：&amp;nbsp; → &nbsp;（**不再二次解码**，与 he.decode 一致）。
       // 真实记录的 ggnrStr 就是把正文实体化成这个样子；卡片拿到的是 ggnr 解码后的 HTML。
       expect(removeTags('&lt;p&gt;课程信息&amp;nbsp;与微信群&lt;/p&gt;'))

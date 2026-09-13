@@ -1,5 +1,5 @@
 /*
- * 文件数据源契约（data/files，ticket 11）——features 只依赖本接口。
+ * 文件数据源契约（data/files）——features 只依赖本接口。
  *
  * 与 `data/courses/CourseRepository` 的关系：课程那条线的一次 refresh 里**也**含文件
  * （`CourseSnapshot.files`，课程详情的"文件"标签页读它）。本接口是**文件 tab 自己的**取数：
@@ -28,7 +28,7 @@ export interface FileSnapshot {
 /** 一次下载的结果 + 会话降级标记。 */
 export interface FileDownloadReport {
   outcome: FileDownloadOutcome;
-  /** true = 必须回登录页并说明需要重新验证（验收第 3 条）。 */
+  /** true = 必须回登录页并说明需要重新验证。 */
   requiresEnrollment: boolean;
   diagnostic: string;
 }

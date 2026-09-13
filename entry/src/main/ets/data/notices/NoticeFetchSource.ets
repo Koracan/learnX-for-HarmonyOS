@@ -1,9 +1,9 @@
 /*
- * `NoticeFetchSource` 的设备实现（data/notices，ticket 09）：
- * 把 ticket 05 交付的 `NoticesFetcher` 与课程列表接成 RealNoticeRepository 要的形状。
+ * `NoticeFetchSource` 的设备实现（data/notices）：
+ * 把 `NoticesFetcher` 与课程列表接成 RealNoticeRepository 要的形状。
  *
  * 为什么需要这一层：
- *   - `NoticesFetcher` 的构造签名接受一个 `Session`（ticket 05 的形状），而数据路径
+ *   - `NoticesFetcher` 的构造签名接受一个 `Session`，而数据路径
  *     每次任务都要用**当次**的会话（重登后 cookie/csrf 会轮换）。本类每次 fetch 都用
  *     传入的 session 现构造一次 fetcher，避免把会话固化在对象字段里；
  *   - 公告是**按课程**查的，课程表由 CourseListSource 取（见 CourseListFetcher 的说明）。
