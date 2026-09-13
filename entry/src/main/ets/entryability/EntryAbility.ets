@@ -31,6 +31,7 @@ import {
   FILE_OMIT_COURSE_NAME_WANT_PARAM, FILE_USE_DOCUMENT_DIR_WANT_PARAM,
   describeFileSettingsOverride, setRuntimeFileSettingsOverride
 } from '../data/settings/FileSettings';
+import { markPageShown } from '../features/shell/PageShown';
 
 const logger: Logger = new Logger('entry.ability');
 
@@ -183,6 +184,9 @@ export default class EntryAbility extends UIAbility {
   }
 
   onForeground(): void {
+    // 触发源之二：从后台回到前台。四个列表页据此重算页头那一行相对时间；
+    // 动作的唯一实现（也是唯一写那个 AppStorage 键的地方）在 features/shell/PageShown.ets。
+    markPageShown('ability-foreground');
     logger.info('Ability onForeground');
   }
 

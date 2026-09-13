@@ -30,7 +30,7 @@ import { SearchButton } from '../../ui/components/SearchButton';
 import { FilterChip } from '../../ui/components/FilterChip';
 import { ToastController, ToastOverlay } from '../../ui/components/Toast';
 import { ContentSwipeActions } from '../../ui/components/SwipeActions';
-import { updatedTimeText } from '../../ui/components/UpdatedTime';
+import { PAGE_SHOWN_AT_KEY, pageHeaderUpdatedText } from '../shell/PageShown';
 import { AppIcon } from '../../ui/icons/IconCatalog';
 import { IconGlyph } from '../../ui/icons/IconGlyph';
 import { ContentFilter } from '../../domain/marks/ContentFilter';
@@ -72,6 +72,12 @@ interface FileRowSpec {
 export struct FilesPage {
   @StorageProp(COLOR_MODE_KEY) colorMode: number = ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT;
   @StorageLink(LOCALE_VERSION_KEY) localeVersion: number = 0;
+  /**
+   * 「页面被显示」的时刻（AppStorage）：切走再切回、或从后台回到前台时由
+   * `features/shell/PageShown.ets` 的 `markPageShown()` 刷新。
+   * 页头那一行读它 ⇒ 键一变就用新的时间基准重算（这就是"相对时间不再冻结"的机制）。
+   */
+  @StorageProp(PAGE_SHOWN_AT_KEY) pageShownAtMillis: number = 0;
   @State refreshing: boolean = false;
   /** 当前过滤视图；初值 = 参考实现 settings.ts:27 的 file 默认值 all。 */
   @State filter: ContentFilter = ContentFilter.ALL;
@@ -193,13 +199,16 @@ export struct FilesPage {
   /**
    * 页头那一行"相对更新时间"（ticket 11.5 Part B）：`刚刚更新` / `N 分钟前更新` / …。
    * 原来是 ICU 的裸相对措辞（"5分钟前"），现在统一成同一套页头文案。
+   *
+   * 时间基准是"本页最近一次被显示的时刻"（`features/shell/PageShown.ets`）：切走再切回、
+   * 回到前台都会重算；实现只有那一处，本页只订阅键并把两个数传进去。
    */
   private updatedText(): string {
     const store: FileListStore | null = this.store;
     if (store === null) {
       return '';
     }
-    return updatedTimeText(store.fetchedAtMillis, Date.now());
+    return pageHeaderUpdatedText(store.fetchedAtMillis, this.pageShownAtMillis);
   }
 
   private errorText(): string {

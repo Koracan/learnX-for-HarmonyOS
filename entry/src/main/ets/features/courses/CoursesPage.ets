@@ -34,7 +34,7 @@ import { SearchButton } from '../../ui/components/SearchButton';
 import { FilterChip } from '../../ui/components/FilterChip';
 import { ToastController, ToastOverlay } from '../../ui/components/Toast';
 import { CourseHideAction } from '../../ui/components/SwipeActions';
-import { updatedTimeText } from '../../ui/components/UpdatedTime';
+import { PAGE_SHOWN_AT_KEY, pageHeaderUpdatedText } from '../shell/PageShown';
 import { AppIcon } from '../../ui/icons/IconCatalog';
 import { IconGlyph } from '../../ui/icons/IconGlyph';
 import { SessionHeaderProvider, createSessionHeaderProvider } from '../../core/web/SessionHeaderProvider';
@@ -94,6 +94,12 @@ interface CountSpec {
 export struct CoursesPage {
   @StorageProp(COLOR_MODE_KEY) colorMode: number = ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT;
   @StorageLink(LOCALE_VERSION_KEY) localeVersion: number = 0;
+  /**
+   * 「页面被显示」的时刻（AppStorage）：切走再切回、或从后台回到前台时由
+   * `features/shell/PageShown.ets` 的 `markPageShown()` 刷新。
+   * 页头那一行读它 ⇒ 键一变就用新的时间基准重算（这就是"相对时间不再冻结"的机制）。
+   */
+  @StorageProp(PAGE_SHOWN_AT_KEY) pageShownAtMillis: number = 0;
   @State refreshing: boolean = false;
   /** 当前过滤视图；初值 = 参考实现 settings.ts:28 的 course 默认值 all。 */
   @State filter: ContentFilter = ContentFilter.ALL;
@@ -216,9 +222,14 @@ export struct CoursesPage {
     return getSemesterTextFromId(semesterId, i18nService.locale(), i18nService);
   }
 
-  /** 页头那一行"相对更新时间"（ticket 11.5 Part B）：`刚刚更新` / `N 分钟前更新` / …。 */
+  /**
+   * 页头那一行"相对更新时间"（ticket 11.5 Part B）：`刚刚更新` / `N 分钟前更新` / …。
+   *
+   * 时间基准是"本页最近一次被显示的时刻"（`features/shell/PageShown.ets`）：切走再切回、
+   * 回到前台都会重算；实现只有那一处，本页只订阅键并把两个数传进去。
+   */
   private updatedText(): string {
-    return updatedTimeText(this.store.fetchedAtMillis, Date.now());
+    return pageHeaderUpdatedText(this.store.fetchedAtMillis, this.pageShownAtMillis);
   }
 
   private errorText(): string {

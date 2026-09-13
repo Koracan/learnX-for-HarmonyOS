@@ -46,6 +46,7 @@ import {
   SPLIT_VIEW_ACTIVE_KEY, SPLIT_VIEW_BREAKPOINT_VP, SPLIT_VIEW_MASTER_HIDDEN_KEY, bottomBarLayout,
   publishSplitViewDecision
 } from './SplitView';
+import { markPageShown } from './PageShown';
 import { SettingsPage } from '../settings/SettingsPage';
 import { SearchPage } from '../search/SearchPage';
 import { SearchRouteParams, ROUTE_SEARCH } from '../search/SearchRoutes';
@@ -217,6 +218,8 @@ export struct ShellTabs {
     bindSearchRootStack(this.rootStack);
     // 先把退路尺寸发出去：五个 tab 页在紧随其后的 build 里就会读它。
     this.publishSize(0, 0);
+    // 壳层首次显示：先落一个时间基准，五个 tab 页在紧随其后的 build 里读到它。
+    markPageShown('shell-appear');
     // 延后一帧：aboutToAppear 时组件可能还没挂到 UI 实例上。
     setTimeout(() => {
       this.applyEvidenceOverrides();
@@ -232,6 +235,9 @@ export struct ShellTabs {
     }
     this.activeIndex = index;
     this.tabsController.changeIndex(index);
+    // 触发源之一：底栏点击切 tab（另一个是 EntryAbility 的回到前台）。
+    // 动作本身只有一处实现，见 features/shell/PageShown.ets。
+    markPageShown('tab-switch:' + index.toString());
     logger.info('tab switched: index=' + index.toString());
   }
 
@@ -363,6 +369,9 @@ export struct ShellTabs {
         .width('100%')
         .onChange((index: number) => {
           this.activeIndex = index;
+          // 与底栏点击可能各走一次（程序化 changeIndex 也会回调到这里）：重复触发无害，
+          // 只是多写一次同一时刻。信号必须从上往下发 —— 子页面没有 onPageShow。
+          markPageShown('tab-change:' + index.toString());
         })
 
         this.tabBar()

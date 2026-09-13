@@ -34,6 +34,7 @@ import assignmentSubmissionTest from './AssignmentSubmission.test';
 import fileDownloadTest from './FileDownload.test';
 import externalOpenTest from './ExternalOpen.test';
 import updatedTimeTest from './UpdatedTime.test';
+import pageShownTest from './PageShown.test';
 import iconCatalogTest from './IconCatalog.test';
 import favoritesTest from './Favorites.test';
 import splitViewTest from './SplitView.test';
@@ -74,6 +75,7 @@ export default function testsuite() {
   fileDownloadTest();
   externalOpenTest();
   updatedTimeTest();
+  pageShownTest();
   iconCatalogTest();
   favoritesTest();
   splitViewTest();
