@@ -23,7 +23,10 @@
  *
  *   1. **「导出日志」一行**（图标 `description`）：core/log/LogBuffer.ets 把
  *      `exportLogs()` 的调用方明确留给「settings 切片的「导出日志」」，本工程
- *      也列了它。带 Toast 反馈（`ui_exported` / `ui_export_failed`）。
+ *      也列了它。带 Toast 反馈（`ui_exported` / `ui_export_failed`）；
+ *      **导出的文件落在哪要看得见**：成功时 Toast 与列表下方那一行都给出
+ *      `LogExportResult.path` 的**完整路径**（Toast 几秒就没了，留在屏幕上的那一行才是
+ *      用户回头能查到的地方），失败分支仍只说原因（`ui_export_failed`，**不显示路径**）。
  *   2. **Mock 模式自证行**（只在 mock 用户下出现，见 mockBanner）：要求
  *      「不发起真实网络请求」**可证明**，而计数必须打在**消费点**上 ——
  *      这一行显示的就是 data/remote/NetworkAudit 的实时计数（两个 http 出口共用同一个计数器）。
@@ -85,6 +88,8 @@ export struct SettingsPage {
   @State selectedId: string = '';
   /** 学期选择子页用的课程 store：**只在第一次点进去时创建**（避免开设置页就发一轮取数）。 */
   private courseStore: CourseListStore | null = null;
+  /** 最近一次**成功**导出的结果（含完整落盘路径）；空串 = 还没导出过。失败时不写它。 */
+  @State exportedSummary: string = '';
 
   aboutToAppear(): void {
     logger.info('settings page appear: ' + this.describeAccount());
@@ -221,10 +226,17 @@ export struct SettingsPage {
       logger.info('logs exported: path=' + result.path
         + ' records=' + result.recordCount.toString()
         + ' bytes=' + result.byteLength.toString());
-      this.toast.show(i18nService.t('ui_exported', result.recordCount, result.byteLength), '', null);
+      // 同一份文案两处消费（Toast + 列表下方那一行），只格式化一次 ⇒ 屏幕上的路径
+      // 与上面 hilog 里那条 path= 必然逐字一致。
+      const summary: string = i18nService.t('ui_exported', result.recordCount,
+        result.byteLength, result.path);
+      this.exportedSummary = summary;
+      this.toast.show(summary, '', null);
     } catch (error) {
       const message: string = (error as Error).message;
       logger.error('log export failed: ' + message);
+      // 失败时清掉上一次的成功结果，免得旧路径被读成"这次也导出成功了"。
+      this.exportedSummary = '';
       this.toast.show(i18nService.t('ui_export_failed', message), '', null);
     }
   }
@@ -407,6 +419,19 @@ export struct SettingsPage {
             this.handleExportLogs();
           }
         })
+        // 导出成功后把**确切落盘路径**留在屏幕上（Toast 会自己消失）。
+        if (this.exportedSummary.length > 0) {
+          Text(this.exportedSummary)
+            .fontSize(this.theme().typography.bodySmall.fontSize)
+            .fontColor(this.theme().colors.onSurfaceVariant)
+            .width('100%')
+            .padding({
+              left: this.theme().sizes.contentPadding,
+              right: this.theme().sizes.contentPadding,
+              bottom: this.theme().sizes.space3
+            })
+            .accessibilityText(this.exportedSummary)
+        }
       }
       .width('100%')
       .alignItems(HorizontalAlign.Start)

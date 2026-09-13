@@ -706,7 +706,7 @@
     },
     {
       "name": "loh_immersive_mode_description",
-      "value": "隐藏导航栏和状态栏，需要重启应用"
+      "value": "隐藏导航栏和状态栏"
     },
     {
       "name": "loh_please_restart_app_to_apply_immersive",
@@ -802,7 +802,7 @@
     },
     {
       "name": "ui_exported",
-      "value": "已导出 %1$s 条 / %2$s 字节"
+      "value": "已导出 %1$s 条 / %2$s 字节\n保存位置：%3$s"
     },
     {
       "name": "ui_export_failed",

@@ -232,9 +232,12 @@ export default function i18nTest() {
 
     it('applies placeholders when a typed key is translated', 0, () => {
       const service: I18nService = new I18nService();
-      const table: Map<string, string> = new Map<string, string>([['ui_exported', '已导出 %1$s 条 / %2$s 字节']]);
+      const table: Map<string, string> = new Map<string, string>([
+        ['ui_exported', '已导出 %1$s 条 / %2$s 字节\n保存位置：%3$s']
+      ]);
       service.bindProvider(new FakeProvider('zh-Hans-CN', table));
-      expect(service.t('ui_exported', 7, 1024)).assertEqual('已导出 7 条 / 1024 字节');
+      expect(service.t('ui_exported', 7, 1024, '/data/logs/learnOH-1.log'))
+        .assertEqual('已导出 7 条 / 1024 字节\n保存位置：/data/logs/learnOH-1.log');
     });
 
     it('keeps the key-echo provider honest', 0, () => {

@@ -1771,8 +1771,8 @@
     {
       "key": "immersiveModeDescription",
       "name": "loh_immersive_mode_description",
-      "zhValue": "隐藏导航栏和状态栏，需要重启应用",
-      "enValue": "Hide the navigation bar and status bar. App restart required.",
+      "zhValue": "隐藏导航栏和状态栏",
+      "enValue": "Hide the navigation bar and status bar",
       "zhPlaceholders": [],
       "enPlaceholders": [],
       "origin": "reference"
@@ -1991,15 +1991,17 @@
     {
       "key": "__ui_exported",
       "name": "ui_exported",
-      "zhValue": "已导出 %1$s 条 / %2$s 字节",
-      "enValue": "Exported %1$s records / %2$s bytes",
+      "zhValue": "已导出 %1$s 条 / %2$s 字节\n保存位置：%3$s",
+      "enValue": "Exported %1$s records / %2$s bytes\nSaved to: %3$s",
       "zhPlaceholders": [
         "{0}",
-        "{1}"
+        "{1}",
+        "{2}"
       ],
       "enPlaceholders": [
         "{0}",
-        "{1}"
+        "{1}",
+        "{2}"
       ],
       "origin": "ui"
     },

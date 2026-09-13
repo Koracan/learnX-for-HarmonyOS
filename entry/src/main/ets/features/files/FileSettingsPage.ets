@@ -12,12 +12,13 @@
  * 本页是**文件 tab 自己的入口**；**全局设置页的入口与外观归全局设置**。
  * 两边读的是**同一个** `FileSettingsStore` 单例（`fileSettingsStore()`），不各造一套存储。
  *
- * ## 界面上的两行自证
+ * ## 界面上的「当前保存位置」与只进日志的自证串
  *
- *   - "当前保存位置" = 实际生效的根目录（`fileRepository().cacheRoot()`）；
- *   - 下面那行是 `describeFileSettings`：**实际生效值 + 覆盖来源**
- *     （脚本覆盖 `--ps lohFileUseDocumentDir` 生效时这里会显出来，
- *     于是"设置没生效"与"没读到设置"能区分）。
+ *   - "当前保存位置"（`ui_file_settings_root`）= 实际生效的根目录
+ *     （`fileRepository().cacheRoot()`）—— 那是给用户的信息，保留；
+ *   - `describeFileSettings`（**实际生效值 + 覆盖来源**）**只写 hilog**：它带内部键名，
+ *     是给取证的人看的，不再当正文渲染。脚本覆盖 `--ps lohFileUseDocumentDir` 生效时，
+ *     日志里仍能区分"设置没生效"与"没读到设置"。
  */
 
 import { ConfigurationConstant } from '@kit.AbilityKit';
@@ -49,9 +50,7 @@ export struct FileSettingsPage {
   @State omitCourseName: boolean = false;
   /** 实际生效的根目录。 */
   @State root: string = '';
-  /** 实际生效值 + 覆盖来源（自证行）。 */
-  @State effectiveSummary: string = '';
-  /** 最近一次操作的结果文案（截图证据要看得到）。 */
+  /** 最近一次操作的结果文案（失败原因；成功时不显示任何诊断串）。 */
   @State message: string = '';
 
   aboutToAppear(): void {
@@ -73,8 +72,8 @@ export struct FileSettingsPage {
     this.useDocumentDir = stored.useDocumentDir;
     this.omitCourseName = stored.omitCourseName;
     this.root = fileRepository().cacheRoot();
-    this.effectiveSummary = describeFileSettings(store.current());
-    logger.info('file settings page appear: ' + this.effectiveSummary + ' root=' + this.root);
+    logger.info('file settings page appear: ' + describeFileSettings(store.current())
+      + ' root=' + this.root);
   }
 
   private async onToggle(key: FileSettingsKey, value: boolean): Promise<void> {
@@ -84,13 +83,12 @@ export struct FileSettingsPage {
     this.useDocumentDir = stored.useDocumentDir;
     this.omitCourseName = stored.omitCourseName;
     this.root = fileRepository().cacheRoot();
-    this.effectiveSummary = describeFileSettings(store.current());
     // 消费点自证：改完之后**实际生效值**与**落盘根目录**都在下面这一行里。
     logger.info('file settings changed: key=' + key + ' value=' + value.toString()
-      + ' persisted=' + persisted.toString() + ' ' + this.effectiveSummary + ' root=' + this.root);
-    this.message = persisted
-      ? this.effectiveSummary
-      : i18nService.t('loh_clear_file_cache_failed') + 'persist failed';
+      + ' persisted=' + persisted.toString() + ' ' + describeFileSettings(store.current())
+      + ' root=' + this.root);
+    // 成功时不显示诊断串：开关本身 + 下面那行说明已经表达了状态；只有失败才要一句话。
+    this.message = persisted ? '' : i18nService.t('loh_clear_file_cache_failed') + 'persist failed';
   }
 
   private handleClearCache(): void {
@@ -123,22 +121,52 @@ export struct FileSettingsPage {
       : i18nService.t('loh_clear_file_cache_failed') + result.error;
   }
 
+  /** 行的标题。 */
+  private rowTitle(key: FileSettingsKey): string {
+    return key === FileSettingsKey.USE_DOCUMENT_DIR
+      ? this.s($r('app.string.loh_file_use_document_dir'))
+      : this.s($r('app.string.loh_file_omit_course_name'));
+  }
+
+  /** 开关显示的值（= 持久化值）。 */
+  private rowValue(key: FileSettingsKey): boolean {
+    return key === FileSettingsKey.USE_DOCUMENT_DIR ? this.useDocumentDir : this.omitCourseName;
+  }
+
+  /**
+   * 行下面那句说明 —— **按开关的当前值现算**。
+   *
+   * 这三样（标题 / 开关值 / 说明）都在 builder 体内由状态算出，而不是让调用方把值当参数传进来：
+   * 值参数的 @Builder 只吃首次求值，拨动开关后说明文字不会跟着变（实测：拨动后说明仍是旧的那句，
+   * 退出再进才对），于是"开关本身 + 说明"这一对反而互相矛盾。状态写在 builder 体内读，绑定才是活的。
+   */
+  private rowCaption(key: FileSettingsKey): string {
+    if (key === FileSettingsKey.USE_DOCUMENT_DIR) {
+      return this.useDocumentDir
+        ? this.s($r('app.string.ui_file_use_document_dir_on'))
+        : this.s($r('app.string.ui_file_use_document_dir_off'));
+    }
+    return this.omitCourseName
+      ? this.s($r('app.string.ui_file_omit_course_name_on'))
+      : this.s($r('app.string.ui_file_omit_course_name_off'));
+  }
+
   @Builder
-  switchRow(title: string, caption: string, isOn: boolean, key: FileSettingsKey) {
+  switchRow(key: FileSettingsKey) {
     Column() {
       Row() {
-        Text(title)
+        Text(this.rowTitle(key))
           .fontSize(this.theme().typography.titleMedium.fontSize)
           .fontColor(this.theme().colors.onSurface)
           .layoutWeight(1)
-        Toggle({ type: ToggleType.Switch, isOn: isOn })
+        Toggle({ type: ToggleType.Switch, isOn: this.rowValue(key) })
           .selectedColor(this.theme().colors.primary)
           .onChange((value: boolean) => {
             this.onToggle(key, value);
           })
       }
       .width('100%')
-      Text(caption)
+      Text(this.rowCaption(key))
         .fontSize(this.theme().typography.bodySmall.fontSize)
         .fontColor(this.theme().colors.onSurfaceVariant)
         .width('100%')
@@ -190,22 +218,10 @@ export struct FileSettingsPage {
 
       Scroll() {
         Column() {
-          this.switchRow(
-            this.s($r('app.string.loh_file_use_document_dir')),
-            this.useDocumentDir
-              ? this.s($r('app.string.ui_file_use_document_dir_on'))
-              : this.s($r('app.string.ui_file_use_document_dir_off')),
-            this.useDocumentDir,
-            FileSettingsKey.USE_DOCUMENT_DIR)
+          this.switchRow(FileSettingsKey.USE_DOCUMENT_DIR)
           Divider()
             .color(this.theme().colors.outlineVariant)
-          this.switchRow(
-            this.s($r('app.string.loh_file_omit_course_name')),
-            this.omitCourseName
-              ? this.s($r('app.string.ui_file_omit_course_name_on'))
-              : this.s($r('app.string.ui_file_omit_course_name_off')),
-            this.omitCourseName,
-            FileSettingsKey.OMIT_COURSE_NAME)
+          this.switchRow(FileSettingsKey.OMIT_COURSE_NAME)
           Divider()
             .color(this.theme().colors.outlineVariant)
 
@@ -230,12 +246,6 @@ export struct FileSettingsPage {
             .fontSize(this.theme().typography.bodySmall.fontSize)
             .fontColor(this.theme().colors.onSurfaceVariant)
             .width('100%')
-            .padding({ left: this.theme().sizes.contentPadding, right: this.theme().sizes.contentPadding })
-          Text(this.effectiveSummary)
-            .fontSize(this.theme().typography.labelSmall.fontSize)
-            .fontColor(this.theme().colors.onSurfaceVariant)
-            .width('100%')
-            .margin({ top: this.theme().sizes.space2 })
             .padding({ left: this.theme().sizes.contentPadding, right: this.theme().sizes.contentPadding })
           if (this.message.length > 0) {
             Text(this.message)

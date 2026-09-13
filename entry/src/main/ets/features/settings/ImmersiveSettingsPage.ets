@@ -18,13 +18,17 @@
  * `immersiveMode` 自己的行为不变：**即时生效**（切换后立刻调 `core/window/ImmersiveWindow`）
  * 且重启后保持。
  *
- * ## 与参考实现的一处**行为差异（要求）**
+ * ## 与参考实现的一处**行为差异**
  *
- * 参考实现的说明文字写着"需要重启应用"（`immersiveModeDescription` 的原文），而本工程
- * 要求"**即时生效**，重启后保持"。本工程照做：切换后立刻调
+ * 参考实现的说明文字写着"需要重启应用"，而本工程**即时生效、重启后保持**：切换后立刻调
  * `core/window/ImmersiveWindow.applyImmersiveMode`（隐藏 / 恢复状态栏与导航栏）并写 preferences。
- * **那句说明文字仍按参考实现原样显示**——它是**迁移键**（由 reference 的词典生成），
- * 改它会让 `check-generated-fresh` 失败，且会偏离参考实现的文案。这处"文案与行为不完全一致"是有意保留的。
+ * 说明文字里"需要重启应用"那半句已经删掉（值由生成器覆盖，生成物不手改），
+ * 免得界面让用户去做一件应用并不需要的事。
+ *
+ * ## 诊断串只进日志
+ *
+ * `describeImmersiveSettings()` 给出的"实际生效值"**只写 hilog**（它是自证口径的一部分），
+ * **不再当正文渲染**：用户读不懂它，它本来就是给取证的人看的。
  */
 
 import { ConfigurationConstant, common } from '@kit.AbilityKit';
@@ -53,8 +57,6 @@ export struct ImmersiveSettingsPage {
 
   /** 持久化值（开关直接显示它）。 */
   @State immersiveMode: boolean = false;
-  /** 最近一次操作的结果（自证行，截图可见）。 */
-  @State message: string = '';
 
   aboutToAppear(): void {
     this.bootstrap();
@@ -85,8 +87,7 @@ export struct ImmersiveSettingsPage {
     const store: ImmersiveSettingsStore = immersiveSettingsStore();
     await store.load();
     this.immersiveMode = store.stored().immersiveMode;
-    this.message = describeImmersiveSettings(store.current());
-    logger.info('immersive settings page appear: ' + this.message);
+    logger.info('immersive settings page appear: ' + describeImmersiveSettings(store.current()));
   }
 
   /** 开关：持久化 + **立刻应用到窗口**（"即时生效"）。 */
@@ -104,7 +105,6 @@ export struct ImmersiveSettingsPage {
       + ' persisted=' + persisted.toString()
       + ' appliedToWindow=' + applied.toString()
       + ' ' + describeImmersiveSettings(store.current()));
-    this.message = describeImmersiveSettings(store.current());
   }
 
   @Builder
@@ -166,18 +166,6 @@ export struct ImmersiveSettingsPage {
             }
           })
           this.caption(this.s($r('app.string.loh_immersive_mode_description')))
-
-          if (this.message.length > 0) {
-            Text(this.message)
-              .fontSize(this.theme().typography.labelSmall.fontSize)
-              .fontColor(this.theme().colors.onSurfaceVariant)
-              .width('100%')
-              .margin({ top: this.theme().sizes.space4 })
-              .padding({
-                left: this.theme().sizes.contentPadding,
-                right: this.theme().sizes.contentPadding
-              })
-          }
         }
         .width('100%')
         .alignItems(HorizontalAlign.Start)

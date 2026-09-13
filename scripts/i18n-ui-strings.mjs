@@ -22,7 +22,7 @@ export const UI_STRINGS = [
   ['ui_semester_later', '较晚 = {0}', 'later = {0}'],
   ['ui_reference_palette', '参考实现调色板（Colors.ts）', 'Reference palette (Colors.ts)'],
   ['ui_export_logs', '导出日志为文本文件', 'Export logs to a text file'],
-  ['ui_exported', '已导出 {0} 条 / {1} 字节', 'Exported {0} records / {1} bytes'],
+  ['ui_exported', '已导出 {0} 条 / {1} 字节\n保存位置：{2}', 'Exported {0} records / {1} bytes\nSaved to: {2}'],
   ['ui_export_failed', '导出失败：{0}', 'Export failed: {0}'],
   ['ui_locale_live_demo', '语言切换（无需重启）', 'Language switch (no restart)'],
   ['ui_switch_chinese', '切到中文', 'Switch to Chinese'],

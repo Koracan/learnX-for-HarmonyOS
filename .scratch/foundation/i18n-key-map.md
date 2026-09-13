@@ -200,7 +200,7 @@
 | 174 | `courseEventOmitLocation` | `loh_course_event_omit_location` | - | 不写入位置信息 | Omit Location |
 | 175 | `restartRequired` | `loh_restart_required` | - | 需要重启 | Restart Required |
 | 176 | `immersiveMode` | `loh_immersive_mode` | - | 沉浸式模式 | Immersive Mode |
-| 177 | `immersiveModeDescription` | `loh_immersive_mode_description` | - | 隐藏导航栏和状态栏，需要重启应用 | Hide the navigation bar and status bar. App restart required. |
+| 177 | `immersiveModeDescription` | `loh_immersive_mode_description` | - | 隐藏导航栏和状态栏 | Hide the navigation bar and status bar |
 | 178 | `pleaseRestartAppToApplyImmersive` | `loh_please_restart_app_to_apply_immersive` | - | 请重启应用以应用沉浸式模式设置。 | Please restart the app to apply immersive mode setting. |
 
 ## 本工程新增键（131）
@@ -229,7 +229,7 @@
 | 20 | ui | `ui_semester_later` | {0} | 较晚 = %1$s | later = %1$s |
 | 21 | ui | `ui_reference_palette` | - | 参考实现调色板（Colors.ts） | Reference palette (Colors.ts) |
 | 22 | ui | `ui_export_logs` | - | 导出日志为文本文件 | Export logs to a text file |
-| 23 | ui | `ui_exported` | {0},{1} | 已导出 %1$s 条 / %2$s 字节 | Exported %1$s records / %2$s bytes |
+| 23 | ui | `ui_exported` | {0},{1},{2} | 已导出 %1$s 条 / %2$s 字节\n保存位置：%3$s | Exported %1$s records / %2$s bytes\nSaved to: %3$s |
 | 24 | ui | `ui_export_failed` | {0} | 导出失败：%1$s | Export failed: %1$s |
 | 25 | ui | `ui_locale_live_demo` | - | 语言切换（无需重启） | Language switch (no restart) |
 | 26 | ui | `ui_switch_chinese` | - | 切到中文 | Switch to Chinese |

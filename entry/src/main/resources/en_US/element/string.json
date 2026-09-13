@@ -706,7 +706,7 @@
     },
     {
       "name": "loh_immersive_mode_description",
-      "value": "Hide the navigation bar and status bar. App restart required."
+      "value": "Hide the navigation bar and status bar"
     },
     {
       "name": "loh_please_restart_app_to_apply_immersive",
@@ -802,7 +802,7 @@
     },
     {
       "name": "ui_exported",
-      "value": "Exported %1$s records / %2$s bytes"
+      "value": "Exported %1$s records / %2$s bytes\nSaved to: %3$s"
     },
     {
       "name": "ui_export_failed",
