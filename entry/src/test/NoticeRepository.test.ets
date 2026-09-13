@@ -21,7 +21,8 @@ import { logBuffer } from '../main/ets/core/log/LogBuffer';
 import { Notice } from '../main/ets/domain/model/ContentItem';
 import { AuthedRunResult } from '../main/ets/data/auth/SessionRestore';
 import {
-  AuthedTaskExecutor, NoticeFetchSource, RealNoticeRepository, noticeRecordOf
+  AuthedTaskExecutor, FORCE_NOTICE_UNREAD_FOR_EVIDENCE, NoticeFetchSource,
+  RealNoticeRepository, noticeRecordOf
 } from '../main/ets/data/notices/RealNoticeRepository';
 import { SessionTask } from '../main/ets/data/auth/SessionRestore';
 import {
@@ -300,6 +301,12 @@ export default function noticeRepositoryTest() {
       expect(refreshed.items[0].hasRead).assertTrue();
       const persisted = JSON.parse(port.saved[port.saved.length - 1]) as Record<string, Object>;
       expect(JSON.stringify(persisted['readNoticeIds'])).assertEqual('["n1"]');
+    });
+
+    it('evidenceUnreadOverrideIsOffAtCommit', 0, () => {
+      // 提交前用 git show HEAD:<文件> 核对开关已复原，这里再加一道程序化断言：
+      // 这个开关一旦被误提交成 true，用户会看到**假的未读蓝点**（站点本来报已读）。
+      expect(FORCE_NOTICE_UNREAD_FOR_EVIDENCE).assertFalse();
     });
 
     it('mergesThePersistedReadSetIntoTheSnapshotItHandsBack', 0, async () => {
