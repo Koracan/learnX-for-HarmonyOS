@@ -23,6 +23,8 @@ import {
 } from '@kit.AbilityKit';
 import { window } from '@kit.ArkUI';
 import { Logger, LOG_DOMAIN } from '../core/log/Logger';
+import { applySystemBarColors } from '../core/window/SystemBarTheme';
+import { SystemBarColors, systemBarColors } from '../ui/theme/Tokens';
 import { i18nService } from '../core/i18n/I18n';
 import {
   SEMESTER_WANT_PARAM, describeSemesterOverride, setRuntimeSemesterOverride
@@ -58,6 +60,14 @@ class LearnOhEnvironmentCallback extends EnvironmentCallback {
 }
 
 export default class EntryAbility extends UIAbility {
+  /**
+   * 主窗口（`onWindowStageCreate` 时记下）。
+   *
+   * 系统栏配色要在两种时机刷新：窗口就绪时、以及系统深浅色变化时。后者只给 Configuration、
+   * 不给 windowStage，所以窗口得先存下来。
+   */
+  private mainWindow: window.Window | null = null;
+
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     try {
       // COLOR_MODE_NOT_SET = 跟随系统深浅色。
@@ -159,6 +169,10 @@ export default class EntryAbility extends UIAbility {
     i18nService.bindResourceManager(this.context.resourceManager, this.context.config.language);
     i18nService.refresh();
     AppStorage.setOrCreate(LOCALE_VERSION_KEY, Date.now());
+    // 深浅色一变，两个系统栏的底色也要跟着变（深色 #1C1C1C / 浅色 #FFFFFF）。
+    // **必须用 newConfig 里的值**：实测 this.context.config.colorMode 在这一刻还是旧值
+    // （深色强制生效时它仍读回 1=浅色，于是栏被刷成白色），它会晚一步才刷新。
+    this.applySystemBarTheme(newConfig.colorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK);
     logger.info('configuration updated: colorMode=' + newConfig.colorMode
       + ' language=' + newConfig.language + ' locale=' + i18nService.locale());
   }
@@ -169,6 +183,7 @@ export default class EntryAbility extends UIAbility {
 
   onWindowStageCreate(windowStage: window.WindowStage): void {
     logger.info('Ability onWindowStageCreate');
+    this.captureMainWindow(windowStage);
 
     windowStage.loadContent('pages/Index', (err) => {
       if (err.code) {
@@ -176,11 +191,49 @@ export default class EntryAbility extends UIAbility {
         return;
       }
       logger.info('pages/Index loaded');
+      // 系统栏配色与界面底色一致（深色模式下平台默认的纯黑与应用底色不同）。
+      // **必须在 loadContent 之后**：实测窗口在内容就绪前 state 尚未完备，
+      // 此时 setWindowBackgroundColor 会报 "This window state is abnormal"。
+      this.applySystemBarTheme(
+        this.context.config.colorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK);
     });
   }
 
   onWindowStageDestroy(): void {
+    this.mainWindow = null;
     logger.info('Ability onWindowStageDestroy');
+  }
+
+  /** 记下主窗口；取不到就置空（`applySystemBarTheme` 会显式跳过并落日志，不假装生效）。 */
+  private captureMainWindow(windowStage: window.WindowStage): void {
+    try {
+      this.mainWindow = windowStage.getMainWindowSync();
+    } catch (error) {
+      this.mainWindow = null;
+      logger.error('getMainWindowSync failed, system bar colors unavailable: ' + (error as Error).message);
+    }
+  }
+
+  /**
+   * 系统栏（状态栏 / 导航栏）配色跟随应用深浅色。
+   *
+   * **为什么不放在界面里**：这两个栏是平台画的，应用的布局树里没有它们，`resolveTheme` 的
+   * 自动解析到不了；能设置它们的只有持有窗口的这一层。
+   * 配色取自主题令牌（`systemBarColors`：栏底色 = 应用 `background`、栏内容色 = `onBackground`），
+   * 平台调用与自证在 `core/window/SystemBarTheme`。
+   *
+   * 深浅由调用方传进来而不是在这里读 `this.context.config`：实测配置回调里
+   * `this.context.config.colorMode` 仍是**旧值**（深色已生效时读回 1=浅色，栏会被刷成白色），
+   * 所以回调那条路必须用 `newConfig.colorMode`。
+   */
+  private applySystemBarTheme(isDark: boolean): void {
+    const target: window.Window | null = this.mainWindow;
+    if (target === null) {
+      logger.warn('system bar theme skipped: main window not captured yet');
+      return;
+    }
+    const colors: SystemBarColors = systemBarColors(isDark);
+    applySystemBarColors(target, colors.barColor, colors.contentColor);
   }
 
   onForeground(): void {

@@ -6,8 +6,9 @@
 
 import { describe, it, expect } from '@ohos/hypium';
 import {
-  ColorTokens, TypeStyleTokens, ThemeTokens, PlainPalette,
-  PLAIN_PALETTE, LIGHT_COLORS, DARK_COLORS, LIGHT_THEME, DARK_THEME, TYPOGRAPHY, SIZES, resolveTheme
+  ColorTokens, SystemBarColors, TypeStyleTokens, ThemeTokens, PlainPalette,
+  PLAIN_PALETTE, LIGHT_COLORS, DARK_COLORS, LIGHT_THEME, DARK_THEME, TYPOGRAPHY, SIZES,
+  resolveTheme, systemBarColors
 } from '../main/ets/ui/theme/Tokens';
 
 /** 一个颜色令牌的采样。 */
@@ -268,6 +269,23 @@ export default function tokensTest() {
       // backdrop 也一并中性化（原来是 #66362E35，紫调）。
       expect(LIGHT_COLORS.backdrop).assertEqual('#66000000');
       expect(DARK_COLORS.backdrop).assertEqual('#66000000');
+    });
+
+    it('derives the system bar colours from the app background', 0, () => {
+      const light: SystemBarColors = systemBarColors(false);
+      const dark: SystemBarColors = systemBarColors(true);
+      // 栏底色 = **应用底色**：深色模式下平台默认给纯黑，而应用底色是 #1C1C1C，
+      // 两者不同就是设备上看到的那两条更黑的带子（状态栏 / 导航栏各一条）。
+      expect(light.barColor).assertEqual(LIGHT_COLORS.background);
+      expect(dark.barColor).assertEqual(DARK_COLORS.background);
+      expect(dark.barColor).assertEqual('#1C1C1C');
+      expect(dark.barColor !== '#000000').assertTrue();
+      expect(light.barColor).assertEqual('#FFFFFF');
+      // 栏内前景 = 底色之上的前景色（深色底配浅色图标，浅色底配深色图标，否则图标看不见）。
+      expect(light.contentColor).assertEqual(LIGHT_COLORS.onBackground);
+      expect(dark.contentColor).assertEqual(DARK_COLORS.onBackground);
+      expect(channelsOf(dark.contentColor)[0] > channelsOf(dark.barColor)[0]).assertTrue();
+      expect(channelsOf(light.contentColor)[0] < channelsOf(light.barColor)[0]).assertTrue();
     });
 
     it('exposes a complete MD3 typescale', 0, () => {

@@ -26,6 +26,7 @@
 import { window } from '@kit.ArkUI';
 import { common } from '@kit.AbilityKit';
 import { Logger } from '../log/Logger';
+import { reapplySystemBarColors } from './SystemBarTheme';
 
 const logger: Logger = new Logger('core.window.immersive');
 
@@ -65,6 +66,11 @@ export async function applyImmersiveToWindow(target: window.Window, enabled: boo
   } catch (error) {
     logger.error('setWindowSystemBarEnable(' + (enabled ? 'hidden' : 'shown') + ') failed: '
       + (error as Error).message);
+  }
+  // 栏重新出现时**必须重放一次配色**：平台会把它们的底色带回默认值，而深色模式的默认是纯黑、
+  // 与应用底色 #1C1C1C 不同（见 core/window/SystemBarTheme 的文件头）。
+  if (!enabled) {
+    await reapplySystemBarColors(target);
   }
   applyCount++;
   lastApplied = enabled;

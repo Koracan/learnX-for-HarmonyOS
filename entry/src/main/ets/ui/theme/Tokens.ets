@@ -298,3 +298,30 @@ export const DARK_THEME: ThemeTokens = { dark: true, colors: DARK_COLORS, typogr
 export function resolveTheme(isDark: boolean): ThemeTokens {
   return isDark ? DARK_THEME : LIGHT_THEME;
 }
+
+/**
+ * 系统栏（状态栏 / 导航栏）的配色。
+ *
+ * 这两个栏**不在应用的布局树里**（要么被平台画在内容之外，要么被内容盖住），所以它们取不到
+ * `resolveTheme` 的自动解析；挡在平台窗口上的那一层（`core/window/SystemBarTheme`）必须
+ * 被显式喂一份配色。判据只有一条：**栏底色 = 应用底色**。
+ */
+export interface SystemBarColors {
+  /** 栏底色（两栏共用）。 */
+  barColor: string;
+  /** 栏内图标与文字的颜色（两栏共用）。 */
+  contentColor: string;
+}
+
+/**
+ * 由深浅解析系统栏配色：底色取 `background`、栏内前景取 `onBackground`。
+ *
+ * 为什么底色必须是 `background` 而不是平台默认值：深色模式下平台默认给纯黑 `#000000`，
+ * 而应用底色是 `#1C1C1C` ⇒ 顶部与底部各出现一条更黑的带子（浅色模式下两者都是白，看不出来）。
+ * 前景色跟着底色走，否则深色底配深色图标会让栏内内容不可读。
+ * @param isDark 是否深色（由系统 colorMode 判定）
+ */
+export function systemBarColors(isDark: boolean): SystemBarColors {
+  const colors: ColorTokens = resolveTheme(isDark).colors;
+  return { barColor: colors.background, contentColor: colors.onBackground };
+}
