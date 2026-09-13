@@ -9,6 +9,7 @@
 **/evidence/*.webp
 **/evidence/*.gif
 **/evidence
+**/logs
 
 # 各 ticket 的过程文件（hilog 原始拉取、layout dump、探针截图）——**不进版本库**，
 # 只作工作副本。
