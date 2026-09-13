@@ -284,7 +284,9 @@ export struct FileDetailPage {
   }
 
   /**
-   * 分享用的 UTD（统一类型描述符）。
+   * **分享**用的 UTD（统一类型描述符）—— **只服务分享**。
+   *
+   * 外跳那条路**不传 type**（见 `openExternally` 的说明），两条路不再共用类型。
    *
    * **不用 `getUniformDataTypeByFilenameExtension`**：实测（模拟器，2026-09-12）它在
    * "扩展名 + belongsTo" 这一组合下会让后续的 `SharedData` 构造抛
@@ -358,7 +360,13 @@ export struct FileDetailPage {
    * `ohos.want.action.viewData` 的隐式 want，参数构造在 domain 里（可单测），
    * 这里只做两件测不了的事：按路径生成 uri、把 want 交给 `startAbility`。
    *
-   * **失败要说话**：设备上没有任何应用声明能读这个类型时 `startAbility` 会抛，
+   * **这条 want 不带 `type`**，与参考实现一致（`FileViewer.open` 只吃路径，类型由系统解析）。
+   * 带上 type 这一台上是**有害**的：设备实测同一个 uri 去掉 type 能匹配到接收方，
+   * 带上 `general.file` 则回 `16000019 No matching ability is found` —— 本机没有任何应用
+   * 声明 `general.file`，于是入口退化成「点了必然失败」。分享**仍然要** type
+   * （`systemShare` 的 `SharedData` 需要 UTD），所以 `shareUtd()` 只服务分享。
+   *
+   * **失败要说话**：没有任何应用能接住这条 want 时 `startAbility` 会抛，
    * 这时把原因留在页面上（含错误码打点），不静默返回。文件还没落盘时同理 ——
    * 按钮照常可点，点了给一句"还没下载完成"，而不是什么都不发生。
    */
@@ -375,10 +383,11 @@ export struct FileDetailPage {
     try {
       const uri: string = fileUri.getUriFromPath(this.localPath);
       logger.info('file detail external open uri: ' + uri);
-      step = 'utd';
-      const intent: ExternalOpenIntent = externalOpenIntent(uri, this.shareUtd());
-      logger.info('file detail external open want: action=' + intent.action + ' type=' + intent.type
-        + ' flags=' + intent.flags.toString() + ' entities=' + intent.entities.length.toString());
+      step = 'intent';
+      // 空 type = 交给系统一条不做类型约束的隐式 want（见方法头说明）。
+      const intent: ExternalOpenIntent = externalOpenIntent(uri, '');
+      logger.info('file detail external open want: action=' + intent.action + ' type=[' + intent.type
+        + '] flags=' + intent.flags.toString() + ' entities=' + intent.entities.length.toString());
       const want: Want = {
         action: intent.action,
         uri: intent.uri,

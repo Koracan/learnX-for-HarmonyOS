@@ -5,10 +5,10 @@
 
 > 这台机是**真实登录会话**（han-wang23）。全程没有点「退出登录」、没有点任何提交入口、没有改设备级设置。
 > 第一轮点击过的按钮只有：底部 tab（文件 / 作业）、文件列表里的一个 ZIP、详情顶栏的「外跳」、以及系统对话框的「取消」；
-> 补证轮另外点过：顶栏「刷新」、作业卡片与它的附件行（**没有**碰提交入口），详见文末「本轮收尾」。
+> 补证轮另外点过：顶栏「刷新」、作业卡片与它的附件行（**没有**碰提交入口）；补证轮 2 又点了两次「外跳」（ZIP 与 PDF）。各轮的收尾都写在文末。
 >
-> **本文含两轮**：第一轮（首次交付，第 1–8 节）与 **补证轮**（统筹复核通过并合并之后，见文末「补证轮」一节）——
-> 补的是「未落盘」那一支的设备帧、成功路径的证伪式搜索、以及 want type 匹配的决定性对照实验。
+> **本文含三轮**：第一轮（首次交付，第 1–8 节）→ **补证轮**（未落盘帧 + 成功路径的证伪式搜索 + type 匹配的决定性对照）
+> → **补证轮 2**（外跳改为不带 type 之后的门禁与成功路径实测）。两轮补证都在文末。
 
 ## 参考实现里这个动作到底是什么（**先读，别猜**）
 
@@ -275,3 +275,93 @@ com.huawei.hmos.photos        com.huawei.hmos.hipreview com.ohos.UserFile.Extern
   应用自己的「文件设置 → 清空文件缓存」是可用的清理入口。
 - 学期覆盖是**进程内**的：重启后立即复原（hilog `source=none`），文件 tab 回到当前学期的 `全部 4`。
 - 全程没有点「退出登录」、没有点任何提交入口、没有改设备级设置；只碰 `127.0.0.1:5559`。
+
+## 补证轮 2：外跳改为不带 type（裁定 1 修订），成功路径拿到
+
+### 改动（本轮唯一的代码改动）
+
+`entry/src/main/ets/features/files/FileDetailPage.ets`（+15/−6，一个文件）：
+
+- `openExternally()` 的 want **不再带 type**：调用从 `externalOpenIntent(uri, this.shareUtd())` 改成 `externalOpenIntent(uri, '')`；
+  `if (intent.type.length > 0) want.type = …` 那条守卫保留（它现在恒不成立，但它是 `externalOpenIntent` 的契约：空 type 不该进 Want）。
+  打点从 `step=utd` 改为 `step=intent`。
+- `shareUtd()` **只服务分享**（注释改准）：`systemShare` 的 `SharedData` 仍需要 UTD，分享动作一个字未动。
+- `domain/files/ExternalOpen.ets` 与它的单测**未改**（该模块本来就支持空 type）。
+
+### 门禁（原始输出）
+
+| 项 | 原始输出 |
+| --- | --- |
+| 单测 | `Tests run: 422, Failure: 0, Error: 0, Pass: 422, Ignore: 0`；`test_result.txt` 时间戳 **13:49:25**（读取时刻 13:49:57，本轮）；日志 `> hvigor BUILD SUCCESSFUL in 43 s 990 ms`，无 `ERROR:` / `COMPILE RESULT:FAIL` |
+| 打包 | `assembleHap --no-incremental`：`> hvigor BUILD SUCCESSFUL in 19 s 127 ms`；**搜 `ERROR` / `ErrorCode` / `COMPILE RESULT` 无命中**；产物 `entry-default-signed.hap` 5063672 B，SHA256 `253155A4789ADBED0C88F26B16A02D3D760DF7CEEE35D3AE032C6EDC930E5FEE` |
+| `check-domain-purity` | `PASS domain 不依赖平台与应用层`（扫 25 个领域源文件） |
+| `check-import-graph` | `PASS 所有相对 import 均可解析`（203 个源文件；WARN 只有两个入口文件） |
+| `check-i18n-keys` | `RESULT: OK`（zh_CN/en_US 各 311 条，missing/empty/extra=0；source 184 个键全解析） |
+| `check-generated-fresh` | `PASS 生成物与其生成器输入一致` |
+
+单测基线：合并 main（带入 ticket 12 的 `WebSessionCookie` 等）后从 405 → **422**；本 ticket 的 5 条 `ExternalOpen` 用例仍在并全过。
+
+### 成功路径：两个已落盘文件各点一次外跳
+
+两条都**不再是 `16000019`** —— `startAbility` 返回成功，hilog 打的是 `handed to the system`：
+
+```
+file detail external open want: action=ohos.want.action.viewData type=[] flags=1 entities=0      <- ZIP（Listening 3-1，fromCache=true）
+file detail external open handed to the system: uri=file://com.koracan.learnOH/…Listening%203-1%20(Extra%20Listening).zip
+
+file detail external open want: action=ohos.want.action.viewData type=[] flags=1 entities=0      <- PDF（Homework12，fromCache=true）
+file detail external open handed to the system: uri=file://com.koracan.learnOH/…-Homework12.pdf
+```
+
+**ZIP → `com.huawei.hmos.filemanager`（文件管理）接住，但没有打开这个文件**（`13-external-open-handoff-zip.png`）。
+AMS 侧确认 hand-off 发生过：`RecentlyUseController … "bundleName":"com.huawei.hmos.filemanager","moduleName":"pc","abilityName":"MainAbility",… "callerBundleName":"com.koracan.learnOH"`。
+但接收方落在**它自己的主页**（`最近 | 0 项`、`共 0 个文件，5 个文件夹`），没有打开、也没有把 ZIP 列进「最近」。
+（首次启动它弹了自己的隐私声明，为看到后续界面点了一次「同意」—— 那是系统自带应用的首次同意，**不是设备级设置**，如实记在这里。）
+
+**PDF → `com.huawei.hmos.browser` 接住，并且真的把内容渲染出来了**（`13-external-open-pdf-rendered.png`）：
+
+- 地址栏：`file:///storage/Users/currentUser/appdata/el2/base/com.koracan.learnOH/haps/entry/cache/learnX-files/%E7%AE%97%E6%B3%95…-Homework12.pdf`
+- 查看器：文件名 `算法分析与设计基础-Homework12.pdf`、`1 / 1`、`100%`
+- 正文可见：`Homework 12` / `Deadline: June 15, 2026` / `CLRS (4th Edition), Problems 26-2。` / `实验（二选一）…`
+- AMS：`SCBMain: startSceneTransition:{… bundleInfo:MainAbility/com.huawei.hmos.browser/entry/0 … callerAbilityName: EntryAbility …}`
+
+> **那个未知之处被正面回答：接收方真的能读到沙箱里的文件。** 浏览器把 `file://com.koracan.learnOH/…`
+> 解析成了真实路径 `file:///storage/Users/currentUser/appdata/el2/base/com.koracan.learnOH/…` 并读出了 PDF 内容，
+> 说明 `FLAG_AUTH_READ_URI_PERMISSION`（`flags=1`）被系统兑现了 —— 这不是「它自己报了自己的错」，是**内容真的画出来了**。
+>
+> 截图里另一个标签页 `Example Domain` 是上一轮 T8 实验（`aa start -U https://example.com/x`）留下的，与本 ticket 无关；
+> 它还在那里只是因为浏览器被复用、没有开隐私模式。记在这里避免误读。
+
+**两条合起来的结论**：改完之后外跳从「必然弹错误」变成「系统稳定接住」。PDF 这一类（浏览器能渲染的类型）是**真正可用**的成功路径；
+ZIP 这一类**被接住但接收方不打开**（filemanager 那条无类型约束的 skill 是它的主页入口，不看 uri）——
+比改动前的「点了报错」好，但也不是「打开成功」。这个差异是**接收方的行为**，不是我们 want 形状的问题（同一形状对 PDF 就成功）。
+
+### 不回归：「无接收方 ⇒ 可读文案」
+
+**本轮没能在设备上重现，而且这一台上它现在不可达。** 依据：
+
+- type-less 的 `viewData` 在这台上有**至少两个**声明者：`filemanager` 的 `types=[]` 那条，与 `browser` 的 `types=[ | | text/plain]` 那条。
+  于是任何 type-less 的 viewData 都能匹配到接收方 —— 上一轮的 T3 / T7 / T8 三次无类型试验**全部** `start ability successfully`，
+  其中 T7 用的就是我们这种 `file://com.koracan.learnOH/…` uri。
+- 所以「平台无接收方」这条输入在这一台上已经造不出来了（不改代码、不改设备的前提下）。
+- 代码上那条分支**一点没动**：`catch` 仍在、仍按 `step` 打点、仍写 `openNote = loh_open_file_failed`；
+  它在本 ticket 第一轮（带 type 的产物）**已经在设备上实测过**（`13-external-open-no-handler.png` 与 `13-open-failure-note-persists.png`）。
+  本轮唯一的相关改动是「不再把 type 塞进 Want」，没有触及失败分支。
+
+### 本轮产物
+
+| 文件 | 字节 | SHA256(前16) | 用途（一条主论断） |
+| --- | ---: | --- | --- |
+| `13-external-open-handoff-zip.png` | 270047 | 234ABC0681BF26ED | 点 ZIP 外跳后：接收方（文件管理）被拉起、停在它自己的主页，未打开该文件 |
+| `13-external-open-pdf-rendered.png` | 311257 | 203C9F894A928E42 | 点 PDF 外跳后：浏览器把沙箱文件解析成真实路径并**渲染出 PDF 正文**（读权限确实被兑现） |
+| `logs/13c-layout-01/04-*.json` | — | — | 两个文件的详情页 dump：都 `fromCache=true`；PDF 那帧外跳在 `[2664,…]`（多一枚详情/预览） |
+| `logs/13c-hilog-2/5.txt` | — | — | 两次点击的 `type=[]` + `handed to the system` 原话 |
+| `logs/13c-layout-02/03/05-*.json` | — | — | 接收方界面 dump（filemanager 隐私声明 → 主页；browser 的地址栏与标签页） |
+| `logs/13c-hilog-restore.txt`、`logs/13c-layout-09-restored.json` | — | — | 收尾复原：`semester override … source=none`、文件 tab 回到 `全部 4` |
+
+### 本轮收尾
+
+- 设备复原：`aa force-stop` 后不带 `--ps` 重启 → `data.files semester override: … effective="" source=none`，文件 tab `全部 4`。
+- **没有清缓存**（按要求）：166MB / 734MB 两个 ZIP 与 `Homework12.pdf` 都仍在应用缓存里，别的 ticket 可继续引用。
+- 只碰 `127.0.0.1:5559`；没有点退出登录、没有点任何提交入口、没有改设备级设置。
+- 唯一一处落在应用外部的状态变更：`com.huawei.hmos.filemanager` 的首次隐私声明被点了一次「同意」（为了看到它接住之后的行为）。
