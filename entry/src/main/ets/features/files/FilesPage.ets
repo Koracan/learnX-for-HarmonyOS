@@ -37,7 +37,7 @@ import { ContentFilter } from '../../domain/marks/ContentFilter';
 import { MarksDomain, MarksTab } from '../../domain/marks/CollectionFlags';
 import { CollectionFlagsStore } from '../../data/marks/CollectionFlagsStore';
 import {
-  FileFilterCounts, FilteredFiles, fileCounts, filesForFilter, isInGroupFiles,
+  FileFilterCounts, FilteredFiles, fileCounts, filesContain, filesForFilter,
   selectFilteredFiles
 } from '../marks/FilteredContent';
 import { collectionFlagsStore } from '../marks/CollectionFlagsProvider';
@@ -517,18 +517,19 @@ export struct FilesPage {
             })
           }
           .swipeAction({
-            end: this.swipeEnd(item, isInGroupFiles(this.filtered().fav, item.id),
-              isInGroupFiles(this.filtered().archived, item.id))
+            // 收藏状态取**原始收藏集合**（理由同公告页：过滤后的 fav 分组只在 all 之内）。
+            end: this.swipeEnd(item, this.flags.fileFavorites.includes(item.id),
+              filesContain(this.filtered().archived, item.id))
           })
-          .bindContextMenu(this.rowMenu(item, isInGroupFiles(this.filtered().fav, item.id),
-            isInGroupFiles(this.filtered().archived, item.id)), ResponseType.LongPress)
+          .bindContextMenu(this.rowMenu(item, this.flags.fileFavorites.includes(item.id),
+            filesContain(this.filtered().archived, item.id)), ResponseType.LongPress)
           .onClick(() => {
             this.openFile(item);
           })
         }, (item: CourseFile) =>
           'file|' + item.courseId + '|' + item.id
-          + '|' + (isInGroupFiles(this.filtered().fav, item.id) ? 'fav' : 'nofav')
-          + '|' + (isInGroupFiles(this.filtered().archived, item.id) ? 'arch' : 'noarch')
+          + '|' + (this.flags.fileFavorites.includes(item.id) ? 'fav' : 'nofav')
+          + '|' + (filesContain(this.filtered().archived, item.id) ? 'arch' : 'noarch')
           // 高亮态要进 key：否则 ForEach 认为这一项没变、不会重建行（选中态就不会跟着变）。
           + '|' + (this.splitActive && this.selectedId === item.id ? 'sel' : 'nosel'))
       }

@@ -13,7 +13,7 @@
  * | all | `items.filter(i => !archived.includes(i.id) && !hidden.includes(i.courseId))` | :77-79 / :111-113 / :147-149 |
  * | unread | `all.filter(i => i.hasRead === false)`（公告） / `all.filter(i => i.isNew)`（文件） | :82 / :152 |
  * | unfinished / finished | `all.filter(i => !i.submitted)` / `all.filter(i => i.submitted)` | :116-117 |
- * | fav | `all.filter(i => fav.includes(i.id))` —— **在 all 之上再筛** | :83 / :118 / :153 |
+ * | fav | `all.filter(i => fav.includes(i.id))` —— **在 all 之上再筛**（收藏视图里看不到已归档 / 被屏蔽课程的条目；行上的收藏按钮状态取原始收藏集合，见 noticesContain 的说明） | :83 / :118 / :153 |
  * | archived | `items.filter(i => archived.includes(i.id))` —— **用原始 items** | :84 / :119 / :154 |
  * | hidden | `items.filter(i => hidden.includes(i.courseId))` —— **用原始 items** | :85 / :120 / :155 |
  *
@@ -288,11 +288,11 @@ export function filesForFilter(filtered: FilteredFiles, filter: ContentFilter): 
 }
 
 /**
- * 某一行的收藏状态 —— **取过滤后的 fav 分组**（参考实现 FilterList.tsx:210-215
- * 的 `fav?.some(f => f.id === item.id)`），不是原始 favorites 数组。
- * 这个差别在"屏蔽"视图里可见：一条已收藏但课程被屏蔽的条目会显示为**未收藏**。
+ * 数组里是否含某个 id（原始集合的成员判断）。行上的收藏状态用它、传**原始收藏集合**
+ * （调用方传 flags 的 favorites 数组），而不是过滤后的 fav 分组：fav 分组只在 all 之内，
+ * 在"归档"或"屏蔽"视图里一条已收藏的条目不在其中，会被显示成未收藏。
  */
-export function isInGroupNotices(group: NoticeRecord[], id: string): boolean {
+export function noticesContain(group: NoticeRecord[], id: string): boolean {
   for (let i = 0; i < group.length; i++) {
     if (group[i].id === id) {
       return true;
@@ -301,7 +301,7 @@ export function isInGroupNotices(group: NoticeRecord[], id: string): boolean {
   return false;
 }
 
-export function isInGroupAssignments(group: Assignment[], id: string): boolean {
+export function assignmentsContain(group: Assignment[], id: string): boolean {
   for (let i = 0; i < group.length; i++) {
     if (group[i].id === id) {
       return true;
@@ -310,7 +310,7 @@ export function isInGroupAssignments(group: Assignment[], id: string): boolean {
   return false;
 }
 
-export function isInGroupFiles(group: CourseFile[], id: string): boolean {
+export function filesContain(group: CourseFile[], id: string): boolean {
   for (let i = 0; i < group.length; i++) {
     if (group[i].id === id) {
       return true;
@@ -340,14 +340,14 @@ export function isHiddenCourse(hiddenCourseIds: string[], courseId: string): boo
  *
  * 实现方式 = **复用本模块既有的 hidden 分组**（判据仍是
  * `hiddenCourseIds.includes(item.courseId)`，见三个 selector 的第三段循环）+
- * 既有的 `isInGroupXxx` 成员判断，**不另写一套过滤谓词**。
+ * 既有的 `noticesContain` 成员判断，**不另写一套过滤谓词**。
  */
 export function noticesExcludingHiddenCourses(items: NoticeRecord[],
   hiddenCourseIds: string[]): NoticeRecord[] {
   const hiddenGroup: NoticeRecord[] = selectFilteredNotices(items, [], [], hiddenCourseIds).hidden;
   const out: NoticeRecord[] = [];
   for (let i = 0; i < items.length; i++) {
-    if (!isInGroupNotices(hiddenGroup, items[i].id)) {
+    if (!noticesContain(hiddenGroup, items[i].id)) {
       out.push(items[i]);
     }
   }
@@ -360,7 +360,7 @@ export function assignmentsExcludingHiddenCourses(items: Assignment[],
   const hiddenGroup: Assignment[] = selectFilteredAssignments(items, [], [], hiddenCourseIds).hidden;
   const out: Assignment[] = [];
   for (let i = 0; i < items.length; i++) {
-    if (!isInGroupAssignments(hiddenGroup, items[i].id)) {
+    if (!assignmentsContain(hiddenGroup, items[i].id)) {
       out.push(items[i]);
     }
   }
@@ -373,7 +373,7 @@ export function filesExcludingHiddenCourses(items: CourseFile[],
   const hiddenGroup: CourseFile[] = selectFilteredFiles(items, [], [], hiddenCourseIds).hidden;
   const out: CourseFile[] = [];
   for (let i = 0; i < items.length; i++) {
-    if (!isInGroupFiles(hiddenGroup, items[i].id)) {
+    if (!filesContain(hiddenGroup, items[i].id)) {
       out.push(items[i]);
     }
   }

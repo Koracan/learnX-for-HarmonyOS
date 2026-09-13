@@ -51,7 +51,7 @@ import { createNoticeRepository } from './repository/NoticeRepositoryProvider';
 import { CollectionFlagsStore } from '../../data/marks/CollectionFlagsStore';
 import { collectionFlagsStore } from '../marks/CollectionFlagsProvider';
 import {
-  FilteredNotices, NoticeFilterCounts, isInGroupNotices, noticeCounts, noticesForFilter,
+  FilteredNotices, NoticeFilterCounts, noticeCounts, noticesForFilter, noticesContain,
   selectFilteredNotices
 } from '../marks/FilteredContent';
 import { FileDetailPage } from '../files/FileDetailPage';
@@ -557,15 +557,17 @@ export struct NoticesPage {
             })
           }
           .swipeAction({
-            end: this.swipeEnd(item, isInGroupNotices(this.filtered().fav, item.id),
-              isInGroupNotices(this.filtered().archived, item.id))
+            // 收藏状态取**原始收藏集合**：fav 分组只在 all 之内，用它在"归档"或"屏蔽"视图里
+            // 会把已收藏的行显示成未收藏。归档状态仍取归档分组（该分组就是 filter=archived 的列表）。
+            end: this.swipeEnd(item, this.flags.noticeFavorites.includes(item.id),
+              noticesContain(this.filtered().archived, item.id))
           })
-          .bindContextMenu(this.rowMenu(item, isInGroupNotices(this.filtered().fav, item.id),
-            isInGroupNotices(this.filtered().archived, item.id)), ResponseType.LongPress)
+          .bindContextMenu(this.rowMenu(item, this.flags.noticeFavorites.includes(item.id),
+            noticesContain(this.filtered().archived, item.id)), ResponseType.LongPress)
         }, (item: NoticeRecord) =>
           item.id + '|' + (item.hasRead ? 'read' : 'unread')
-          + '|' + (isInGroupNotices(this.filtered().fav, item.id) ? 'fav' : 'nofav')
-          + '|' + (isInGroupNotices(this.filtered().archived, item.id) ? 'arch' : 'noarch')
+          + '|' + (this.flags.noticeFavorites.includes(item.id) ? 'fav' : 'nofav')
+          + '|' + (noticesContain(this.filtered().archived, item.id) ? 'arch' : 'noarch')
           // 高亮态要进 key：否则 ForEach 认为这一项没变、不会重建行（选中态就不会跟着变）。
           + '|' + (this.splitActive && this.selectedId === item.id ? 'sel' : 'nosel'))
       }

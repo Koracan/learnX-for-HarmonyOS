@@ -31,7 +31,7 @@ const SWIPE_ICON_SIZE: number = 32;
 /** 收藏 / 归档两个按钮（公告 / 作业 / 文件三域共用）。 */
 @Component
 export struct ContentSwipeActions {
-  /** 该行是否已收藏（**取过滤后的 fav 分组**，见 features/marks/FilteredContent）。 */
+  /** 该行是否已收藏（传**原始收藏集合**的成员判断，见 features/marks/FilteredContent）。 */
   @Prop fav: boolean = false;
   /** 该行是否已归档。 */
   @Prop archived: boolean = false;

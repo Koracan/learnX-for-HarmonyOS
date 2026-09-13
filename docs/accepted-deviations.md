@@ -709,4 +709,45 @@ previewUrl: attachmentResult.uri, size, type })` —— 即用**本地 URI**（`
 `entry/src/main/ets/data/settings/ImmersiveSettings.ets`；`entry/src/test/Settings.test.ets`；
 `.scratch/settings/evidence/README.md`。
 
+---
+
+## 30. 收藏 / 归档 / 屏蔽：**置真改为去重**、行级收藏状态改用**原始收藏集合**（三视图口径收敛）—— 已复审（2026-09-13）
+
+> **⚠️ 同号两义**：本条与上面的「设置与 Mock 模式的四处偏离」都是第 30 条（历史编号冲突，见 `docs/reference-quirks.md` 的「已知的编号冲突」一节）。
+> 本条是 `docs/reference-quirks.md` 第 30 条（三视图口径）收敛后迁来的记录。
+
+**参考实现行为**（`reference/learnOH-old/`，逐字可查）：
+
+| # | 行为 | 出处 |
+| --- | --- | --- |
+| A | `all = items.filter(i => !archived.includes(i.id) && !hidden.includes(i.courseId))` | `src/data/selectors/filteredData.ts:77-79`（公告）、`:111-113`（作业）、`:147-149`（文件） |
+| B | `fav = all.filter(i => fav.includes(i.id))` —— 在 all 之上再筛 | `:83`、`:118`、`:153` |
+| C | `archived` / `hidden` 两个分组用**原始 items**（不套 A 的两条排除） | `:84-85`、`:119-120`、`:154-155` |
+| D | 行级收藏状态取**过滤后的 fav 分组**（`fav?.some(f => f.id === item.id)`） | `src/components/FilterList.tsx:210-215` |
+| E | reducer 置真一律 **append、不去重** | `src/data/reducers/notices.ts:59-72`、`assignments.ts:69-96`、`files.ts:67-94`、`courses.ts:65-70` |
+
+**可复现的后果**（D + E）：先收藏一条公告 → 再到课程页屏蔽它所属的课程 → 打开公告页的"屏蔽"视图 → 该行显示为**未收藏**（条目在 all 之外、不在 fav 分组里）→ 再点一次收藏，favorites 里写下**重复 id**。
+
+**变了什么**（2026-09-13）：
+
+| 项 | 参考实现 | 新实现 |
+| --- | --- | --- |
+| 置真 | append、不去重（收藏 / 归档 / 屏蔽三处） | **集合语义**：已在集合里就不再加入（`domain/marks/CollectionFlags.ets` 的 `mergeId` / `mergeIds`） |
+| 行级收藏状态 | 取过滤后的 fav 分组 | 取**原始收藏集合**（`flags.noticeFavorites` / `assignmentFavorites` / `fileFavorites`），三个列表页的滑动操作、长按菜单与 ForEach key 同一判据 |
+
+**没变的**：三个分组的构造口径（A / B / C）与计数算式、`filteredData.ts` 的四个 tab 默认值、`all` 排除已归档与被屏蔽课程、收藏视图仍是 all 的子集（不在其中重复出现已归档 / 被屏蔽课程的条目）、归档与屏蔽两个分组仍用原始 items。行级**归档**状态也仍取归档分组（该分组就是"归档"视图的列表）。
+
+**为什么可以偏离**："与参考实现一致"自 2026-09-13 起不再是完成定义（`reference/learnOH-old/` 只是标尺）；重复 id 是记账缺陷，屏蔽视图里的收藏状态显示错是界面缺陷，两者都在本轮 spec 的范围内（技术债 #30：置真去重 + 口径统一）。
+
+**替代验收标准**：
+
+1. 单测 `favoriteAndArchiveTogglingFollowsTheReferenceReducers`：同一内容项连续两次置真后 `favorites` 仍只有一份 id（该断言由"append 不去重"**反转为去重语义**，是有意的行为变更）；归档与屏蔽的置真同样只有一份。
+2. 单测 `aFavoritedItemStaysFavoritedAfterItsCourseIsHidden`：收藏后屏蔽该课程，条目不在 fav 分组里（收藏视图口径不变），但原始收藏集合仍含它 ⇒ 屏蔽视图里该行显示为已收藏；此时再点一次收藏是**取消收藏**（置假），不会又写一条。
+3. 设备侧：真机上一次「收藏 → 屏蔽该课程 → 看屏蔽视图」的截图，行上的收藏图标呈"已收藏"态（由统筹者采集）。
+
+**原证据还成立到哪一步**：`reference-quirks.md` 第 30 条的 A–C（分组口径）与表格里的源文件行号仍然成立；只有 D / E 两项不再成立（正文条目已标【已收敛】）。ticket 14 交付节里"append 不去重是照抄参考实现"的结论按本条更正。
+
+**取证**：`entry/src/main/ets/domain/marks/CollectionFlags.ets`、`entry/src/main/ets/features/marks/FilteredContent.ets`、`entry/src/main/ets/features/{notices/NoticesPage,assignments/AssignmentsPage,files/FilesPage}.ets`、`entry/src/test/Favorites.test.ets`；单测输出见本轮交付回报。
+
+
 

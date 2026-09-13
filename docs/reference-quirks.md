@@ -57,7 +57,8 @@
 | 27 | 新选中附件那一行不可点（参考实现用上传前的本地 URI 进 FileDetail） | 已复审（ticket 13） |
 | 28 | 分栏的详情路由迁移：整段迁移与参考一致；补上退出分栏的对称回迁 | 已复审（ticket 16；本条原来漏登记索引，ticket 15 补上） |
 | 29 | 搜索的三处偏离：引擎换自写评分 / 结果排除被屏蔽课程 / 分栏下自成一左一右 | 已复审（ticket 15） |
-| 30 | 设置与 Mock 模式的四处偏离 | 已复审（ticket 17）。**⚠️ 与下面正文里的第 30 条是两件不同的事，见 `docs/agents/porting.md` 的"已知缺陷"** |
+| 30 | 设置与 Mock 模式的四处偏离 | 已复审（ticket 17）。**⚠️ 本条在 `accepted-deviations.md` 里还有第二个同号条目**（三视图口径收敛，2026-09-13），见 `docs/agents/porting.md` 的"已知缺陷" |
+| 30 | 收藏 / 归档 / 屏蔽的三个视图口径不对称（置真 append 不去重；屏蔽视图里显示成未收藏） | 2026-09-13 收敛：置真改去重、行级收藏状态改取原始收藏集合；正文条目已标【已收敛】 |
 
 > 流程（2026-09-13 起）：发现新怪癖/技术债 → 带源文件行号追加到本文件；
 > 改掉某一处 → 在 `docs/accepted-deviations.md` **追加一条带日期的说明**（变了什么 / 为什么 / 原证据还成立到哪一步）。
@@ -675,7 +676,10 @@ HarmonyOS 6.1.0(23)，2026-09-13），**不是**参考实现的行为，因此�
 
 ---
 
-## 30. 收藏 / 归档 / 屏蔽的**三个视图口径不对称**（fav ⊆ all；archived / hidden 用原始 items；置真 append 不去重）—— 锁定
+## 30. 收藏 / 归档 / 屏蔽的**三个视图口径不对称**（fav ⊆ all；archived / hidden 用原始 items；置真 append 不去重）—— 锁定 → **已收敛（2026-09-13 迁往 `docs/accepted-deviations.md`）**
+
+**【已收敛 · 2026-09-13】**置真不去重与"屏蔽视图里显示成未收藏"两处已改，迁移条目见 `docs/accepted-deviations.md` 的第 30 条。
+下面表格里 A–D 的四条行为（三个分组的构造口径）**都保留**，所以本条作为历史记录仍然读得通；不再成立的是 E（行状态取 fav 分组）与 F（置真 append 不去重）。
 
 **参考实现行为**（全部逐字可查，行号是 `reference/learnOH-old/`）：
 
@@ -688,13 +692,13 @@ HarmonyOS 6.1.0(23)，2026-09-13），**不是**参考实现的行为，因此�
 | E | 收藏按钮的状态取的是**过滤后的 fav 分组**（`fav?.some(f => f.id === item.id)`），不是原始 `favorites` 数组 | `src/components/FilterList.tsx:210-215` |
 | F | reducer 置真一律 **append、不去重**（`[...state.favorites, id]` / `[...state.archived, ...ids]` / `[...state.hidden, courseId]`） | `src/data/reducers/notices.ts:59-72`、`assignments.ts:69-96`、`files.ts:67-94`、`courses.ts:65-70` |
 
-**E + F 合起来有一个可复现的后果**：先收藏一条公告 → 再到课程页屏蔽它所属的课程 → 打开公告页的"屏蔽"视图 → 该行显示为**未收藏**（因为它在 `all` 之外、不在 fav 分组里）→ 再点一次收藏，`favorites` 里就出现**重复 id**。代码路径逐行可推（不需要设备），本工程的单测 `favoriteAndArchiveTogglingFollowsTheReferenceReducers` 把"append 不去重"钉住。
+**E + F 合起来有一个可复现的后果**：先收藏一条公告 → 再到课程页屏蔽它所属的课程 → 打开公告页的"屏蔽"视图 → 该行显示为**未收藏**（因为它在 `all` 之外、不在 fav 分组里）→ 再点一次收藏，`favorites` 里就出现**重复 id**。代码路径逐行可推（不需要设备），本工程的单测 `favoriteAndArchiveTogglingFollowsTheReferenceReducers` 当时把"append 不去重"钉住（2026-09-13 起该断言已反转为去重语义）。
 
-**为什么别急着"修好"**：这三条（统一三组口径、给 append 加去重、把 hidden 视图从内容三域删掉）都会让可观察行为偏离参考实现，而"移植是否正确"正是拿参考实现当基准的。曾经有一次口头转述把 D 说成"只有课程页有 hidden 视图、三域直接剔除不显示分组"，与源码不符——**以本条的 C/D 为准**（ticket 14 交付里也记了这次更正）。
+**为什么当初别急着"修好"**（**历史理由**，2026-09-13 起不再阻止改动；"移植是否正确"也不再是验收基准）：这三条（统一三组口径、给 append 加去重、把 hidden 视图从内容三域删掉）都会让可观察行为偏离参考实现。曾经有一次口头转述把 D 说成"只有课程页有 hidden 视图、三域直接剔除不显示分组"，与源码不符——**以本条的 C/D 为准**（ticket 14 交付里也记了这次更正）。
 
-**新实现做法**：`entry/src/main/ets/features/marks/FilteredContent.ets`（三域分组与计数，逐行对齐 A-F）与 `entry/src/main/ets/domain/marks/CollectionFlags.ets`（迁移规则，含 append 不去重）照抄；隐藏课程的内容从 `all` 里剔除、并提供"屏蔽"视图，与参考实现一致。
+**新实现做法（2026-09-13 收敛后）**：`entry/src/main/ets/features/marks/FilteredContent.ets` 的三个分组与计数仍与 A–D 一致（fav ⊆ all；archived / hidden 用原始 items）；`entry/src/main/ets/domain/marks/CollectionFlags.ets` 的置真改为**集合语义**（收藏 / 归档 / 屏蔽三处都去重）；三个列表页的行级收藏状态改用**原始收藏集合**判断（不再是过滤后的 fav 分组），所以"屏蔽"视图里的已收藏行显示为已收藏。归档状态仍取归档分组（该分组就是"归档"视图的列表）。
 
-**取证**：上表的源文件行号；`entry/src/test/Favorites.test.ets`（`allExcludesArchivedItemsAndItemsOfHiddenCourses`、`favoriteIsASubsetOfAllSoArchivedItemsNeverShowUpInFavorites`、`archivedAndHiddenGroupsKeepTheOtherFilterOut`、`favoriteAndArchiveTogglingFollowsTheReferenceReducers`）；ticket 14 的交付节与 `.scratch/favorites/evidence/README.md`。
+**取证**：上表的源文件行号；`entry/src/test/Favorites.test.ets`（`allExcludesArchivedItemsAndItemsOfHiddenCourses`、`favoriteIsASubsetOfAllSoArchivedItemsNeverShowUpInFavorites`、`archivedAndHiddenGroupsKeepTheOtherFilterOut`、`favoriteAndArchiveTogglingFollowsTheReferenceReducers`、`aFavoritedItemStaysFavoritedAfterItsCourseIsHidden`）；ticket 14 的交付节与 `.scratch/favorites/evidence/README.md`。
 
 
 ---
@@ -780,7 +784,6 @@ fuse 按路径取到 `undefined` ⇒ 这 5 个键（公告 1 + 作业 4）**恒�
 | 条目 | 限制 | 判据（可复核） | 后果 |
 | --- | --- | --- | --- |
 | 32 | 搜索字段表缺 `category.title`（数据模型 `CourseFile` 没有 `category` 字段） | `features/search/SearchCore.ets` 的 `MODEL_MISSING_KEYS = ['category.title']`；`domain/model/ContentItem.ets` 的 `CourseFile` 无该字段 | 文件搜索无法按分类文本召回（`fileType` 权重 2 仍在，故影响小） |
-| 30 | 收藏/归档/屏蔽三视图口径不对称；置真 **append 不去重** ⇒ 被屏蔽课程的行显示为"未收藏"，再点一次会写**重复收藏 id** | `domain/marks/CollectionFlags.ets`（`concat([id])` 不去重）；`features/marks/FilteredContent.ets`；单测 `entry/src/test/Favorites.test.ets` | 收藏状态显示错 + 重复 id 记账 |
 
 ### B. 仍未定案（需要新的证据，不是改代码）
 
@@ -794,7 +797,7 @@ fuse 按路径取到 `undefined` ⇒ 这 5 个键（公告 1 + 作业 4）**恒�
 
 `#1`（HTTP 层内容类型判定，启发式未搬）· `#3`（显式时间序比较器 + 等价断言）· `#7`（手工解析替代 `new URL()`，条件等价）·
 `#15`（Netscape 制表符行 + 标准 `Set-Cookie` 双入口解析器）· `#19`（两步排序已补齐）· `#20`（数字码与站点标签都认）·
-`#5`（CJK 匹配合并层仍在，但融合引擎已换成自写评分）· `#23`（`PdfView` 组件已弃用，改走 `pdfService`）
+`#5`（CJK 匹配合并层仍在，但融合引擎已换成自写评分）· `#23`（`PdfView` 组件已弃用，改走 `pdfService`）· `#30`（收藏/归档/屏蔽：置真已去重；收藏状态显示已修）
 
 ### D. 平台/站点事实（无待办）
 
@@ -802,6 +805,6 @@ fuse 按路径取到 `undefined` ⇒ 这 5 个键（公告 1 + 作业 4）**恒�
 
 ### E. 已知的编号冲突（清理本节时一并修）
 
-`#30` 在两份台账里指**两件不同的事**（本文件 = 三视图口径；`accepted-deviations.md` = 设置与 Mock 模式的四处偏离）。
+`#30` 在两份台账里指**两件不同的事**：`accepted-deviations.md` 里既是"设置与 Mock 模式的四处偏离"，又（2026-09-13 起）是"收藏/归档/屏蔽三视图口径收敛"的迁移条目；本文件里的第 30 条是后者的原始记录。
 `docs/agents/porting.md` 的"已知缺陷"一节记了这件事；**代码注释里凡是写"第 30 条"的地方都要连台账名一起看**。
 
