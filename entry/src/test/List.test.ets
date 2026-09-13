@@ -5,6 +5,7 @@
 import semesterTest from './Semester.test';
 import tokensTest from './Tokens.test';
 import logFormatTest from './LogFormat.test';
+import logExportTest from './LogExport.test';
 import i18nTest from './I18n.test';
 import noticeParserTest from './NoticeParser.test';
 import assignmentParserTest from './AssignmentParser.test';
@@ -47,6 +48,7 @@ export default function testsuite() {
   semesterTest();
   tokensTest();
   logFormatTest();
+  logExportTest();
   i18nTest();
   noticeParserTest();
   assignmentParserTest();

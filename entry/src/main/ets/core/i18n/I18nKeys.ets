@@ -20,7 +20,7 @@
  * Regenerate:  node scripts/generate-i18n-resources.mjs && node scripts/gen-i18n-keys.mjs
  * Verify:      node scripts/check-i18n-keys.mjs
  *
- * 313 keys; project-local additions: 8.
+ * 318 keys; project-local additions: 8.
  */
 export type I18nKey = 'loh_back'
   | 'loh_notices'
@@ -224,6 +224,11 @@ export type I18nKey = 'loh_back'
   | 'ui_export_logs'
   | 'ui_exported'
   | 'ui_export_failed'
+  | 'ui_export_private_denied'
+  | 'ui_export_private_blocked'
+  | 'ui_export_private_unsupported'
+  | 'ui_export_private_unwritable'
+  | 'ui_export_cancelled'
   | 'ui_locale_live_demo'
   | 'ui_switch_chinese'
   | 'ui_switch_english'
@@ -539,6 +544,11 @@ const ALL_KEYS: string[] = [
   'ui_export_logs',
   'ui_exported',
   'ui_export_failed',
+  'ui_export_private_denied',
+  'ui_export_private_blocked',
+  'ui_export_private_unsupported',
+  'ui_export_private_unwritable',
+  'ui_export_cancelled',
   'ui_locale_live_demo',
   'ui_switch_chinese',
   'ui_switch_english',
@@ -660,4 +670,4 @@ export function isI18nKey(value: string): boolean {
 }
 
 /** Total number of known keys; scripts/check-i18n-keys.mjs asserts this. */
-export const I18N_KEY_COUNT: number = 313;
+export const I18N_KEY_COUNT: number = 318;

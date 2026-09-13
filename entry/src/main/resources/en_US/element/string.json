@@ -1,6 +1,10 @@
 {
   "string": [
     {
+      "name": "log_export_permission_reason",
+      "value": "Export log files to the Downloads folder so you can find them in Files"
+    },
+    {
       "name": "loh_back",
       "value": "Back"
     },
@@ -807,6 +811,26 @@
     {
       "name": "ui_export_failed",
       "value": "Export failed: %1$s"
+    },
+    {
+      "name": "ui_export_private_denied",
+      "value": "Exported %1$s records / %2$s bytes\nSaved to: %3$s\n(The Downloads-folder permission was denied, so the file stays in the app-private folder and is not visible in Files; enable it for learnOH under Settings → Apps and try again)"
+    },
+    {
+      "name": "ui_export_private_blocked",
+      "value": "Exported %1$s records / %2$s bytes\nSaved to: %3$s\n(The Downloads-folder permission is permanently denied and the dialog will not appear again; open it manually under Settings → Apps → learnOH → Permissions and try again)"
+    },
+    {
+      "name": "ui_export_private_unsupported",
+      "value": "Exported %1$s records / %2$s bytes\nSaved to: %3$s\n(This device does not support public folders (%4$s); the file stays in the app-private folder and is not visible in Files)"
+    },
+    {
+      "name": "ui_export_private_unwritable",
+      "value": "Exported %1$s records / %2$s bytes\nSaved to: %3$s\n(The public folder is not writable right now (%4$s); the file stays in the app-private folder and is not visible in Files)"
+    },
+    {
+      "name": "ui_export_cancelled",
+      "value": "Export cancelled"
     },
     {
       "name": "ui_locale_live_demo",
