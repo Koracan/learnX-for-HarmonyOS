@@ -62,17 +62,31 @@ export interface AuthedTaskExecutor {
 export const NOTICES_REFRESH_FAILURE_FOR_EVIDENCE: boolean = false;
 
 /**
- * 取证开关：把**列表里第一条公告**按"站点说它没读过"处理（提交态 false）。
+ * 取证开关：把被选中的那一条公告按"站点说它没读过"处理（提交态 false）。
  *
  * 为什么需要它：站点自己的 sfyd 可能已经是已读，那样"打开后蓝点消失"就没有可观察的起点
- * —— 蓝点在打开之前就已经不在。本开关只覆盖**这一次刷新的那一份内存副本**，不改站点数据、
- * 不动已读集合，于是设备上能拍齐"未读蓝点 → 点开 → 蓝点消失 → 重启后仍消失"四帧；
- * 其中"重启后仍消失"只可能由**本地已读集合持久化**解释，因为开关在重启后的那次刷新里
- * 又把同一条报成未读。
+ * —— 蓝点在打开之前就已经不在。本开关只改**这一次刷新的那一份内存副本**，不改站点数据、
+ * 不动本地已读集合，于是设备上能拍齐"未读蓝点 → 点开 → 蓝点消失 → 重启后仍消失"四帧。
  *
- * 消费点自证：refresh() 把**实际生效值**与覆盖了哪一条打进 hilog（notices refresh done 那一行）。
+ * 覆盖发生在**合并之前**（作用在抓取回来的记录上），所以"重启后仍消失"只可能由
+ * **本地已读集合的持久化**解释：站点侧被本开关报成未读，合并之后却仍是已读 ⇒ 集合在盘上。
+ *
+ * 消费点自证：每次 refresh 都把实际生效值、被覆盖的 id、"有几条是本地集合把它从未读翻成
+ * 已读"打进 hilog（notices refresh done 那一行）。
  */
-export const FORCE_FIRST_NOTICE_UNREAD_FOR_EVIDENCE: boolean = false;
+export const FORCE_NOTICE_UNREAD_FOR_EVIDENCE: boolean = false;
+
+/**
+ * 覆盖哪一条：抓取结果**排序后的下标**。
+ *
+ * 取 1（第二条）而不是 0：这台设备上最新那条已经被本地已读集合记着，蓝点在打开前本来就不在，
+ * 拿它当样本拍不出"打开前的蓝点"。
+ *
+ * 用**固定下标**、而不是"第一条本地集合没见过的"：冷启动那一帧要判别的正是"本地集合有没有
+ * 持久化"，所以开关在写入之后必须**仍然**覆盖同一条；若按"没见过的"去挑，写完就无条可挑，
+ * 那一帧会退化成"站点说已读"，失去判别性。
+ */
+export const EVIDENCE_UNREAD_INDEX: number = 1;
 
 /** 公告抓取端口：设备侧是"课程列表 + NoticesFetcher"，测试里是替身。 */
 export interface NoticeFetchSource {
@@ -228,8 +242,12 @@ export class RealNoticeRepository implements NoticeRepository {
       throw new Error('notice refresh degraded: requiresEnrollment=true reason=' + run.reason
         + ' reAuth=' + run.reAuthAttempted.toString() + ' diag=' + run.diagnostic);
     }
-    const items: NoticeRecord[] = this.applyEvidenceUnreadOverride(
-      mergeNoticeReadState(this.mapFetched(), this.readIds));
+    // 取证覆盖必须作用在**抓取回来的记录**上、发生在合并**之前**：它就是"站点说这一条未读"的
+    // 替身，随后交给本地已读集合去合并。顺序反了（先合并再覆盖）会盖掉本地集合的判定，
+    // "冷启动后仍已读"就不再能归因于持久化的已读集合。
+    const reportedUnread: NoticeRecord[] = this.applyEvidenceUnreadOverride(this.mapFetched());
+    const flipped: number = this.countFlippedByLocalReadSet(reportedUnread);
+    const items: NoticeRecord[] = mergeNoticeReadState(reportedUnread, this.readIds);
     const fetchedAtMillis: number = Date.now();
     this.lastItems = items;
     this.lastFetchedAtMillis = fetchedAtMillis;
@@ -244,7 +262,8 @@ export class RealNoticeRepository implements NoticeRepository {
       + ' elapsedMs=' + (Date.now() - startedAt).toString()
       + ' fetchedAt=' + fetchedAtMillis.toString()
       + ' readIds=' + this.readIds.length.toString()
-      + ' evidenceUnreadOverride=' + FORCE_FIRST_NOTICE_UNREAD_FOR_EVIDENCE.toString());
+      + ' localReadSetFlip=' + flipped.toString()
+      + ' evidenceUnreadOverride=' + FORCE_NOTICE_UNREAD_FOR_EVIDENCE.toString());
     return snapshot;
   }
 
@@ -278,37 +297,58 @@ export class RealNoticeRepository implements NoticeRepository {
   }
 
   /**
-   * 取证开关的落点：只把**排序后第一条**报成未读，让"蓝点消失"有起点。
-   * 提交态（开关为 false）原样返回，不做任何加工。
+   * 取证开关的落点：在**合并之前**把 EVIDENCE_UNREAD_INDEX 那一条抓取记录报成未读，
+   * 等价于"站点说这一条没读过"。
+   *
+   * 提交态（开关为 false）原样返回，不做任何加工。返回值仍会过一遍
+   * mergeNoticeReadState —— 于是"本地已读集合有没有持久化"直接决定冷启动后这条是已读还是未读。
    */
   private applyEvidenceUnreadOverride(items: NoticeRecord[]): NoticeRecord[] {
-    if (!FORCE_FIRST_NOTICE_UNREAD_FOR_EVIDENCE || items.length === 0) {
+    if (!FORCE_NOTICE_UNREAD_FOR_EVIDENCE || items.length <= EVIDENCE_UNREAD_INDEX) {
       return items;
     }
-    const first: NoticeRecord = items[0];
+    const target: NoticeRecord = items[EVIDENCE_UNREAD_INDEX];
     const unread: NoticeRecord = {
-      id: first.id,
-      title: first.title,
-      content: first.content,
-      publisher: first.publisher,
-      courseId: first.courseId,
-      courseName: first.courseName,
-      courseTeacherName: first.courseTeacherName,
-      publishTimeMillis: first.publishTimeMillis,
+      id: target.id,
+      title: target.title,
+      content: target.content,
+      publisher: target.publisher,
+      courseId: target.courseId,
+      courseName: target.courseName,
+      courseTeacherName: target.courseTeacherName,
+      publishTimeMillis: target.publishTimeMillis,
       hasRead: false,
-      markedImportant: first.markedImportant,
-      url: first.url
+      markedImportant: target.markedImportant,
+      url: target.url
     };
-    if (first.attachment !== undefined) {
-      unread.attachment = first.attachment;
+    if (target.attachment !== undefined) {
+      unread.attachment = target.attachment;
     }
-    const out: NoticeRecord[] = [unread];
-    for (let i = 1; i < items.length; i++) {
-      out.push(items[i]);
+    const out: NoticeRecord[] = [];
+    for (let i = 0; i < items.length; i++) {
+      out.push(i === EVIDENCE_UNREAD_INDEX ? unread : items[i]);
     }
-    this.logger.warn('evidence unread override: first=' + first.id
-      + ' hasReadBefore=' + first.hasRead.toString());
+    this.logger.warn('evidence unread override: index=' + EVIDENCE_UNREAD_INDEX.toString()
+      + ' id=' + target.id + ' siteHasReadBefore=' + target.hasRead.toString()
+      + ' reportedUnread=true');
     return out;
+  }
+
+  /**
+   * 统计有多少条是"站点（或取证覆盖）说未读、但本地已读集合把它判成已读"的。
+   *
+   * 这是一个**消费点自证**数字：它非 0 就说明那一条的最终已读只可能来自本地集合，
+   * 不可能来自站点数据。写进 refresh 的收尾日志，用于把两种来源区分开。
+   */
+  private countFlippedByLocalReadSet(items: NoticeRecord[]): number {
+    let count: number = 0;
+    for (let i = 0; i < items.length; i++) {
+      const item: NoticeRecord = items[i];
+      if (!item.hasRead && this.readIds.includes(item.id)) {
+        count++;
+      }
+    }
+    return count;
   }
 
   private mapFetched(): NoticeRecord[] {
