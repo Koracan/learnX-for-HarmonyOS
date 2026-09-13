@@ -59,7 +59,7 @@ import { CollectionFlagsStore } from '../../data/marks/CollectionFlagsStore';
 import { collectionFlagsStore } from '../marks/CollectionFlagsProvider';
 import {
   AssignmentFilterCounts, FilteredAssignments, assignmentsForFilter, assignmentCounts,
-  isInGroupAssignments, selectFilteredAssignments
+  assignmentsContain, selectFilteredAssignments
 } from '../marks/FilteredContent';
 import { FileDetailPage } from '../files/FileDetailPage';
 import { FileDetailRouteParams, ROUTE_FILE_DETAIL } from '../notices/NoticeRoutes';
@@ -582,15 +582,16 @@ export struct AssignmentsPage {
             })
           }
           .swipeAction({
-            end: this.swipeEnd(item, isInGroupAssignments(this.filtered().fav, item.id),
-              isInGroupAssignments(this.filtered().archived, item.id))
+            // 收藏状态取**原始收藏集合**（理由同公告页：过滤后的 fav 分组只在 all 之内）。
+            end: this.swipeEnd(item, this.flags.assignmentFavorites.includes(item.id),
+              assignmentsContain(this.filtered().archived, item.id))
           })
-          .bindContextMenu(this.rowMenu(item, isInGroupAssignments(this.filtered().fav, item.id),
-            isInGroupAssignments(this.filtered().archived, item.id)), ResponseType.LongPress)
+          .bindContextMenu(this.rowMenu(item, this.flags.assignmentFavorites.includes(item.id),
+            assignmentsContain(this.filtered().archived, item.id)), ResponseType.LongPress)
         }, (item: Assignment) =>
           item.id
-          + '|' + (isInGroupAssignments(this.filtered().fav, item.id) ? 'fav' : 'nofav')
-          + '|' + (isInGroupAssignments(this.filtered().archived, item.id) ? 'arch' : 'noarch')
+          + '|' + (this.flags.assignmentFavorites.includes(item.id) ? 'fav' : 'nofav')
+          + '|' + (assignmentsContain(this.filtered().archived, item.id) ? 'arch' : 'noarch')
           // 高亮态要进 key：否则 ForEach 认为这一项没变、不会重建行（选中态就不会跟着变）。
           + '|' + (this.splitActive && this.selectedId === item.id ? 'sel' : 'nosel'))
       }

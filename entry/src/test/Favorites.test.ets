@@ -2,8 +2,8 @@
  * 收藏 / 归档 / 隐藏课程的规则单测（ticket 14）。
  *
  * 覆盖：
- *   - **状态迁移**：三个域的收藏 / 归档与课程的屏蔽，逐条对齐参考实现 reducer 的
- *     flag 语义（含"置真 append 不去重"这条别修的怪癖）；
+ *   - **状态迁移**：三个域的收藏 / 归档与课程的屏蔽，flag 语义对齐参考实现 reducer，
+ *     但**置真去重**（同一条内容项连续两次置真只留一份 id）；
  *   - **过滤语义**：all 排除归档与隐藏课程、fav 在 all 之上再筛、archived / hidden 用原始 items
  *     （reference/learnOH-old/src/data/selectors/filteredData.ts:69-169），以及各分组的计数；
  *   - **隐藏课程的内容从三个域同时消失**（工单验收第 3 条的列表那一半；搜索那一半归 ticket 15）；
@@ -122,27 +122,33 @@ export default function favoritesTest() {
     it('favoriteAndArchiveTogglingFollowsTheReferenceReducers', 0, () => {
       const empty = emptyCollectionFlags();
 
-      // 置真 = append；置假 = 精确移除该 id（data/reducers/notices.ts:59-72）
+      // 置真 = 去重加入；置假 = 精确移除该 id（data/reducers/notices.ts:59-72）
       const favOn = withFavorite(empty, MarksDomain.NOTICE, 'n1', true);
       expect(favOn.noticeFavorites.join(',')).assertEqual('n1');
       const favOff = withFavorite(favOn, MarksDomain.NOTICE, 'n1', false);
       expect(favOff.noticeFavorites.length).assertEqual(0);
 
-      // **append 不去重**（参考实现如此；从"屏蔽"视图再收藏一次会产生重复 id）
-      // 这条断言就是"别顺手去重"的哨兵。
+      // **置真去重**：同一条内容项连续两次置真，集合里仍只有一份 id
+      // （从"屏蔽"视图再收藏一次不会写出重复 id）。
       const twice = withFavorite(favOn, MarksDomain.NOTICE, 'n1', true);
-      expect(twice.noticeFavorites.join(',')).assertEqual('n1,n1');
+      expect(twice.noticeFavorites.join(',')).assertEqual('n1');
       expect(withFavorite(twice, MarksDomain.NOTICE, 'n1', false).noticeFavorites.length).assertEqual(0);
+      // 去重也覆盖"同一批里已经含这一条"的情形，且入参不被修改
+      const batch = withFavorite(empty, MarksDomain.ASSIGNMENT, 'a1', true);
+      expect(withFavorite(batch, MarksDomain.ASSIGNMENT, 'a1', true).assignmentFavorites.join(',')).assertEqual('a1');
 
-      // 归档：置真收 id 数组、置假按集合整体移除
+      // 归档：置真收 id 数组并去重、置假按集合整体移除
       const archOn = withArchived(empty, MarksDomain.NOTICE, ['n1', 'n2'], true);
       expect(archOn.noticeArchived.join(',')).assertEqual('n1,n2');
+      expect(withArchived(archOn, MarksDomain.NOTICE, ['n1', 'n2'], true).noticeArchived.join(',')).assertEqual('n1,n2');
+      expect(withArchived(archOn, MarksDomain.NOTICE, ['n2', 'n2'], true).noticeArchived.join(',')).assertEqual('n1,n2');
       const archPartial = withArchived(archOn, MarksDomain.NOTICE, ['n1'], false);
       expect(archPartial.noticeArchived.join(',')).assertEqual('n2');
 
-      // 屏蔽课程：置真 append、置假移除
+      // 屏蔽课程：置真去重、置假移除
       const hideOn = withHiddenCourse(empty, 'c1', true);
       expect(hideOn.hiddenCourseIds.join(',')).assertEqual('c1');
+      expect(withHiddenCourse(hideOn, 'c1', true).hiddenCourseIds.join(',')).assertEqual('c1');
       expect(withHiddenCourse(hideOn, 'c1', false).hiddenCourseIds.length).assertEqual(0);
 
       // 三个域的数组互不影响（参考实现是三个 reducer）
@@ -247,6 +253,27 @@ export default function favoritesTest() {
       const hiddenFav = selectFilteredNotices(NOTICES, ['n2'], [], ['c2']);
       expect(idsOfNotices(hiddenFav.fav)).assertEqual('');
       expect(idsOfNotices(hiddenFav.all)).assertEqual('n1');
+    });
+
+    it('aFavoritedItemStaysFavoritedAfterItsCourseIsHidden', 0, () => {
+      // 收藏 → 屏蔽该课程：条目不在 all 也不在 fav 分组里（收藏夹口径不变），
+      // 但**原始收藏集合**仍含它 —— 行上的收藏状态取的就是原始集合，
+      // 所以"屏蔽"视图里这一行显示为已收藏（去重后也不会出现第二个 id）。
+      let flags = withFavorite(emptyCollectionFlags(), MarksDomain.NOTICE, 'n2', true);
+      const firstIdCount = flags.noticeFavorites.length;
+      flags = withHiddenCourse(flags, 'c2', true);
+      const groups = selectFilteredNotices(NOTICES, flags.noticeFavorites, flags.noticeArchived,
+        flags.hiddenCourseIds);
+      expect(idsOfNotices(groups.fav)).assertEqual('');
+      expect(idsOfNotices(groups.hidden)).assertEqual('n2');
+      expect(flags.noticeFavorites.join(',')).assertEqual('n2');
+      expect(flags.noticeFavorites.length).assertEqual(firstIdCount);
+
+      // 在屏蔽视图里再点一次收藏：界面读到的 isFav 为真 ⇒ 置假，集合被清空、不是又加一条
+      const isFav: boolean = flags.noticeFavorites.includes('n2');
+      expect(isFav).assertTrue();
+      const afterToggle = withFavorite(flags, MarksDomain.NOTICE, 'n2', !isFav);
+      expect(afterToggle.noticeFavorites.length).assertEqual(0);
     });
 
     it('archivedAndHiddenGroupsKeepTheOtherFilterOut', 0, () => {

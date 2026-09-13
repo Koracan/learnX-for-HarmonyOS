@@ -6,19 +6,17 @@
  *
  * | 动作 | 参考实现 | 出处 |
  * | --- | --- | --- |
- * | 收藏置真 | `[...state.favorites, id]`（**append，不去重**） | reference/learnOH-old/src/data/reducers/notices.ts:59-64 |
+ * | 收藏置真 | `[...state.favorites, id]`（append；本工程改为**去重**，见下） | reference/learnOH-old/src/data/reducers/notices.ts:59-64 |
  * | 取消收藏 | `favorites.filter(x => x !== id)` | 同上 |
- * | 归档置真 | `[...state.archived, ...ids]` | reference/learnOH-old/src/data/reducers/notices.ts:65-72 |
+ * | 归档置真 | `[...state.archived, ...ids]`（append；本工程改为**去重**） | reference/learnOH-old/src/data/reducers/notices.ts:65-72 |
  * | 取消归档 | `archived.filter(id => !ids.includes(id))` | 同上 |
- * | 隐藏课程置真 | `[...state.hidden, courseId]` | reference/learnOH-old/src/data/reducers/courses.ts:65-70 |
+ * | 隐藏课程置真 | `[...state.hidden, courseId]`（append；本工程改为**去重**） | reference/learnOH-old/src/data/reducers/courses.ts:65-70 |
  * | 取消隐藏 | `hidden.filter(id => id !== courseId)` | 同上 |
  * | 作业 / 文件两域 | 与公告同形 | data/reducers/assignments.ts:69-96、files.ts:67-94 |
  *
- * **append 不去重是参考实现的行为，不要"顺手修好"**：
- * 界面上的收藏按钮状态取的是**过滤后**的 fav 分组（reference 的
- * components/FilterList.tsx:210-215 用 `fav?.some(...)`），因此在"屏蔽"视图里对一条
- * 已收藏、但课程被屏蔽的条目再点一次收藏，favorites 里会出现重复 id。
- * 一旦在这里偷偷去重，行为就与参考实现不一致，而"移植正确"将失去可比对的基准。
+ * 参考实现的收藏置真直接 append、**不去重**，于是一条已经收藏过的内容项被再置真一次就会写出
+ * 两个相同的 id。本工程改为去重：收藏集合是**集合语义**，同一条内容项重复置真只保留一份。
+ * 归档与屏蔽的置真也从参考实现的 append 改为去重（同一条内容项被归档两次只记一份）。
  *
  * ## 过滤选择（`tabFilterSelections`）
  *
@@ -153,7 +151,7 @@ export function includesId(ids: string[], id: string): boolean {
 }
 
 /**
- * 收藏置真 / 置假 —— 逐字对齐参考实现（**置真 append 不去重**）。
+ * 收藏置真 / 置假 —— 置真**去重**（集合里最多一份 id），置假按 id 精确移除。
  */
 export function withFavorite(value: CollectionFlags, domain: MarksDomain, id: string,
   flag: boolean): CollectionFlags {
@@ -168,11 +166,15 @@ export function withFavorite(value: CollectionFlags, domain: MarksDomain, id: st
   return next;
 }
 
+/** 置真：已在集合里就不再加（集合语义）；置假：精确移除该 id。 */
 function mergeId(current: string[], id: string, flag: boolean): string[] {
-  return flag ? current.concat([id]) : removeId(current, id);
+  if (!flag) {
+    return removeId(current, id);
+  }
+  return current.includes(id) ? current : current.concat([id]);
 }
 
-/** 归档置真（append，不去重）/ 置假（按 id 集合整体移除）。 */
+/** 归档置真（去重）/ 置假（按 id 集合整体移除）。 */
 export function withArchived(value: CollectionFlags, domain: MarksDomain, ids: string[],
   flag: boolean): CollectionFlags {
   const next: CollectionFlags = copyCollectionFlags(value);
@@ -186,12 +188,11 @@ export function withArchived(value: CollectionFlags, domain: MarksDomain, ids: s
   return next;
 }
 
-/** 屏蔽 / 取消屏蔽一门课。 */
+/** 屏蔽（置真去重）/ 取消屏蔽一门课。 */
 export function withHiddenCourse(value: CollectionFlags, courseId: string,
   flag: boolean): CollectionFlags {
   const next: CollectionFlags = copyCollectionFlags(value);
-  next.hiddenCourseIds = flag ? next.hiddenCourseIds.concat([courseId])
-    : removeId(next.hiddenCourseIds, courseId);
+  next.hiddenCourseIds = mergeId(next.hiddenCourseIds, courseId, flag);
   return next;
 }
 
@@ -234,7 +235,13 @@ function removeId(ids: string[], id: string): string[] {
 
 function mergeIds(current: string[], ids: string[], flag: boolean): string[] {
   if (flag) {
-    return current.concat(ids);
+    const out: string[] = current.slice();
+    for (let i = 0; i < ids.length; i++) {
+      if (!out.includes(ids[i])) {
+        out.push(ids[i]);
+      }
+    }
+    return out;
   }
   const out: string[] = [];
   for (let i = 0; i < current.length; i++) {
