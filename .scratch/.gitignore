@@ -15,5 +15,7 @@
 release/logs
 # 缺陷复现/定位的过程证据（截图 + layout dump），同样只留本地。
 defect
+# 账号所有者报告的界面问题所附截图（只留本地）。
+owner-findings
 migration/sm2-verify
 auth/tools/credentials.local.txt

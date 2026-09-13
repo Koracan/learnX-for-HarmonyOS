@@ -4,7 +4,7 @@
 
 **Blocked by:** 10（作业列表 + 详情）
 
-**Status:** ready-for-agent
+**Status:** verified-partial（验收 2026-09-12，2026-09-13 补记；服务端接受与 picker/进度/toast 的依赖项未闭合，真机截图转 ticket 18）
 
 - [ ] 可填写正文并提交，服务端接受且详情反映新状态
 - [ ] 可从文件管理器与相册各选一个附件，可移除未提交与已提交的附件
@@ -141,4 +141,35 @@
 也处于已修改状态（`git status` 可见）。未发生冲突：我的两条索引行（26/27）仍在，第 28 条在其后；**编号上我避开了 28**，
 本 ticket 的平台事实登记为 **第 29 条**。我的提交只暂存本 ticket 的文件（不含 ticket 16 的 issue 文件），
 但 `docs/reference-quirks.md` 会**一并带上** ticket 16 的第 28 条（提交信息里已注明归因）。
+
+---
+
+### 统筹验收（2026-09-13 补记；验收实际发生于 2026-09-12 交付当轮）→ Status: verified-partial
+
+> **补记说明**：本轮验收当时只在会话里做了判定与回报，**忘了写进本工单**（工单里只有交付节）。
+> 以下按当轮的原始数字补录，不改动任何既有证据。
+
+**我独立重跑的（不采信交付表）**：
+
+| 检查 | 结果 |
+| --- | --- |
+| HEAD / 工作区 | `0456055`（两步提交 `78e1c3a` docs → `0456055` 代码） |
+| 单测 | **Tests run: 348, Failure: 0, Error: 0, Pass: 348, Ignore: 0**（删 `entry/.test` + `--no-incremental`；`test_result.txt` 为新写入）⇒ 基线 334 +14 |
+| 四项门禁 | domain-purity PASS / import-graph PASS（孤儿仅两个入口）/ i18n RESULT: OK / generated-fresh PASS |
+| 字段契约 | `Port.ets` 已是 `{xszyid, zynr, isDeleted}` + 可选 `file`，**无 `id`**；`HttpFetchPort` 里剩下的 `id` 全属 `PostFormSpec`（作业描述接口） |
+| 字段顺序 | 参考实现 `src/data/source.ts:175-179` 逐字一致；`buildMultipartBody` 按 `Object.keys` 插入序写出 |
+| **未做真实提交** | 全部证据日志里 `sending xszyid` **0 命中**；5 处 `tjzy` 全是站点响应预览与 hap 符号报告 |
+| 截图自洽 | `A3` 文件名自陈「toast 未抓到」，画面里确实没有 toast，且该作业**已截止、页面没有提交入口**，与文件名一致 |
+
+**判为不成立的一条代价（当时追过代码）**：交付方担心「传输层失败会触发重登重试 ⇒ 重复提交」。
+追证结果：`isEmptyListResult` 是 `body === '[]'`（`LoginParsers.ets:136`），而上传失败时 body 是**空串**（传输层）或 `'error'`（服务端拒绝），**都不触发**；
+而 `isNoLoginResponse` 需要 403 或 `login_timeout`，传输失败是 `status=0`。⇒ **网络抖动不会重试、不会双提交**。
+**但缺一条上传专属的测试钉住它**（当时只有 FileDownload / SessionRestore 的同类测试）—— 这一点仍然成立，见下「未闭合」。
+
+**仍未闭合**：
+1. **服务端接受**：本账号无可提交作业（ticket 18 真机复验进一步确认为账号事实：9 个学期 546 条作业**无一条**截止时间在未来）⇒ **永远不要真的提交**。
+2. picker 返回 URI → 附件进入状态机（模拟器用户区为空、相册为空；只有接口两侧的单测）。
+3. 上传进度条 / 失败提示的设备侧表现（需真实请求）。
+4. toast 未抓到（该论断改由 hilog `submission entry blocked: past deadline=` 承担）。
+5. **上传失败不重试**这条缺专属断言（见上）。
 
