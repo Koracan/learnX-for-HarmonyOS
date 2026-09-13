@@ -1,0 +1,388 @@
+{
+    "bounds": [
+      0,
+      0,
+      1320,
+      2856
+    ],
+    "children": [
+      {
+        "type": "Text",
+        "text": "文件",
+        "bounds": [
+          56,
+          192,
+          225,
+          290
+        ],
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "刚刚更新",
+        "bounds": [
+          253,
+          245,
+          408,
+          290
+        ],
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "95",
+        "bounds": [
+          981,
+          245,
+          1025,
+          290
+        ],
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "文件设置",
+        "bounds": [
+          1067,
+          233,
+          1264,
+          290
+        ],
+        "clickable": true,
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "全部 95",
+        "bounds": [
+          56,
+          318,
+          284,
+          395
+        ],
+        "clickable": true,
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "未读 4",
+        "bounds": [
+          312,
+          318,
+          516,
+          395
+        ],
+        "clickable": true,
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "收藏 1",
+        "bounds": [
+          544,
+          318,
+          748,
+          395
+        ],
+        "clickable": true,
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "归档 0",
+        "bounds": [
+          776,
+          318,
+          980,
+          395
+        ],
+        "clickable": true,
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "屏蔽 0",
+        "bounds": [
+          1008,
+          318,
+          1212,
+          395
+        ],
+        "clickable": true,
+        "children": []
+      },
+      {
+        "type": "Refresh",
+        "bounds": [
+          0,
+          423,
+          1320,
+          2562
+        ],
+        "scrollable": true,
+        "children": [
+          {
+            "type": "Text",
+            "text": "刷新",
+            "bounds": [
+              611,
+              535,
+              710,
+              592
+            ],
+            "children": []
+          },
+          {
+            "type": "ListItem",
+            "bounds": [
+              0,
+              423,
+              1320,
+              681
+            ],
+            "clickable": true,
+            "longClickable": true,
+            "children": [
+              {
+                "type": "Text",
+                "text": "软件分析与验证",
+                "bounds": [
+                  56,
+                  465,
+                  1264,
+                  514
+                ],
+                "children": []
+              },
+              {
+                "type": "Text",
+                "text": "期末复习",
+                "bounds": [
+                  56,
+                  514,
+                  1264,
+                  580
+                ],
+                "children": []
+              },
+              {
+                "type": "Text",
+                "text": "PDF 276K",
+                "bounds": [
+                  56,
+                  594,
+                  1098,
+                  639
+                ],
+                "children": []
+              },
+              {
+                "type": "Text",
+                "text": "3个月前",
+                "bounds": [
+                  1126,
+                  594,
+                  1264,
+                  639
+                ],
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Text",
+        "text": "已添加到收藏",
+        "bounds": [
+          98,
+          2421,
+          1081,
+          2478
+        ],
+        "children": []
+      },
+      {
+        "type": "Text",
+        "text": "撤销",
+        "bounds": [
+          1123,
+          2421,
+          1222,
+          2478
+        ],
+        "clickable": true,
+        "children": []
+      },
+      {
+        "type": "Column",
+        "bounds": [
+          0,
+          2565,
+          264,
+          2758
+        ],
+        "clickable": true,
+        "children": [
+          {
+            "type": "Text",
+            "text": "",
+            "bounds": [
+              90,
+              2588,
+              174,
+              2672
+            ],
+            "children": []
+          },
+          {
+            "type": "Text",
+            "text": "公告",
+            "bounds": [
+              90,
+              2686,
+              175,
+              2735
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "type": "Column",
+        "bounds": [
+          264,
+          2565,
+          528,
+          2758
+        ],
+        "clickable": true,
+        "children": [
+          {
+            "type": "Text",
+            "text": "",
+            "bounds": [
+              354,
+              2588,
+              438,
+              2672
+            ],
+            "children": []
+          },
+          {
+            "type": "Text",
+            "text": "作业",
+            "bounds": [
+              354,
+              2686,
+              439,
+              2735
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "type": "Column",
+        "bounds": [
+          528,
+          2565,
+          792,
+          2758
+        ],
+        "clickable": true,
+        "children": [
+          {
+            "type": "Text",
+            "text": "",
+            "bounds": [
+              618,
+              2588,
+              702,
+              2672
+            ],
+            "children": []
+          },
+          {
+            "type": "Text",
+            "text": "文件",
+            "bounds": [
+              618,
+              2686,
+              703,
+              2735
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "type": "Column",
+        "bounds": [
+          792,
+          2565,
+          1056,
+          2758
+        ],
+        "clickable": true,
+        "children": [
+          {
+            "type": "Text",
+            "text": "",
+            "bounds": [
+              882,
+              2588,
+              966,
+              2672
+            ],
+            "children": []
+          },
+          {
+            "type": "Text",
+            "text": "课程",
+            "bounds": [
+              882,
+              2686,
+              967,
+              2735
+            ],
+            "children": []
+          }
+        ]
+      },
+      {
+        "type": "Column",
+        "bounds": [
+          1056,
+          2565,
+          1320,
+          2758
+        ],
+        "clickable": true,
+        "children": [
+          {
+            "type": "Text",
+            "text": "",
+            "bounds": [
+              1146,
+              2588,
+              1230,
+              2672
+            ],
+            "children": []
+          },
+          {
+            "type": "Text",
+            "text": "设置",
+            "bounds": [
+              1146,
+              2686,
+              1231,
+              2735
+            ],
+            "children": []
+          }
+        ]
+      }
+    ]
+  }

@@ -1,0 +1,31 @@
+artifact=2026-09-12T16:08:48.983Z bytes=4259874 modules.abc bytes=1229768
+
+--- 应当存在（本轮符号） ---
+AssignmentSubmissionPage = true
+AttachmentPickers = true
+AssignmentSubmissionProvider = true
+SubmitAssignment = true
+/b/wlxt/kczy/zy/student/tjzy = true
+data.assignments.submit = true
+submission entry blocked = true
+submission page appear = true
+fileupload = true
+isDeleted = true
+zynr = true
+MOCK_ASSIGNMENTS_FOR_EVIDENCE = true
+mock-upcoming-1 = true
+photo pick cancelled = true
+submission cancelled at the confirmation dialog = true
+ui_assignment_submission_time = true
+loh_assignment_submission = true
+buildSubmissionSpec = true
+parseSubmitResponse = true
+DeviceAttachmentReader = true
+
+--- 应当不存在（历史探针串 / 本 ticket 明确不移植的键） ---
+pendingAssignmentData = false
+ExcellentProbe = false
+excellent-probe = false
+PROBE-SWITCH = false
+TEMP-EVIDENCE = false
+evidence.textcodec = false

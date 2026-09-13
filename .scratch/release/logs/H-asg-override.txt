@@ -1,2 +1,0 @@
-09-13 08:43:53.531 21073 21073 I A04C4F/com.koracan.learnOH/features.shell: 2026-09-13 08:43:53.531 INFO  [features.shell] tab switched: index=0
-09-13 08:43:57.103 21073 21073 I A04C4F/com.koracan.learnOH/features.shell: 2026-09-13 08:43:57.103 INFO  [features.shell] tab switched: index=1
