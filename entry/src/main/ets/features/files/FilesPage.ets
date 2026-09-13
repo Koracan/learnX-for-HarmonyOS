@@ -42,6 +42,7 @@ import {
 } from '../marks/FilteredContent';
 import { collectionFlagsStore } from '../marks/CollectionFlagsProvider';
 import { FileListStore } from './FileListStore';
+import { fileListStore } from './FileListStoreProvider';
 import { fileRepository } from './repository/FileRepositoryProvider';
 import { FileDetailPage } from './FileDetailPage';
 import { FileDetailRouteParams, ROUTE_FILE_DETAIL } from '../notices/NoticeRoutes';
@@ -98,7 +99,8 @@ export struct FilesPage {
   @State selectedId: string = '';
 
   aboutToAppear(): void {
-    const store: FileListStore = new FileListStore(fileRepository());
+    // 进程内单例：学期切换的编排要能驱动它（见 FileListStoreProvider）。
+    const store: FileListStore = fileListStore();
     this.store = store;
     store.loadOnce();
     this.loadFlags();

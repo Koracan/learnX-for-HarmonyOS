@@ -87,7 +87,10 @@ export function createNoticeRepository(): NoticeRepository {
   const semesters: HttpSemesterSource = new HttpSemesterSource(new Logger(COURSE_LIST_LOG_DOMAIN), port);
   const courses: HttpCourseListSource =
     new HttpCourseListSource(new Logger(COURSE_LIST_LOG_DOMAIN), port, semesters);
-  const source: HttpNoticeFetchSource = new HttpNoticeFetchSource(port, courses, decodeBase64Text);
+  // 公告路径也要生效学期：把同一个学期解析源喂给它，四条取数路径共用
+  // data/courses/SemesterOverride 的唯一优先级实现（此前公告侧没有选择这一档）。
+  const source: HttpNoticeFetchSource =
+    new HttpNoticeFetchSource(port, semesters, courses, decodeBase64Text);
   const snapshots: NoticeSnapshotFileStore = new NoticeSnapshotFileStore(context);
   logger.info('notice repository wired: source=real snapshotStore=preferences contextAvailable=true');
   const executor: AuthedTaskExecutor = new RunnerTaskExecutor(authServices.runner);

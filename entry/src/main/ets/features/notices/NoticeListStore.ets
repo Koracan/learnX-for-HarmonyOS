@@ -86,8 +86,13 @@ export class NoticeListStore {
     await this.refresh();
   }
 
-  /** 下拉刷新（也用于首次加载后的后台刷新）。失败时保留旧数据。 */
-  async refresh(): Promise<void> {
+  /**
+   * 下拉刷新（也用于首次加载后的后台刷新）。失败时保留旧数据。
+   *
+   * **返回本轮是否成功**：学期切换的编排据此汇总「哪个域失败」，不去读 errorMessage
+   * （并发的另一次成功取数会把它清空）。
+   */
+  async refresh(): Promise<boolean> {
     if (this.phase !== NoticeLoadPhase.LOADING) {
       this.phase = NoticeLoadPhase.REFRESHING;
     }
@@ -97,10 +102,12 @@ export class NoticeListStore {
       this.phase = NoticeLoadPhase.READY;
       logger.info('refresh done: count=' + snapshot.items.length.toString()
         + ' unread=' + this.unreadCount().toString());
+      return true;
     } catch (error) {
       this.errorMessage = (error as Error).message;
       this.phase = NoticeLoadPhase.ERROR;
       logger.error('refresh failed: ' + this.errorMessage);
+      return false;
     }
   }
 

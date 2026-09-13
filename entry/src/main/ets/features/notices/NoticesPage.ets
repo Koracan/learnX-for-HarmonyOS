@@ -46,6 +46,7 @@ import { MarksDomain, MarksTab } from '../../domain/marks/CollectionFlags';
 import { isUnread } from './NoticeOrder';
 import { removeTags } from '../../domain/render/WebViewTemplate';
 import { NoticeListStore } from './NoticeListStore';
+import { noticeListStore } from './NoticeListStoreProvider';
 import { NoticeRecord } from '../../data/notices/NoticeRepository';
 import { createNoticeRepository } from './repository/NoticeRepositoryProvider';
 import { CollectionFlagsStore } from '../../data/marks/CollectionFlagsStore';
@@ -98,7 +99,8 @@ export struct NoticesPage {
   /** 当前过滤视图（初值 = 参考实现 settings.ts:24-29 的 notice 默认值 all）。 */
   @State filter: ContentFilter = ContentFilter.ALL;
 
-  private store: NoticeListStore = new NoticeListStore(createNoticeRepository());
+  /** 进程内单例：学期切换的编排要能驱动它（见 NoticeListStoreProvider）。 */
+  private store: NoticeListStore = noticeListStore();
   /** 进程内单例：屏蔽一门课要同时影响公告 / 作业 / 文件三个列表。 */
   private flags: CollectionFlagsStore = collectionFlagsStore();
   private toast: ToastController = new ToastController();

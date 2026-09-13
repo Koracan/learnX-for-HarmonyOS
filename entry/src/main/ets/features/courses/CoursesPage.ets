@@ -106,6 +106,8 @@ export struct CoursesPage {
 
   /** 进程内单例：学期选择与课程列表在所有页面之间共享（见 CourseListStoreProvider）。 */
   private store: CourseListStore = courseListStore();
+  /** 学期切换在途（由学期页回调设置）：在途时消费掉返回手势，避免提示落在已返回的页面上。 */
+  private semesterSwitchInFlight: boolean = false;
   /** 进程内单例：屏蔽一门课要立刻影响公告 / 作业 / 文件三个列表。 */
   private flags: CollectionFlagsStore = collectionFlagsStore();
   private toast: ToastController = new ToastController();
@@ -502,7 +504,9 @@ export struct CoursesPage {
           .swipeAction({ end: this.swipeEnd(item) })
           .bindContextMenu(this.rowMenu(item), ResponseType.LongPress)
         }, (item: CourseRecord) =>
-          item.id + '|' + (isHiddenCourse(this.flags.hiddenCourseIds, item.id) ? 'hidden' : 'shown')
+          // 生效学期进 key：切换学期后即便课程 id 恰好相同，行也必须重建（换的是另一份数据）。
+          this.store.semesterId + '|' + item.id
+          + '|' + (isHiddenCourse(this.flags.hiddenCourseIds, item.id) ? 'hidden' : 'shown')
           // 高亮态要进 key：否则 ForEach 认为这一项没变、不会重建行（选中态就不会跟着变）。
           + '|' + (this.splitActive && this.selectedId === item.id ? 'sel' : 'nosel'))
       }
@@ -569,9 +573,18 @@ export struct CoursesPage {
       .hideTitleBar(true)
     } else if (name === ROUTE_SEMESTER_SELECTION) {
       NavDestination() {
-        SemesterSelectionPage({ store: this.store, stack: stack })
+        SemesterSelectionPage({
+          store: this.store,
+          stack: stack,
+          onSwitchInFlight: (inFlight: boolean) => {
+            this.semesterSwitchInFlight = inFlight;
+          }
+        })
       }
       .hideTitleBar(true)
+      // 切换在途时**不允许返回**：提示会落在已经返回的页面上，用户看不到结果。
+      // 返回 true = 本页消费了这次返回，系统不再弹栈。
+      .onBackPressed((): boolean => this.semesterSwitchInFlight)
     } else if (name === ROUTE_NOTICE_DETAIL) {
       // 课程详情里点公告 → 公告详情页（压在本 tab 自己的栈上）。
       NavDestination() {

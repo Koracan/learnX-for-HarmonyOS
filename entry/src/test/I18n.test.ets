@@ -49,11 +49,12 @@ const LOCAL_ADDITION_COUNT: number = 8;
  * 收藏与筛选 3 个（滑动按钮/长按菜单的三个"反向动作"说法：取消收藏 / 取消归档 / 取消屏蔽）；
  * 设置与 Mock 模式 2 个（Mock 模式自证行 / 关于页"没有第三方运行时依赖"那一句）；
  * 文件详情的「交给系统打开方式」1 个（文件还没落盘时的可读说明）；
- * 提交入口被拦下时那两句（正在提交中 / 没有可提交的内容）2 个 —— 已截止那句复用参考实现已有的键。
+ * 提交入口被拦下时那两句（正在提交中 / 没有可提交的内容）2 个 —— 已截止那句复用参考实现已有的键；
+ * 学期切换编排 4 个（切换中 / 全部成功 / 部分失败 / 全部失败）。
  */
-const UI_STRING_COUNT: number = 123;
-/** 迁移后的资源键总数（也是 I18N_KEY_COUNT 的期望值）：178 + 8 + 123。 */
-const TOTAL_KEY_COUNT: number = 309;
+const UI_STRING_COUNT: number = 127;
+/** 迁移后的资源键总数（也是 I18N_KEY_COUNT 的期望值）：178 + 8 + 127。 */
+const TOTAL_KEY_COUNT: number = 313;
 
 const REFERENCE_SAMPLE: string[] = ['loh_back', 'loh_notices', 'loh_assignments', 'loh_files', 'loh_courses'];
 const LOCAL_ADDITIONS: string[] = ['loh_fall', 'loh_spring', 'loh_summer'];

@@ -523,7 +523,7 @@ export default function courseDataTest() {
       const repository: FakeCourseRepository = new FakeCourseRepository(false);
       const store: CourseListStore = new CourseListStore(repository);
       // 点击那一刻选择就必须已经可读（勾选标记据此同步移动），而不是等取数回来才动。
-      const pending: Promise<void> = store.selectSemester('2025-2026-2');
+      const pending: Promise<boolean> = store.selectSemester('2025-2026-2');
       expect(store.selectedSemesterId).assertEqual('2025-2026-2');
       expect(store.pendingSemesterId).assertEqual('2025-2026-2');
       await pending;

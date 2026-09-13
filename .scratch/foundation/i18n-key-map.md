@@ -17,8 +17,8 @@
 | --- | --- | --- |
 | 参考实现迁入 | 178 | `loh_` |
 | 本工程新增（学期季节词） | 8 | `loh_` |
-| 本工程新增（原生重写 UI 文案） | 123 | `ui_` |
-| 合计 | 309 | |
+| 本工程新增（原生重写 UI 文案） | 127 | `ui_` |
+| 合计 | 313 | |
 
 ## 参考实现迁入键（178）
 
@@ -203,7 +203,7 @@
 | 177 | `immersiveModeDescription` | `loh_immersive_mode_description` | - | 隐藏导航栏和状态栏，需要重启应用 | Hide the navigation bar and status bar. App restart required. |
 | 178 | `pleaseRestartAppToApplyImmersive` | `loh_please_restart_app_to_apply_immersive` | - | 请重启应用以应用沉浸式模式设置。 | Please restart the app to apply immersive mode setting. |
 
-## 本工程新增键（131）
+## 本工程新增键（135）
 
 | # | 类别 | 资源名 | 占位符 | 中文 | 英文 |
 | --- | --- | --- | --- | --- | --- |
@@ -273,69 +273,73 @@
 | 64 | ui | `ui_course_semester_list_unavailable` | - | 学期列表暂不可用，仅列出当前学期与已生效的学期。 | The semester list is unavailable; only the current and the active semester are listed. |
 | 65 | ui | `ui_courses_load_failed` | {0} | 课程加载失败：%1$s | Failed to load courses: %1$s |
 | 66 | ui | `ui_courses_override_badge` | - | 取证覆盖生效 | Evidence override active |
-| 67 | ui | `ui_assignments_empty` | - | 暂无作业 | No assignments |
-| 68 | ui | `ui_assignments_none_unfinished` | - | 没有未完成的作业 | No unfinished assignments |
-| 69 | ui | `ui_assignments_none_finished` | - | 没有已完成的作业 | No finished assignments |
-| 70 | ui | `ui_assignments_load_failed` | {0} | 作业加载失败：%1$s | Failed to load assignments: %1$s |
-| 71 | ui | `ui_assignment_upcoming` | - | 未到期 | Not due |
-| 72 | ui | `ui_assignment_past_due` | - | 已截止 | Past due |
-| 73 | ui | `ui_assignment_deadline` | - | 截止时间 | Deadline |
-| 74 | ui | `ui_assignment_late_deadline` | - | 补交截止 | Late submission due |
-| 75 | ui | `ui_assignment_description` | - | 作业内容 | Description |
-| 76 | ui | `ui_assignment_grade` | - | 成绩 | Grade |
-| 77 | ui | `ui_assignment_answer` | - | 参考答案 | Answer |
-| 78 | ui | `ui_assignment_submitted_at` | {0} | 提交于 %1$s | Submitted at %1$s |
-| 79 | ui | `ui_assignment_submitted_late_at` | {0} | 补交于 %1$s | Submitted late at %1$s |
-| 80 | ui | `ui_assignment_graded_at` | {0} | 批改于 %1$s | Graded at %1$s |
-| 81 | ui | `ui_assignment_graded_by_at` | {0},{1} | %1$s 批改于 %2$s | Graded by %1$s at %2$s |
-| 82 | ui | `ui_assignment_attachment_label` | - | 作业附件 | Assignment attachment |
-| 83 | ui | `ui_assignment_submitted_attachment_label` | - | 我的提交附件 | Submitted attachment |
-| 84 | ui | `ui_assignment_grade_attachment_label` | - | 批改附件 | Grade attachment |
-| 85 | ui | `ui_assignment_answer_attachment_label` | - | 答案附件 | Answer attachment |
-| 86 | ui | `ui_assignment_submitted_mark_label` | - | 已提交 | Submitted |
-| 87 | ui | `ui_assignment_graded_mark_label` | - | 已评分 | Graded |
-| 88 | ui | `ui_assignment_answer_mark_label` | - | 含答案 | Has answer |
-| 89 | ui | `ui_assignment_excellent` | - | 优秀作业 | Excellent homework |
-| 90 | ui | `ui_assignment_excellent_by` | {0} | %1$s的优秀作业 | Excellent homework by %1$s |
-| 91 | ui | `ui_assignment_excellent_mark_label` | - | 含优秀作业 | Has excellent homework |
-| 92 | ui | `ui_enrollment_fingerprint_not_ready` | - | 浏览器指纹尚未就绪，此刻提交不会把该浏览器记为可信（服务端会提示"隐私或匿名模式"）。请稍等几秒后再次点击登录；若反复出现，请关闭本页重新登录。 | The browser fingerprint is not ready yet, so signing in now would not register this browser as trusted (the server would report a private/anonymous browser). Wait a few seconds and tap sign in again; if it keeps happening, close this page and sign in again. |
-| 93 | ui | `ui_files_empty` | - | 暂无文件 | No files |
-| 94 | ui | `ui_files_load_failed` | {0} | 文件加载失败：%1$s | Failed to load files: %1$s |
-| 95 | ui | `ui_file_type_label` | - | 类型 | Type |
-| 96 | ui | `ui_file_size_label` | - | 大小 | Size |
-| 97 | ui | `ui_file_upload_time_label` | - | 上传时间 | Uploaded at |
-| 98 | ui | `ui_file_downloading` | - | 下载中 | Downloading |
-| 99 | ui | `ui_file_download_progress` | {0},{1} | %1$s / %2$s | %1$s / %2$s |
-| 100 | ui | `ui_file_download_received` | {0} | 已接收 %1$s | Received %1$s |
-| 101 | ui | `ui_file_download_rejected` | {0} | 下载被拒绝：%1$s | Download rejected: %1$s |
-| 102 | ui | `ui_file_download_empty` | - | 服务端返回了空文件 | The server returned an empty file |
-| 103 | ui | `ui_file_preview_failed` | {0} | 预览失败：%1$s | Preview failed: %1$s |
-| 104 | ui | `ui_file_preview_unavailable` | - | 该文件类型不支持应用内预览，可下载后分享给其他应用。 | This file type cannot be previewed in the app; download it and share it with another app. |
-| 105 | ui | `ui_file_share_failed` | {0} | 分享失败：%1$s | Share failed: %1$s |
-| 106 | ui | `ui_file_open_not_ready` | - | 文件尚未下载完成，暂时不能交给其他应用打开。 | The file has not finished downloading, so it cannot be handed to another app yet. |
-| 107 | ui | `ui_file_saved_at` | {0} | 保存位置：%1$s | Saved at: %1$s |
-| 108 | ui | `ui_file_view_info` | - | 详情 | Info |
-| 109 | ui | `ui_file_view_preview` | - | 预览 | Preview |
-| 110 | ui | `ui_file_settings_title` | - | 文件设置 | File settings |
-| 111 | ui | `ui_file_use_document_dir_on` | - | 文件保存在 App 的"文档"中，只会随 App 卸载而被删除。 | Files are saved in the App Document folder and are deleted only when the app is uninstalled. |
-| 112 | ui | `ui_file_use_document_dir_off` | - | 文件保存在 App 的"缓存"中，会在设备空间不足或其他系统预设情况下被自动清除以节约空间。 | Files are saved in the App cache folder; the system may clear it when space is low. |
-| 113 | ui | `ui_file_omit_course_name_on` | - | 文件以"文件名"形式保存。 | Files are saved as "filename". |
-| 114 | ui | `ui_file_omit_course_name_off` | - | 文件以"课程名-文件名"形式保存。 | Files are saved as "coursename-filename". |
-| 115 | ui | `ui_file_settings_root` | {0} | 当前保存位置：%1$s | Current save location: %1$s |
-| 116 | ui | `ui_file_prev_page` | - | 上一页 | Previous page |
-| 117 | ui | `ui_file_next_page` | - | 下一页 | Next page |
-| 118 | ui | `ui_file_page_of` | {0},{1} | 第 %1$s / %2$s 页 | Page %1$s of %2$s |
-| 119 | ui | `ui_file_cache_already_empty` | - | 缓存目录已为空 | The cache folder is already empty |
-| 120 | ui | `ui_updated_just_now` | - | 刚刚更新 | Updated just now |
-| 121 | ui | `ui_updated_minutes_ago` | {0} | %1$s 分钟前更新 | Updated %1$s min ago |
-| 122 | ui | `ui_updated_hours_ago` | {0} | %1$s 小时前更新 | Updated %1$s h ago |
-| 123 | ui | `ui_updated_days_ago` | {0} | %1$s 天前更新 | Updated %1$s d ago |
-| 124 | ui | `ui_assignment_submission_time` | - | 上次提交于 YYYY 年 M 月 D 日 dddd HH:mm | [last submitted at] HH:mm, MMM D, YYYY |
-| 125 | ui | `ui_remove_favorite` | - | 取消收藏 | Remove from favorites |
-| 126 | ui | `ui_unarchive` | - | 取消归档 | Unarchive |
-| 127 | ui | `ui_unhide_course` | - | 取消屏蔽 | Unhide course |
-| 128 | ui | `ui_mock_mode_active` | {0} | Mock 模式（guest）：数据为样例，已发出的网络请求 = %1$s | Mock mode (guest): sample data, network requests issued = %1$s |
-| 129 | ui | `ui_opensource_dependencies_none` | - | 本应用不包含第三方运行时依赖，只使用 HarmonyOS SDK 提供的系统能力。 | This app bundles no third-party runtime dependencies; it uses only the HarmonyOS SDK system capabilities. |
-| 130 | ui | `ui_assignment_submit_blocked_uploading` | - | 正在提交中，请稍候 | Submission in progress; please wait |
-| 131 | ui | `ui_assignment_submit_blocked_nothing_to_submit` | - | 请先填写正文或选择附件，再提交 | Write something or pick an attachment before submitting |
+| 67 | ui | `ui_semester_switching` | - | 正在切换学期… | Switching semester… |
+| 68 | ui | `ui_semester_switch_succeeded` | {0} | 已切换到%1$s | Switched to %1$s |
+| 69 | ui | `ui_semester_switch_partial` | {0},{1},{2} | 已切换到%1$s，但%2$s刷新失败：%3$s | Switched to %1$s, but refreshing %2$s failed: %3$s |
+| 70 | ui | `ui_semester_switch_failed` | {0},{1} | 切换到%1$s失败：%2$s | Failed to switch to %1$s: %2$s |
+| 71 | ui | `ui_assignments_empty` | - | 暂无作业 | No assignments |
+| 72 | ui | `ui_assignments_none_unfinished` | - | 没有未完成的作业 | No unfinished assignments |
+| 73 | ui | `ui_assignments_none_finished` | - | 没有已完成的作业 | No finished assignments |
+| 74 | ui | `ui_assignments_load_failed` | {0} | 作业加载失败：%1$s | Failed to load assignments: %1$s |
+| 75 | ui | `ui_assignment_upcoming` | - | 未到期 | Not due |
+| 76 | ui | `ui_assignment_past_due` | - | 已截止 | Past due |
+| 77 | ui | `ui_assignment_deadline` | - | 截止时间 | Deadline |
+| 78 | ui | `ui_assignment_late_deadline` | - | 补交截止 | Late submission due |
+| 79 | ui | `ui_assignment_description` | - | 作业内容 | Description |
+| 80 | ui | `ui_assignment_grade` | - | 成绩 | Grade |
+| 81 | ui | `ui_assignment_answer` | - | 参考答案 | Answer |
+| 82 | ui | `ui_assignment_submitted_at` | {0} | 提交于 %1$s | Submitted at %1$s |
+| 83 | ui | `ui_assignment_submitted_late_at` | {0} | 补交于 %1$s | Submitted late at %1$s |
+| 84 | ui | `ui_assignment_graded_at` | {0} | 批改于 %1$s | Graded at %1$s |
+| 85 | ui | `ui_assignment_graded_by_at` | {0},{1} | %1$s 批改于 %2$s | Graded by %1$s at %2$s |
+| 86 | ui | `ui_assignment_attachment_label` | - | 作业附件 | Assignment attachment |
+| 87 | ui | `ui_assignment_submitted_attachment_label` | - | 我的提交附件 | Submitted attachment |
+| 88 | ui | `ui_assignment_grade_attachment_label` | - | 批改附件 | Grade attachment |
+| 89 | ui | `ui_assignment_answer_attachment_label` | - | 答案附件 | Answer attachment |
+| 90 | ui | `ui_assignment_submitted_mark_label` | - | 已提交 | Submitted |
+| 91 | ui | `ui_assignment_graded_mark_label` | - | 已评分 | Graded |
+| 92 | ui | `ui_assignment_answer_mark_label` | - | 含答案 | Has answer |
+| 93 | ui | `ui_assignment_excellent` | - | 优秀作业 | Excellent homework |
+| 94 | ui | `ui_assignment_excellent_by` | {0} | %1$s的优秀作业 | Excellent homework by %1$s |
+| 95 | ui | `ui_assignment_excellent_mark_label` | - | 含优秀作业 | Has excellent homework |
+| 96 | ui | `ui_enrollment_fingerprint_not_ready` | - | 浏览器指纹尚未就绪，此刻提交不会把该浏览器记为可信（服务端会提示"隐私或匿名模式"）。请稍等几秒后再次点击登录；若反复出现，请关闭本页重新登录。 | The browser fingerprint is not ready yet, so signing in now would not register this browser as trusted (the server would report a private/anonymous browser). Wait a few seconds and tap sign in again; if it keeps happening, close this page and sign in again. |
+| 97 | ui | `ui_files_empty` | - | 暂无文件 | No files |
+| 98 | ui | `ui_files_load_failed` | {0} | 文件加载失败：%1$s | Failed to load files: %1$s |
+| 99 | ui | `ui_file_type_label` | - | 类型 | Type |
+| 100 | ui | `ui_file_size_label` | - | 大小 | Size |
+| 101 | ui | `ui_file_upload_time_label` | - | 上传时间 | Uploaded at |
+| 102 | ui | `ui_file_downloading` | - | 下载中 | Downloading |
+| 103 | ui | `ui_file_download_progress` | {0},{1} | %1$s / %2$s | %1$s / %2$s |
+| 104 | ui | `ui_file_download_received` | {0} | 已接收 %1$s | Received %1$s |
+| 105 | ui | `ui_file_download_rejected` | {0} | 下载被拒绝：%1$s | Download rejected: %1$s |
+| 106 | ui | `ui_file_download_empty` | - | 服务端返回了空文件 | The server returned an empty file |
+| 107 | ui | `ui_file_preview_failed` | {0} | 预览失败：%1$s | Preview failed: %1$s |
+| 108 | ui | `ui_file_preview_unavailable` | - | 该文件类型不支持应用内预览，可下载后分享给其他应用。 | This file type cannot be previewed in the app; download it and share it with another app. |
+| 109 | ui | `ui_file_share_failed` | {0} | 分享失败：%1$s | Share failed: %1$s |
+| 110 | ui | `ui_file_open_not_ready` | - | 文件尚未下载完成，暂时不能交给其他应用打开。 | The file has not finished downloading, so it cannot be handed to another app yet. |
+| 111 | ui | `ui_file_saved_at` | {0} | 保存位置：%1$s | Saved at: %1$s |
+| 112 | ui | `ui_file_view_info` | - | 详情 | Info |
+| 113 | ui | `ui_file_view_preview` | - | 预览 | Preview |
+| 114 | ui | `ui_file_settings_title` | - | 文件设置 | File settings |
+| 115 | ui | `ui_file_use_document_dir_on` | - | 文件保存在 App 的"文档"中，只会随 App 卸载而被删除。 | Files are saved in the App Document folder and are deleted only when the app is uninstalled. |
+| 116 | ui | `ui_file_use_document_dir_off` | - | 文件保存在 App 的"缓存"中，会在设备空间不足或其他系统预设情况下被自动清除以节约空间。 | Files are saved in the App cache folder; the system may clear it when space is low. |
+| 117 | ui | `ui_file_omit_course_name_on` | - | 文件以"文件名"形式保存。 | Files are saved as "filename". |
+| 118 | ui | `ui_file_omit_course_name_off` | - | 文件以"课程名-文件名"形式保存。 | Files are saved as "coursename-filename". |
+| 119 | ui | `ui_file_settings_root` | {0} | 当前保存位置：%1$s | Current save location: %1$s |
+| 120 | ui | `ui_file_prev_page` | - | 上一页 | Previous page |
+| 121 | ui | `ui_file_next_page` | - | 下一页 | Next page |
+| 122 | ui | `ui_file_page_of` | {0},{1} | 第 %1$s / %2$s 页 | Page %1$s of %2$s |
+| 123 | ui | `ui_file_cache_already_empty` | - | 缓存目录已为空 | The cache folder is already empty |
+| 124 | ui | `ui_updated_just_now` | - | 刚刚更新 | Updated just now |
+| 125 | ui | `ui_updated_minutes_ago` | {0} | %1$s 分钟前更新 | Updated %1$s min ago |
+| 126 | ui | `ui_updated_hours_ago` | {0} | %1$s 小时前更新 | Updated %1$s h ago |
+| 127 | ui | `ui_updated_days_ago` | {0} | %1$s 天前更新 | Updated %1$s d ago |
+| 128 | ui | `ui_assignment_submission_time` | - | 上次提交于 YYYY 年 M 月 D 日 dddd HH:mm | [last submitted at] HH:mm, MMM D, YYYY |
+| 129 | ui | `ui_remove_favorite` | - | 取消收藏 | Remove from favorites |
+| 130 | ui | `ui_unarchive` | - | 取消归档 | Unarchive |
+| 131 | ui | `ui_unhide_course` | - | 取消屏蔽 | Unhide course |
+| 132 | ui | `ui_mock_mode_active` | {0} | Mock 模式（guest）：数据为样例，已发出的网络请求 = %1$s | Mock mode (guest): sample data, network requests issued = %1$s |
+| 133 | ui | `ui_opensource_dependencies_none` | - | 本应用不包含第三方运行时依赖，只使用 HarmonyOS SDK 提供的系统能力。 | This app bundles no third-party runtime dependencies; it uses only the HarmonyOS SDK system capabilities. |
+| 134 | ui | `ui_assignment_submit_blocked_uploading` | - | 正在提交中，请稍候 | Submission in progress; please wait |
+| 135 | ui | `ui_assignment_submit_blocked_nothing_to_submit` | - | 请先填写正文或选择附件，再提交 | Write something or pick an attachment before submitting |
 
