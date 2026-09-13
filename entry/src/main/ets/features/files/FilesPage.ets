@@ -49,7 +49,8 @@ import { FileDetailRouteParams, ROUTE_FILE_DETAIL } from '../notices/NoticeRoute
 import { openSearch } from '../search/SearchEntry';
 import {
   SPLIT_VIEW_ACTIVE_KEY, SPLIT_VIEW_DIVIDER_WIDTH, SPLIT_VIEW_MASTER_HIDDEN_KEY,
-  SPLIT_VIEW_MASTER_WIDTH, migrateDetailRoutesBack, migrateDetailRoutesInto, pushDetailFromMaster
+  SPLIT_VIEW_MASTER_WIDTH, masterPaneBottomReserve, migrateDetailRoutesBack, migrateDetailRoutesInto,
+  pushDetailFromMaster
 } from '../shell/SplitView';
 
 const logger: Logger = new Logger('features.files');
@@ -281,6 +282,16 @@ export struct FilesPage {
       return '100%';
     }
     return this.masterHidden ? 0 : SPLIT_VIEW_MASTER_WIDTH;
+  }
+
+  /**
+   * 分栏态下主栏底部要为底栏留出的空高（单栏态为 0）。
+   *
+   * 分栏态壳层的内容区拿满整屏、底栏浮在主栏底部之上，所以这一段必须由页面自己让出来，
+   * 否则列表最后一行会被底栏盖住。取值只有一个来源：features/shell/SplitView。
+   */
+  private masterPaneReserve(): number {
+    return masterPaneBottomReserve(this.theme(), this.splitActive, this.masterHidden);
   }
 
   private async handlePullRefresh(): Promise<void> {
@@ -661,6 +672,8 @@ export struct FilesPage {
       }
       .width(this.masterPaneWidth())
       .height('100%')
+      // 主栏底部预留：分栏态 = barH（底栏浮在上面，别让最后一行被盖住），单栏态 = 0。
+      .padding({ bottom: this.masterPaneReserve() })
 
       Divider()
         .vertical(true)

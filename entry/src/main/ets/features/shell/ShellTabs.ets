@@ -43,8 +43,8 @@ import {
   FORCE_DARK_FOR_EVIDENCE, FORCE_ENGLISH_FOR_EVIDENCE, logEvidenceSwitchState
 } from '../notices/repository/NoticeRepositoryProvider';
 import {
-  SPLIT_VIEW_ACTIVE_KEY, SPLIT_VIEW_BREAKPOINT_VP, SPLIT_VIEW_MASTER_HIDDEN_KEY, bottomBarLayout,
-  publishSplitViewDecision
+  SPLIT_VIEW_ACTIVE_KEY, SPLIT_VIEW_BREAKPOINT_VP, SPLIT_VIEW_MASTER_HIDDEN_KEY,
+  SplitHeightBudget, bottomBarHeight, publishSplitViewDecision, splitHeightBudget
 } from './SplitView';
 import { markPageShown } from './PageShown';
 import { SettingsPage } from '../settings/SettingsPage';
@@ -129,6 +129,12 @@ export struct ShellTabs {
 
   private tabsController: TabsController = new TabsController();
   /**
+   * 最近一次实测到的内容区高度（vp，退路兜底）：只喂给高度分配的纯函数（
+   * `splitHeightBudget` 的两个高度字段与自证日志）。版式本身只由判据（分栏两态）驱动，
+   * 所以这个字段故意不是 @State —— 量到尺寸不该再触发一次重排。
+   */
+  private measuredHeightVp: number = 0;
+  /**
    * **根导航栈**：搜索页是盖在主壳之上的一个根级屏幕
    * （参考实现 `App.tsx:913-917` 把 SearchStack 挂在 RootNavigator 上），
    * 四个 tab 页头那颗 search 图标经 `openSearch()` 往这里压一条 `Search` 路由。
@@ -210,7 +216,22 @@ export struct ShellTabs {
   /** 发布判据（实测优先、退路兜底）。消费点在各个 tab 页，见文件头。 */
   private publishSize(measuredWidth: number, measuredHeight: number): void {
     const fallback: number[] = this.fallbackSizeVp();
-    publishSplitViewDecision(measuredWidth, measuredHeight, fallback[0], fallback[1]);
+    const active: boolean = publishSplitViewDecision(measuredWidth, measuredHeight,
+      fallback[0], fallback[1]);
+    const appHeightVp: number = measuredHeight > 0 ? measuredHeight : fallback[1];
+    this.measuredHeightVp = appHeightVp;
+    // 消费点自证：把这一档**实际生效**的高度分配打进 hilog（取证时按它核对，不靠推断）。
+    const budget: SplitHeightBudget = splitHeightBudget(active, this.masterHidden, appHeightVp,
+      bottomBarHeight(this.theme()));
+    logger.info('split height budget: appH=' + appHeightVp.toString()
+      + ' barH=' + budget.barHeight.toString()
+      + ' barWidth=' + budget.barWidth.toString()
+      + ' barVisible=' + budget.barVisible.toString()
+      + ' shellContentBottomInset=' + budget.shellContentBottomInset.toString()
+      + ' barMarginTop=' + budget.barMarginTop.toString()
+      + ' masterPaneBottomInset=' + budget.masterPaneBottomInset.toString()
+      + ' masterContentH=' + budget.masterContentHeight.toString()
+      + ' detailContentH=' + budget.detailContentHeight.toString());
   }
 
   aboutToAppear(): void {
@@ -241,18 +262,14 @@ export struct ShellTabs {
     logger.info('tab switched: index=' + index.toString());
   }
 
-  private barHeight(): number {
-    return this.theme().sizes.controlHeight + this.theme().sizes.space4;
-  }
-
-  /** 底栏该多宽（三档判据见 `bottomBarLayout`）。 */
-  private barWidth(): string | number {
-    return bottomBarLayout(this.splitActive, this.masterHidden).width;
-  }
-
-  /** 底栏该不该出现（分栏 + 主栏隐藏的全屏态下整条隐藏）。 */
-  private barVisible(): boolean {
-    return bottomBarLayout(this.splitActive, this.masterHidden).visible;
+  /**
+   * 高度分配：底栏三档（可见 / 宽 / 高）＋两个 inset。**唯一来源**在 features/shell/SplitView，
+   * 壳层与五个页面都从这里取值 —— 页面侧取的是同一个函数的 masterPaneBottomInset
+   * （见 masterPaneBottomReserve），不另算一遍 barH。
+   */
+  private budget(): SplitHeightBudget {
+    return splitHeightBudget(this.splitActive, this.masterHidden, this.measuredHeightVp,
+      bottomBarHeight(this.theme()));
   }
 
   @Builder
@@ -306,9 +323,13 @@ export struct ShellTabs {
     }
     // 底栏三档（见 bottomBarLayout）：单栏 → 整屏；分栏 + 主栏可见 → 主栏宽度；
     // 分栏 + 主栏隐藏（文件详情全屏）→ 整条隐藏（Visibility.None 不占位，版面让给详情）。
-    .width(this.barWidth())
-    .height(this.barHeight())
-    .visibility(this.barVisible() ? Visibility.Visible : Visibility.None)
+    .width(this.budget().barWidth)
+    .height(this.budget().barHeight)
+    // 高度分配的关键一步：单栏 marginTop = 0（底栏在流内，内容区 = 屏高 − barH）；
+    // 分栏 marginTop = −barH（底栏浮在主栏底部之上，内容区拿满整屏 —— 右栏因此能占满整屏高）。
+    // 负 margin 只让底栏**不占**流内高度，它的盒子仍落在 [屏高 − barH, 屏高]，位置与单栏一致。
+    .margin({ top: this.budget().barMarginTop })
+    .visibility(this.budget().barVisible ? Visibility.Visible : Visibility.None)
     .backgroundColor(this.theme().colors.surface)
     .border({ width: { top: this.theme().sizes.borderWidth }, color: this.theme().colors.outlineVariant })
   }

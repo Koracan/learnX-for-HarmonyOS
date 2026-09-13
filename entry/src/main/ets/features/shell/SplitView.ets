@@ -29,6 +29,7 @@
  * 以免回迁后右侧返回落到空白。
  */
 import { Logger } from '../../core/log/Logger';
+import { ThemeTokens } from '../../ui/theme/Tokens';
 
 const logger: Logger = new Logger('features.shell.split');
 
@@ -141,6 +142,92 @@ export function bottomBarLayout(splitActive: boolean, masterHidden: boolean): Bo
     return { visible: false, width: '100%' };
   }
   return { visible: true, width: SPLIT_VIEW_MASTER_WIDTH };
+}
+/**
+ * 底栏高度（vp）—— **全工程唯一** 的算法。
+ *
+ * 出处：主题令牌（ThemeTokens.sizes）的 controlHeight + space4。这个式子原先藏在
+ * ShellTabs 的私有方法里，页面侧算不出来；高度分配改成「壳层 + 五个页面」共担之后，
+ * 它必须只有一个来源，否则「页面预留多少」与「底栏实际多高」会各自漂移。
+ */
+export function bottomBarHeight(theme: ThemeTokens): number {
+  return theme.sizes.controlHeight + theme.sizes.space4;
+}
+
+/**
+ * **分栏态下页面主栏** 底部必须留出的高度（vp）。
+ *
+ * 为什么要页面自己留：分栏态下壳层的内容区拿满整屏、底栏 **浮** 在主栏底部之上
+ * （见下面的 shellContentBottomInset），所以「最后一行别被底栏盖住」这件事只能由页面
+ * 用底部预留来做。单栏态返回 0 —— 那时底栏在壳层的流内，内容区天然只到「屏高 − barH」，
+ * 页面再留一次就会多出一条空白。
+ *
+ * 判据与 bottomBarLayout 同源（隐藏档不占位 ⇒ 也不预留），所以三档语义不会分叉。
+ */
+export function masterPaneBottomReserve(theme: ThemeTokens, splitActive: boolean,
+  masterHidden: boolean): number {
+  const layout: BottomBarLayout = bottomBarLayout(splitActive, masterHidden);
+  return splitActive && layout.visible ? bottomBarHeight(theme) : 0;
+}
+
+/**
+ * 高度分配的结果：底栏三档（可见性 / 宽度 / 高度）**加上**「这一档下高度怎么分」。
+ *
+ * 两个 inset 是这次改动的核心，且**互为镜像**：
+ *   - shellContentBottomInset：壳层内容区（Tabs）底部为底栏留出的高度。
+ *     单栏 = barH（底栏在流内）；分栏 = 0（内容区拿满整屏，底栏浮起来）。
+ *   - masterPaneBottomInset：页面主栏底部留出的高度。分栏且底栏可见 = barH；
+ *     单栏 = 0（壳层已经让过了）。两者相加恒等于「底栏可见时的 barH」。
+ *
+ * masterContentHeight / detailContentHeight 是这次改动的**验收契约**：改前右栏只有
+ * 「屏高 − barH」（下方那条 barH 高的带子既不给底栏也不给详情），改后分栏态右栏 = 整屏高。
+ * 版式本身由两个 inset 驱动（引擎按 layoutWeight 排），这两个高度是它们的等价值，钉在单测里。
+ */
+export interface SplitHeightBudget {
+  /** 底栏是否可见（= bottomBarLayout().visible，隐藏档不占位）。 */
+  barVisible: boolean;
+  /** 底栏宽度：'100%'（单栏）或主栏宽度（分栏）。 */
+  barWidth: string | number;
+  /** 底栏高度（vp），即 bottomBarHeight() 的入参回传。 */
+  barHeight: number;
+  /** 壳层内容区底部为底栏留出的高度：单栏 = barHeight，分栏 = 0。 */
+  shellContentBottomInset: number;
+  /** 底栏相对内容流的纵向偏移：0 = 在流内（单栏）、-barHeight = 浮在内容之上（分栏）。 */
+  barMarginTop: number;
+  /** 页面主栏底部必须留出的高度：分栏且底栏可见 = barHeight，否则 0。 */
+  masterPaneBottomInset: number;
+  /** 主栏内容可用高度（vp）：屏高 − 该档留给底栏的高度，不为负。 */
+  masterContentHeight: number;
+  /** 详情（右栏）内容可用高度（vp）：分栏 = 整屏高；单栏不渲染右栏，取与主栏相同。 */
+  detailContentHeight: number;
+}
+
+/**
+ * 把「高度怎么分」一次算清：输入分栏两态、屏幕高与 barH，输出两个 inset、底栏三档与两个高度。
+ *
+ * 不变量（单测逐条钉住）：
+ *   - 底栏可见时，主栏内容高度恒为 max(0, 屏高 − barH)（单栏靠壳层、分栏靠页面预留，
+ *     两条路走到同一个数）；分栏态详情高度 = 屏高。
+ *   - 底栏隐藏（分栏 + 主栏隐藏）时两个 inset 都是 0：整屏让给详情。
+ *   - 屏高比 barH 还小时夹到 0，不出现负高度。
+ */
+export function splitHeightBudget(splitActive: boolean, masterHidden: boolean,
+  screenHeight: number, barHeight: number): SplitHeightBudget {
+  const layout: BottomBarLayout = bottomBarLayout(splitActive, masterHidden);
+  const shellContentBottomInset: number = (splitActive || !layout.visible) ? 0 : barHeight;
+  const masterPaneBottomInset: number = (splitActive && layout.visible) ? barHeight : 0;
+  const masterContentHeight: number =
+    Math.max(0, screenHeight - (splitActive ? masterPaneBottomInset : shellContentBottomInset));
+  return {
+    barVisible: layout.visible,
+    barWidth: layout.width,
+    barHeight: barHeight,
+    shellContentBottomInset: shellContentBottomInset,
+    barMarginTop: shellContentBottomInset - barHeight,
+    masterPaneBottomInset: masterPaneBottomInset,
+    masterContentHeight: masterContentHeight,
+    detailContentHeight: splitActive ? Math.max(0, screenHeight) : masterContentHeight
+  };
 }
 
 /** 迁移计划：主栈里"栈顶连续的详情段"要从第几条开始搬。 */
