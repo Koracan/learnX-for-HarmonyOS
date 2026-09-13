@@ -1141,6 +1141,10 @@
       "value": "分享失败：%1$s"
     },
     {
+      "name": "ui_file_open_not_ready",
+      "value": "文件尚未下载完成，暂时不能交给其他应用打开。"
+    },
+    {
       "name": "ui_file_saved_at",
       "value": "保存位置：%1$s"
     },

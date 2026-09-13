@@ -17,8 +17,8 @@
 | --- | --- | --- |
 | 参考实现迁入 | 180 | `loh_` |
 | 本工程新增（学期季节词） | 8 | `loh_` |
-| 本工程新增（原生重写 UI 文案） | 120 | `ui_` |
-| 合计 | 308 | |
+| 本工程新增（原生重写 UI 文案） | 121 | `ui_` |
+| 合计 | 309 | |
 
 ## 参考实现迁入键（180）
 
@@ -205,7 +205,7 @@
 | 179 | `avoidFrontCameraDescription` | `loh_avoid_front_camera_description` | - | 在上部留出空间以避让挖孔区域，需要重启应用 | Leave top space to avoid the front camera cutout. App restart required. |
 | 180 | `pleaseRestartAppToApplyImmersive` | `loh_please_restart_app_to_apply_immersive` | - | 请重启应用以应用沉浸式模式设置。 | Please restart the app to apply immersive mode setting. |
 
-## 本工程新增键（128）
+## 本工程新增键（129）
 
 | # | 类别 | 资源名 | 占位符 | 中文 | 英文 |
 | --- | --- | --- | --- | --- | --- |
@@ -314,27 +314,28 @@
 | 103 | ui | `ui_file_preview_failed` | {0} | 预览失败：%1$s | Preview failed: %1$s |
 | 104 | ui | `ui_file_preview_unavailable` | - | 该文件类型不支持应用内预览，可下载后分享给其他应用。 | This file type cannot be previewed in the app; download it and share it with another app. |
 | 105 | ui | `ui_file_share_failed` | {0} | 分享失败：%1$s | Share failed: %1$s |
-| 106 | ui | `ui_file_saved_at` | {0} | 保存位置：%1$s | Saved at: %1$s |
-| 107 | ui | `ui_file_view_info` | - | 详情 | Info |
-| 108 | ui | `ui_file_view_preview` | - | 预览 | Preview |
-| 109 | ui | `ui_file_settings_title` | - | 文件设置 | File settings |
-| 110 | ui | `ui_file_use_document_dir_on` | - | 文件保存在 App 的"文档"中，只会随 App 卸载而被删除。 | Files are saved in the App Document folder and are deleted only when the app is uninstalled. |
-| 111 | ui | `ui_file_use_document_dir_off` | - | 文件保存在 App 的"缓存"中，会在设备空间不足或其他系统预设情况下被自动清除以节约空间。 | Files are saved in the App cache folder; the system may clear it when space is low. |
-| 112 | ui | `ui_file_omit_course_name_on` | - | 文件以"文件名"形式保存。 | Files are saved as "filename". |
-| 113 | ui | `ui_file_omit_course_name_off` | - | 文件以"课程名-文件名"形式保存。 | Files are saved as "coursename-filename". |
-| 114 | ui | `ui_file_settings_root` | {0} | 当前保存位置：%1$s | Current save location: %1$s |
-| 115 | ui | `ui_file_prev_page` | - | 上一页 | Previous page |
-| 116 | ui | `ui_file_next_page` | - | 下一页 | Next page |
-| 117 | ui | `ui_file_page_of` | {0},{1} | 第 %1$s / %2$s 页 | Page %1$s of %2$s |
-| 118 | ui | `ui_file_cache_already_empty` | - | 缓存目录已为空 | The cache folder is already empty |
-| 119 | ui | `ui_updated_just_now` | - | 刚刚更新 | Updated just now |
-| 120 | ui | `ui_updated_minutes_ago` | {0} | %1$s 分钟前更新 | Updated %1$s min ago |
-| 121 | ui | `ui_updated_hours_ago` | {0} | %1$s 小时前更新 | Updated %1$s h ago |
-| 122 | ui | `ui_updated_days_ago` | {0} | %1$s 天前更新 | Updated %1$s d ago |
-| 123 | ui | `ui_assignment_submission_time` | - | 上次提交于 YYYY 年 M 月 D 日 dddd HH:mm | [last submitted at] HH:mm, MMM D, YYYY |
-| 124 | ui | `ui_remove_favorite` | - | 取消收藏 | Remove from favorites |
-| 125 | ui | `ui_unarchive` | - | 取消归档 | Unarchive |
-| 126 | ui | `ui_unhide_course` | - | 取消屏蔽 | Unhide course |
-| 127 | ui | `ui_mock_mode_active` | {0} | Mock 模式（guest）：数据为样例，已发出的网络请求 = %1$s | Mock mode (guest): sample data, network requests issued = %1$s |
-| 128 | ui | `ui_opensource_dependencies_none` | - | 本应用不包含第三方运行时依赖，只使用 HarmonyOS SDK 提供的系统能力。 | This app bundles no third-party runtime dependencies; it uses only the HarmonyOS SDK system capabilities. |
+| 106 | ui | `ui_file_open_not_ready` | - | 文件尚未下载完成，暂时不能交给其他应用打开。 | The file has not finished downloading, so it cannot be handed to another app yet. |
+| 107 | ui | `ui_file_saved_at` | {0} | 保存位置：%1$s | Saved at: %1$s |
+| 108 | ui | `ui_file_view_info` | - | 详情 | Info |
+| 109 | ui | `ui_file_view_preview` | - | 预览 | Preview |
+| 110 | ui | `ui_file_settings_title` | - | 文件设置 | File settings |
+| 111 | ui | `ui_file_use_document_dir_on` | - | 文件保存在 App 的"文档"中，只会随 App 卸载而被删除。 | Files are saved in the App Document folder and are deleted only when the app is uninstalled. |
+| 112 | ui | `ui_file_use_document_dir_off` | - | 文件保存在 App 的"缓存"中，会在设备空间不足或其他系统预设情况下被自动清除以节约空间。 | Files are saved in the App cache folder; the system may clear it when space is low. |
+| 113 | ui | `ui_file_omit_course_name_on` | - | 文件以"文件名"形式保存。 | Files are saved as "filename". |
+| 114 | ui | `ui_file_omit_course_name_off` | - | 文件以"课程名-文件名"形式保存。 | Files are saved as "coursename-filename". |
+| 115 | ui | `ui_file_settings_root` | {0} | 当前保存位置：%1$s | Current save location: %1$s |
+| 116 | ui | `ui_file_prev_page` | - | 上一页 | Previous page |
+| 117 | ui | `ui_file_next_page` | - | 下一页 | Next page |
+| 118 | ui | `ui_file_page_of` | {0},{1} | 第 %1$s / %2$s 页 | Page %1$s of %2$s |
+| 119 | ui | `ui_file_cache_already_empty` | - | 缓存目录已为空 | The cache folder is already empty |
+| 120 | ui | `ui_updated_just_now` | - | 刚刚更新 | Updated just now |
+| 121 | ui | `ui_updated_minutes_ago` | {0} | %1$s 分钟前更新 | Updated %1$s min ago |
+| 122 | ui | `ui_updated_hours_ago` | {0} | %1$s 小时前更新 | Updated %1$s h ago |
+| 123 | ui | `ui_updated_days_ago` | {0} | %1$s 天前更新 | Updated %1$s d ago |
+| 124 | ui | `ui_assignment_submission_time` | - | 上次提交于 YYYY 年 M 月 D 日 dddd HH:mm | [last submitted at] HH:mm, MMM D, YYYY |
+| 125 | ui | `ui_remove_favorite` | - | 取消收藏 | Remove from favorites |
+| 126 | ui | `ui_unarchive` | - | 取消归档 | Unarchive |
+| 127 | ui | `ui_unhide_course` | - | 取消屏蔽 | Unhide course |
+| 128 | ui | `ui_mock_mode_active` | {0} | Mock 模式（guest）：数据为样例，已发出的网络请求 = %1$s | Mock mode (guest): sample data, network requests issued = %1$s |
+| 129 | ui | `ui_opensource_dependencies_none` | - | 本应用不包含第三方运行时依赖，只使用 HarmonyOS SDK 提供的系统能力。 | This app bundles no third-party runtime dependencies; it uses only the HarmonyOS SDK system capabilities. |
 

@@ -1141,6 +1141,10 @@
       "value": "Share failed: %1$s"
     },
     {
+      "name": "ui_file_open_not_ready",
+      "value": "The file has not finished downloading, so it cannot be handed to another app yet."
+    },
+    {
       "name": "ui_file_saved_at",
       "value": "Saved at: %1$s"
     },

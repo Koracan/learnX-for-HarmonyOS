@@ -58,7 +58,7 @@ export function fileKindOf(fileType: string): FileKind {
  *
  * 参考实现把 pdf 交给 react-native-pdf、
  * 把图片交给 WebView（都是应用内），但它的"打开"动作是 `FileViewer.open`（跳系统）。
- * 这里 pdf/图片一律在应用内渲染，"打开"不再外跳。
+ * 这里 pdf/图片一律在应用内渲染；"打开"（交给系统打开方式）是顶栏另一个按钮，与预览互不影响。
  */
 export function canPreviewInApp(fileType: string): boolean {
   return fileKindOf(fileType) !== FileKind.OTHER;

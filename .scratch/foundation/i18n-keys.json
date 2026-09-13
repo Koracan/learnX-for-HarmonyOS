@@ -1,8 +1,8 @@
 {
-  "total": 308,
+  "total": 309,
   "referenceCount": 180,
   "localCount": 8,
-  "uiCount": 120,
+  "uiCount": 121,
   "referenceKeys": [
     "back",
     "notices",
@@ -2823,6 +2823,15 @@
       "enPlaceholders": [
         "{0}"
       ],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_file_open_not_ready",
+      "name": "ui_file_open_not_ready",
+      "zhValue": "文件尚未下载完成，暂时不能交给其他应用打开。",
+      "enValue": "The file has not finished downloading, so it cannot be handed to another app yet.",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
       "origin": "ui"
     },
     {
