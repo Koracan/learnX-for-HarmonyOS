@@ -5,7 +5,7 @@
 
 **Blocked by:** None（可立即开始）
 
-**Status:** verified-partial（统筹者已复核：主树合并态全绿；一项设备帧未取到，见 Comments）
+**Status:** verified（`16e318f` + 预览图标设备帧 `9e4f529`；两条受平台限制的记账见 Comments）
 
 - [x] 图标闭集新增五个成员：刷新、分享、外跳、信息、预览；每个都有唯一映射
 - [x] 文件详情顶栏的返回 / 刷新 / 分享 / 预览是图标；课程详情顶栏的返回是图标
@@ -56,3 +56,17 @@
 2. **字体未就绪的回退分支未在设备上制造**（本轮字体就绪）。回退分支本身未被本 ticket 改动，风险低，但"未验"就是"未验"。
 
 **待账号所有者裁定的一条（不阻塞本 ticket）**：OPEN_IN_NEW 只声明、零渲染（参考实现的"跳系统打开方式"是本工程有意去掉的动作，且没有可读文案键）。本 ticket 的验收只要求"闭集新增五个成员、每个都有唯一映射"，故判达成。
+
+### 2026-09-13 · 统筹者补帧复核：partial → **verified**（`9e4f529`）
+
+**那条"没取到"的设备帧取到了**，用的是我之前留在 Comments 里的办法（运行时学期覆盖）：
+- **覆盖自证到了消费点**（不只是启动参数）：`--ps lohSemester 2025-2026-2` 冷启动后 hilog `effective="2025-2026-2" source=runtime-want-param`，点文件 tab 后 `data.files effective semester=2025-2026-2 source=override`（95 项，多为 PDF）。
+- **PDF 详情的顶栏是六枚** 80×80 px = 40vp 的 Stack：`[820,…]`U+E5C4 返回 / `[2352,…]`U+E5D0 全屏 / `[2456,…]`U+E5D5 刷新 / `[2560,…]`U+E80D 分享 / `[2664,…]`U+E89E 外跳 / **`[2768,102,2848,182]` 详情↔预览切换**。
+- 点第 6 枚前后，两份 dump 的**唯一**差异就是那一行字形：`U+E88E`（Material `info`）→ **`U+DB80 U+DE08`**（代理对合起来 = **U+F0208**，MaterialCommunityIcons `eye` = `AppIcon.PREVIEW`）。⇒ **两态字形都取到了**，本 ticket 最后一项设备帧闭合。
+- **它纠正了我一个错猜**：我在派单时猜那枚是 `U+E8B6` —— 那是 SEARCH（页头搜索入口）。它按 dump 的码位如实报了 `U+F0208`，**没有顺着我的猜测写**，这一点做得对。
+- ZIP 详情只有 5 枚、没有第 6 枚：渲染条件是 `previewable() && localPath.length > 0` —— 这正是当初取不到输入的原因，也反过来印证了那枚按钮的渲染条件。
+
+**两条仍然受限的记账（不因此降级，因为都不是本 ticket 的验收面）**：
+1. **这一帧证明的是"图标两态"，不是"预览内容"**：同一台设备上 hilog 有 `file detail preview pdf unavailable on this platform: Cannot read property PdfDocument of undefined` ⇒ API 23 模拟器没有 `@kit.PDFKit` 的 `PdfDocument`，`previewUnsupported=true`，正文始终走信息面板。**PDF 预览内容不在本 ticket 的验收内**（本 ticket 管顶栏形态），但**图片预览分支这一轮没验**。
+2. **字体未就绪的回退分支仍未在设备上制造**（与上一节同一条）：回退分支未被本 ticket 改动、风险低，但"未验"就是"未验"。
+
