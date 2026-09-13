@@ -23,7 +23,8 @@
  * 这里照做：根 `Column` 的 `onAreaChange` 量到的就是**本应用的渲染区**，比屏幕尺寸更贴近真实
  * 可用宽度（2in1 窗口化时两者会分叉）。判据与常量在 `./SplitView`，结果写进 AppStorage，
  * **消费点有两处**：每个 tab 页（订阅 `SPLIT_VIEW_ACTIVE_KEY` 决定单栏/双栏版式），
- * 以及本壳自己的底栏（分栏态收窄到主栏宽度，见 `bottomBarWidth`）。
+ * 以及本壳自己的底栏（单栏态整屏；分栏态收窄到主栏宽度；分栏且主栏隐藏时整条隐藏
+ * —— 见 `bottomBarLayout`）。
  *
  * `Tabs + TabContent` 的选型**一字未改**：双栏只改每个 tab 内部的版式，
  * 五个 `TabContent` 子树照样不销毁（ticket 03 的"切 tab 保留浏览位置"因此不受影响）。
@@ -42,7 +43,8 @@ import {
   FORCE_DARK_FOR_EVIDENCE, FORCE_ENGLISH_FOR_EVIDENCE, logEvidenceSwitchState
 } from '../notices/repository/NoticeRepositoryProvider';
 import {
-  SPLIT_VIEW_ACTIVE_KEY, SPLIT_VIEW_BREAKPOINT_VP, bottomBarWidth, publishSplitViewDecision
+  SPLIT_VIEW_ACTIVE_KEY, SPLIT_VIEW_BREAKPOINT_VP, SPLIT_VIEW_MASTER_HIDDEN_KEY, bottomBarLayout,
+  publishSplitViewDecision
 } from './SplitView';
 import { SettingsPage } from '../settings/SettingsPage';
 import { SearchPage } from '../search/SearchPage';
@@ -114,9 +116,14 @@ export struct ShellTabs {
   @StorageLink(LOCALE_VERSION_KEY) localeVersion: number = 0;
   /**
    * 单栏 / 双栏开关：本组件是**发布方**（根布局的 onAreaChange 写进 AppStorage），
-   * 同时在这里订阅它 —— 底栏宽度要跟着它变（见 bottomBarWidth）。
+   * 同时在这里订阅它 —— 底栏的宽窄与存亡都要跟着它变（见 bottomBarLayout）。
    */
   @StorageProp(SPLIT_VIEW_ACTIVE_KEY) splitActive: boolean = false;
+  /**
+   * 主栏是否被隐藏（文件详情的全屏按钮翻转它，见 `SPLIT_VIEW_MASTER_HIDDEN_KEY`）。
+   * 本组件只在**分栏态**下让它生效：分栏 + 主栏隐藏 ⇒ 底栏隐藏；单栏态下它不参与判定。
+   */
+  @StorageProp(SPLIT_VIEW_MASTER_HIDDEN_KEY) masterHidden: boolean = false;
   @State activeIndex: number = ShellTab.NOTICES;
 
   private tabsController: TabsController = new TabsController();
@@ -232,6 +239,16 @@ export struct ShellTabs {
     return this.theme().sizes.controlHeight + this.theme().sizes.space4;
   }
 
+  /** 底栏该多宽（三档判据见 `bottomBarLayout`）。 */
+  private barWidth(): string | number {
+    return bottomBarLayout(this.splitActive, this.masterHidden).width;
+  }
+
+  /** 底栏该不该出现（分栏 + 主栏隐藏的全屏态下整条隐藏）。 */
+  private barVisible(): boolean {
+    return bottomBarLayout(this.splitActive, this.masterHidden).visible;
+  }
+
   @Builder
   tabBar() {
     Row() {
@@ -281,10 +298,11 @@ export struct ShellTabs {
         }
       })
     }
-    // 底栏宽度：分栏态 = 主栏宽度（'底栏只挂在左栏下方'，右栏的详情不被它割断）；
-    // 单栏态 = '100%'（横跨整屏，形态与改动前一致）。判据见 bottomBarWidth。
-    .width(bottomBarWidth(this.splitActive))
+    // 底栏三档（见 bottomBarLayout）：单栏 → 整屏；分栏 + 主栏可见 → 主栏宽度；
+    // 分栏 + 主栏隐藏（文件详情全屏）→ 整条隐藏（Visibility.None 不占位，版面让给详情）。
+    .width(this.barWidth())
     .height(this.barHeight())
+    .visibility(this.barVisible() ? Visibility.Visible : Visibility.None)
     .backgroundColor(this.theme().colors.surface)
     .border({ width: { top: this.theme().sizes.borderWidth }, color: this.theme().colors.outlineVariant })
   }

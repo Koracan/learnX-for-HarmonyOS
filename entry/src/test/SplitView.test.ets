@@ -10,8 +10,8 @@
 
 import { describe, it, expect } from '@ohos/hypium';
 import {
-  DETAIL_ROUTE_NAMES, SPLIT_VIEW_BREAKPOINT_VP, SPLIT_VIEW_MASTER_WIDTH,
-  SplitMigrationPlan, bottomBarWidth, isSplitDetailRoute, resolveSplitViewActive,
+  BottomBarLayout, DETAIL_ROUTE_NAMES, SPLIT_VIEW_BREAKPOINT_VP, SPLIT_VIEW_MASTER_WIDTH,
+  SplitMigrationPlan, bottomBarLayout, isSplitDetailRoute, resolveSplitViewActive,
   shouldReplaceDetailTop, splitMigrationPlan
 } from '../main/ets/features/shell/SplitView';
 
@@ -47,15 +47,29 @@ export default function splitViewTest() {
       expect(resolveSplitViewActive(0, 0, 440, 952)).assertFalse();
     });
 
-    it('narrows the bottom tab bar to the master column only in split view', 0, () => {
-      // 分栏态：底栏与主栏同宽 —— 底栏只挂在左栏下方，右栏的详情不被它割断。
-      // 期望值就是主栏那个既有常量（393vp），不新造宽度。
-      expect(bottomBarWidth(true)).assertEqual(SPLIT_VIEW_MASTER_WIDTH);
-      expect(bottomBarWidth(true)).assertEqual(393);
-      // 单栏态：仍横跨整屏（形态与改动前一致）。
-      expect(bottomBarWidth(false)).assertEqual('100%');
-      // 两个分支必须不同，否则"只在分栏态收敛"这条要求会静默失效。
-      expect(bottomBarWidth(true) === bottomBarWidth(false)).assertFalse();
+    it('lays out the bottom tab bar per split view and master visibility', 0, () => {
+      // ① 单栏态：**显示**且横跨整屏（形态与改动前一致）。
+      const single: BottomBarLayout = bottomBarLayout(false, false);
+      expect(single.visible).assertTrue();
+      expect(single.width).assertEqual('100%');
+      // 边界：单栏态 + 残留的 masterHidden ⇒ 底栏**仍然可见**。
+      // 隐藏的判据是 splitActive && masterHidden；只判 masterHidden 会让底栏凭空消失。
+      const singleWithStaleFlag: BottomBarLayout = bottomBarLayout(false, true);
+      expect(singleWithStaleFlag.visible).assertTrue();
+      expect(singleWithStaleFlag.width).assertEqual('100%');
+      // ② 分栏 + 主栏可见：**显示**，宽度 = 主栏宽度（底栏只挂在左栏下方；
+      // 期望值就是那个既有常量 393vp，不新造宽度）。
+      const split: BottomBarLayout = bottomBarLayout(true, false);
+      expect(split.visible).assertTrue();
+      expect(split.width).assertEqual(SPLIT_VIEW_MASTER_WIDTH);
+      expect(split.width).assertEqual(393);
+      // ③ 分栏 + 主栏隐藏（文件详情全屏）：**整条隐藏**（不占位），而不是横跨整屏。
+      const fullscreen: BottomBarLayout = bottomBarLayout(true, true);
+      expect(fullscreen.visible).assertFalse();
+      // ② 与 ① 的宽度必须不同，否则"只在分栏态收敛"会静默失效。
+      expect(split.width === single.width).assertFalse();
+      // ③ 与 ① 的可见性必须不同，否则"全屏时隐藏底栏"会静默失效。
+      expect(fullscreen.visible === single.visible).assertFalse();
     });
 
     it('recognises the reference whitelist plus the immersive settings page', 0, () => {
