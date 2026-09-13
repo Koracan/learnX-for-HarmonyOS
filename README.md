@@ -10,6 +10,8 @@ HarmonyOS 原生版本的 learnOH。
 >
 > Note: the App is for Tsinghua University students only.
 
+</div>
+
 本仓库前身是 learnOH 的 React Native for OpenHarmony 实现，上游项目为 [robertying/learnX](https://github.com/robertying/learnX)。
 
 ## 下载 Download
