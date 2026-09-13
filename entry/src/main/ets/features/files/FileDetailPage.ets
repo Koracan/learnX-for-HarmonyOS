@@ -122,10 +122,6 @@ export struct FileDetailPage {
     return resolveTheme(this.colorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK);
   }
 
-  private isDark(): boolean {
-    return this.colorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK;
-  }
-
   private s(resource: Resource): string {
     return i18nService.tKey(resource);
   }
@@ -384,25 +380,39 @@ export struct FileDetailPage {
       + ' split=' + this.splitActive.toString());
   }
 
-  /** 顶部工具栏。**不叫 toolbar**：那是 CustomComponent 继承来的属性方法名，重名会编译失败。 */
+  /**
+   * 顶部工具栏。**不叫 toolbar**：那是 CustomComponent 继承来的属性方法名，重名会编译失败。
+   *
+   * 四个动作都是图标；点击目标统一是外层 `Stack` 的 **40vp×40vp**（`sizes.controlHeight`）。
+   * 换图标**没有缩小点击区**：改动前每个按钮是一行 `labelLarge` 文字（行高约 20–24vp、
+   * 宽度随文案），现在每个都是 40vp×40vp 的固定方框；图标本身按 `iconMedium`（24vp）居中。
+   * **为什么点击加在 Stack 而不是 IconGlyph 上**：IconGlyph 是本工程的自定义组件，不给它链式挂
+   * 通用属性（见 ui/icons/IconGlyph.ets 文件头）；间距仍用 `margin({left: space3})`，与改动前逐点相同。
+   *
+   * `label` 一律传**可读文案**（不是图标短名）：字体未就绪时 IconGlyph 的回退分支会把这段文案
+   * 直接画出来，同时它也是无障碍朗读文案 —— 两种用途共用同一个键。
+   */
   @Builder
   topBar() {
     Row() {
-      Text(this.s($r('app.string.loh_back')))
-        .fontSize(this.theme().typography.labelLarge.fontSize)
-        .fontColor(this.theme().colors.primary)
-        .onClick(() => {
-          if (this.stack !== null) {
-            this.stack.pop();
-          }
+      Stack() {
+        IconGlyph({
+          icon: AppIcon.ARROW_BACK, glyphSize: this.theme().sizes.iconMedium,
+          color: this.theme().colors.primary, label: this.s($r('app.string.loh_back'))
         })
+      }
+      .width(this.theme().sizes.controlHeight)
+      .height(this.theme().sizes.controlHeight)
+      .onClick(() => {
+        if (this.stack !== null) {
+          this.stack.pop();
+        }
+      })
       Blank()
-      // 全屏切换（ticket 16）：隐藏左栏、把详情铺满 —— 参考实现 FileDetail.tsx:108-113 的
+      // 全屏切换：隐藏左栏、把详情铺满 —— 参考实现 FileDetail.tsx:108-113 的
       // headerRight 首个 IconButton（fullscreen / fullscreen-exit），只在双栏时出现。
-      // 点击与外边距加在**外层 Row** 上：IconGlyph 是本工程的自定义组件，
-      // 不给它链式挂通用属性（见 ui/icons/IconGlyph.ets 文件头那条说明）。
       if (this.splitActive) {
-        Row() {
+        Stack() {
           if (this.masterHidden) {
             IconGlyph({
               icon: AppIcon.FULLSCREEN_EXIT,
@@ -419,35 +429,60 @@ export struct FileDetailPage {
             })
           }
         }
+        .width(this.theme().sizes.controlHeight)
+        .height(this.theme().sizes.controlHeight)
         .margin({ left: this.theme().sizes.space3 })
         .onClick(() => {
           this.toggleMaster();
         })
       }
-      Text(this.s($r('app.string.loh_refresh')))
-        .fontSize(this.theme().typography.labelLarge.fontSize)
-        .fontColor(this.theme().colors.primary)
-        .margin({ left: this.theme().sizes.space3 })
-        .onClick(() => {
-          this.startDownload(true);
+      Stack() {
+        IconGlyph({
+          icon: AppIcon.REFRESH, glyphSize: this.theme().sizes.iconMedium,
+          color: this.theme().colors.primary, label: this.s($r('app.string.loh_refresh'))
         })
-      Text(this.s($r('app.string.loh_share')))
-        .fontSize(this.theme().typography.labelLarge.fontSize)
-        .fontColor(this.localPath.length > 0 ? this.theme().colors.primary : this.theme().colors.outline)
-        .margin({ left: this.theme().sizes.space3 })
-        .onClick(() => {
-          this.share();
+      }
+      .width(this.theme().sizes.controlHeight)
+      .height(this.theme().sizes.controlHeight)
+      .margin({ left: this.theme().sizes.space3 })
+      .onClick(() => {
+        this.startDownload(true);
+      })
+      Stack() {
+        IconGlyph({
+          icon: AppIcon.SHARE, glyphSize: this.theme().sizes.iconMedium,
+          color: this.localPath.length > 0 ? this.theme().colors.primary : this.theme().colors.outline,
+          label: this.s($r('app.string.loh_share'))
         })
+      }
+      .width(this.theme().sizes.controlHeight)
+      .height(this.theme().sizes.controlHeight)
+      .margin({ left: this.theme().sizes.space3 })
+      .onClick(() => {
+        this.share();
+      })
       if (this.previewable() && this.localPath.length > 0) {
-        Text(this.showInfo
-          ? this.s($r('app.string.ui_file_view_preview'))
-          : this.s($r('app.string.ui_file_view_info')))
-          .fontSize(this.theme().typography.labelLarge.fontSize)
-          .fontColor(this.theme().colors.primary)
-          .margin({ left: this.theme().sizes.space3 })
-          .onClick(() => {
-            this.showInfo = !this.showInfo;
-          })
+        // 按钮的图标说的是**按下之后能看到什么**：正在看预览时给"详情"图标、给"预览"文案；
+        // 正在看信息面板时反过来。文字按钮改成图标后，两态由图标的语义承载。
+        Stack() {
+          if (this.showInfo) {
+            IconGlyph({
+              icon: AppIcon.PREVIEW, glyphSize: this.theme().sizes.iconMedium,
+              color: this.theme().colors.primary, label: this.s($r('app.string.ui_file_view_preview'))
+            })
+          } else {
+            IconGlyph({
+              icon: AppIcon.INFO, glyphSize: this.theme().sizes.iconMedium,
+              color: this.theme().colors.primary, label: this.s($r('app.string.ui_file_view_info'))
+            })
+          }
+        }
+        .width(this.theme().sizes.controlHeight)
+        .height(this.theme().sizes.controlHeight)
+        .margin({ left: this.theme().sizes.space3 })
+        .onClick(() => {
+          this.showInfo = !this.showInfo;
+        })
       }
     }
     .width('100%')

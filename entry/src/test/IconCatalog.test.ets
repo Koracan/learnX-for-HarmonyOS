@@ -49,13 +49,20 @@ const EXPECTED: ExpectedGlyph[] = [
   { icon: AppIcon.FULLSCREEN_EXIT, name: 'fullscreen-exit', family: IconFamily.MATERIAL, code: 0xE5D1 },
   // ticket 15（搜索）：页头右侧的入口与搜索页的关闭，参考实现 App.tsx:113-121,137-158。
   { icon: AppIcon.SEARCH, name: 'search', family: IconFamily.MATERIAL, code: 0xE8B6 },
-  { icon: AppIcon.CLOSE, name: 'close', family: IconFamily.MATERIAL, code: 0xE5CD }
+  { icon: AppIcon.CLOSE, name: 'close', family: IconFamily.MATERIAL, code: 0xE5CD },
+  // 文件详情顶栏与「详情 / 预览」切换：MaterialIcons 的 refresh / share / open-in-new / info
+  // 与 MaterialCommunityIcons 的 eye。
+  { icon: AppIcon.REFRESH, name: 'refresh', family: IconFamily.MATERIAL, code: 0xE5D5 },
+  { icon: AppIcon.SHARE, name: 'share', family: IconFamily.MATERIAL, code: 0xE80D },
+  { icon: AppIcon.OPEN_IN_NEW, name: 'open-in-new', family: IconFamily.MATERIAL, code: 0xE89E },
+  { icon: AppIcon.PREVIEW, name: 'eye', family: IconFamily.MATERIAL_COMMUNITY, code: 0xF0208 },
+  { icon: AppIcon.INFO, name: 'info', family: IconFamily.MATERIAL, code: 0xE88E }
 ];
 
 export default function iconCatalogTest() {
   describe('ui.icons.IconCatalog', () => {
     it('maps every icon to the reference glyphmap code point and family', 0, () => {
-      expect(EXPECTED.length).assertEqual(26);
+      expect(EXPECTED.length).assertEqual(31);
       for (let i = 0; i < EXPECTED.length; i++) {
         const expected: ExpectedGlyph = EXPECTED[i];
         const spec: IconSpec = iconSpec(expected.icon);
@@ -99,6 +106,18 @@ export default function iconCatalogTest() {
         expect(spec.fallback.length > 0).assertTrue();
         expect(spec.fallback.startsWith('[')).assertTrue();
       }
+    });
+
+    it('maps each icon to its own (family, code point) pair', 0, () => {
+      // 同名 / 同码位就是"两个图标画成同一个形状"——闭集里不该出现，这里逐个钉住。
+      const seen: string[] = [];
+      for (let i = 0; i < EXPECTED.length; i++) {
+        const spec: IconSpec = iconSpec(EXPECTED[i].icon);
+        const key: string = spec.family + ':' + spec.code.toString();
+        expect(seen.indexOf(key)).assertEqual(-1);
+        seen.push(key);
+      }
+      expect(seen.length).assertEqual(EXPECTED.length);
     });
   });
 }

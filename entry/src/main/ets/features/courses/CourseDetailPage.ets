@@ -147,17 +147,28 @@ export struct CourseDetailPage {
     }
   }
 
+  /**
+   * 页头：返回是图标，占位与公告详情页的返回一致。
+   *
+   * 点击目标固定 **40vp×40vp**（`sizes.controlHeight`），不小于改动前那行 `labelLarge` 文字
+   * （行高约 20–24vp）；`label` 传可读文案，字体未就绪时回退分支直接把它画出来。
+   */
   @Builder
   header() {
     Column() {
-      Text(this.s($r('app.string.loh_back')))
-        .fontSize(this.theme().typography.labelLarge.fontSize)
-        .fontColor(this.theme().colors.primary)
-        .onClick(() => {
-          if (this.stack !== null) {
-            this.stack.pop();
-          }
+      Stack() {
+        IconGlyph({
+          icon: AppIcon.ARROW_BACK, glyphSize: this.theme().sizes.iconMedium,
+          color: this.theme().colors.primary, label: this.s($r('app.string.loh_back'))
         })
+      }
+      .width(this.theme().sizes.controlHeight)
+      .height(this.theme().sizes.controlHeight)
+      .onClick(() => {
+        if (this.stack !== null) {
+          this.stack.pop();
+        }
+      })
       Text(this.params.courseName)
         .fontSize(this.theme().typography.headlineSmall.fontSize)
         .fontWeight(FontWeight.Bold)

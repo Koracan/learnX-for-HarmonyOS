@@ -106,7 +106,7 @@ export enum AppIcon {
   SEARCH = 'search',
   /** MaterialIcons `close`：搜索页页头左上角的关闭（参考实现 `App.tsx:113-121` 的 BackButton）。 */
   CLOSE = 'close',
-  /* --- ticket 17（设置与子页）：**全部来自 MaterialIcons**，与参考实现 `Settings.tsx` /
+  /* --- 设置与子页：**这一组全部来自 MaterialIcons**，与参考实现 `Settings.tsx` /
    * `TableCell.tsx` 的 `import MaterialIcons from 'react-native-vector-icons/MaterialIcons'` 同族。
    * 码位逐条抄自 `react-native-vector-icons@10.2.0` 的 glyphmaps/MaterialIcons.json
    * （每条的码位都写在下面的 `iconSpec` 里，便于复核）。 --- */
@@ -139,7 +139,23 @@ export enum AppIcon {
    * `core/log/LogBuffer.ets` 明确把 `exportLogs()` 的调用方留给「settings 切片（ticket 17「导出日志」）」，
    * 而本 ticket 的 What to build 也列了它。理由与替代验收标准见 ticket 17 交付节的「偏离与增补」。
    */
-  DESCRIPTION = 'description'
+  DESCRIPTION = 'description',
+  /* --- 文件详情顶栏与「详情 / 预览」切换用到的字形。
+   * 码位按图标名查随包字体的 cmap 表得到（见下面的 iconSpec），因此 TTF 里一定有对应字形；
+   * 字体形状本身与排版无关，命名跟随各自族的图标名。 --- */
+  /** MaterialIcons `refresh`：重新下载当前文件。 */
+  REFRESH = 'refresh',
+  /** MaterialIcons `share`：把已落盘的文件交给系统分享。 */
+  SHARE = 'share',
+  /**
+   * MaterialIcons `open-in-new`：离开本应用打开（外链）。平台在缺少对应应用时
+   * 会失败，调用方要给可读的失败文案，不要假定系统总能接住。
+   */
+  OPEN_IN_NEW = 'open-in-new',
+  /** MaterialCommunityIcons `eye`：查看文件预览。 */
+  PREVIEW = 'eye',
+  /** MaterialIcons `info`：查看文件信息（详情面板）。 */
+  INFO = 'info'
 }
 
 /** 闭集 → 资源。没有 default 分支的"兜底语义"：未知枚举值按 attachment 渲染并保持可读。 */
@@ -235,6 +251,22 @@ export function iconSpec(icon: AppIcon): IconSpec {
     case AppIcon.DESCRIPTION:
       // 码位 59507 (0xE873)，同表的 description（本工程增补的「导出日志」行）。
       return { family: IconFamily.MATERIAL, code: 0xE873, fallback: '[log]' };
+    case AppIcon.REFRESH:
+      // 码位 58837 (0xE5D5)，glyphmaps/MaterialIcons.json 的 refresh。
+      return { family: IconFamily.MATERIAL, code: 0xE5D5, fallback: '[refresh]' };
+    case AppIcon.SHARE:
+      // 码位 59405 (0xE80D)，同表的 share。
+      return { family: IconFamily.MATERIAL, code: 0xE80D, fallback: '[share]' };
+    case AppIcon.OPEN_IN_NEW:
+      // 码位 59550 (0xE89E)，同表的 open-in-new。
+      return { family: IconFamily.MATERIAL, code: 0xE89E, fallback: '[external]' };
+    case AppIcon.PREVIEW:
+      // 码位 983560 (0xF0208)，glyphmaps/MaterialCommunityIcons.json 的 eye
+      // （MaterialIcons 没有 eye，只有语义已被「取消屏蔽」占用的 visibility）。
+      return { family: IconFamily.MATERIAL_COMMUNITY, code: 0xF0208, fallback: '[preview]' };
+    case AppIcon.INFO:
+      // 码位 59534 (0xE88E)，同表的 info。
+      return { family: IconFamily.MATERIAL, code: 0xE88E, fallback: '[info]' };
     default:
       return { family: IconFamily.MATERIAL_COMMUNITY, code: 0xF0066, fallback: '[icon]' };
   }
