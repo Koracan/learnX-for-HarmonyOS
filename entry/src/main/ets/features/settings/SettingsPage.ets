@@ -519,6 +519,9 @@ export struct SettingsPage {
           .mode(NavigationMode.Stack)
           .width('100%')
           .height('100%')
+          // 右栏 NavDestination 的进入/退出转场会画到本 Navigation 的边界之外（盖住左栏一截），
+          // 就地裁剪：动画只允许出现在右栏自己的范围内。
+          .clip(true)
         }
         .layoutWeight(1)
         .height('100%')
