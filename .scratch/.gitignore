@@ -1,3 +1,17 @@
+# 证据目录：**默认忽略、且不进版本库**（账号所有者 2026-09-13 裁定：本仓库只有一个开发者，
+# 截图/图片证据留在本地工作区即可，不必入库）。
+# 需要入库的是**文字**证据（README 逐文件论断表、hilog 摘录、layout dump 等）——
+# 若确要提交某个文字证据，用显式 `git add -f <具体文件>`，**不要整目录 force-add**。
+**/evidence/**
+**/evidence/*.png
+**/evidence/*.jpeg
+**/evidence/*.jpg
+**/evidence/*.webp
+**/evidence/*.gif
 **/evidence
+
+# 各 ticket 的过程文件（hilog 原始拉取、layout dump、探针截图）——**不进版本库**，
+# 只作工作副本；真正的证据放各自的 `evidence/` 并 force-add。
+release/logs
 migration/sm2-verify
 auth/tools/credentials.local.txt
