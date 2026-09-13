@@ -22,9 +22,11 @@
  * 1. **提交入口的边界**（ticket 10 建页、ticket 13 接上）：参考实现在 headerRight 放了一个
  *    上传按钮（:105-120），点它进 `AssignmentSubmission`。ticket 10 全程只读、不渲染该入口；
  *    ticket 13 把它接上：`submissionType !== OFFLINE` 时渲染 MaterialIcons `file-upload`，
- *    点击先判截止（已过 ⇒ 只提示 `loh_assignment_past_deadline`），否则把整个 `Assignment`
- *    推给 `ROUTE_ASSIGNMENT_SUBMISSION`。**本页仍然只读**：不构造提交请求、不落任何表单字段；
- *    真正的写操作在提交页里由用户二次确认后发出。
+ *    点击先问一句"提交入口能不能走、走不了是为什么"（canSubmit 那条纯判定在
+ *    `domain/assignments/SubmissionState.submitBlockReason`；本页只可能拿到"已截止"这一种
+ *    原因，提示文案见 `AssignmentText.submissionBlockedKey`），不能走就只提示、不进页面，
+ *    能走才把整个 `Assignment` 推给 `ROUTE_ASSIGNMENT_SUBMISSION`。
+ *    **本页仍然只读**：不构造提交请求、不落任何表单字段；真正的写操作在提交页里由用户二次确认后发出。
  *
  * 2. **优秀作业已交付**（ticket 10 补做）：数据来自参考实现那条**独立接口**
  *    `/b/wlxt/kczy/zy/student/yxzylist`（每门课一次 POST）+ 每条一次
@@ -51,6 +53,7 @@ import { Logger } from '../../core/log/Logger';
 import { Assignment, Attachment, ExcellentHomework } from '../../domain/model/ContentItem';
 import { parseTimestamp } from '../../domain/parse/Text';
 import { excellentDisplayAttachment } from '../../domain/parse/AssignmentParser';
+import { SubmitBlockReason, submitBlockReason } from '../../domain/assignments/SubmissionState';
 import { buildNoticeContent, removeTags } from '../../domain/render/WebViewTemplate';
 import { getExtension, stripExtension } from '../../domain/render/FileNames';
 import { HtmlWebView } from '../../ui/components/HtmlWebView';
@@ -62,7 +65,8 @@ import { CourseListStore } from '../courses/CourseListStore';
 import { ROUTE_ASSIGNMENT_SUBMISSION } from './AssignmentRoutes';
 import { isPastDeadline } from './AssignmentFilter';
 import {
-  completionText, deadlineText, dueStatusText, gradeText, isOfflineSubmission, submissionText
+  completionText, deadlineText, dueStatusText, gradeText, isOfflineSubmission,
+  submissionBlockedKey, submissionText
 } from './AssignmentText';
 
 const logger: Logger = new Logger('features.assignments.detail');
@@ -223,16 +227,22 @@ export struct AssignmentDetailPage {
    * 进提交页（参考实现 AssignmentDetail.tsx:82-101 的 handleSubmit）。
    *
    * 两件事逐条照做：
-   *   1. **已过截止时间就只提示、不进入**（`dayjs().isAfter(deadline)` ⇒ `assignmentPastDeadline`）；
+   *   1. **不能提交时就只提示、不进入**，而且提示要说清**不能的原因**
+   *      （`dayjs().isAfter(deadline)` ⇒ 已截止；判定与提交页共用同一个纯函数，
+   *      本页没有提交页的状态，所以只可能拿到"已截止"）；
    *   2. 否则把**整个 Assignment**（含 `studentHomeworkId`、`submittedContent`、
    *      `submittedAttachment`、`submitTime`）推给提交页 —— 参考实现也是 `...route.params`。
    *
    * 注意：这里**只推路由，不发任何请求**；真正的写操作要用户在提交页再点一次「提交」并确认。
    */
   private openSubmission(): void {
-    if (isPastDeadline(this.assignment.deadline, Date.now())) {
-      logger.info('submission entry blocked: past deadline=' + this.assignment.deadline);
-      this.toast(this.s($r('app.string.loh_assignment_past_deadline')));
+    const reason: SubmitBlockReason | undefined =
+      submitBlockReason(isPastDeadline(this.assignment.deadline, Date.now()), undefined);
+    if (reason !== undefined) {
+      // 日志保留 `submission entry blocked:` 这个前缀：拦截证据一直按它检索。
+      logger.info('submission entry blocked: reason=' + reason
+        + ' deadline=' + this.assignment.deadline);
+      this.toast(i18nService.t(submissionBlockedKey(reason)));
       return;
     }
     if (this.stack === null) {

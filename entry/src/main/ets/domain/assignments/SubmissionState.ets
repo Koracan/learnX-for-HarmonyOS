@@ -161,6 +161,45 @@ export function shouldSendRequest(state: SubmissionState): boolean {
   return state.removeAttachment || state.content.length > 0 || state.attachment !== undefined;
 }
 
+/**
+ * 提交入口走不了的原因。三种情形的**说法必须不同** —— 同一个"什么都不发生"会让用户
+ * 分不清是自己没填东西、程序还在忙、还是这条作业根本不能交了。
+ */
+export type SubmitBlockReason = 'past_deadline' | 'uploading' | 'nothing_to_submit';
+
+/**
+ * 提交入口此刻能不能走：`undefined` = 可以；否则给出**原因**。
+ *
+ * `pastDeadline` 由调用方算好传进来，用的是**既有的那一份**截止判定
+ * （`features/assignments/AssignmentFilter.isPastDeadline`，边界与 dayjs 的 `isAfter` 对齐）。
+ * 领域层不自己再算一遍截止语义，避免同一条边界出现两种实现。
+ *
+ * `state` 传 `undefined` 表示调用点没有提交页的状态可看（作业详情页的入口只做一次跳转，
+ * 它不构造提交请求）；那种调用点只能因为截止被拦下。
+ *
+ * 未截止时本函数的结论与 `canSubmit` **完全同义**（单测钉住这一等价），
+ * 所以"能不能走"的判定没有被改宽或改窄，只是多了一个原因。
+ *
+ * 原因有先后：**截止是硬拦截**（任何状态下都不成立），其次才是"在飞 / 没内容"这两个
+ * 用户自己可解的情形 —— 顺序写在这里，而不是留给调用方各猜一套。
+ */
+export function submitBlockReason(pastDeadline: boolean,
+  state: SubmissionState | undefined): SubmitBlockReason | undefined {
+  if (pastDeadline) {
+    return 'past_deadline';
+  }
+  if (state === undefined) {
+    return undefined;
+  }
+  if (state.uploading) {
+    return 'uploading';
+  }
+  if (!shouldSendRequest(state)) {
+    return 'nothing_to_submit';
+  }
+  return undefined;
+}
+
 /** 组装好的提交内容（数据层据此构造表单字段与文件部分）。 */
 export interface SubmissionPlan {
   /** `xszyid`：学生作业 id。 */

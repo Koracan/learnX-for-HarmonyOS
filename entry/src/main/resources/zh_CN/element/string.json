@@ -1235,6 +1235,14 @@
     {
       "name": "ui_opensource_dependencies_none",
       "value": "本应用不包含第三方运行时依赖，只使用 HarmonyOS SDK 提供的系统能力。"
+    },
+    {
+      "name": "ui_assignment_submit_blocked_uploading",
+      "value": "正在提交中，请稍候"
+    },
+    {
+      "name": "ui_assignment_submit_blocked_nothing_to_submit",
+      "value": "请先填写正文或选择附件，再提交"
     }
   ]
 }

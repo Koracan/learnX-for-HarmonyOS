@@ -37,11 +37,12 @@ import {
   mimeTypeForName, pickedAttachmentFromUri, sanitizeCustomAttachmentName
 } from '../main/ets/domain/assignments/SubmissionForm';
 import {
-  SubmissionPlan, SubmissionState, canSubmit, initialSubmissionState, planSubmission,
-  shouldSendRequest, submitFailed, submitStarted, submitSucceeded, withAttachmentPicked,
-  withContent, withCustomAttachmentName, withPickedAttachmentRemoved,
-  withRemoveAttachmentToggled, withUploadProgress
+  SubmissionPlan, SubmissionState, SubmitBlockReason, canSubmit, initialSubmissionState,
+  planSubmission, shouldSendRequest, submitBlockReason, submitFailed, submitStarted,
+  submitSucceeded, withAttachmentPicked, withContent, withCustomAttachmentName,
+  withPickedAttachmentRemoved, withRemoveAttachmentToggled, withUploadProgress
 } from '../main/ets/domain/assignments/SubmissionState';
+import { submissionBlockedKey } from '../main/ets/features/assignments/AssignmentText';
 import { decodeUtf8, deviceUtf8Encoder } from './TestHelpers';
 
 const BOUNDARY: string = '----WebKitFormBoundaryTICKET13';
@@ -369,6 +370,61 @@ export default function assignmentSubmissionTest() {
       // 只去掉**第一处**字面量 -->（参考实现用的是字符串参数的 replace）。
       const arrows: SubmissionState = initialSubmissionState('a --> b --> c');
       expect(arrows.content).assertEqual('a  b --> c');
+    });
+
+    it('namesTheReasonWhenTheSubmissionEntryCannotBeUsed', 0, () => {
+      // 已截止：**有内容也一样**走不了（拦截没变，变的是它现在说出了原因）。
+      expect(submitBlockReason(true, initialSubmissionState(''))).assertEqual('past_deadline');
+      expect(submitBlockReason(true, stateWithContentOnly())).assertEqual('past_deadline');
+      expect(submitBlockReason(true, stateWithAttachment())).assertEqual('past_deadline');
+      // 未截止但没有可提交的内容：正文、新附件、移除开关三者都没有。
+      expect(submitBlockReason(false, initialSubmissionState(''))).assertEqual('nothing_to_submit');
+      const pickedThenCleared: SubmissionState =
+        withPickedAttachmentRemoved(withAttachmentPicked(initialSubmissionState(''), picked('a.pdf')));
+      expect(submitBlockReason(false, pickedThenCleared)).assertEqual('nothing_to_submit');
+      // 上一次还在飞：不要再叠一次。
+      expect(submitBlockReason(false, submitStarted(initialSubmissionState('')))).assertEqual('uploading');
+      expect(submitBlockReason(false, submitStarted(stateWithAttachment()))).assertEqual('uploading');
+      // 能走：
+      expect(submitBlockReason(false, stateWithContentOnly()) === undefined).assertTrue();
+      expect(submitBlockReason(false, stateWithAttachment()) === undefined).assertTrue();
+      expect(submitBlockReason(false, withRemoveAttachmentToggled(stateWithAttachment())) === undefined)
+        .assertTrue();
+      // 详情页那个入口没有提交页状态：只看截止。
+      const atDetail: SubmitBlockReason | undefined = submitBlockReason(false, undefined);
+      expect(atDetail === undefined).assertTrue();
+      expect(submitBlockReason(true, undefined)).assertEqual('past_deadline');
+    });
+
+    it('keepsTheSameBlockingDecisionAsCanSubmitWhileTheDeadlineIsOpen', 0, () => {
+      const states: SubmissionState[] = [
+        initialSubmissionState(''),
+        stateWithContentOnly(),
+        stateWithAttachment(),
+        submitStarted(initialSubmissionState('')),
+        submitStarted(stateWithContentOnly()),
+        submitFailed(stateWithAttachment()),
+        withRemoveAttachmentToggled(stateWithAttachment()),
+        withPickedAttachmentRemoved(withAttachmentPicked(initialSubmissionState(''), picked('a.pdf')))
+      ];
+      for (let i = 0; i < states.length; i++) {
+        const blocked: boolean = submitBlockReason(false, states[i]) !== undefined;
+        // 未截止时"能不能提交"与改动前的 canSubmit 逐态同义 ⇒ 拦截判定没被动过。
+        expect(blocked).assertEqual(!canSubmit(states[i]));
+      }
+    });
+
+    it('givesEachBlockedReasonItsOwnText', 0, () => {
+      expect(submissionBlockedKey('past_deadline')).assertEqual('loh_assignment_past_deadline');
+      expect(submissionBlockedKey('uploading')).assertEqual('ui_assignment_submit_blocked_uploading');
+      expect(submissionBlockedKey('nothing_to_submit'))
+        .assertEqual('ui_assignment_submit_blocked_nothing_to_submit');
+      // 三种原因必须是三句不同的话（同一句等于没区分）。
+      const keys: string[] = [submissionBlockedKey('past_deadline'),
+        submissionBlockedKey('uploading'), submissionBlockedKey('nothing_to_submit')];
+      expect(keys[0] === keys[1]).assertFalse();
+      expect(keys[1] === keys[2]).assertFalse();
+      expect(keys[0] === keys[2]).assertFalse();
     });
 
     it('keepsCustomNameAndProgressTransitionsIndependent', 0, () => {
