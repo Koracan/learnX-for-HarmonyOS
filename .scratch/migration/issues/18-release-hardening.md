@@ -6,7 +6,7 @@
 
 **Status:** ready-for-agent
 
-- [ ] 版本名 2.0.0、版本号 2000000 正确；release 签名产物可安装启动
+- [ ] 版本名 2.0.0、版本号 2000000 正确（**已在产物内核实**）；产物可安装启动（**debug 签名**——发布签名由账号所有者之后自行解决，不在本 ticket 范围）
 - [ ] 从参考实现 1.1.0 升级安装后，首次启动清理旧数据并要求重新登记，不出现半登录态
 - [ ] 全新安装路径同样正常
 - [ ] README 与 AGENTS.md 反映新版本状态与工程结构
@@ -88,7 +88,25 @@
 
 - **A1 真机接入**：`3FYBB25407201890`（MatePad Air，**API 24**）。`devecocli device list` 确认后**所有命令显式传 `--device`**；
   注意本机还有两台模拟器在线，**别把模拟器当成真机取证**（AGENTS.md：判身份以 `hdc … param get const.product.devicetype` 为准）。
-- **A2 版本与签名**：版本名 **2.0.0** / 版本号 **2000000**；release 签名产物可安装启动（`build-profile.json5` 的 `signingConfig` 切到 `release`）。
+- **A2 版本号（签名已移出，见下方范围变更）**：版本名 **2.0.0** / 版本号 **2000000** 已改并在产物内核实；**发布签名不归本 ticket**。
+
+  > **⚠️ 范围变更（2026-09-13，账号所有者裁定）：发布/签名不在本 ticket 范围内，账号所有者之后自行解决。**
+  > `build-profile.json5:17-29` 的 `signingConfigs[1]` 名为 `release`，但它的 `.p7b` 解出来是：
+  > `{"version-name":"2.0.0","version-code":2,"uuid":"99838816-…","validity":{…},"type":"debug","bundle-info":{"development-certificate":"…"}}`
+  > ⇒ 里面是 `"type":"debug"` 与 `development-certificate`，**不是发布证书**。
+  > **判据**（用 `sdk/default/openharmony/toolchains/lib/hap-sign-tool.jar verify-app` 核）：把 product 的 `signingConfig` 切成 `release` 构建后，
+  > 产物仍是 `profile type is: debug`，证书 subject 与 debug 产物**逐字相同**（`CN="…(1703207908067548865)\,Development"`）。
+  > `version-code":2` 也印证它就是为 2.0.0 生成的那份（1.1.0 是 1000042）。
+  > **结论：本工程目前没有可用的发布证书 ⇒「release 签名产物可安装启动」这条从本 ticket 移出。**
+  > **由账号所有者之后自行解决**（在华为侧提供真正的发布证书与 profile，或改由 AppGallery Connect 侧打包）。
+  > **本 ticket 只交付 debug 签名的 2.0.0 产物，并如实标注**（不要写成"release 已通过"）。**这条不作为收尾阻塞项。**
+  > `build-profile.json5` 已改回 `signingConfig: "default"`，避免留一个装了也没用的「release」配置。
+  > 取证：`.dsh/logs/sig-debug.txt` / `sig-release.txt`（两次 verify-app 的完整输出）。
+
+  > **A2 已完成的部分**：版本名 `2.0.0` / 版本号 `2000000` 已改（`AppScope/app.json5`）并**在产物内核实**
+  > （解包 `module.json` = `versionName":"2.0.0"` / `"versionCode":2000000`）；
+  > 关于页与 deviceName 都动态读 `bundleManager`（`core/device/AppIdentity.ets:28,47`）自动跟随，**无硬编码需同步**。
+  > 固定副本：`.scratch/release/artifacts/v2.0.0-debug-2000000.hap`（4,992,249 B）。
 - **A3 升级路径**：从参考实现 1.1.0 升级安装 ⇒ 首次启动清理旧数据、要求重新登记、**不出现半登录态**；**全新安装**路径同样正常。
 - **A4 README 与 AGENTS.md** 反映 2.0.0 状态与工程结构。
 
