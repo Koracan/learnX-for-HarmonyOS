@@ -116,7 +116,9 @@ export struct ToastOverlay {
             .fontSize(this.theme().typography.bodyMedium.fontSize)
             .fontColor(this.theme().colors.inverseOnSurface)
             .layoutWeight(1)
-            .maxLines(2)
+            // 上限给 4 行：导出日志那条提示要带**完整路径**（两行起步），
+            // 2 行会把路径截在中间；短文案本来也只占一行。
+            .maxLines(4)
           if (this.controller.actionLabel.length > 0) {
             Text(this.controller.actionLabel)
               .fontSize(this.theme().typography.labelLarge.fontSize)

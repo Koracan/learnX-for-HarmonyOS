@@ -49,7 +49,7 @@ function buildReferenceRows() {
     zhPlaceholders: r.zhPlaceholders, enPlaceholders: r.enPlaceholders,
     origin: 'reference'
   }));
-  return { rows, zhCount: built.zhCount, enCount: built.enCount };
+  return { rows: applyReferenceValueOverrides(rows), zhCount: built.zhCount, enCount: built.enCount };
 }
 
 // Semester season words: the reference hard-coded them inside helpers/parse.ts,
@@ -70,6 +70,44 @@ const LOCAL_ADDITIONS = [
   ['loh_fullscreen', '全屏', 'Full screen'],
   ['loh_exit_fullscreen', '退出全屏', 'Exit full screen']
 ];
+
+// Reference-key VALUE overrides.
+//
+// Same table shape as LOCAL_ADDITIONS above, but the opposite meaning: the key is
+// still a reference key (its `loh_` resource name and its migration lineage are
+// unchanged) and only its copy is replaced here. The reason this exists at all is
+// that the reference dictionary is read-only INPUT: editing the generated
+// `string.json` by hand would make `check-generated-fresh` fail, because the
+// generator would immediately write the reference value back.
+//
+// immersiveModeDescription: the reference text promises "app restart required",
+// while this rewrite applies the change immediately (no restart). The UI must not
+// tell the user to do something the app does not need.
+const REFERENCE_VALUE_OVERRIDES = new Map([
+  ['immersiveModeDescription', {
+    zh: '隐藏导航栏和状态栏',
+    en: 'Hide the navigation bar and status bar'
+  }]
+]);
+
+function applyReferenceValueOverrides(rows) {
+  const seen = new Set();
+  for (const row of rows) {
+    const override = REFERENCE_VALUE_OVERRIDES.get(row.key);
+    if (!override) continue;
+    seen.add(row.key);
+    const zhPh = findPlaceholders(override.zh);
+    const enPh = findPlaceholders(override.en);
+    row.zhValue = toResourceValue(override.zh, zhPh);
+    row.enValue = toResourceValue(override.en, enPh);
+    row.zhPlaceholders = zhPh.map((p) => p.token);
+    row.enPlaceholders = enPh.map((p) => p.token);
+  }
+  for (const key of REFERENCE_VALUE_OVERRIDES.keys()) {
+    if (!seen.has(key)) throw new Error('value override for unknown reference key: ' + key);
+  }
+  return rows;
+}
 
 function buildLocalRows() {
   return LOCAL_ADDITIONS.map((t) => ({

@@ -697,6 +697,12 @@ previewUrl: attachmentResult.uri, size, type })` —— 即用**本地 URI**（`
 
 **一处"文案与行为不完全一致"（如实登记，未偏离）**：说明文字仍按参考实现原样显示"需要重启应用"（**迁移键**，改它会让 `check-generated-fresh` 失败），而本 ticket 的验收第 3 条要求**即时生效** —— 行为按验收（切换后立刻调 `setWindowLayoutFullScreen` / `setWindowSystemBarEnable`），文字保持原样。参考实现自己也是"文字说重启、代码里 `useEffect` 立刻生效"（`App.tsx:682-690`），本工程与它的行为一致。
 
+> **【2026-09-13 更正】**上面这一段**已不再成立**：说明文字里"需要重启应用"半句**已删除**。
+> 当初的前提"改文案会让 `check-generated-fresh` 失败"**只对"手改生成物"成立** —— 正确修法是
+> 在生成器里加一条**参考键的值覆盖**，由生成器重跑生成物，于是新文案照样可由已提交的输入复现。
+> 变了什么 / 为什么 / 原值 / 替代验收标准见本文件**第 31 条**。本条其余内容（条目顺序、图标、
+> 分组间距、开关"即时生效"）仍然成立。
+
 **替代验收标准**：
 
 1. **设置页条目**：前 8 条的顺序、图标、分组间距与参考实现逐条一致（一屏一对文件：浅色 / 深色各一张）；
@@ -782,6 +788,54 @@ previewUrl: attachmentResult.uri, size, type })` —— 即用**本地 URI**（`
 **原证据还成立到哪一步**：`reference-quirks.md` 第 30 条的 A–C（分组口径）与表格里的源文件行号仍然成立；只有 D / E 两项不再成立（正文条目已标【已收敛】）。ticket 14 交付节里"append 不去重是照抄参考实现"的结论按本条更正。
 
 **取证**：`entry/src/main/ets/domain/marks/CollectionFlags.ets`、`entry/src/main/ets/features/marks/FilteredContent.ets`、`entry/src/main/ets/features/{notices/NoticesPage,assignments/AssignmentsPage,files/FilesPage}.ets`、`entry/src/test/Favorites.test.ets`；单测输出见本轮交付回报。
+
+---
+
+## 31. 沉浸式说明文字删掉「需要重启应用」半句（**有意偏离参考实现**）—— 已复审（2026-09-13）
+
+**参考实现原值**（只读输入 `reference/learnOH-old/src/assets/translations/`）：
+
+| 语言 | 键 | 原值 | 出处 |
+| --- | --- | --- | --- |
+| 中文 | `immersiveModeDescription` | `隐藏导航栏和状态栏，需要重启应用` | `zh.ts:208` |
+| 英文 | `immersiveModeDescription` | `Hide the navigation bar and status bar. App restart required.` | `en.ts:215-216` |
+
+**变了什么**（2026-09-13）：
+
+| 语言 | 资源名 | 新值 |
+| --- | --- | --- |
+| 中文（`base` 与 `zh_CN`） | `loh_immersive_mode_description` | `隐藏导航栏和状态栏` |
+| 英文（`en_US`） | `loh_immersive_mode_description` | `Hide the navigation bar and status bar` |
+
+**为什么**：本工程的沉浸式开关**即时生效**（切换后立刻调 `core/window/ImmersiveWindow.applyImmersiveMode`
+隐藏 / 恢复状态栏与导航栏，并写 preferences；重启后保持）。参考实现那句"需要重启应用"在参考应用里也是
+**与自身行为不符**的话（`App.tsx:682-690` 的 `useEffect` 同样立刻生效），照抄它等于让界面教用户去做一件
+应用并不需要的事。
+
+**前提如何被修正**：原口径（本文件第 30 条里那句"文案与行为不完全一致"）是"迁移键不能改，改它会让
+`check-generated-fresh` 失败"。该前提**只对"手改生成物"成立** —— 正确修法是在生成器里加一条**参考键的值覆盖**
+（`scripts/generate-i18n-resources.mjs` 的 `REFERENCE_VALUE_OVERRIDES`，与 `LOCAL_ADDITIONS` 并列，
+语义是"覆盖参考键的值"），由生成器重跑出三份 `string.json` 与两份 manifest，生成物与输入放进同一次提交。
+`check-generated-fresh` 因此照旧成立（它验的就是"重跑生成器后 `git diff` 为空"）。
+
+**替代验收标准**：
+
+1. 生成物里 `loh_immersive_mode_description` 的中文值恰为 `隐藏导航栏和状态栏`、英文值恰为
+   `Hide the navigation bar and status bar`（三份 `string.json` 与 `.scratch/foundation/i18n-keys.json` / `i18n-key-map.md` 一致）；
+2. 设备上沉浸式设置页那一行说明文字只有前半句，帧可读（**不出现**"需要重启应用" / "restart required"）；
+3. `node scripts/check-generated-fresh.mjs` = PASS（生成物可由已提交的生成器输入复现）；
+4. 沉浸式的**行为**判据不变：立刻生效、重启后保持（本条只改文案，不动 `data/settings/ImmersiveSettings` 与
+   `core/window/ImmersiveWindow`）。
+
+**原证据还成立到哪一步**：沉浸式开关"立刻生效 / 重启保持"的行为证据**全部仍然成立**（行为没动）；
+失效的只有"说明文字与参考实现逐字一致"这一条外观判据 —— 它现在是**有意不同**。参考词典本身未被修改
+（只读），`immersiveModeDescription` 在 `reference/` 里仍是原值。
+
+**取证**：`reference/learnOH-old/src/assets/translations/{zh,en}.ts`；`scripts/generate-i18n-resources.mjs`、
+`scripts/i18n-ui-strings.mjs`；`entry/src/main/resources/{base,zh_CN,en_US}/element/string.json`；
+`entry/src/main/ets/features/settings/ImmersiveSettingsPage.ets`；本轮设备帧与 hilog 见
+`.scratch/ui-optimize/evidence/18-settings-copy-and-diagnostics.md`。
+
 
 
 
