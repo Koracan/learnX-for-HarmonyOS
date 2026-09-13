@@ -54,7 +54,7 @@ import { SessionHeaderProvider, createSessionHeaderProvider } from '../../core/w
 import { ContentFilter } from '../../domain/marks/ContentFilter';
 import { MarksDomain, MarksTab } from '../../domain/marks/CollectionFlags';
 import { CourseListStore } from '../courses/CourseListStore';
-import { createCourseRepository } from '../courses/repository/CourseRepositoryProvider';
+import { courseListStore } from '../courses/CourseListStoreProvider';
 import { CollectionFlagsStore } from '../../data/marks/CollectionFlagsStore';
 import { collectionFlagsStore } from '../marks/CollectionFlagsProvider';
 import {
@@ -111,7 +111,8 @@ export struct AssignmentsPage {
   /** 当前过滤视图；初值 = 参考实现 settings.ts:26 的 assignment 默认值 unfinished。 */
   @State filter: ContentFilter = ContentFilter.UNFINISHED;
 
-  private store: CourseListStore = new CourseListStore(createCourseRepository());
+  /** 进程内单例：与课程 tab / 设置页的学期切换共用同一份状态。 */
+  private store: CourseListStore = courseListStore();
   /** 进程内单例：与公告 / 文件 / 课程三个列表共用同一份收藏与屏蔽状态。 */
   private flags: CollectionFlagsStore = collectionFlagsStore();
   private toast: ToastController = new ToastController();

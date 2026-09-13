@@ -8,6 +8,13 @@
  *
  * 界面不碰取数时序：失败**不吞**，进 errorMessage 并由界面显式显示
  * （对齐"失败一律显式降级，绝不静默显示空列表"）。
+ *
+ * **进程内单例**（见 CourseListStoreProvider）：学期选择与课程列表是同一份状态，
+ * 参考实现把它放在全局 redux state 里。各页面各持一份会让"在设置里切的学期"
+ * 只有设置页知道，课程 tab 仍按站点当前学期取数。
+ *
+ * **切换学期不阻塞点击**：selectSemester 同步记下选择（勾选标记与文案立刻可读），
+ * 整轮取数在后台跑完再由 @Trace 推给所有读它的页面。
  */
 
 import { Logger } from '../../core/log/Logger';
@@ -42,6 +49,12 @@ export class CourseListStore {
   @Trace errorMessage: string = '';
   /** 界面选择的学期（空串 = 交给覆盖开关 / 站点当前学期）。 */
   @Trace selectedSemesterId: string = '';
+  /**
+   * 正在应用的界面选择（空串 = 没有在途切换）。
+   * 与 `semesterId`（**实际生效**值，来自已完成的快照）分开：切换在途时界面据此
+   * 立刻把勾选标记挪到新选的那一行，而列表内容仍显示旧快照直到新快照落地。
+   */
+  @Trace pendingSemesterId: string = '';
 
   private readonly repository: CourseRepository;
   private started: boolean = false;
@@ -94,17 +107,30 @@ export class CourseListStore {
       const rawStack: string | undefined = (error as Error).stack;
       const stack: string = rawStack === undefined ? 'n/a' : rawStack;
       logger.error('course refresh failed: ' + this.errorMessage + ' stack=' + stack);
+    } finally {
+      // 在途标记只在这**一轮取数**期间有效：成功则 semesterId 已换成新值，
+      // 失败则保留旧值并由 errorMessage 显式降级——两种情况下都不能再算"在途"。
+      this.pendingSemesterId = '';
     }
   }
 
   /**
-   * 切换当前学期：记下选择并立刻重抓（切换后课程列表随之更新）。
-   * 失败时**保留旧列表**（调用方看错误提示），不假装切换成功。
+   * 切换当前学期：**同步**记下选择并立刻返回，整轮重抓在后台跑。
+   *
+   * 为什么不 await：一轮 refresh 要串行取"学期集合 + 课程列表 + 三域内容"，
+   * 耗时以秒计（实测切到 2025-2026 春季是 7.0 s）。点击若等它跑完才更新勾选
+   * 标记 / 返回，用户看到的就是"点一下卡住好几秒"。选择是纯状态写入，
+   * 没有理由等网络。
+   *
+   * 返回重抓的完成，**供调用方按需等待**（界面点击点不该等）；失败时保留旧列表
+   * （errorMessage 里带原因），不假装切换成功。
    */
-  async selectSemester(semesterId: string): Promise<void> {
+  selectSemester(semesterId: string): Promise<void> {
     logger.info('semester selected: ' + semesterId);
     this.selectedSemesterId = semesterId;
-    await this.refresh();
+    this.pendingSemesterId = semesterId;
+    logger.info('semester selection applied: ' + semesterId);
+    return this.refresh();
   }
 
   /** 该课程的公告（详情页第一个标签页）。 */
