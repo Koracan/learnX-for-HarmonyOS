@@ -1,5 +1,5 @@
 /*
- * Mock 课程数据源（data/mock，ticket 17）。
+ * Mock 课程数据源（data/mock）。
  *
  * 一次 refresh 返回课程 tab 需要的全部东西（`CourseSnapshot`：课程 + 三域内容 + 学期集合），
  * 与 `RealCourseRepository` 同一契约 —— 界面、store、学期选择页都读同一份字段，**没有 mock 专用分支**。

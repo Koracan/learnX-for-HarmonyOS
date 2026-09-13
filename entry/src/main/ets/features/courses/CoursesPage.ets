@@ -1,24 +1,24 @@
 /*
- * 课程 tab（ticket 12）：课程列表 + 详情栈的根。
+ * 课程 tab：课程列表 + 详情栈的根。
  *
  * 对齐参考实现 `screens/Courses.tsx` 与 `components/CourseCard.tsx`：
  *
  * | 项 | 参考实现 | 这里 |
  * | --- | --- | --- |
  * | 卡片内容 | 教师名（Subheading）在上、课程名（Title）在下，右下三个计数（通知/事件/文件夹） | 同（顺序与位置照抄） |
- * | 计数 | `selectCoursesWithCounts`（未读公告 / 未完成作业 / 新文件），图标 MaterialIcons notifications/event/folder | `domain/courses/CourseCounts`（逐条对齐），图标为同一份字体的同一批码位（ticket 11.5） |
+ * | 计数 | `selectCoursesWithCounts`（未读公告 / 未完成作业 / 新文件），图标 MaterialIcons notifications/event/folder | `domain/courses/CourseCounts`（逐条对齐），图标为同一份字体的同一批码位 |
  * | 头部副标题 | `getSemesterTextFromId(currentSemesterId)`（:49） | 同，且**可点**进学期切换（见下） |
  * | 点击卡片 | `navigate('CourseDetail', item)`（:34-43） | 同（推入本 tab 的 NavPathStack） |
  * | 下拉刷新 | `getCoursesForSemester(currentSemesterId)` | `store.refresh()`（一次刷新含三域，计数才与列表同源） |
- * | 过滤（ticket 14） | FilterList 下拉（all / hidden） | 两个筛选片；屏蔽后课程从"全部"消失，可在"屏蔽"里取消 |
+ * | 过滤 | FilterList 下拉（all / hidden） | 两个筛选片；屏蔽后课程从"全部"消失，可在"屏蔽"里取消 |
  *
- * **一处位置差异（有意，写进 ticket Comments）**：参考实现把"学期切换"放在设置栈
- * （`SemesterSelection` 路由在 `SettingsStackParams` 里），ticket 12 的交付物把它与课程
+ * **一处位置差异（有意）**：参考实现把"学期切换"放在设置栈
+ * （`SemesterSelection` 路由在 `SettingsStackParams` 里），本工程的交付物把它与课程
  * 放在一起——头部那句学期文案可点。行为（列出可选学期、切换、列表随之更新）完全一致。
  *
  * 三种状态都显式呈现，**没有"失败就显示空列表"这条路**：
  *   - 首次加载 → 居中指示器；
- *   - 取数失败 → 错误文案（会话失效时用 ticket 08 的 `loh_session_expired`）；
+ *   - 取数失败 → 错误文案（会话失效时用 `loh_session_expired`）；
  *   - 真的没有课程（且不在取数）→ 空态。
  */
 import { ConfigurationConstant } from '@kit.AbilityKit';
@@ -54,10 +54,10 @@ import {
   ROUTE_COURSE_DETAIL, ROUTE_COURSE_FILE_DETAIL, ROUTE_SEMESTER_SELECTION
 } from './CourseRoutes';
 
-// ticket 10：作业详情真身与它的路由（课程详情的作业标签页也推这一条）。
+// 作业详情真身与它的路由（课程详情的作业标签页也推这一条）。
 import { AssignmentDetailPage } from '../assignments/AssignmentDetailPage';
 import { ROUTE_ASSIGNMENT_DETAIL } from '../assignments/AssignmentRoutes';
-// 作业详情里的附件点击 → ticket 04 的 FileDetail 路由（ticket 11 起是真身）。
+// 作业详情里的附件点击 → FileDetail 路由（文件详情页是真身）。
 import { FileDetailPage } from '../files/FileDetailPage';
 import { fileDetailParamsFromCourseFile } from '../files/FileRoutes';
 import { FileDetailRouteParams, ROUTE_FILE_DETAIL } from '../notices/NoticeRoutes';
@@ -77,7 +77,7 @@ interface CourseRowSpec {
   noticesLabel: string;
   assignmentsLabel: string;
   filesLabel: string;
-  /** 双栏时这一行是不是"右栏正在显示的那一条"（主栏保留高亮，验收第 2 条）。 */
+  /** 双栏时这一行是不是"右栏正在显示的那一条"（主栏保留高亮）。 */
   selected: boolean;
 }
 
@@ -108,9 +108,9 @@ export struct CoursesPage {
   /** 进程内单例：屏蔽一门课要立刻影响公告 / 作业 / 文件三个列表。 */
   private flags: CollectionFlagsStore = collectionFlagsStore();
   private toast: ToastController = new ToastController();
-  /** 主栈（ticket 12）：单栏时详情压在这里，也就是左栏。 */
+  /** 主栈：单栏时详情压在这里，也就是左栏。 */
   private stack: NavPathStack = new NavPathStack();
-  /** 右栏（详情）的栈（ticket 16）：见 features/shell/SplitView.ets 的文件头。 */
+  /** 右栏（详情）的栈：见 features/shell/SplitView.ets 的文件头。 */
   private detailStack: NavPathStack = new NavPathStack();
   /** 双栏开关：来源是根布局实测尺寸（features/shell/SplitView.ets），消费点就是这个版式。 */
   @StorageProp(SPLIT_VIEW_ACTIVE_KEY) @Watch('onSplitViewChanged') splitActive: boolean = false;
@@ -145,7 +145,7 @@ export struct CoursesPage {
   }
 
   /* ------------------------------------------------------------------ *
-   * ticket 14：屏蔽课程（参考实现 selectFilteredCourses 的 {all, hidden}）
+   * 屏蔽课程（参考实现 selectFilteredCourses 的 {all, hidden}）
    * ------------------------------------------------------------------ */
 
   /** "全部"视图：没被屏蔽的课程。 */
@@ -213,7 +213,7 @@ export struct CoursesPage {
     this.logApplied('filter');
   }
 
-  /** 实际生效的学期文案（覆盖生效时界面上看到的就是它——验收要的"学期标识"）。 */
+  /** 实际生效的学期文案（覆盖生效时界面上看到的就是它——要的"学期标识"）。 */
   private semesterText(): string {
     const semesterId: string = this.store.semesterId;
     if (semesterId.length === 0) {
@@ -223,7 +223,7 @@ export struct CoursesPage {
   }
 
   /**
-   * 页头那一行"相对更新时间"（ticket 11.5 Part B）：`刚刚更新` / `N 分钟前更新` / …。
+   * 页头那一行"相对更新时间"：`刚刚更新` / `N 分钟前更新` / …。
    *
    * 时间基准是"本页最近一次被显示的时刻"（`features/shell/PageShown.ets`）：切走再切回、
    * 回到前台都会重算；实现只有那一处，本页只订阅键并把两个数传进去。
@@ -296,7 +296,7 @@ export struct CoursesPage {
   }
 
   /**
-   * 页头（ticket 11.5 Part B，账号所有者点名）：**「标题 + 学期 + 相对更新时间」压在标题所在的那一行区域内**。
+   * 页头（账号所有者点名）：**「标题 + 学期 + 相对更新时间」压在标题所在的那一行区域内**。
    *
    * **"同一行"的语义（账号所有者 2026-09-12 澄清）**：指的是**三项都落在标题所在的那一行**
    * —— 不是"排成一行文字"。标题字号大（headlineSmall 24vp），右侧**竖排两行小字**（学期在上、更新时间在下）
@@ -308,7 +308,7 @@ export struct CoursesPage {
    *
    * 移除的两项：`当前学期` 前缀（三个字占位但没有信息量）、课程条数那个**裸数字**
    * （没有标签，且列表就在下方），以及 `取证覆盖生效` 徽标（对用户无意义）。
-   * **学期文本仍然可点** → 学期切换页（ticket 12 的行为一字未改）。
+   * **学期文本仍然可点** → 学期切换页（行为一字未改）。
    */
   @Builder
   header() {
@@ -319,7 +319,7 @@ export struct CoursesPage {
         .fontWeight(FontWeight.Bold)
         .fontColor(this.theme().colors.onSurface)
       Column() {
-        // 实际生效的学期（覆盖/界面选择/站点当前学期三者的结果）——ticket 12 的界面信号只剩这一处。
+        // 实际生效的学期（覆盖/界面选择/站点当前学期三者的结果）——界面信号只剩这一处。
         Text(this.semesterText())
           .fontSize(this.theme().typography.labelMedium.fontSize)
           .fontColor(this.theme().colors.primary)
@@ -337,7 +337,7 @@ export struct CoursesPage {
       .onClick(() => {
         this.openSemesterSelection();
       })
-      // ticket 15：页头最右侧的搜索入口（参考实现的 headerRight）。
+      // 页头最右侧的搜索入口（参考实现的 headerRight）。
       SearchButton({
         isDark: this.isDark(),
         label: this.s($r('app.string.loh_search')),
@@ -356,7 +356,7 @@ export struct CoursesPage {
     })
   }
 
-  /** 过滤条（ticket 14）：课程只有 all / hidden 两个视图（参考实现 selectFilteredCourses）。 */
+  /** 过滤条：课程只有 all / hidden 两个视图（参考实现 selectFilteredCourses）。 */
   @Builder
   filterRow() {
     Flex({ wrap: FlexWrap.Wrap }) {
@@ -413,7 +413,7 @@ export struct CoursesPage {
   /**
    * 一个计数单元：图标 + 数字（参考实现是 MaterialIcons 的
    * notifications / event / folder，颜色取 `theme.colors.outline`）。
-   * ticket 11.5：改用**与参考实现同源的字体图标**（同一份 TTF、同一批码位），不再是 emoji；
+   * 改用**与参考实现同源的字体图标**（同一份 TTF、同一批码位），不再是 emoji；
    * 语义文字仍进无障碍树（`accessibilityText`），数字仍然逐字可见。
    */
   @Builder
@@ -476,7 +476,7 @@ export struct CoursesPage {
       top: spec.theme.sizes.space3,
       bottom: spec.theme.sizes.space3
     })
-    // 双栏时把"右栏正在显示的那一条"高亮出来（主栏保留高亮状态，验收第 2 条）。
+    // 双栏时把"右栏正在显示的那一条"高亮出来（主栏保留高亮状态）。
     .backgroundColor(spec.selected ? spec.theme.colors.surfaceVariant : spec.theme.colors.surface)
     .onClick(() => {
       this.openCourse(spec.course);
@@ -572,7 +572,7 @@ export struct CoursesPage {
       }
       .hideTitleBar(true)
     } else if (name === ROUTE_NOTICE_DETAIL) {
-      // 课程详情里点公告 → 公告详情页（ticket 04 的页面，压在本 tab 自己的栈上）。
+      // 课程详情里点公告 → 公告详情页（压在本 tab 自己的栈上）。
       NavDestination() {
         NoticeDetailPage({
           notice: param as NoticeRecord,
@@ -582,7 +582,7 @@ export struct CoursesPage {
       }
       .hideTitleBar(true)
     } else if (name === ROUTE_ASSIGNMENT_DETAIL) {
-      // ticket 10：作业详情真身（参数就是整个 Assignment）。
+      // 作业详情真身（参数就是整个 Assignment）。
       NavDestination() {
         AssignmentDetailPage({
           assignment: param as Assignment,
@@ -592,7 +592,7 @@ export struct CoursesPage {
       }
       .hideTitleBar(true)
     } else if (name === ROUTE_FILE_DETAIL) {
-      // 作业详情里的附件点击 → 文件详情真身（ticket 11）。
+      // 作业详情里的附件点击 → 文件详情真身。
       NavDestination() {
         FileDetailPage({ params: param as FileDetailRouteParams, stack: stack })
       }
@@ -662,7 +662,7 @@ export struct CoursesPage {
   }
 
   /**
-   * 版式（ticket 16）：`Row` = 左栏 + **1px `Divider`** + 右栏，逐项对齐参考实现
+   * 版式：`Row` = 左栏 + **1px `Divider`** + 右栏，逐项对齐参考实现
    * `SplitView.tsx:109-135`。单栏时右栏整段不渲染、分隔线 `Visibility.None`（不占位）。
    */
   build() {

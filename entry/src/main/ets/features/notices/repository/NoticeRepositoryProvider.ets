@@ -2,21 +2,21 @@
  * 公告数据源的组装点（composition root）。
  *
  * 界面（features/notices/NoticesPage.ets）只依赖 NoticeRepository 接口，且只从
- * 这里拿实现 —— ticket 09 换真实实现时只改本文件，界面不动。
+ * 这里拿实现 —— 以后换真实实现时只改本文件，界面不动。
  *
- * ## ticket 09 换成了什么
+ * ## 现在换成了什么
  *
  * 返回 **data/notices/RealNoticeRepository**（真实抓取 + 快照），它自己接
  * `AuthedTaskRunner`（data/auth/SessionRestore 的数据路径统一入口：先确保有会话，
  * 会话失效时重登且只重试一次，失败显式降级）。**这里不重新实现重登/重试/降级**。
  *
- * ## 两个取证开关（ticket 03 遗留，ticket 09 保留）
+ * ## 两个取证开关（遗留至今）
  *
  * 它们只在启动时调应用级 setColorMode/setLanguage，用于深色/英文截图，
  * **不碰设备全局设置**（避免影响并行工作的其他 agent）。提交态都是 false。
- * ticket 17（设置 + Mock 模式）落地时应把它们换成用户可见的开关。
+ * 设置与 Mock 模式的用户可见开关落地时应把它们替换掉。
  *
- * 注：ticket 03 的 `MOCK_EMPTY_FOR_EVIDENCE` / `SLOW_MOCK_FOR_EVIDENCE` 已随
+ * 注：早先的 `MOCK_EMPTY_FOR_EVIDENCE` / `SLOW_MOCK_FOR_EVIDENCE` 已随
  * Mock 数据源一起删除（它们只对 Mock 有意义）；快照路径的"慢"不需要开关——
  * 冷启动先渲染快照本身就是可截的帧。
  */
@@ -45,7 +45,7 @@ export const FORCE_ENGLISH_FOR_EVIDENCE: boolean = false;
 
 /**
  * 把两个取证开关的**实际生效值**打进 hilog（AGENTS.md 的取证要点：开关必须自证生效）。
- * ticket 03 踩过一次"以为开关生效了、其实是常量内联/增量编译没跟上"，所以这行是必要的，
+ * 踩过一次"以为开关生效了、其实是常量内联/增量编译没跟上"，所以这行是必要的，
  * 而不是可选的噪音。它在 aboutToAppear 里被调用（见 ShellTabs）。
  */
 export function logEvidenceSwitchState(): void {
@@ -72,7 +72,7 @@ function hostContext(): common.Context | null {
  * 这里返回一个"永远失败"的仓储，界面走错误态（与 RealNoticeRepository 的降级口径一致）。
  */
 export function createNoticeRepository(): NoticeRepository {
-  // Mock 模式（ticket 17）：样例数据，**不发任何请求**。判据只有 features/mock/MockMode 一处。
+  // Mock 模式：样例数据，**不发任何请求**。判据只有 features/mock/MockMode 一处。
   if (isMockMode()) {
     logger.info('notice repository wired: source=mock (guest mode, zero network)');
     return new MockNoticeRepository();
@@ -82,7 +82,7 @@ export function createNoticeRepository(): NoticeRepository {
     return new MissingContextNoticeRepository();
   }
   const port: HttpFetchPort = new HttpFetchPort();
-  // 学期解析自 ticket 12 起单独成模块（data/courses/SemesterFetcher）；公告路径仍需
+  // 学期解析已单独成模块（data/courses/SemesterFetcher）；公告路径仍需
   // "站点当前学期 + 课程名表"，所以这里把同一个 port 同时喂给两者——**没有第二份取数逻辑**。
   const semesters: HttpSemesterSource = new HttpSemesterSource(new Logger(COURSE_LIST_LOG_DOMAIN), port);
   const courses: HttpCourseListSource =
@@ -99,7 +99,7 @@ export function createNoticeRepository(): NoticeRepository {
  * 把 AuthedTaskRunner 显式适配成 AuthedTaskExecutor。
  *
  * 为什么不直接赋值：ArkTS 不做结构类型（arkts-no-structural-typing），
- * 两个形状相同的接口也不能互相赋值（ticket 09 实测）。适配器只有一行转发，
+ * 两个形状相同的接口也不能互相赋值（实测）。适配器只有一行转发，
  * 并让 数据路径只经过 AuthedTaskRunner 这件事在类型上可见。
  */
 class RunnerTaskExecutor implements AuthedTaskExecutor {

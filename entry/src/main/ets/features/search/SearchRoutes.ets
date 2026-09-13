@@ -1,5 +1,5 @@
 /*
- * 搜索页的路由名与参数（ticket 15）。
+ * 搜索页的路由名与参数。
  *
  * 参考实现是一个**根级**的 SearchStack（`src/App.tsx:350-378`）：
  *   Search + NoticeDetail + AssignmentDetail + FileDetail。

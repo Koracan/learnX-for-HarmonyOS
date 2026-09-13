@@ -12,7 +12,7 @@
  * | 屏蔽课程 | MaterialIcons `visibility-off` / 已屏蔽 `visibility`，32，`Colors.yellow500`，底 `rgba(255,204,0,0.2)` | :63-79 |
  *
  * 颜色取本工程的 `PLAIN_PALETTE`（与参考实现 `constants/Colors` 同值）。
- * 图标形状来自同一份 TTF（ticket 11.5 的决定，见 ui/icons/IconCatalog.ets 文件头）。
+ * 图标形状来自同一份 TTF（该决定见 ui/icons/IconCatalog.ets 文件头）。
  *
  * 参考实现还有"长按卡片 = 打开右侧操作"（CardWrapper.tsx:161-166）。本工程用同一排按钮
  * 承载同样的两个动作（长按弹菜单，见各列表页的 `.bindContextMenu`），所以动作集不变。

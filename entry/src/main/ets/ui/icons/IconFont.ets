@@ -1,5 +1,5 @@
 /*
- * 图标字体的注册与"就绪"判定（ticket 11.5）。
+ * 图标字体的注册与"就绪"判定。
  *
  * ## 为什么要有"就绪"这个概念
  *
@@ -11,7 +11,7 @@
  *
  * ## 判据：**rawfile 能不能打开**，不是 `getFontByName`
  *
- * 设备实测（模拟器 Pura 90 / HarmonyOS 6.1.0(23)，ticket 11.5）：
+ * 设备实测（模拟器 Pura 90 / HarmonyOS 6.1.0(23)）：
  * `font.registerFont` **不抛错**，但 `font.getFontByName('learnOHMaterialCommunityIcons')`
  * 返回 **undefined** —— 也就是说这个接口**不足以**用来判断"应用自己注册的字体是否可用"
  * （用它会得到"明明能用却全部回退成文字"的假阴性，本轮就踩过：
@@ -63,7 +63,7 @@ export function iconFontFamily(family: IconFamily): string {
 /**
  * rawfile 是否真的在包里（能拿到文件描述符就算在）。
  * 这是**可确定性制造失败**的那一环：把 `fonts/*.ttf` 改名/删掉 ⇒ 这里必然返回 false
- * ⇒ error 日志 + 界面回退可读文本（ticket 11.5 的回退证据就是这么做的）。
+ * ⇒ error 日志 + 界面回退可读文本（回退证据就是这么做的）。
  */
 function rawFilePresent(manager: resourceManager.ResourceManager, path: string): boolean {
   try {

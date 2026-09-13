@@ -1,10 +1,10 @@
 /*
- * 文件 tab 的界面状态（spec.md 第 3 节：@ObservedV2 / @Trace，视图直接读）。
+ * 文件 tab 的界面状态（@ObservedV2 / @Trace，视图直接读）。
  *
  * 与 `CourseListStore` 同一形状，但只装"文件列表"这一件事：文件 tab 有自己的取数
  * （学期 → 课程列表 → 文件），不重复抓公告与作业（见 data/files/FileRepository 的说明）。
  *
- * 失败**不吞**：进 `errorMessage` 并由界面显式显示（对齐 ticket 08/09/12 的
+ * 失败**不吞**：进 `errorMessage` 并由界面显式显示（对齐
  * "失败一律显式降级，绝不静默显示空列表"）。
  */
 

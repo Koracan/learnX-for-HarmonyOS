@@ -1,11 +1,11 @@
 /*
- * 三域"抓取 → 解析 → 排序"整链单测（ticket 05 验收项 1 的可测部分）。
+ * 三域"抓取 → 解析 → 排序"整链单测（可测部分）。
  *
  * 端口（`FetchPort`）由脚本化假实现注入，响应体用夹具；
  * 因此这里验证的是：请求次数与顺序、响应 → 条目的映射、跨课程聚合、排序、
  * 失败容错，以及**每个域都打了带条目数与耗时的日志**（`data.* fetched ... items=.. elapsedMs=..`）。
  *
- * 真正的设备抓取（真实会话）另见 ticket 05 Comments 的"待账号验证"。
+ * 真正的设备抓取（真实会话）另见「待账号验证」。
  */
 
 import { describe, it, expect } from '@ohos/hypium';
@@ -207,7 +207,7 @@ export default function dataFetchTest() {
       // （参考实现也是先去重后合并，所以是 2 条 × 3 来源 = 6 次补详情），
       // 每次补详情 = 1 次描述 post + 1 次详情 get：
       //   post = 3 + 6 = 9，get = 6
-      // ticket 10 补做：每门课再多一次优秀作业列表 post。本测试没有为 'yxzylist' 路由，
+      // 补做：每门课再多一次优秀作业列表 post。本测试没有为 'yxzylist' 路由，
       // 于是那一次 404 被当成"这门课没有优秀作业"吞掉（顺带覆盖了失败容错）；
       // 列表为空 ⇒ 没有 viewYxzy get。
       //   post = 9 + 1 = 10，get = 6
@@ -229,7 +229,7 @@ export default function dataFetchTest() {
     });
 
     /*
-     * 优秀作业（ticket 10 补做）：每门课一次 `yxzylist` + 每条一次 `viewYxzy` 详情页，
+     * 优秀作业（补做）：每门课一次 `yxzylist` + 每条一次 `viewYxzy` 详情页，
      * 按 `zyid`（= Assignment.baseId）挂到作业上。
      * 夹具列表里"大作业1"的 zyid 是 26ef84e8937624450193ba443c9414aa。
      */
@@ -285,7 +285,7 @@ export default function dataFetchTest() {
      * 真实数据缺陷回归（2026-09-12，模拟器 Pura 90，2025-2026 春季 57 条）：
      * 列表里前三条的截止时间是 05-31 / 06-20 / 04-30 —— **已过期段不是按时间排的**。
      * 根因：参考实现是两步（processor 先按截止时间倒序，JS 再切"未到期 / 已过期"），
-     * ticket 05 只搬了第二步。这里钉住"两步都做完"：未到期在前且由近及远、已过期按时间倒序。
+     * 最初的移植只搬了第二步。这里钉住"两步都做完"：未到期在前且由近及远、已过期按时间倒序。
      */
     it('assignmentsFetchSortsByDeadlineBeforeSplittingUpcomingAndPast', 0, async () => {
       const pad: (n: number) => string = (n: number): string => (n < 10 ? '0' + n.toString() : n.toString());

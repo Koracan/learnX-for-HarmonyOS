@@ -1,8 +1,8 @@
 /*
- * 公告 tab 的导航路由名（ticket 04）。
+ * 公告 tab 的导航路由名。
  *
- * ticket 03 的导航选型（见 features/shell/ShellTabs.ets 文件头）：底栏用 Tabs，
- * **每个 tab 将来一个自己的 NavPathStack**。本 ticket 给公告 tab 装上第一个详情栈：
+ * 既有导航选型（见 features/shell/ShellTabs.ets 文件头）：底栏用 Tabs，
+ * **每个 tab 将来一个自己的 NavPathStack**。本文件给公告 tab 装上第一个详情栈：
  * `NoticesPage` 里放一个 `Navigation`，列表是根内容，详情页是 `NavDestination`。
  * 这样切到别的 tab 时公告栈（含详情页）原样保留，与参考实现"每 tab 一个 stack"一致。
  *
@@ -16,16 +16,16 @@ export const ROUTE_NOTICE_DETAIL: string = 'NoticeDetail';
 /**
  * 文件详情路由名。
  *
- * 【ticket 11 起】这条路由的**真身**是 `features/files/FileDetailPage`（下载 / 应用内预览 /
- * 分享）。ticket 04 的 `FileDetailPlaceholderPage` 已删除（被真身取代），
- * 路由名与参数形状（含本 ticket 追加的三个**可选**字段）保持兼容。
+ * 这条路由的**真身**是 `features/files/FileDetailPage`（下载 / 应用内预览 /
+ * 分享）。`FileDetailPlaceholderPage` 已删除（被真身取代），
+ * 路由名与参数形状（含追加的三个**可选**字段）保持兼容。
  *
- * 【ticket 10 复用它】作业详情里的附件点击**走同一条 `FileDetail` 路由**（照参考实现
+ * 【作业详情复用它】作业详情里的附件点击**走同一条 `FileDetail` 路由**（照参考实现
  * AssignmentDetail.tsx:143 `navigation.push('FileDetail', data)`）。此时
  * `noticeId` 装的是**附件 id**（参考实现 AssignmentDetail.tsx:134 传的就是附件 id，
  * 与公告详情 NoticeDetail.tsx:64 传公告 id 不同）。这个字段的真身是"文件缓存目录名"
  * （参考实现 helpers/fs.ts:54 用它拼目录），所以两种来源都能用；字段名保留 `noticeId`
- * 是为了不动 ticket 04 已验收的导航契约 —— 见 ticket 11 的边界说明。
+ * 是为了不动已验收的导航契约 —— 见边界说明。
  */
 export const ROUTE_FILE_DETAIL: string = 'FileDetail';
 
@@ -43,13 +43,13 @@ export interface FileDetailRouteParams {
   /** `getExtension(attachment.name) ?? ''`。 */
   fileType: string;
   /*
-   * 【ticket 11 追加：三个**可选**字段】
+   * 【追加：三个**可选**字段】
    *
    * 附件来源没有这三个量（`Attachment` 只有 name/downloadUrl/size），所以它们必须可选 ——
-   * 公告详情与作业详情的构造点**一行都不用改**，ticket 04 已验收的导航契约（字段名与形状）
+   * 公告详情与作业详情的构造点**一行都不用改**，已验收的导航契约（字段名与形状）
    * 也不变。加它们的理由：课程详情的文件标签页本来就有 size/uploadTime/description
-   * （ticket 12 的 `CourseFileDetailRouteParams`），而文件详情真身落地后那条路由也走本页面，
-   * 于是不需要第二套参数类型（见 ticket 11 的交付说明）。
+   * （`CourseFileDetailRouteParams`），而文件详情真身落地后那条路由也走本页面，
+   * 于是不需要第二套参数类型（见交付说明）。
    */
   /** 站点给出的体积文本（如 `139.54KB`）；附件通常没有。 */
   size?: string;

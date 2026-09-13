@@ -1,9 +1,9 @@
 /*
- * 相对更新时间（ticket 11.5，Part B）的四档边界与文案映射。
+ * 相对更新时间的四档边界与文案映射。
  *
  * 分档是纯函数（`updatedTimeParts`），所以边界可以在 host 单测里逐条钉住，不需要 ICU；
  * 文案映射在**未绑定 provider** 的全局 `i18nService` 上跑，`KeyEchoStringProvider` 会把键原样返回，
- * 于是"哪一档用哪一个键"也被钉住了（设备上的实际措辞由 ticket 11.5 的截图承担）。
+ * 于是"哪一档用哪一个键"也被钉住了（设备上的实际措辞由截图承担）。
  */
 
 import { describe, it, expect } from '@ohos/hypium';

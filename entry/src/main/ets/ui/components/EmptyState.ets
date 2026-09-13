@@ -1,8 +1,8 @@
 /*
- * 通用空态组件（spec.md 第 2 节：ui/ 放通用组件）。
+ * 通用空态组件（ui/ 放通用组件）。
  *
  * 参考实现 components/Empty.tsx:13-18 用 MaterialIcons 的 check-circle（outline 取色）。
- * ticket 11.5 起图标字体已随包内嵌，这里直接用**同一个字形**（`AppIcon.CHECK_CIRCLE`），
+ * 图标字体已随包内嵌，这里直接用**同一个字形**（`AppIcon.CHECK_CIRCLE`），
  * 不再画替代圆环。尺寸仍取既有令牌 `sizes.iconLarge`（参考实现是硬编码 56）。
  */
 import { ThemeTokens, resolveTheme } from '../theme/Tokens';

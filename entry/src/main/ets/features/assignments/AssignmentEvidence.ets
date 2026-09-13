@@ -1,14 +1,14 @@
 /*
- * ticket 10 的**取证夹具**（提交态关闭）——与 ticket 04 的 NoticeDetailEvidence.ets 同一处置方式。
+ * 作业那轮的**取证夹具**（提交态关闭）——与 NoticeDetailEvidence.ets 同一处置方式。
  *
  * ## 为什么需要它
  *
- * 验收第 1 条要覆盖"未到期在前、已过期在后"的排序与三种状态标记（未到期 / 已提交 / 已过期）。
- * 但账号事实（统筹给的事实 + ticket 12 实测）是：
+ * 要覆盖"未到期在前、已过期在后"的排序与三种状态标记（未到期 / 已提交 / 已过期）。
+ * 但账号事实（统筹给的事实 + 实测）是：
  *   - 2026-2027 秋季：**没有作业**（列表为空，只能验空态）；
  *   - 2025-2026 春季：**57 条全部已截止、全部已提交**（只能验"已提交 / 已过期"两种形态，
  *     未完成计数为 0）。
- * ⇒ **"未到期"这一形态在真实数据上取不到**，只能靠夹具（ticket 10 的统筹提示 E 第 3 条）。
+ * ⇒ **"未到期"这一形态在真实数据上取不到**，只能靠夹具（见统筹提示）。
  *
  * 所以这里提供 4 条夹具作业，由 `MOCK_ASSIGNMENTS_FOR_EVIDENCE` 开关决定是否整体替换真实列表：
  *   - 提交态 false：列表渲染真实数据，行为与参考实现一致；
@@ -95,7 +95,7 @@ export function mockAssignments(nowMillis: number): Assignment[] {
     submittedAttachment: attachment('夹具我的提交.pdf', 'mock-att-submitted'),
     gradeAttachment: attachment('夹具批改结果.pdf', 'mock-att-grade'),
     answerAttachment: attachment('夹具参考答案.pdf', 'mock-att-answer'),
-    // 优秀作业（ticket 10 补做）：真实数据 24 条**全部匿名**，所以"具名作者"这一支只能靠夹具。
+    // 优秀作业（补做）：真实数据 24 条**全部匿名**，所以"具名作者"这一支只能靠夹具。
     excellentHomeworkList: [
       {
         id: 'mock-excellent-anon', baseId: 'mock-base-3', title: '夹具·已过期（已提交已评分，四类附件）',
@@ -144,7 +144,7 @@ export function mockExcellentCount(nowMillis: number): number {
   return count;
 }
 
-/** 把开关的**实际生效值**与夹具形状打进 hilog（ticket 10 取证要求）。 */
+/** 把开关的**实际生效值**与夹具形状打进 hilog（取证要求）。 */
 export function logAssignmentEvidenceState(): void {
   const now: number = Date.now();
   const mock: Assignment[] = mockAssignments(now);

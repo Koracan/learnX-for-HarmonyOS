@@ -1,5 +1,5 @@
 /*
- * 公告（Notice）tab：真实数据源之上的列表页 + 详情栈的根（ticket 03/04）。
+ * 公告（Notice）tab：真实数据源之上的列表页 + 详情栈的根。
  *
  * 分工：
  *   - 数据与阶段在 NoticeListStore（@ObservedV2/@Trace），本组件只读；
@@ -7,7 +7,7 @@
  *   - 时间用 core/i18n 的 formatRelativeTo（与参考实现 NoticeCard 的
  *     dayjs(publishTime).fromNow() 对齐），拿不到 ICU 措辞时退回绝对时间。
  *
- * 导航（ticket 04，接 ticket 03 的选型「每个 tab 一个 NavPathStack」）：
+ * 导航（接既有选型「每个 tab 一个 NavPathStack」）：
  *   本组件的 `Navigation` 就是这个 tab 的栈：列表是**根内容**，公告详情是
  *   `NavDestination`。这样切到别的 tab 再切回来时，栈（含正打开的详情页）原样保留，
  *   与参考实现"每 tab 一个 stack"一致。详情页只读列表项本身，不做二次取数
@@ -15,16 +15,16 @@
  *
  * 界面只依赖 NoticeRepository 接口（经 createNoticeRepository() 注入）。
  *
- * 【ticket 16】断点分栏：本页多了一个**详情栈**（`detailStack`）。单栏时详情照旧压在主栈上
- *   （ticket 03/04 的行为一字未改）；双栏时列表留在 393vp 的左栏、详情进右栏，
+ * 【断点分栏】本页多了一个**详情栈**（`detailStack`）。单栏时详情照旧压在主栈上
+ *   （既有行为一字未改）；双栏时列表留在 393vp 的左栏、详情进右栏，
  *   进/出分栏时两栈之间的迁移见 features/shell/SplitView.ets 的文件头。
  *
- * 【ticket 09】数据源已从 Mock 换成真实仓库（data/notices/RealNoticeRepository）。
- * 【ticket 14】加了收藏 / 归档 / 屏蔽：过滤条 + 滑动操作 + 撤销 Toast。
+ * 【真实数据源】数据源已从 Mock 换成真实仓库（data/notices/RealNoticeRepository）。
+ * 【收藏 / 归档 / 屏蔽】过滤条 + 滑动操作 + 撤销 Toast。
  *   - 过滤语义逐行对齐参考实现 data/selectors/filteredData.ts（见 features/marks/FilteredContent）；
  *   - `未读 n` 从页头**移到过滤条**：参考实现的未读数就是 FilterList / Filter 上的角标
  *     （components/FilterList.tsx:246、Filter.tsx:181-187），页头没有这个元素 ——
- *     同一信息不再两处显示（对账结论见 ticket 14 交付）。
+ *     同一信息不再两处显示（对账结论见交付说明）。
  */
 import { ConfigurationConstant } from '@kit.AbilityKit';
 import { PLAIN_PALETTE, ThemeTokens, resolveTheme } from '../../ui/theme/Tokens';
@@ -65,7 +65,7 @@ import {
 
 const logger: Logger = new Logger('features.notices');
 
-/** 单行公告的渲染参数；@Builder 按引用传参（见 ticket 01 Comments 的教训）。 */
+/** 单行公告的渲染参数；@Builder 按引用传参（这是踩过的坑）。 */
 interface NoticeRowSpec {
   theme: ThemeTokens;
   notice: NoticeRecord;
@@ -77,7 +77,7 @@ interface NoticeRowSpec {
   /** 状态图标的无障碍文案（参考实现在图标上有 name，本工程的矢量图标同样需要它）。 */
   attachmentLabel: string;
   importantLabel: string;
-  /** 双栏时这一行是不是"右栏正在显示的那一条"（主栏保留高亮，验收第 2 条）。 */
+  /** 双栏时这一行是不是"右栏正在显示的那一条"（主栏保留高亮）。 */
   selected: boolean;
 }
 
@@ -103,9 +103,9 @@ export struct NoticesPage {
   private flags: CollectionFlagsStore = collectionFlagsStore();
   private toast: ToastController = new ToastController();
   private listScroller: Scroller = new Scroller();
-  /** 公告 tab 自己的导航栈（ticket 04）—— **单栏**时详情压在这里，也就是左栏。 */
+  /** 公告 tab 自己的导航栈 —— **单栏**时详情压在这里，也就是左栏。 */
   private stack: NavPathStack = new NavPathStack();
-  /** 右栏（详情）的栈（ticket 16）：只在双栏时用；进/出分栏时与主栈互相迁移。 */
+  /** 右栏（详情）的栈：只在双栏时用；进/出分栏时与主栈互相迁移。 */
   private detailStack: NavPathStack = new NavPathStack();
   /** 双栏开关：来源是根布局实测尺寸（features/shell/SplitView.ets），消费点就是这个版式。 */
   @StorageProp(SPLIT_VIEW_ACTIVE_KEY) @Watch('onSplitViewChanged') splitActive: boolean = false;
@@ -155,7 +155,7 @@ export struct NoticesPage {
   }
 
   /**
-   * 页头那一行"相对更新时间"（ticket 11.5 Part B）：`刚刚更新` / `N 分钟前更新` / …。
+   * 页头那一行"相对更新时间"：`刚刚更新` / `N 分钟前更新` / …。
    * 原来的"更新于 HH:mm:ss · N 分钟前"是**绝对时间 + ICU 相对措辞**两段拼接；
    * 账号所有者裁定只保留相对措辞，四档边界在 `ui/components/UpdatedTime.ets`（有单测）。
    *
@@ -167,7 +167,7 @@ export struct NoticesPage {
   }
 
   /* ------------------------------------------------------------------ *
-   * ticket 14：收藏 / 归档 / 屏蔽
+   * 收藏 / 归档 / 屏蔽
    * ------------------------------------------------------------------ */
 
   /** 原始条目（收藏 / 归档 / 屏蔽三个标记作用在它之上）。 */
@@ -296,14 +296,14 @@ export struct NoticesPage {
   }
 
   /**
-   * 页头（ticket 11.5 Part B，账号所有者点名）：**标题 + 相对更新时间同一行**。
+   * 页头（账号所有者点名）：**标题 + 相对更新时间同一行**。
    *
    * 参考实现的页头是居中的 `HeaderTitle(title, subtitle)` 且**没有**更新时间元素
    * （有意偏离）。
    *
-   * 【ticket 14】原来这里还有一枚"未读 n"：**已移除**。参考实现的未读数是过滤条上的角标
-   * （FilterList.tsx:246 / Filter.tsx:181-187），而本 ticket 落地过滤条后同一信息会出现两处
-   * —— 按工单第 9 行的对账要求二选一，取"删掉自造页头、未读数由筛选条承担"。
+   * 【曾有一枚"未读 n"】**已移除**。参考实现的未读数是过滤条上的角标
+   * （FilterList.tsx:246 / Filter.tsx:181-187），而过滤条落地后同一信息会出现两处
+   * —— 按对账要求二选一，取"删掉自造页头、未读数由筛选条承担"。
    */
   @Builder
   header() {
@@ -320,7 +320,7 @@ export struct NoticesPage {
           .margin({ left: this.theme().sizes.space2 })
           .maxLines(1)
         Blank()
-        // ticket 15：页头右侧的搜索入口（参考实现 App.tsx:137-158 的 headerRight）。
+        // 页头右侧的搜索入口（参考实现 App.tsx:137-158 的 headerRight）。
         SearchButton({
           isDark: this.isDark(),
           label: this.s($r('app.string.loh_search')),
@@ -343,9 +343,9 @@ export struct NoticesPage {
   }
 
   /**
-   * 过滤条（ticket 14）：五个视图与各自的角标计数，顺序照参考实现 Filter.tsx:153-218
+   * 过滤条：五个视图与各自的角标计数，顺序照参考实现 Filter.tsx:153-218
    * （all → unread → fav → archived → hidden）。参考实现是下拉列表，这里是同屏筛选片
-   * （ticket 10 起的版式选择，见交付里的偏离说明）；**计数口径一字未改**。
+   * （既有的版式选择，见交付里的偏离说明）；**计数口径一字未改**。
    */
   @Builder
   filterRow() {
@@ -441,7 +441,7 @@ export struct NoticesPage {
    *   附件（MCI `attachment`，`Colors.orange500`）→ 重要（MCI `flag`，`Colors.red500`）→
    *   未读（MCI `checkbox-blank-circle`，`Colors.blue500`）。
    *
-   * ticket 11.5 起这三个标记是**与参考实现同源**的字体图标（内嵌同一份 MCI TTF，同一批码位），
+   * 这三个标记是**与参考实现同源**的字体图标（内嵌同一份 MCI TTF，同一批码位），
    * 不再是 emoji / 自绘圆点；仍不用 SymbolGlyph。
    * 图标本身不带文字，故每个都带 accessibilityText（键已声明）。
    */
@@ -463,7 +463,7 @@ export struct NoticesPage {
         })
       }
       if (isUnread(spec.notice)) {
-        // 参考实现：MCI checkbox-blank-circle（蓝色）。ticket 11.5 起不再是"画出来的圆点"，
+        // 参考实现：MCI checkbox-blank-circle（蓝色）。不再是"画出来的圆点"，
         // 而是同一个字形的字体图标（形状判据升级）。
         // 与改动前一致：未读圆点**没有** accessibilityText（原来是自绘 Column），
         // 不新增无障碍节点属性；回退态下它显示目录里的短名 '[new]'。
@@ -533,7 +533,7 @@ export struct NoticesPage {
       top: spec.theme.sizes.space3,
       bottom: spec.theme.sizes.space3
     })
-    // 双栏时把"右栏正在显示的那一条"高亮出来（主栏保留高亮状态，验收第 2 条）；
+    // 双栏时把"右栏正在显示的那一条"高亮出来（主栏保留高亮状态）；
     // 单栏不改变既有观感（selected 恒为 false）。
     .backgroundColor(spec.selected ? spec.theme.colors.surfaceVariant : spec.theme.colors.surface)
     .onClick(() => {
@@ -682,7 +682,7 @@ export struct NoticesPage {
       .height('100%')
       .backgroundColor(this.theme().colors.background)
 
-      // 撤销浮层（ticket 14）：3 秒窗口，逐字对齐参考实现 Toast.tsx:51-54。
+      // 撤销浮层：3 秒窗口，逐字对齐参考实现 Toast.tsx:51-54。
       ToastOverlay({ controller: this.toast, isDark: this.isDark() })
     }
     .width('100%')
@@ -706,7 +706,7 @@ export struct NoticesPage {
   }
 
   /**
-   * 版式（ticket 16）：`Row` = 左栏 + **1px `Divider`** + 右栏，逐项对齐参考实现
+   * 版式：`Row` = 左栏 + **1px `Divider`** + 右栏，逐项对齐参考实现
    * `SplitView.tsx:109-135`（`flexDirection:'row'` + `Divider` 100% 高 + mount 393 / detail flex:1）。
    * 单栏时右栏整段不渲染、分隔线 `Visibility.None`（不占位）—— 电话形态因此与改动前一致。
    */

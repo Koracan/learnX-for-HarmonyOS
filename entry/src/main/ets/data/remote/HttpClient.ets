@@ -125,7 +125,7 @@ export class HttpClient {
     binaryBody: ArrayBuffer | undefined,
     onProgress?: (sent: number, total: number) => void
   ): Promise<HttpResponse> {
-    // **消费点自证**（ticket 17 验收第 5 条）：任何一条真实请求都在这里被计数。
+    // **消费点自证**：任何一条真实请求都在这里被计数。
     noteNetworkAttempt(method === HttpMethod.POST ? 'post' : 'get', url);
     const request = http.createHttp();
     let cookiePresent: boolean = false;

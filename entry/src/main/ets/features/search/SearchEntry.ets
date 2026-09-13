@@ -1,5 +1,5 @@
 /*
- * 搜索页的**根栈入口**（ticket 15）。
+ * 搜索页的**根栈入口**。
  *
  * 参考实现里页头右侧那颗 search 图标做的是 `navigation.navigate('SearchStack')`
  * （`src/App.tsx:149-155`）—— 从**任何一个** tab 页的页头都能进，且搜索页是**盖在整个

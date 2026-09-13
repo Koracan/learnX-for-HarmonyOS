@@ -1,5 +1,5 @@
 /*
- * Mock 公告数据源（data/mock，ticket 17）。
+ * Mock 公告数据源（data/mock）。
  *
  * 参考实现是把整个 redux state 换成 `data/mock.ts`（`reducers/root.ts:138-139` 的 SET_MOCK_STORE），
  * 本工程没有那层 state，于是把 Mock 落在**仓储**这一层：mock 模式下 provider 返回本类，
@@ -7,7 +7,7 @@
  *
  * 两条纪律：
  *   - **不发任何请求**：本类不 import 任何 http 端口，只有样例数据；
- *   - 每次都打一行**消费点自证**，把当时的网络请求计数写出来（验收第 5 条要求可证明）。
+ *   - 每次都打一行**消费点自证**，把当时的网络请求计数写出来（要求可证明）。
  */
 
 import { Logger } from '../../core/log/Logger';

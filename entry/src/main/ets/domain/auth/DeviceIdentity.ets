@@ -8,7 +8,7 @@
  * 与参考实现的关系（reference/learnOH-old/src/helpers/fingerprint.ts）：
  *   - 指纹是 **UUID v4 文本**（16 字节随机源，版本位 0x4x，变体位 0b10xxxxxx），逐位照搬；
  *   - 参考实现的 deviceName 只有 `HarmonyOS,learnOH/{version}`（src/screens/SSO.tsx:52），
- *     本工程按 spec 第 5 节追加 ` ({productModel})` —— 这条差异已在 ticket 07 Comments 登记。
+ *     本工程追加 ` ({productModel})` —— 这条差异已如实登记。
  */
 
 /** UUID v4 的第五段（末段）长度，用于形状校验。 */
@@ -56,7 +56,7 @@ export function isUuidV4(value: string): boolean {
 /**
  * deviceName = `HarmonyOS,learnOH/{versionName} ({productModel})`。
  *
- * spec 第 5 节：**仅登记时上报**（HTTP 重登不带它，故不参与信任绑定）。
+ * **仅登记时上报**（HTTP 重登不带它，故不参与信任绑定）。
  * 型号缺失时退化成 `... ({unknown})` 而不是丢掉括号，便于日志里一眼看出是"没取到"。
  */
 export function composeDeviceName(versionName: string, productModel: string): string {
@@ -68,7 +68,7 @@ export function composeDeviceName(versionName: string, productModel: string): st
 /**
  * 凭据字段的**脱敏**表示：只保留前 4 个字符与总长度。
  *
- * 硬要求（验收第 5 条 / AGENTS.md「取证」）：指纹真值与口令**不得**进日志，
+ * 硬要求（AGENTS.md「取证」）：指纹真值与口令**不得**进日志，
  * 但"字段有没有值、多长、两次是否同一个"必须可诊断。前 4 字符足以在两次日志之间
  * 目视比对"是不是同一个指纹"，又不足以还原整个 UUID。
  */
@@ -86,7 +86,7 @@ export function sameSecret(left: string, right: string): boolean {
 }
 
 /**
- * 指纹三字段的脱敏诊断串（验收第 5 条的落点）。
+ * 指纹三字段的脱敏诊断串。
  *
  * `fingerPrint` 是我们注入并保存的那个值；`fingerGenPrint` / `fingerGenPrint3` 来自页面
  * 自己的 localStorage（我们不生成、只如实保存与回放）。三者都可能出现在排查里，

@@ -1,5 +1,5 @@
 /*
- * 课程 tab 的界面状态（spec.md 第 3 节：@ObservedV2 / @Trace，视图直接读）。
+ * 课程 tab 的界面状态（@ObservedV2 / @Trace，视图直接读）。
  *
  * 一次 refresh 拿到**课程 + 三域内容 + 学期集合**（CourseSnapshot），三处界面都读它：
  *   - 课程列表（courses + 三类计数）；
@@ -7,7 +7,7 @@
  *   - 学期切换页（semesters + 当前生效的 semesterId）。
  *
  * 界面不碰取数时序：失败**不吞**，进 errorMessage 并由界面显式显示
- * （对齐 ticket 08/09 的"失败一律显式降级，绝不静默显示空列表"）。
+ * （对齐"失败一律显式降级，绝不静默显示空列表"）。
  */
 
 import { Logger } from '../../core/log/Logger';
@@ -98,7 +98,7 @@ export class CourseListStore {
   }
 
   /**
-   * 切换当前学期：记下选择并立刻重抓（验收第 3 条：切换后课程列表随之更新）。
+   * 切换当前学期：记下选择并立刻重抓（切换后课程列表随之更新）。
    * 失败时**保留旧列表**（调用方看错误提示），不假装切换成功。
    */
   async selectSemester(semesterId: string): Promise<void> {

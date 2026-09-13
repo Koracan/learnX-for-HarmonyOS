@@ -1,12 +1,12 @@
 /*
- * 公告详情页（ticket 04）—— 逐项对齐参考实现
+ * 公告详情页 —— 逐项对齐参考实现
  * `reference/learnOH-old/src/screens/NoticeDetail.tsx`。
  *
  * ## 页面结构（对应参考实现行号）
  *
  * | 元素 | 参考实现 | 这里 |
  * | --- | --- | --- |
- * | 标题 = `removeTags(title)` | NoticeDetail.tsx:81 | `removeTags(this.notice.title)`（ticket 09 补齐） |
+ * | 标题 = `removeTags(title)` | NoticeDetail.tsx:81 | `removeTags(this.notice.title)`（补齐） |
  * | 副标题 = 发布者 + **绝对时间** | :84-92 | 同（模式走 i18n 资源，见 domain/render/NoticeDateText） |
  * | 正文上方独立一行的附件 | :95-109 `List.Item` | 同（下方 attachmentRow） |
  * | 空正文兜底 `content \|\| "<p>" + t('noNoticeContent') + "</p>"` | :54 | HtmlWebView 内做（传 emptyText） |
@@ -15,20 +15,20 @@
  *
  * ## 三处必须说明的判断
  *
- * 1. **不显示课程名**：ticket 04 的验收第 1 条写的是"课程名 + 发布者"，但参考实现
+ * 1. **不显示课程名**："课程名 + 发布者"曾是验收写法，但参考实现
  *    详情页**只显示发布者与时间**；`courseName` 只作为附件跳转 FileDetail 的参数（:65）。
  *    按本仓规则（移植完成定义 = 与参考实现行为一致），这里**不显示课程名**，
- *    并在 ticket Comments 里请统筹决定是否作为增强单独登记。
+ *    并请统筹决定是否作为增强单独登记。
  *
  * 2. **不移植 InteractionManager 延迟**：参考实现先显示 `ActivityIndicator`、
  *    等导航动画结束后才挂 WebView（:26-32）。ArkUI 的 Navigation 转场由框架负责，
  *    没有等价的 interaction 队列；而公告详情是"点进去立刻要看正文"的页面，
  *    这里直接渲染（RenderService 已把 Web 引擎初始化提前到 aboutToAppear）。
- *    这条写进 ticket Comments 的有意差异。
+ *    这是有意差异。
  *
  * 3. **正文不做实体解码**：正文是 HTML，
  *    交给 Web 容器渲染即可；参考实现的 `removeTags`（去标签 + he.decode 全实体集）
- *    只用在**标题**上。ticket 09 已把 `removeTags` 等价物实现在
+ *    只用在**标题**上。`removeTags` 等价物已实现在
  *    `domain/render/WebViewTemplate.ets`（标题用它，卡片正文预览也用它）。
  */
 import { common, ConfigurationConstant } from '@kit.AbilityKit';
@@ -165,7 +165,7 @@ export struct NoticeDetailPage {
   /**
    * 取证态才渲染的控制条（提交态 `EVIDENCE_DARK_TOGGLE=false`，整段是死分支）。
    *
-   * 它**不翻转本地标志**，而是调用应用级 `setColorMode`（与 ticket 03 同一办法，只作用于
+   * 它**不翻转本地标志**，而是调用应用级 `setColorMode`（与此前同一办法，只作用于
    * 本应用、不动设备全局设置）—— 于是这条控制条走的是**生产同一条链路**：
    * `setColorMode` → `onConfigurationUpdate` → `COLOR_MODE_KEY` → 本组件的 `@StorageProp`
    * → `isDark()` → `@Prop isDark` → HtmlWebView 的 `@Watch` → 重送模板。
@@ -213,7 +213,7 @@ export struct NoticeDetailPage {
   @Builder
   headerRow() {
     Row() {
-      // 返回：参考实现的详情页是导航栈默认的 MaterialIcons `arrow-back`（ticket 11.5 前这里是
+      // 返回：参考实现的详情页是导航栈默认的 MaterialIcons `arrow-back`（此前这里是
       // 一个近似形状的字符 U+2039）。外层 Stack 保持**原有的 40×40 点击目标**，布局尺寸不变。
       Stack() {
         IconGlyph({
@@ -327,7 +327,7 @@ export struct NoticeDetailPage {
       .width('100%')
       .layoutWeight(1)
       .align(Alignment.Top)
-      // 外层是唯一滚动容器，且没有内部滚动条（验收第 2 条）。
+      // 外层是唯一滚动容器，且没有内部滚动条。
       .scrollBar(BarState.Off)
     }
     .width('100%')

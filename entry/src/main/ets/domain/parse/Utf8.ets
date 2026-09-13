@@ -1,7 +1,7 @@
 /*
  * UTF-8 编解码——**纯叶子工具**，零平台依赖（见 scripts/check-domain-purity.mjs）。
  *
- * `domain/` 默认不允许被 `core/` 反向依赖；本文件是 spec 第 2 节明确的**唯一例外**：
+ * `domain/` 默认不允许被 `core/` 反向依赖；本文件是明确允许的**唯一例外**：
  * "纯叶子工具（无平台依赖、无领域实体、无业务规则，例如 domain/parse/Utf8.ets 的 UTF-8
  * 编解码）……放在 domain/ 下可获得 check-domain-purity.mjs 的自动纯度保护，而 core 允许引用它"。
  * 自查：本文件**没有任何 import**（无 @ohos.* / @kit.* / @hms.*，也不 import 任何领域实体），

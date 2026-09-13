@@ -9,14 +9,14 @@
  *
  * 移植后：网络走注入的 `FetchPort`，字段映射 / 四类附件 / 排序在 domain/parse/AssignmentParser。
  *
- * **次序是两步，别只做第二步**（ticket 10 在真实数据上修正）：processor 先按截止时间倒序，
+ * **次序是两步，别只做第二步**（在真实数据上修正）：processor 先按截止时间倒序，
  * 再切成"未到期（由近及远）/ 已过期（由远及近）"。见 `fetch` 内的注释。
  *
  * 另外每门课还会：
  *   3. POST `yxzylist` 取**优秀作业**列表，并对每条取优秀作业详情页（`viewYxzy`）解析附件；
  *      整段失败只 warn 一行（参考实现吞掉这条失败）。
  *
- * 锚点日志（验收项 1；ticket 10 补做后多了 `excellent=`）：
+ * 锚点日志（补做后多了 `excellent=`）：
  *   data.assignments fetched courses=<n> items=<n> elapsedMs=<n> requests=<n> failures=<n>
  *                            nonStringDeadlines=<n> excellent=<n>
  *   data.assignments excellent: course=<id> zyid=<id> items=<n> anonymous=<n> named=<n>
@@ -268,9 +268,9 @@ export class AssignmentsFetcher {
     //   1. processor 先按截止时间倒序（DataProcessorModule.processAssignments 的 sort）；
     //   2. JS 侧再切成"未到期（reverse 成由近及远）+ 已过期（保持第 1 步的降序）"
     //      （actions/assignments.ts:123-128）。
-    // ticket 05 的移植只搬了第 2 步 ⇒ **已过期段是接口返回顺序**；2026-09-12 在 2025-2026 春季
+    // 最初的移植只搬了第 2 步 ⇒ **已过期段是接口返回顺序**；2026-09-12 在 2025-2026 春季
     // 的 57 条真实数据上实测：列表前三条的截止时间是 05-31 / 06-20 / 04-30，明显不是按时间。
-    // ticket 10 补上第 1 步（顺序常量仍是同一个 compareAssignmentsByUpcoming）。
+    // 后来补上第 1 步（顺序常量仍是同一个 compareAssignmentsByUpcoming）。
     const ordered: Assignment[] = compareAssignmentsByUpcoming(sortAssignments(collected), Date.now());
     const elapsedMs: number = Date.now() - startedAt;
     this.logger.info(ASSIGNMENTS_LOG_DOMAIN + ' fetched courses=' + courseIds.length.toString()
@@ -299,7 +299,7 @@ export class AssignmentsFetcher {
     const deadline: string | undefined = raw.jzsj;
     if (deadline === undefined || deadline === null || typeof deadline === 'string') {
       // 缺失 / null 由 parseAssignment 的 text() 转成空串（"没有截止时间"是合法状态），
-      // 只有"给了值但不是字符串"才是本工单要诊断的那种行。
+      // 只有"给了值但不是字符串"才是要诊断的那种行。
       return false;
     }
     if (!this.deadlineTypeWarned) {

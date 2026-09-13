@@ -101,7 +101,7 @@ export function evaluateDownloadResponse(status: number, contentType: string): D
  *
  * HTML 登录页与 403 都算（站点对漏带 `_csrf` 的请求回自己的 403 页，
  * 而 `isNoLoginResponse` 把 403 当会话失效）；界面据此显示
- * `loh_session_expired` 而不是笼统的"下载失败"（验收第 3 条要"正确提示"）。
+ * `loh_session_expired` 而不是笼统的"下载失败"（要"正确提示"）。
  */
 export function isSessionLossReason(reason: string): boolean {
   return reason === 'html-login-page' || reason === 'status:403';
@@ -147,7 +147,7 @@ export function appendCsrfToken(url: string, token: string): string {
 }
 
 /**
- * 打日志前把 `_csrf` 的值抹掉（**会话凭证绝不进 hilog**，spec 第 4 节 / ADR-0004）。
+ * 打日志前把 `_csrf` 的值抹掉（**会话凭证绝不进 hilog**，ADR-0004）。
  * 保留参数名，于是"这次请求带没带 _csrf"仍可从日志判读。
  */
 export function redactCsrfToken(url: string): string {

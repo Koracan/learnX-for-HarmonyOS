@@ -1,5 +1,5 @@
 /*
- * 公告域单测（ticket 03；ticket 09 迁移过路径）：排序（倒序）、未读判定、空态分支。
+ * 公告域单测（迁移过路径）：排序（倒序）、未读判定、空态分支。
  *
  * 覆盖面：
  *   1. NoticeOrder 的纯函数 —— 时间解析、发布时间倒序（含同一时间的 id 倒序、
@@ -10,7 +10,7 @@
  *   3. NoticeListStore 的快照先行 + 后台刷新时序、失败保留旧数据、空集合空态；
  *   4. 打开一条公告 → 它变已读、未读数下降（界面据此消失蓝点）。
  *
- * 【ticket 09 迁移】接口与 Mock 已从 features/notices/repository/ 搬到
+ * 接口与 Mock 已从 features/notices/repository/ 搬到
  * data/notices/（Mock 从主源码树删除，7 条种子移进 test/fixtures/NoticeFixtures.ets）。
  */
 import { describe, it, expect } from '@ohos/hypium';
@@ -63,7 +63,7 @@ function join(items: NoticeRecord[]): string {
   return ids(items).join(',');
 }
 
-/** 真实数据源替身（ticket 09 的形状）：能读快照、能把新抓取落成快照。 */
+/** 真实数据源替身（该切片的形状）：能读快照、能把新抓取落成快照。 */
 class FakeSnapshotNoticeRepository implements NoticeRepository {
   private stored: NoticeSnapshot | null = null;
   private readonly source: NoticeRecord[];

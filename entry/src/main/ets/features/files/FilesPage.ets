@@ -1,16 +1,16 @@
 /*
- * 文件 tab（ticket 11）：文件列表 + 详情栈的根。
+ * 文件 tab：文件列表 + 详情栈的根。
  *
  * 对齐参考实现 `screens/Files.tsx` 与 `components/FileCard.tsx`：
  *
  * | 项 | 参考实现 | 这里 |
  * | --- | --- | --- |
  * | 取数 | `getAllFilesForCourses(courseIds)`（:29-32，courseIds 取自已加载的课程） | `FileListStore.refresh()`（自己解析学期 + 取课程列表 + 取文件；见 data/files/FileRepository 的说明） |
- * | 次序 | processor 按上传时间倒序 | `data/remote/FilesFetcher.fetch`（ticket 05 的同一比较器） |
- * | 卡片 | 课程名 / 标题（removeTags）/ 描述 2 行 / `TYPE SIZE` 一行 / 相对时间（:37-78） | 同（验收第 1 条"显示大小与类型"就是那一行） |
+ * | 次序 | processor 按上传时间倒序 | `data/remote/FilesFetcher.fetch`（同一比较器） |
+ * | 卡片 | 课程名 / 标题（removeTags）/ 描述 2 行 / `TYPE SIZE` 一行 / 相对时间（:37-78） | 同（"显示大小与类型"就是那一行） |
  * | 点击 | `navigate('FileDetail', item)` | 推本 tab 的 `ROUTE_FILE_DETAIL`（真身 FileDetailPage） |
  * | 下拉刷新 | `handleRefresh` | 同 |
- * | 过滤（ticket 14） | FilterList 下拉（all / unread / fav / archived / hidden） | 五个筛选片，计数口径照 Filter.tsx:153-218 |
+ * | 过滤 | FilterList 下拉（all / unread / fav / archived / hidden） | 五个筛选片，计数口径照 Filter.tsx:153-218 |
  *
  * 三种状态都显式呈现，**没有"失败就显示空列表"这条路**（与课程/公告列表同一口径）。
  */
@@ -59,12 +59,12 @@ interface FileRowSpec {
   courseName: string;
   titleText: string;
   descriptionText: string;
-  /** `TYPE SIZE`（验收第 1 条）。 */
+  /** `TYPE SIZE`。 */
   metaText: string;
   timeText: string;
   isNew: boolean;
   newLabel: string;
-  /** 双栏时这一行是不是"右栏正在显示的那一条"（主栏保留高亮，验收第 2 条）。 */
+  /** 双栏时这一行是不是"右栏正在显示的那一条"（主栏保留高亮）。 */
   selected: boolean;
 }
 
@@ -86,9 +86,9 @@ export struct FilesPage {
   /** 进程内单例：与公告 / 作业 / 课程三个列表共用同一份收藏与屏蔽状态。 */
   private flags: CollectionFlagsStore = collectionFlagsStore();
   private toast: ToastController = new ToastController();
-  /** 主栈（ticket 11）：单栏时详情压在这里，也就是左栏。 */
+  /** 主栈：单栏时详情压在这里，也就是左栏。 */
   private stack: NavPathStack = new NavPathStack();
-  /** 右栏（详情）的栈（ticket 16）：见 features/shell/SplitView.ets 的文件头。 */
+  /** 右栏（详情）的栈：见 features/shell/SplitView.ets 的文件头。 */
   private detailStack: NavPathStack = new NavPathStack();
   /** 双栏开关：来源是根布局实测尺寸（features/shell/SplitView.ets），消费点就是这个版式。 */
   @StorageProp(SPLIT_VIEW_ACTIVE_KEY) @Watch('onSplitViewChanged') splitActive: boolean = false;
@@ -125,7 +125,7 @@ export struct FilesPage {
   }
 
   /* ------------------------------------------------------------------ *
-   * ticket 14：收藏 / 归档 / 屏蔽
+   * 收藏 / 归档 / 屏蔽
    * ------------------------------------------------------------------ */
 
   private sourceFiles(): CourseFile[] {
@@ -197,7 +197,7 @@ export struct FilesPage {
   }
 
   /**
-   * 页头那一行"相对更新时间"（ticket 11.5 Part B）：`刚刚更新` / `N 分钟前更新` / …。
+   * 页头那一行"相对更新时间"：`刚刚更新` / `N 分钟前更新` / …。
    * 原来是 ICU 的裸相对措辞（"5分钟前"），现在统一成同一套页头文案。
    *
    * 时间基准是"本页最近一次被显示的时刻"（`features/shell/PageShown.ets`）：切走再切回、
@@ -335,7 +335,7 @@ export struct FilesPage {
     })
   }
 
-  /** 过滤条（ticket 14）：all → unread → fav → archived → hidden（Filter.tsx:153-218 的顺序）。 */
+  /** 过滤条：all → unread → fav → archived → hidden（Filter.tsx:153-218 的顺序）。 */
   @Builder
   filterRow() {
     Flex({ wrap: FlexWrap.Wrap }) {
@@ -460,7 +460,7 @@ export struct FilesPage {
       }
 
       Row() {
-        // 验收第 1 条：**大小与类型**在同一行里逐字可见。
+        // **大小与类型**在同一行里逐字可见。
         Text(spec.metaText)
           .fontSize(spec.theme.typography.labelSmall.fontSize)
           .fontColor(spec.theme.colors.onSurfaceVariant)
@@ -481,7 +481,7 @@ export struct FilesPage {
       top: spec.theme.sizes.space3,
       bottom: spec.theme.sizes.space3
     })
-    // 双栏时把"右栏正在显示的那一条"高亮出来（主栏保留高亮状态，验收第 2 条）。
+    // 双栏时把"右栏正在显示的那一条"高亮出来（主栏保留高亮状态）。
     .backgroundColor(spec.selected ? spec.theme.colors.surfaceVariant : spec.theme.colors.surface)
   }
 
@@ -633,7 +633,7 @@ export struct FilesPage {
   }
 
   /**
-   * 版式（ticket 16）：`Row` = 左栏 + **1px `Divider`** + 右栏，逐项对齐参考实现
+   * 版式：`Row` = 左栏 + **1px `Divider`** + 右栏，逐项对齐参考实现
    * `SplitView.tsx:109-135`。单栏时右栏整段不渲染、分隔线 `Visibility.None`（不占位）。
    */
   build() {

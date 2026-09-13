@@ -137,7 +137,7 @@ export function isEmptyListResult(body: string): boolean {
   return body === '[]';
 }
 
-/** 响应体是否像 ID 登录页（诊断「服务端要求浏览器」这条降级路径，验收第 5 条）。 */
+/** 响应体是否像 ID 登录页（诊断「服务端要求浏览器」这条降级路径）。 */
 export function looksLikeIdLoginPage(body: string): boolean {
   if (!body) {
     return false;

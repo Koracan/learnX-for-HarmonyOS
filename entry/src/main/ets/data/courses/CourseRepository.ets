@@ -1,5 +1,5 @@
 /*
- * 课程数据源契约（data/courses，ticket 12）——features 只依赖本接口，不依赖任何具体实现。
+ * 课程数据源契约（data/courses）——features 只依赖本接口，不依赖任何具体实现。
  *
  * 一次 refresh 就返回**课程 tab 需要的全部东西**（对齐参考实现的做法：课程页与课程详情页
  * 都从同一份全局 state 里取数）：

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // report-i18n-counts.mjs -- prints the actual key counts (no estimates).
-// Evidence for the ticket: reference dictionary keys vs migrated resource keys.
+// Evidence: reference dictionary keys vs migrated resource keys.
 import fs from 'node:fs';
 import path from 'node:path';
 import url from 'node:url';

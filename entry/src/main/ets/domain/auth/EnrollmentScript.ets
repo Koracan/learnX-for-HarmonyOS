@@ -1,24 +1,24 @@
 /*
  * 登记页注入脚本（domain，纯逻辑）：把一段 JS **源码**拼出来，以及解析它经桥回传的值。
  *
- * 注入面（spec 第 5 节 + ticket 07 Comments 的既有结论）——只有三件事：
+ * 注入面（既有结论）——只有三件事：
  *   1. **预填**账号/口令并置 readonly（照参考实现 src/helpers/preval/sso.js:38-53）；
  *   2. 把**生效指纹**（方案 A：页面值优先）写进 #fingerPrint，并拦截 saveFinger 的 XHR，把
  *      deviceName / radioVal=是 换成我们的值（sso.js:12-36 的等价物）；**`fingerprint` 只在页面
  *      没给值时才写**——二次验证页自己已经在 body 里放了正确的指纹（D1 修复，见 patchSaveFinger）；
  *   3. 让页面自己把 localStorage 里的 fingerGenPrint 吐回 DOM（localstorageUtil.getFinger3FromLocal）。
  *
- * **明确不做**（idp-login-flow.md 第 3 节）：旧实现对 jQuery.fn.submit 的猴补丁——它只是为了把
+ * **明确不做**（idp-login-flow.md 里逐条列出的那一节）：旧实现对 jQuery.fn.submit 的猴补丁——它只是为了把
  * FormData 经 postMessage 回传 RN；我们的 HTTP 侧凭据由本工程自己持有，不需要那条通道。
  * 单测里有一条断言"产物里不含 jQuery.fn.submit"，防止有人日后把它加回来。
  *
  * 为什么写 #fingerPrint 而不是只读它：服务端把"信任浏览器"绑定在设备指纹上（ADR-0004 /
- * idp-login-flow.md 第 4 节），而**信任的判据必须是同一个值**——登记时 saveFinger 上报的值、
- * 登录表单提交的值、以及将来 HTTP 重登出示的值（ticket 08）三者逐字相同。参考实现也是这么做
+ * idp-login-flow.md），而**信任的判据必须是同一个值**——登记时 saveFinger 上报的值、
+ * 登录表单提交的值、以及将来 HTTP 重登出示的值三者逐字相同。参考实现也是这么做
  * 的（sso.js 同时覆盖表单字段与 XHR）。页面自己的 fingerPrint 是 fingerprintjs2 的
  * canvas/webgl 指纹，纯 ArkTS 侧无法复算，"读 DOM 当凭据再回放"反而更弱。
  *
- * 设备实测的修正（都写进了 ticket Comments）：
+ * 设备实测的修正（都已如实登记）：
  *   - "信任该浏览器"复选框**只有 name（singleLogin）、没有 id**，且全新 profile 上页面并不勾选它
  *     （finger3.js 只在 localStorage 已有 "singleLoginKey"="yes" 时才勾选）——必须由我们按 name
  *     找到并勾上（参考实现 sso.js:69-74 的等价物），否则服务端不会登记 180 天信任；
@@ -29,7 +29,7 @@
  *   - 另外两条是 2026-09-12 真实登记失败后加的：
  *     ① **提交前自检（gate）**：fingerGenPrint / fingerGenPrint3 为空时**拦住提交**并给出提示。
  *        理由是实测教训——这两个值为空时服务端必然拒绝信任（用户已因此白花一条短信），
- *        而"注定失败的提交"不该让用户先过短信；参考实现没有这个保护（见 ticket Comments，
+ *        而"注定失败的提交"不该让用户先过短信；参考实现没有这个保护（
  *        这是**新增的防线**而非行为偏离）。
  *     ② **只读诊断（ENROLLMENT_DIAGNOSTICS_FOR_EVIDENCE）**：origin / 每个 XHR 的请求与响应摘要 /
  *        IndexedDB 往返回 / localforage 读写探测 / 页面 console。它不改变行为，只补上"失败时
@@ -836,7 +836,7 @@ export function mergeDomValues(previous: EnrollmentDomValues, fresh: EnrollmentD
   return merged;
 }
 
-/** 生效指纹 + 它的来源（来源要进日志：验收第 2/5 条都要求可诊断）。 */
+/** 生效指纹 + 它的来源（来源要进日志：要求可诊断）。 */
 export interface EnrollmentFingerPrint {
   value: string;
   /** saveFingerXhr（服务端登记值） / formFieldDom（登录页表单值） / generatedFallback（我们的 UUID） / none。 */
@@ -869,7 +869,7 @@ export function resolveEnrollmentFingerPrint(injectedFingerPrint: string,
 
 /**
  * 登记成功时该保存的凭据：fingerPrint 取**生效值**（见 resolveEnrollmentFingerPrint；
- * 验收第 2 条的落点），另外两个站点指纹取页面 DOM 里的实际值（可能是空串，参考实现的默认值也是空串）。
+ * 应用侧指纹的落点），另外两个站点指纹取页面 DOM 里的实际值（可能是空串，参考实现的默认值也是空串）。
  */
 export function credentialRecordFor(username: string, password: string, injectedFingerPrint: string,
   dom: EnrollmentDomValues): CredentialRecord {
@@ -880,7 +880,7 @@ export function credentialRecordFor(username: string, password: string, injected
 }
 
 /**
- * DOM 事实的**脱敏**诊断串（验收第 5 条的落点，可直接进日志/导出文件）。
+ * DOM 事实的**脱敏**诊断串（可直接进日志/导出文件）。
  *
  * 只给长度与布尔：三个指纹的真值一个都不出现。`pageDeviceName` 是页面自己算的 UA 名
  * （形如 `windows,Chrome/120`），不是秘密，照原样记录——排查"服务端看到的浏览器是谁"时最有用。

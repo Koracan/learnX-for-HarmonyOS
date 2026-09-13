@@ -22,7 +22,7 @@ export const USER_AGENT: string =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 export const FORM_CONTENT_TYPE: string = 'application/x-www-form-urlencoded';
 
-/** 会话：cookie 与 CSRF 令牌。内存态，不落盘（见 spec 第 4 节）。 */
+/** 会话：cookie 与 CSRF 令牌。内存态，不落盘。 */
 export interface Session {
   cookie: string;
   csrfToken: string;

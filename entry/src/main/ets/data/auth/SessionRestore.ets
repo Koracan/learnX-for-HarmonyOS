@@ -1,13 +1,13 @@
 /*
- * 冷启动静默重建会话 + 运行期会话失效的显式降级（data/auth，ticket 08）。
+ * 冷启动静默重建会话 + 运行期会话失效的显式降级（data/auth）。
  *
- * 这一层把 ticket 06 的三个零件接起来，并补上 07 留下的认证门所缺的那一步：
+ * 这一层把登录路径的三个零件接起来，并补上认证门所缺的那一步：
  *   - `LoginClient`  —— 7 步纯 HTTP 登录（**零 WebView**）；
  *   - `ReAuthCoordinator` —— 单飞：并发 N 个调用共享同一个登录 Promise（照 source.ts:111-121）；
  *   - `SessionGate`   —— 任务层：会话失效（'[]' ∪ 403/login_timeout）时重登并**只重试一次**。
  *
  * 对应参考实现：`src/data/source.ts` 的 `withNativeReAuth` / `loginWithFingerPrint`。
- * 本文件的两条硬约束都来自 spec 第 5 节与 ADR-0004：
+ * 本文件的两条硬约束来自 ADR-0004：
  *   1. **降级必须显式**：任何非预期结果（含服务端直接拒绝：信任过期 / 403 / login_timeout）
  *      都返回 `requiresEnrollment() === true`，绝不静默失败、绝不把空列表交给界面；
  *   2. **绝不用 Mock / 空列表兜底**：这里没有任何"失败就返回空集合"的分支。
@@ -29,9 +29,9 @@ import { ReAuthCoordinator, ReAuthRunResult, SessionGate, TaskOutcome } from './
 /**
  * 凭据库里的记录 → 登录流要的入参。
  *
- * 映射只此一处：07 的 `CredentialRecord`（含 schemaVersion）与 06 的 `Credentials`（登录表单字段）
- * 是同三个指纹 + 账号口令的两个视图，任何一处漏字段都会让"服务端登记的指纹 ≠ 重登出示的指纹"
- * （spec 第 5 节 / 验收第 2 条），所以要能单测（见 SessionRestore.test）。
+ * 映射只此一处：`CredentialRecord`（含 schemaVersion）与 `Credentials`（登录表单字段）
+ * 是同三个指纹 + 账号口令的两个视图，任何一处漏字段都会让"服务端登记的指纹 ≠ 重登出示的指纹"，
+ * 所以要能单测（见 SessionRestore.test）。
  */
 export function credentialsFor(record: CredentialRecord): Credentials {
   return {
@@ -47,7 +47,7 @@ export function credentialsFor(record: CredentialRecord): Credentials {
  * 冷启动重登的**整体**超时（毫秒）。
  *
  * 平台自己的 connectTimeout=15s / readTimeout=30s 已经给定上界；这条是"平台行为不符合
- * 预期时 LOADING 也不会无限期挂住"的保险（验收第 2 条：断网启动不卡在加载态）。
+ * 预期时 LOADING 也不会无限期挂住"的保险（断网启动不卡在加载态）。
  * 取得比 15s 大，避免把"网慢但能通"误判成断网。
  */
 export const RESTORE_TIMEOUT_MILLIS: number = 20000;
@@ -117,7 +117,7 @@ export class SessionRestoreResult {
     return this.kind === SessionRestoreKind.RESTORED;
   }
 
-  /** spec 第 5 节：失败一律降级到 Enrollment（界面侧据此回登录页并说明需要重新验证）。 */
+  /** 失败一律降级到 Enrollment（界面侧据此回登录页并说明需要重新验证）。 */
   requiresEnrollment(): boolean {
     return !this.ok();
   }
@@ -156,9 +156,9 @@ export interface SessionRestorerOptions {
 /**
  * 冷启动重登入口：把「已有会话直接复用 + 单飞 + 整体超时 + 失败分类」收在一个出口。
  *
- * 单飞用 06 的 `ReAuthCoordinator`（绝不自己再造一个 inFlight）；本类额外做的只有：
+ * 单飞用 `ReAuthCoordinator`（绝不自己再造一个 inFlight）；本类额外做的只有：
  *   - **会话短路**：内存里已有会话就直接返回它——数据路径每个请求都会问一次，
- *     没有这条短路，N 个请求就会并发触发 N 次登录（验收第 4 条要的正是"只登录一次"）；
+ *     没有这条短路，N 个请求就会并发触发 N 次登录（要的正是"只登录一次"）；
  *   - 整体超时（见 RESTORE_TIMEOUT_MILLIS）；
  *   - 把 LoginResult 翻成界面可用的三类（无凭据 / 断网 / 被拒）。
  *
@@ -253,7 +253,7 @@ export class AuthedRunResult {
   readonly reason: FailReason;
   readonly value: string;
   readonly reAuthAttempted: boolean;
-  /** 验收第 3 条 / spec 第 5 节：true = 调用方必须回登录页并说明需要重新验证。 */
+  /** true = 调用方必须回登录页并说明需要重新验证。 */
   readonly requiresEnrollment: boolean;
   readonly diagnostic: string;
 
@@ -300,7 +300,7 @@ export class AuthedRunResult {
 }
 
 /**
- * 数据路径的统一入口（ticket 09 的三域仓储用它）：
+ * 数据路径的统一入口（三域仓储用它）：
  *   1. 先确保有会话（冷启动时就是那次纯 HTTP 重登，单飞）；
  *   2. 任务会话失效（'[]' ∪ 403/login_timeout）时由 SessionGate 重登并只重试一次；
  *   3. 任何失败或"重登后仍失效"都返回 requiresEnrollment=true，**不返回空列表**。

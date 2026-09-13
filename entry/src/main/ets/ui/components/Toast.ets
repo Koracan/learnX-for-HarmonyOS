@@ -6,8 +6,8 @@
  * **3000 ms**（Toast.tsx:51-54）。收藏 / 归档 / 屏蔽三处的提示与撤销都走它
  * （components/FilterList.tsx:119-171）。
  *
- * 为什么不用 `promptAction.showToast`：平台 toast **没有动作按钮**，而本 ticket 的
- * 验收第 4 条要求"撤销可恢复" —— 撤销入口必须在界面上、且能截到图。
+ * 为什么不用 `promptAction.showToast`：平台 toast **没有动作按钮**，而本工程的
+ * 要求"撤销可恢复" —— 撤销入口必须在界面上、且能截到图。
  *
  * 结构：`ToastController`（@ObservedV2，状态 + 定时器） + `ToastOverlay`（视图）。
  * 页面把它放进自己的 `Stack` 里做底部浮层。

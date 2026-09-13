@@ -1,5 +1,5 @@
 /*
- * `FileSettingsPort` 的设备实现：`@ohos.data.preferences`（spec 第 6 节：
+ * `FileSettingsPort` 的设备实现：`@ohos.data.preferences`（
  * `@react-native-async-storage/async-storage` → preferences；参考实现用 redux-persist 落这两个布尔）。
  *
  * 与公告快照用 preferences 的理由相同：两个布尔、取一次写一次，不需要文件。

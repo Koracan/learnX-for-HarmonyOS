@@ -2,11 +2,11 @@
 /**
  * 导入图检查（统筹新增，2026-09-12）。
  *
- * 起因（实测）：data/upload/UploadForm.ets 从 ticket 05 起就 import 了一个不存在的路径
- * "../../domain/parse/Multipart"（真身在 data/upload/Multipart.ets），而 ticket 05 的
+ * 起因（实测）：data/upload/UploadForm.ets 曾经 import 了一个不存在的路径
+ * "../../domain/parse/Multipart"（真身在 data/upload/Multipart.ets），而当时的
  * devecocli build 与 116 条单测**全绿**。原因是 ArkTS 的编译按**入口可达性**进行：
  * 没有任何可达者 import 的模块不会被编译，其中的硬错误（含无法解析的 import）不会让
- * 门禁变红。直到 ticket 06 第一次 import 它，编译才报错。
+ * 门禁变红。直到后来第一次 import 它，编译才报错。
  *
  * 本脚本做两件事：
  *   1. FAIL：任何**相对** import 解析不到实际文件 -> 退出码 1。这与可达性无关，纯属

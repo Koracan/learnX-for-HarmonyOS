@@ -1,5 +1,5 @@
 /*
- * 优秀作业（ticket 10 补做）单测：`yxzylist` 列表 → 解析 → 按 `zyid` 挂到作业 → 渲染取值。
+ * 优秀作业（补做）单测：`yxzylist` 列表 → 解析 → 按 `zyid` 挂到作业 → 渲染取值。
  *
  * 夹具形状来自**真实响应**：探针把 2025-2026 春季两门课的原始响应落到了
  * `.scratch/assignments/evidence/P1-excellent-probe-spring.txt`（18 + 6 条），

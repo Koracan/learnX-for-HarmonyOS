@@ -155,7 +155,7 @@ export function decodeCollectionFlags(payload: string): FlagsDecodeResult {
   const rawTabs: Object = envelope['tabFilters'];
   if (rawTabs === undefined || rawTabs === null || typeof rawTabs !== 'object'
     || Array.isArray(rawTabs)) {
-    // 过滤选择缺失不算致命：状态（收藏/归档/屏蔽）才是验收对象，缺了就用参考实现的默认值。
+    // 过滤选择缺失不算致命：状态（收藏/归档/屏蔽）才是断言对象，缺了就用参考实现的默认值。
     const result: FlagsDecodeResult = {
       flags: flags,
       tabFilters: copyTabFilterSelections(DEFAULT_TAB_FILTER_SELECTIONS),

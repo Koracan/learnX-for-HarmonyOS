@@ -1,9 +1,9 @@
 /*
- * 设备身份单测（ticket 07）：UUID v4 的位规则、deviceName 组装、脱敏输出。
+ * 设备身份单测：UUID v4 的位规则、deviceName 组装、脱敏输出。
  *
  * 为什么值得测：`fingerPrint` 是**信任绑定的键**（ADR-0004）。它的位规则写错（版本位/变体位）
  * 不会让任何请求失败，但会让"我们的指纹"与页面自己的指纹库混淆；而脱敏写错会把凭据写进
- * 日志（验收第 5 条）。这两类都是"肉眼看不出来"的错误。
+ * 日志。这两类都是"肉眼看不出来"的错误。
  */
 
 import { describe, it, expect } from '@ohos/hypium';
@@ -48,7 +48,7 @@ export default function deviceIdentityTest() {
     });
 
     it('composesTheSpecDeviceName', 0, () => {
-      // spec 第 5 节：HarmonyOS,learnOH/{versionName} ({productModel})
+      // HarmonyOS,learnOH/{versionName} ({productModel})
       expect(composeDeviceName('1.1.0', 'PURA 90')).assertEqual('HarmonyOS,learnOH/1.1.0 (PURA 90)');
       expect(composeDeviceName('', '')).assertEqual('HarmonyOS,learnOH/unknown (unknown)');
       expect(composeDeviceName('2.0.0', '')).assertEqual('HarmonyOS,learnOH/2.0.0 (unknown)');

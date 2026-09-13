@@ -1,7 +1,7 @@
 /*
- * 真实公告仓储与快照单测（ticket 09）。
+ * 真实公告仓储与快照单测。
  *
- * 覆盖四条验收相关的行为：
+ * 覆盖四条相关的行为：
  *   1. **抓取 → 映射 → 落快照**：`Notice`（domain）的字段逐项进 `NoticeRecord`，
  *      publishTime 走 parseNoticeTime（与卡片排序同一条路径）；
  *   2. **失败显式降级，绝不返回空列表**：AuthedTaskRunner 判定
@@ -355,7 +355,7 @@ export default function noticeRepositoryTest() {
       expect(decodeNoticeSnapshot('{"fetchedAtMillis":1}').discardReason).assertEqual('version_missing');
       expect(decodeNoticeSnapshot('{"schemaVersion":2,"fetchedAtMillis":1,"items":"x"}').discardReason)
         .assertEqual('items_missing');
-      // 版本不符时仍要报出磁盘上的版本号（验收第 6 条"能识别旧版本"）。
+      // 版本不符时仍要报出磁盘上的版本号（"能识别旧版本"）。
       const stale: SnapshotDecodeResult = decodeNoticeSnapshot('{"schemaVersion":7,"fetchedAtMillis":1,"items":[]}');
       expect(stale.discardReason).assertEqual('version_mismatch:7');
       expect(stale.onDiskVersion).assertEqual(7);

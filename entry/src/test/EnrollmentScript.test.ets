@@ -1,7 +1,7 @@
 /*
- * 注入脚本单测（ticket 07，验收第 2/5 条的可测部分）。
+ * 注入脚本单测（2/5 两块的可测部分）。
  *
- * 断言的判据来自 idp-login-flow.md 第 3 节与 ticket Comments 的注入面收敛结论：
+ * 断言的判据来自 idp-login-flow.md 的注入面收敛结论：
  *   1. 预填账号/口令（readonly）；
  *   2. 把**我们生成的**指纹写进 #fingerPrint，并拦截 saveFinger 的 XHR 替换 fingerprint/deviceName/radioVal；
  *   3. 让页面自己吐 fingerGenPrint；
@@ -101,7 +101,7 @@ export default function enrollmentScriptTest() {
       const script: string = build();
       // 设备实测（模拟器 Pura 90）：全新 profile 上页面**不勾选**"信任该浏览器"
       // （finger3.js 只在 localStorage 已有 "singleLoginKey"="yes" 时才勾选）。
-      // 不勾选 = 服务端不登记 180 天信任 ⇒ ticket 08 的纯 HTTP 重登必然退化。参考实现
+      // 不勾选 = 服务端不登记 180 天信任 ⇒ 纯 HTTP 重登必然退化。参考实现
       // sso.js:69-74 在提交时 click() 打开它；这里做等价的事（幂等）。
       expect(script.indexOf('function ensureSingleLogin()') >= 0).assertTrue();
       // 复选框只有 name、没有 id（抓下来的登录页 HTML 实证），所以必须按 name 查
@@ -211,7 +211,7 @@ export default function enrollmentScriptTest() {
     it('doesNotMonkeyPatchJQuerySubmit', 0, () => {
       const script: string = build();
       // 我们**用**jQuery（提交前断言一次），但**不替换**它的 submit，也不回传表单数据：
-      // 猴补丁与 FormData 回传都是旧实现为了把值送回 RN 才需要的（idp-login-flow.md 第 3 节）。
+      // 猴补丁与 FormData 回传都是旧实现为了把值送回 RN 才需要的（idp-login-flow.md）。
       expect(script.indexOf('window.jQuery') >= 0).assertTrue();
       expect(script.indexOf('.fn.submit') ).assertEqual(-1);
       expect(script.indexOf('prototype.submit') ).assertEqual(-1);
@@ -300,7 +300,7 @@ export default function enrollmentScriptTest() {
         'fingerPrint=' + encodeURIComponent(SYNTHETIC_FINGERPRINT)
           + '&fingerGenPrint=SITE1&fingerGenPrint3=SITE3');
       const record = credentialRecordFor(SYNTHETIC_USERNAME, SYNTHETIC_PASSWORD, SYNTHETIC_FINGERPRINT, dom);
-      // 验收第 2 条：保存的指纹就是**我们注入的那一个**
+      // 保存的指纹就是**我们注入的那一个**
       expect(record.fingerPrint).assertEqual(SYNTHETIC_FINGERPRINT);
       expect(record.fingerGenPrint).assertEqual('SITE1');
       expect(record.fingerGenPrint3).assertEqual('SITE3');
@@ -320,7 +320,7 @@ export default function enrollmentScriptTest() {
 
     it('prefersTheSaveFingerValueOverTheDomValueAndTheFallback', 0, () => {
       // **D1**：信任按指纹登记 ⇒ saveFinger 的 XHR 实际发出的值最权威，落盘值必须等于它
-      // （否则 ticket 08 的纯 HTTP 重登出示的是另一个值，信任不可能命中）。
+      // （否则纯 HTTP 重登出示的是另一个值，信任不可能命中）。
       const sent: EnrollmentDomValues = parseEnrollmentValues(
         'fingerPrint=' + encodeURIComponent('form-value')
           + '&saveFingerFingerprint=' + encodeURIComponent('sent-value'));

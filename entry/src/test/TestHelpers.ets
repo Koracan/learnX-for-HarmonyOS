@@ -23,7 +23,7 @@
  * ## 平台探针
  *
  * `platformProbeBase64Decoder` **只在设备上有效**（local 环境返回空），它存在的唯一目的
- * 是让 ticket 05 的"平台 Base64 通道"复验有一条可执行的观测路径；它**不参与任何断言**。
+ * 是让"平台 Base64 通道"复验有一条可执行的观测路径；它**不参与任何断言**。
  */
 
 import util from '@ohos.util';
@@ -35,7 +35,7 @@ export { decodeUtf8, encodeUtf8 };
 
 /**
  * 平台 Base64 通道的探针（**仅设备上有效**；local 单测环境里 `@ohos.util` 不工作）。
- * 用途：在设备上复验 `util.Base64Helper.decodeSync` 能否解出字节（ticket 05 的待验证项）。
+ * 用途：在设备上复验 `util.Base64Helper.decodeSync` 能否解出字节（待验证项）。
  * 任何用例都**不得**基于它的返回值做断言——它只把结果写进日志供人工比对。
  */
 export const platformProbeBase64Decoder: Base64Decoder = (encoded: string): string => {

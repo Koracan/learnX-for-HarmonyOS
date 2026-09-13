@@ -1,5 +1,5 @@
 /*
- * 帮助与反馈页（settings，ticket 17）—— 参考实现 `screens/Help.tsx`（64 行）的移植。
+ * 帮助与反馈页（settings）—— 参考实现 `screens/Help.tsx`（64 行）的移植。
  *
  * 三节，顺序与文案逐条照抄（`loh_github_recommended` / `loh_email_not_recommended` / `loh_issue_template`）：
  *   1. GitHub（推荐）→ `https://github.com/Koracan/learnX-for-HarmonyOS/issues/new/choose`；

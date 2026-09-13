@@ -32,12 +32,12 @@ export const UI_STRINGS = [
   ['ui_date_time_sample', '日期时间示例', 'Date/time sample'],
   ['ui_semester_sample', '学期文案示例', 'Semester text sample'],
   ['ui_language', '语言', 'Language'],
-  // --- ticket 03（导航骨架 + 公告列表）新增 ---
+  // --- 公告列表（导航骨架）新增 ---
   ['ui_tab_notices', '公告', 'Notices'],
   ['ui_tab_placeholder', '该页面将在后续迭代中实现', 'This page will be implemented in a later iteration'],
   ['ui_empty_notices', '暂无公告', 'No notices'],
   ['ui_refreshed_at', '更新于 {0}', 'Updated {0}'],
-  // --- ticket 04（公告详情 + HTML 渲染）新增 ---
+  // --- 公告详情（HTML 渲染）新增 ---
   // 详情页的绝对时间由 domain/render/NoticeDateText 按下面的模式渲染；dayjs 的记号
   // （YYYY/M/D/H/m）与 ICU 的针名不同，故模式作为资源进 i18n，而不是写死在渲染代码里。
   // 中文模式含 dddd（星期）；英文模式是 MMM D, YYYY HH:mm。两者逐字取自
@@ -62,11 +62,11 @@ export const UI_STRINGS = [
   ['ui_month_oct', '10 月', 'Oct'],
   ['ui_month_nov', '11 月', 'Nov'],
   ['ui_month_dec', '12 月', 'Dec'],
-  // --- ticket 07（设备登记）新增：提交前自检的提示 ---
+  // --- 设备登记新增：提交前自检的提示 ---
   // 2026-09-12 真实登记被服务端判为"隐私/匿名模式"而拒绝信任：fingerGenPrint/fingerGenPrint3
   // 为空时该浏览器不可能被记为可信，而用户已经为此白花了一条短信。这条文案就是"替你挡下"时
   // 显示给用户的话（页面内横幅 + 应用内提示各用一次）。
-  // --- ticket 09（真实公告 + 快照）新增 ---
+  // --- 真实公告 + 快照新增 ---
   // 卡片右上角两个状态图标是无文字的 emoji（参考实现用 MaterialCommunityIcons 的
   // attachment / flag），所以这两条只作为 accessibilityText 存在，保证读屏也能拿到语义。
   ['ui_attachment_label', '含附件', 'Has attachment'],
@@ -75,9 +75,9 @@ export const UI_STRINGS = [
   // **不需要新键**：整句相对时间（含"前" / "ago"）由 core/i18n 的 formatRelativeTo 给出，
   // 它已按 locale 出措辞；再套一层 "{0} ago" 会在中文界面拼出"… ago"或在英文拼出
   // "ago ago"。取不到措辞时（relative.length===0）整段不显示，界面只留绝对时间。
-  // --- ticket 12（课程列表 + 详情 + 学期选择）新增 ---
+  // --- 课程列表 + 详情 + 学期选择新增 ---
   // 课程卡片右下三个计数：参考实现是 MaterialIcons 的 notifications / event / folder，
-  // ArkUI 没有可移植的等价符号（同 ticket 09 对公告图标的判断），故用 emoji + 这三条
+  // ArkUI 没有可移植的等价符号（与公告图标的判断一致），故用 emoji + 这三条
   // 只作为 accessibilityText 的语义文案。数字本身逐字可见，是验收的判据。
   ['ui_course_unread_notices_label', '未读公告', 'Unread notices'],
   ['ui_course_unfinished_assignments_label', '未完成作业', 'Unfinished assignments'],
@@ -89,18 +89,18 @@ export const UI_STRINGS = [
   ['ui_course_semester_list_unavailable',
     '学期列表暂不可用，仅列出当前学期与已生效的学期。',
     'The semester list is unavailable; only the current and the active semester are listed.'],
-  // 取数失败的错误态（会话失效用 ticket 08 的 loh_session_expired，这里只兜其余失败）。
+  // 取数失败的错误态（会话失效用 loh_session_expired，这里只兜其余失败）。
   ['ui_courses_load_failed', '课程加载失败：{0}', 'Failed to load courses: {0}'],
   // 学期覆盖（脚本入口）生效时的界面标记：让"确实切过去了"在截图上可见。
   ['ui_courses_override_badge', '取证覆盖生效', 'Evidence override active'],
-  // --- ticket 10（作业列表 + 详情）新增 ---
+  // --- 作业列表 + 详情新增 ---
   // 三种"空"必须给不同的话：没有作业（秋季真实状态）/ 没有未完成（春季 57 条全已交）/
   // 没有已完成。见 features/assignments/AssignmentText.emptyStateKey。
   ['ui_assignments_empty', '暂无作业', 'No assignments'],
   ['ui_assignments_none_unfinished', '没有未完成的作业', 'No unfinished assignments'],
   ['ui_assignments_none_finished', '没有已完成的作业', 'No finished assignments'],
   ['ui_assignments_load_failed', '作业加载失败：{0}', 'Failed to load assignments: {0}'],
-  // 验收第 1 条要的"状态标记"：未到期 / 已截止（参考实现用 dayjs 的相对时间那句表达，
+  // "状态标记"要的未到期 / 已截止（参考实现用 dayjs 的相对时间那句表达，
   // 平台侧 Intl.RelativeTimeFormat 给不出同样的措辞 —— 换成一枚明确的本地化标记，
   // 见 features/assignments/AssignmentsPage.ets 的文件头说明）。
   ['ui_assignment_upcoming', '未到期', 'Not due'],
@@ -125,7 +125,7 @@ export const UI_STRINGS = [
   ['ui_assignment_submitted_mark_label', '已提交', 'Submitted'],
   ['ui_assignment_graded_mark_label', '已评分', 'Graded'],
   ['ui_assignment_answer_mark_label', '含答案', 'Has answer'],
-  // --- ticket 10 补做（优秀作业：yxzylist 列表 + viewYxzy 详情页） ---
+  // --- 优秀作业补做（yxzylist 列表 + viewYxzy 详情页） ---
   // 参考实现：卡片上 excellentHomeworkList.length > 0 时一枚黄色 medal（AssignmentCard.tsx:84-91）；
   // 详情页每条显示 gradeAttachment || submittedAttachment 与作者（匿名时用 loh_anonymous）。
   ['ui_assignment_excellent', '优秀作业', 'Excellent homework'],
@@ -134,7 +134,7 @@ export const UI_STRINGS = [
   ['ui_enrollment_fingerprint_not_ready',
     '浏览器指纹尚未就绪，此刻提交不会把该浏览器记为可信（服务端会提示"隐私或匿名模式"）。请稍等几秒后再次点击登录；若反复出现，请关闭本页重新登录。',
     'The browser fingerprint is not ready yet, so signing in now would not register this browser as trusted (the server would report a private/anonymous browser). Wait a few seconds and tap sign in again; if it keeps happening, close this page and sign in again.'],
-  // --- ticket 11（文件列表 + 详情 + 下载 + 预览 + 分享）新增 ---
+  // --- 文件列表 + 详情 + 下载 + 预览 + 分享新增 ---
   // 参考实现已有的串（loh_file_download_failed / loh_open_file_failed / loh_share /
   // loh_open / loh_no_file_size / loh_no_file_description / loh_clear_file_cache* /
   // loh_file_use_document_dir / loh_file_omit_course_name）直接复用，不重复声明。
@@ -168,7 +168,7 @@ export const UI_STRINGS = [
   // 详情页右上角那个"详情 / 预览"开关（参考实现用 preview / info-outline 两个图标）。
   ['ui_file_view_info', '详情', 'Info'],
   ['ui_file_view_preview', '预览', 'Preview'],
-  // 文件设置页（值/语义在 data/settings；全局设置页的入口/外观归 ticket 17）。
+  // 文件设置页（值/语义在 data/settings；全局设置页的入口/外观归全局设置）。
   ['ui_file_settings_title', '文件设置', 'File settings'],
   ['ui_file_use_document_dir_on',
     '文件保存在 App 的"文档"中，只会随 App 卸载而被删除。',
@@ -189,7 +189,7 @@ export const UI_STRINGS = [
   ['ui_file_next_page', '下一页', 'Next page'],
   ['ui_file_page_of', '第 {0} / {1} 页', 'Page {0} of {1}'],
   ['ui_file_cache_already_empty', '缓存目录已为空', 'The cache folder is already empty'],
-  // --- ticket 11.5（图标保真 + 页头信息架构）新增 ---
+  // --- 图标保真 + 页头信息架构新增 ---
   // 页头的"相对更新时间"四档（数据源 = 快照的 fetchedAtMillis；**不**每秒重算）。
   // 分档是纯函数（ui/components/UpdatedTime.ets 的 updatedTimeParts），单测钉边界：
   //   <60s → just now；1–59 分钟；1–23 小时；≥24 小时（天）。
@@ -198,7 +198,7 @@ export const UI_STRINGS = [
   ['ui_updated_minutes_ago', '{0} 分钟前更新', 'Updated {0} min ago'],
   ['ui_updated_hours_ago', '{0} 小时前更新', 'Updated {0} h ago'],
   ['ui_updated_days_ago', '{0} 天前更新', 'Updated {0} d ago'],
-  // --- ticket 13（作业提交）新增 ---
+  // --- 作业提交新增 ---
   // 提交页底部那句「上次提交于 …」。参考实现在 AssignmentSubmission.tsx:445-453 把两种语言的
   // dayjs 模式**硬编码在屏幕里**（中文 '上次提交于 YYYY 年 M 月 D 日 dddd HH:mm'、
   // 英文 '[last submitted at] HH:mm, MMM D, YYYY'）。这里把整条模式（含前缀）变成资源，
@@ -206,7 +206,7 @@ export const UI_STRINGS = [
   ['ui_assignment_submission_time',
     '上次提交于 YYYY 年 M 月 D 日 dddd HH:mm',
     '[last submitted at] HH:mm, MMM D, YYYY'],
-  // --- ticket 14（收藏 / 归档 / 隐藏课程）新增 ---
+  // --- 收藏 / 归档 / 隐藏课程新增 ---
   // 参考实现的滑动按钮**只换图标**（heart ↔ heart-off、archive-arrow-down ↔ archive-arrow-up、
   // visibility-off ↔ visibility），没有任何文字（CardWrapper.tsx:63-117）。
   // 本工程给按钮带 accessibilityText、并给"长按"那一支一个菜单（等价入口），
@@ -214,11 +214,11 @@ export const UI_STRINGS = [
   ['ui_remove_favorite', '取消收藏', 'Remove from favorites'],
   ['ui_unarchive', '取消归档', 'Unarchive'],
   ['ui_unhide_course', '取消屏蔽', 'Unhide course'],
-  // --- ticket 17（设置与子页 + Mock 模式）新增 ---
+  // --- 设置与子页 + Mock 模式新增 ---
   // Mock 模式的**可见自证行**（设置页在 mock 用户下显示这一条）：
   // {0} = 进入 mock 模式后**实际发生过的网络请求数**。要点是它必须打在**消费点**——
   // 计数来自 data/remote/NetworkAudit（唯一的两处 http 出口：HttpClient / HttpDownloadPort），
-  // 所以"界面可用 + 计数为 0"是同一张截图里可核的（验收第 5 条的自证方式）。
+  // 所以"界面可用 + 计数为 0"是同一张截图里可核的（自证方式）。
   ['ui_mock_mode_active',
     'Mock 模式（guest）：数据为样例，已发出的网络请求 = {0}',
     'Mock mode (guest): sample data, network requests issued = {0}'],

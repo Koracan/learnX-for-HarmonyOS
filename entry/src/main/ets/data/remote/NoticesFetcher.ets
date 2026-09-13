@@ -7,7 +7,7 @@
  * 移植后：网络调用走注入的 `FetchPort`，正文 Base64 解码器注入，
  * 字段映射与排序全部在 domain/parse/NoticeParser。
  *
- * 锚点日志（验收项 1）：
+ * 锚点日志：
  *   data.notices fetched courses=<n> items=<n> elapsedMs=<n> requests=<n> failures=<n>
  */
 

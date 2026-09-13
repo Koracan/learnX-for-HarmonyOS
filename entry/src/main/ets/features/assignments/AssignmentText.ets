@@ -1,5 +1,5 @@
 /*
- * 作业文案与语义映射（features/assignments，ticket 10）——纯映射 + i18n 取串。
+ * 作业文案与语义映射（features/assignments）——纯映射 + i18n 取串。
  *
  * ## 为什么单独一层
  *
@@ -10,7 +10,7 @@
  *   2. **完成方式 / 提交方式**：两个 Chip（:153-161）。参考实现比较的是 thu-learn-lib 的
  *      **数字枚举**（`HomeworkCompletionType.GROUP === 2`、`HomeworkSubmissionType.OFFLINE === 0`，
  *      types.js:65-73），而列表接口下发的是站点原文（夹具里是 `'个人'` / `'网络学堂'`）。
- *      两者形状不一致这件事（ticket 10 新增，含实测）。
+ *      两者形状不一致这件事（含实测）。
  *   3. **截止状态**：卡片上是相对时间那句话（AssignmentCard.tsx:103-108）。
  *
  * 纯映射部分（`gradeLevelKey` / `isGroupCompletion` / `isOfflineSubmission` / `dueStatusKey` /
@@ -74,7 +74,7 @@ export function isOfflineSubmission(value: string): boolean {
   return value === '0' || value === '线下';
 }
 
-/** 截止状态标记的资源键（验收第 1 条"状态标记"里"未到期 / 已过期"那一枚）。 */
+/** 截止状态标记的资源键（"状态标记"里"未到期 / 已过期"那一枚）。 */
 export function dueStatusKey(deadline: string, nowMillis: number): I18nKey {
   return isPastDeadline(deadline, nowMillis) ? 'ui_assignment_past_due' : 'ui_assignment_upcoming';
 }
@@ -99,7 +99,7 @@ export function submissionBlockedKey(reason: SubmitBlockReason): I18nKey {
 /**
  * 空态文案的资源键。
  *
- * 三种"空"必须给出**不同**的话（验收第 4 条）：
+ * 三种"空"必须给出**不同**的话：
  *   - 全部视图为空 = 这个学期真的没有作业（2026-2027 秋季的真实账号状态）；
  *   - 未完成视图为空 = 都已完成/都已截止（2025-2026 春季 57 条的真实状态）；
  *   - 已完成视图为空 = 一条都没提交。

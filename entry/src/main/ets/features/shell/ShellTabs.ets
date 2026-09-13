@@ -1,7 +1,7 @@
 /*
  * 主壳：底部五个 tab（公告 / 作业 / 文件 / 课程 / 设置）。
  *
- * 选型与理由（ticket 03 要求说明）：
+ * 选型与理由：
  *   - 内容容器用 ArkUI 的 **Tabs + TabContent**：TabContent 的子树在首次显示
  *     后留在组件树上（不因切走而销毁），所以各 tab 的滚动位置天然保留；这正是
  *     “切换后各自保留浏览位置”最省事、最可靠的实现。若改用 Navigation +
@@ -9,7 +9,7 @@
  *     重建页面，反而更复杂。
  *   - 每个 tab 将来要有自己的详情栈（公告详情、作业详情…），那时在每个
  *     TabContent 内部各放一个 Navigation + 自己的 NavPathStack 即可（参考实现
- *     也是“每个 tab 一个 stack”）。本 ticket 不预先搭这些空栈，避免写死。
+ *     也是“每个 tab 一个 stack”）。这里不预先搭这些空栈，避免写死。
  *   - 底栏自绘（Tabs.barHeight(0) 隐藏系统 tabBar）：这样配色能逐项取主题令牌
  *     （系统 tabBar 用系统品牌色，拿不到 #9A25AE 这类令牌），且 @Prop 驱动的
  *     五个按钮能随 activeIndex / 深浅色 / 语言可靠刷新。
@@ -17,7 +17,7 @@
  * 位置保留的取证方式：滚动公告列表 → 切到课程 → 切回公告，截图与无障碍树里
  * 仍是同一批条目。
  *
- * ## ticket 16（断点分栏）：本壳负责**量尺寸与发布判据**，并按它定底栏宽度
+ * ## 断点分栏：本壳负责**量尺寸与发布判据**，并按它定底栏宽度
  *
  * 参考实现把断点判据放在根布局上（`App.tsx:864-873` 的 `onLayout` 实测 + window/frame 退路），
  * 这里照做：根 `Column` 的 `onAreaChange` 量到的就是**本应用的渲染区**，比屏幕尺寸更贴近真实
@@ -27,7 +27,7 @@
  * —— 见 `bottomBarLayout`）。
  *
  * `Tabs + TabContent` 的选型**一字未改**：双栏只改每个 tab 内部的版式，
- * 五个 `TabContent` 子树照样不销毁（ticket 03 的"切 tab 保留浏览位置"因此不受影响）。
+ * 五个 `TabContent` 子树照样不销毁（"切 tab 保留浏览位置"因此不受影响）。
  */
 import { ConfigurationConstant, common } from '@kit.AbilityKit';
 import { display } from '@kit.ArkUI';
@@ -71,7 +71,7 @@ export enum ShellTab {
 /**
  * 底栏单个 tab 按钮。@Prop 是基本类型，切 tab / 切主题 / 切语言都会刷新。
  *
- * ticket 11.5：图标从"自绘的圆形色点"换成**参考实现 tabBarIcon 用的同一批图标**
+ * 图标从"自绘的圆形色点"换成**参考实现 tabBarIcon 用的同一批图标**
  * （`App.tsx:617-631` 的 MaterialIcons `notifications` / `event` / `folder` / `apps` / `settings`），
  * 颜色仍按选中态取 `primary` / `outline`（参考实现是 primary / gray）。尺寸令牌与间距**未动**。
  */
@@ -129,7 +129,7 @@ export struct ShellTabs {
 
   private tabsController: TabsController = new TabsController();
   /**
-   * **根导航栈**（ticket 15）：搜索页是盖在主壳之上的一个根级屏幕
+   * **根导航栈**：搜索页是盖在主壳之上的一个根级屏幕
    * （参考实现 `App.tsx:913-917` 把 SearchStack 挂在 RootNavigator 上），
    * 四个 tab 页头那颗 search 图标经 `openSearch()` 往这里压一条 `Search` 路由。
    */
@@ -315,7 +315,7 @@ export struct ShellTabs {
 
   /**
    * 根栈的目标表：目前只有搜索页。参考实现的 RootNavigator 上还挂着 CourseXStack /
-   * AssignmentSubmissionStack（本工程把它们做成各 tab 栈内的路由，见 ticket 10/12/13）。
+   * AssignmentSubmissionStack（本工程把它们做成各 tab 栈内的路由）。
    */
   @Builder
   rootDestination(name: string, param: object) {
@@ -336,25 +336,25 @@ export struct ShellTabs {
           }
           .tabBar(this.s($r('app.string.ui_tab_notices')))
 
-          // 作业 tab（ticket 10）：真实作业列表 + 详情栈。
+          // 作业 tab：真实作业列表 + 详情栈。
           TabContent() {
             AssignmentsPage()
           }
           .tabBar(this.s($r('app.string.loh_assignments')))
 
-          // 文件 tab（ticket 11）：真实文件列表 + 详情栈（下载 / 应用内预览 / 分享）+ 文件设置。
+          // 文件 tab：真实文件列表 + 详情栈（下载 / 应用内预览 / 分享）+ 文件设置。
           TabContent() {
             FilesPage()
           }
           .tabBar(this.s($r('app.string.loh_files')))
 
-          // 课程 tab（ticket 12）：真实课程列表 + 详情栈 + 学期切换。
+          // 课程 tab：真实课程列表 + 详情栈 + 学期切换。
           TabContent() {
             CoursesPage()
           }
           .tabBar(this.s($r('app.string.loh_courses')))
 
-          // 设置 tab（ticket 17）：设置列表 + 五个子页（沉浸式 / 学期选择 / 文件设置 / 帮助 / 关于）。
+          // 设置 tab：设置列表 + 五个子页（沉浸式 / 学期选择 / 文件设置 / 帮助 / 关于）。
           // 设置 tab 的子页落在**本 tab 自己的 NavPathStack** 上（见 features/settings/SettingsPage.ets）。
           TabContent() {
             SettingsPage()

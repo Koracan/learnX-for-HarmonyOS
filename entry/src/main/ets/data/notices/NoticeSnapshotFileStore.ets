@@ -1,5 +1,5 @@
 /*
- * 快照落盘的平台侧（data/notices，ticket 09）：唯一 import `@kit.ArkData` 的文件。
+ * 快照落盘的平台侧（data/notices）：唯一 import `@kit.ArkData` 的文件。
  *
  * 选 preferences 而不是文件：快照是一段 JSON 文本、体量在几十 KB 量级，
  * preferences 的"取一次、写一次"正好；且**与凭据存储分开**——凭据在 asset store
@@ -9,7 +9,7 @@
  * 不是数据的唯一来源——它坏了必须只表现为"这次少了一次秒开"，而不是"公告页崩了"。
  *
  * 解码（版本判定、字段校验）走 NoticeSnapshotSerialization 的纯函数：磁盘上的
- * 版本不符或内容损坏只表现为 `decoded.discardReason` 非空，**不抛异常**（验收第 6 条）。
+ * 版本不符或内容损坏只表现为 `decoded.discardReason` 非空，**不抛异常**。
  */
 
 import { preferences } from '@kit.ArkData';

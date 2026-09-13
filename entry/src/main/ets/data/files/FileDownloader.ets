@@ -13,7 +13,7 @@
  * | 判定时机 | 先落盘，再 `stat` + 小文件含 `<html` 猜 | **响应头到达即判**，HTML/JSON 一个字节都不写 |
  * | 进度 | 平台库的 `progress` 回调（该库 `bytesWritten` 恒 0） | 平台 HTTP 层的 `dataReceive` 真实字节数 + `Content-Length` |
  * | 状态码 | 落盘后查 | 流结束后查（平台只在流结束给状态码，见 HttpDownloadPort 的说明） |
- * | 缓存键 | `file.id`（空串时会互相覆盖） | `cacheKeyFor(id, downloadUrl)` 兜底到地址末段（ticket 10 边界说明第 2 条） |
+ * | 缓存键 | `file.id`（空串时会互相覆盖） | `cacheKeyFor(id, downloadUrl)` 兜底到地址末段（边界说明） |
  */
 
 import { Logger } from '../../core/log/Logger';

@@ -14,7 +14,7 @@
  *  6. GET 学生课程列表页，取 CSRF 与语言（正则逐字照参考实现）。
  *  7. 组装内存会话（cookie 头来自 jar；csrf 令牌来自页面）。
  *
- * 边界面（ticket 06 派单 D）：**凭据由入参或注入的 provider 提供，本文件不读任何凭据存储**。
+ * 边界面：**凭据由入参或注入的 provider 提供，本文件不读任何凭据存储**。
  * 失败一律返回 LoginResult（不抛异常），且 requiresEnrollment() 为 true —— 见 AuthTypes。
  */
 
@@ -79,7 +79,7 @@ function missing(value: string | undefined): boolean {
 /**
  * 本次请求**实际带出去的** Cookie 头摘要（自证用）：条数 + 每条 `名字(值长度)`。
  *
- * 为什么要在登录路径上单独落这一行：ticket 08 实测过——cookie 吸收从来没成功过，
+ * 为什么要在登录路径上单独落这一行：实测过——cookie 吸收从来没成功过，
  * 而日志里只有 `jar=… valueChars=0`，看不出"发出去的到底是空 JSESSIONID 还是真会话"。
  * 空 JSESSIONID 会被 `cookieHeaderFor` 丢掉，所以 `names=[]` 就是"没带会话"的直接判据。
  * **绝不落值**：只有名字与长度。
@@ -149,7 +149,7 @@ export class LoginClient {
     const formResponse: RawResponse = await this.fetchIdLoginForm();
     this.absorbCookies(formResponse);
     if (isNetworkFailure(formResponse.status, formResponse.ok)) {
-      // 验收第 2 条：断网要说"没网"，不能被下一行误判成"登录页改版"
+      // 断网要说"没网"，不能被下一行误判成"登录页改版"
       return LoginResult.failure(FailReason.NETWORK_UNREACHABLE,
         'id login form unreachable'
           + (formResponse.error === undefined ? '' : ' error=' + formResponse.error));
@@ -276,7 +276,7 @@ export class LoginClient {
     const boundary: string = newBoundary();
     const assembled: MultipartBody = buildMultipartBody(boundary, fields, undefined, encodeUtf8);
     const checkHeaders: Record<string, string> = headersFor(ID_LOGIN_CHECK_URL, this.jar, assembled.contentType);
-    // 自证（ticket 08 的教训）：把"我们发出去的请求"变成可观察量。
+    // 自证：把"我们发出去的请求"变成可观察量。
     // 这一行必须紧跟表单响应之后，才能看出 Set-Cookie 有没有真的进 jar。
     this.logger.info('login: check request ' + sentCookieSummary(checkHeaders)
       + ' ' + this.jar.describe()
@@ -294,7 +294,7 @@ export class LoginClient {
   /**
    * 每次响应都把 Set-Cookie 吸收进 jar（会话 cookie 会在漫游与页面请求上轮换）。
    *
-   * ticket 08：**无论吸收到几条都要落一行自证**（来源 = netscape / standard / mixed / empty、
+   * **无论吸收到几条都要落一行自证**（来源 = netscape / standard / mixed / empty、
    * 吸收数、跳过行数、吸收后的 jar 摘要）。原来只在 `stored > 0` 时打，于是"一条都没吸收到"
    * 这种**最该看见**的情况恰好无声——这次静默正是重登失败被误判成站点异常的原因。
    */

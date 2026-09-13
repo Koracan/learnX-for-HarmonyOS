@@ -43,7 +43,7 @@ export const LOCALE_VERSION_KEY: string = 'learnOHLocaleVersion';
 
 /**
  * 应用级环境回调：系统语言变化时由 AbilityKit 触发（`ApplicationContext.on('environment')`）。
- * 与 `UIAbility.onConfigurationUpdate` 是两条并行的通知路径，这里都接上，见 ticket 02 Comments。
+ * 与 `UIAbility.onConfigurationUpdate` 是两条并行的通知路径，这里都接上。
  */
 class LearnOhEnvironmentCallback extends EnvironmentCallback {
   onConfigurationUpdated(config: Configuration): void {
@@ -78,11 +78,11 @@ export default class EntryAbility extends UIAbility {
     }
     AppStorage.setOrCreate(LOCALE_VERSION_KEY, Date.now());
 
-    // 学期覆盖的**脚本入口**（ticket 12 硬约束 2）：ticket 10/13 要切到
+    // 学期覆盖的**脚本入口**：作业与提交要切到
     // 2025-2026 学年春季学期才能取到真实作业，而不允许靠界面交互。
     //   hdc shell aa start -a EntryAbility -b com.koracan.learnOH --ps lohSemester 2025-2026-2
     this.applySemesterOverride(want);
-    // 文件设置的两个开关（ticket 11 验收第 5 条要"两个设置均生效"的可复现取证）：
+    // 文件设置的两个开关（要"两个设置均生效"的可复现取证）：
     //   hdc shell aa start -a EntryAbility -b com.koracan.learnOH \
     //     --ps lohFileUseDocumentDir 1 --ps lohFileOmitCourseName 1
     this.applyFileSettingsOverride(want);

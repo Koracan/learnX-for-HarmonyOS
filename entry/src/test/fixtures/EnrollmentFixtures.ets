@@ -1,10 +1,10 @@
 /*
- * 登记（ticket 07）单测夹具：注入式端口替身 + 从浏览器收割到的 cookie 头。
+ * 登记单测夹具：注入式端口替身 + 从浏览器收割到的 cookie 头。
  *
  * 成色：
  *   - **注入式替身**（FakeSecretStore / ScriptedRawPort）是"脚本化假实现"，不是真实平台行为——
- *     与 ticket 05/06 的端口替身同口径；
- *   - **COURSE_LIST_PAGE_HTML 直接复用 ticket 06 的 AuthFixtures**（那份夹具的成色见
+ *     与既有端口替身同口径；
+ *   - **COURSE_LIST_PAGE_HTML 直接复用 AuthFixtures**（那份夹具的成色见
  *     fixtures/README.md），本文件不另造一份，避免同一事实两处维护。
  *
  * 这里没有、也不该有：真实账号、真实指纹、真实会话 cookie。

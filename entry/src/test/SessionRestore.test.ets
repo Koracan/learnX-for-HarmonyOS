@@ -1,8 +1,8 @@
 /*
- * 冷启动静默重登 + 运行期降级的单测（ticket 08，验收第 1/2/3/4/5 条的注入式部分）。
+ * 冷启动静默重登 + 运行期降级的单测（注入式部分）。
  *
  * 覆盖：
- *   - `credentialsFor`：凭据记录 → 登录表单字段的映射逐字段保真（验收第 2 条依赖它）；
+ *   - `credentialsFor`：凭据记录 → 登录表单字段的映射逐字段保真（重登依赖它）；
  *   - `SessionRestorer`：成功 / 无凭据 / 断网 / 被拒四类分类；**已有会话不再登录**；
  *     并发 N 个 restore() 只登录一次；整体超时（不卡在加载态）；网络恢复后重试能成功；
  *   - `AuthedTaskRunner`：健康响应不变；'[]' ∪ 403/login_timeout 触发重登且只重试一次；
@@ -184,7 +184,7 @@ export default function sessionRestoreTest() {
       expect(result.ok()).assertFalse();
       expect(result.kind).assertEqual(SessionRestoreKind.OFFLINE);
       expect(result.isOffline()).assertTrue();
-      // 验收第 2 条：断网也要有可理解的提示 —— 界面据 isOffline 选"检查网络"那条文案
+      // 断网也要有可理解的提示 —— 界面据 isOffline 选"检查网络"那条文案
       expect(result.requiresEnrollment()).assertTrue();
     });
 
@@ -216,7 +216,7 @@ export default function sessionRestoreTest() {
     });
 
     it('timesOutInsteadOfHangingInTheLoadingState', 0, async () => {
-      // 登录比整体超时慢：必须结束在 OFFLINE，而不是无限期停在 LOADING（验收第 2 条）
+      // 登录比整体超时慢：必须结束在 OFFLINE，而不是无限期停在 LOADING
       const auth: ScriptedAuth = new ScriptedAuth([okLoginWith('TOO-LATE')], 200);
       const restorer: SessionRestorer = restorerFor(auth, 20);
       const result: SessionRestoreResult = await restorer.restore();
@@ -266,7 +266,7 @@ export default function sessionRestoreTest() {
 
     it('degradesWhenTheListIsStillEmptyAfterReAuth', 0, async () => {
       // 已知缺口：原生路径在重登后仍是 '[]' 时会静默成功（界面看到空列表）。
-      // 本 ticket 显式把它翻成"需要重新验证"，并且**不把空列表交给上层**。
+      // 这里显式把它翻成"需要重新验证"，并且**不把空列表交给上层**。
       const auth: ScriptedAuth = new ScriptedAuth([okLoginWith('COLD'), okLoginWith('REAUTH')], 0);
       const harness: Harness = new Harness(auth);
       const task: ScriptedTask = new ScriptedTask([taskOutcome(200, EMPTY_LIST_BODY), taskOutcome(200, EMPTY_LIST_BODY)]);

@@ -1,5 +1,5 @@
 /*
- * 文件详情页（ticket 11）：下载（真进度）→ 应用内预览 → 分享。
+ * 文件详情页：下载（真进度）→ 应用内预览 → 分享。
  *
  * ## 与参考实现 `screens/FileDetail.tsx` 的对照
  *
@@ -116,7 +116,7 @@ export struct FileDetailPage {
    * "does not provide an export name 'pdfViewManager'"），于是整个组件构造失败、应用直接崩。
    * 改用同一套 PDFKit 的 `pdfService` 命名空间（`PdfDocument.loadDocument` + `PdfPage.getPagePixelMap`）
    * 把页面渲染成 `PixelMap`，交给 ArkUI 的 `Image` —— **仍然是应用内渲染**，不跳第三方。
-   * 取证见 ticket 11 的 B 系列证据（含那次崩溃的 hilog）。
+   * 取证见 B 系列证据（含那次崩溃的 hilog）。
    */
   private pdfDocument: pdfService.PdfDocument | null = null;
   @State pdfPageIndex: number = 0;
@@ -163,7 +163,7 @@ export struct FileDetailPage {
   private request(refresh: boolean): FileDownloadRequest {
     return {
       downloadUrl: this.params.downloadUrl,
-      // ticket 10 边界说明第 2 条：附件 id 可能是空串，cacheKeyFor 会兜底到地址末段。
+      // 边界说明：附件 id 可能是空串，cacheKeyFor 会兜底到地址末段。
       cacheKey: cacheKeyFor(this.params.noticeId, this.params.downloadUrl),
       courseName: this.params.courseName,
       title: this.params.title,
@@ -214,7 +214,7 @@ export struct FileDetailPage {
     }
   }
 
-  /** 失败文案：会话失效要**明确**说"需要重新验证"（验收第 3 条），其余各有各的话。 */
+  /** 失败文案：会话失效要**明确**说"需要重新验证"，其余各有各的话。 */
   private describeFailure(report: FileDownloadReport): string {
     const outcome: FileDownloadOutcome = report.outcome;
     if (report.requiresEnrollment || isSessionLossReason(outcome.rejectedReason)) {

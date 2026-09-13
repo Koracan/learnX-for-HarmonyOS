@@ -7,7 +7,7 @@
  *   - reference/learnOH-old/src/App.tsx  darkThemeColors       —— MD3 深色主题实际用色
  *   参考实现用 `rgb()/rgba()` 书写，此处逐值转成 ArkUI 的 `#RRGGBB` / `#AARRGGBB`(ARGB)。
  *
- * **一处已登记的偏离（ticket 11.5，账号所有者裁定）**：`background` / `surface` / `card` /
+ * **一处已登记的偏离（账号所有者裁定）**：`background` / `surface` / `card` /
  * `elevation.level1..5` 与**中性家族**（`onBackground` / `onSurface` / `surfaceVariant` /
  * `onSurfaceVariant` / `outline` / `outlineVariant` / `inverseSurface` / `inverseOnSurface` /
  * `backdrop` / `surfaceDisabled` / `onSurfaceDisabled`）**不再等于参考实现**：全部改成
@@ -166,9 +166,9 @@ export const LIGHT_COLORS: ColorTokens = {
   onError: '#FFFFFF',
   errorContainer: '#FFDAD6',
   onErrorContainer: '#410002',
-  // --- 底色家族：ticket 11.5 起为纯白（参考实现是 rgb(255,251,255)）---
+  // --- 底色家族：纯白（参考实现是 rgb(255,251,255)）---
   background: '#FFFFFF',
-  // --- 中性家族：ticket 11.5 起 R=G=B（参考实现带紫调）---
+  // --- 中性家族：R=G=B（参考实现带紫调）---
   onBackground: '#1C1C1C',
   surface: '#FFFFFF',
   onSurface: '#1C1C1C',
@@ -215,9 +215,9 @@ export const DARK_COLORS: ColorTokens = {
   onError: '#690005',
   errorContainer: '#93000A',
   onErrorContainer: '#FFB4AB',
-  // --- 底色家族：ticket 11.5 起为中性深灰（参考实现是 rgb(30,26,29)）---
+  // --- 底色家族：中性深灰（参考实现是 rgb(30,26,29)）---
   background: '#1C1C1C',
-  // --- 中性家族：ticket 11.5 起 R=G=B（参考实现带紫调）---
+  // --- 中性家族：R=G=B（参考实现带紫调）---
   onBackground: '#E6E6E6',
   surface: '#1C1C1C',
   onSurface: '#E6E6E6',

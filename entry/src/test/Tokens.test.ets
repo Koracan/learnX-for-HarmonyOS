@@ -1,6 +1,6 @@
 /*
  * 主题令牌单测：深浅两套都必须取到值、无 undefined；**语义强调色**与参考实现的字面量一致，
- * 而**底色家族 / 中性家族**自 ticket 11.5 起是**有意偏离**（全部 R=G=B），
+ * 而**底色家族 / 中性家族**是**有意偏离**（全部 R=G=B），
  * 因此这里多了一条"中性化 + elevation 阶梯"的断言。
  */
 
@@ -109,7 +109,7 @@ function sizePairs(): SizePair[] {
   ];
 }
 
-/** `#RRGGBB` / `#AARRGGBB` → [R, G, B]（ticket 11.5 的"中性化"判据用）。 */
+/** `#RRGGBB` / `#AARRGGBB` → [R, G, B]（"中性化"判据用）。 */
 function channelsOf(value: string): number[] {
   const hex: string = value.length === 9 ? value.substring(3) : value.substring(1);
   const out: number[] = [];
@@ -130,7 +130,7 @@ function valueOf(colors: ColorTokens, name: string): string {
   return '';
 }
 
-/** ticket 11.5：中性家族与底色家族必须 R=G=B。 */
+/** 中性家族与底色家族必须 R=G=B。 */
 const NEUTRAL_NAMES: string[] = [
   'background', 'onBackground', 'surface', 'onSurface', 'surfaceVariant', 'onSurfaceVariant',
   'outline', 'outlineVariant', 'inverseSurface', 'inverseOnSurface', 'backdrop',
@@ -205,7 +205,7 @@ export default function tokensTest() {
       expect(palette.yellow500).assertEqual('#ffeb3b');
       expect(palette.grey500).assertEqual('#9e9e9e');
 
-      // 品牌与语义强调色：逐值取自参考实现，**一字未动**（ticket 11.5 只动了底色/中性家族）。
+      // 品牌与语义强调色：逐值取自参考实现，**一字未动**（只动了底色/中性家族）。
       expect(LIGHT_COLORS.primary).assertEqual('#9A25AE');
       expect(LIGHT_COLORS.primary).assertEqual(palette.plainTheme);
       expect(LIGHT_COLORS.primaryContainer).assertEqual('#FFD6FE');

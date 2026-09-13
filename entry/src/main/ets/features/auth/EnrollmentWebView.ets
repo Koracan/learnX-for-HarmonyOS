@@ -3,13 +3,13 @@
  *
  * 与参考实现（reference/learnOH-old/src/screens/SSO.tsx + helpers/preval/sso.js）的对应：
  *   - 页面地址、注入脚本、roaming URL 判定一致；
- *   - **不一致的地方**（有意，已登记在 ticket Comments）：旧实现拦到 roaming URL 后**取消**导航，
- *     再用 thu-learn-lib 走一次纯 HTTP 登录；本工程按 spec 第 5 节**放行**这段导航，让浏览器把
+ *   - **不一致的地方**（有意，已如实登记）：旧实现拦到 roaming URL 后**取消**导航，
+ *     再用 thu-learn-lib 走一次纯 HTTP 登录；本工程**放行**这段导航，让浏览器把
  *     漫游走完，然后从 Web 引擎收割会话 cookie 交给 HTTP jar（EnrollmentSession）。
  *     这样"用户的短信验证结果"与"应用的会话"是同一个会话，不存在再登一次时服务端又要求
  *     二次验证的不确定性。
  *
- * ArkWeb 的三条实测约束（ticket 04，见 ui/components/HtmlWebView.ets 注释）：
+ * ArkWeb 的三条实测约束（见 ui/components/HtmlWebView.ets 注释）：
  *   1. `runJavaScript` 的返回值恒为 null ⇒ 页面里的值只能经 `javaScriptProxy` 回传；
  *   2. `javaScriptProxy` 只注入对象、不执行脚本 ⇒ 注入脚本必须另经 `javaScriptOnDocumentStart`；
  *   3. 桥对象必须是 class 实例，方法名要出现在 `methodList` 里。
@@ -40,7 +40,7 @@ const logger: Logger = new Logger('features.enrollment');
 export const ID_LOGIN_URL: string =
   'https://id.tsinghua.edu.cn/do/off/ui/auth/login/form/bb5df85216504820be7bba2b0ae1535b/0';
 
-/** 成功信号：漫游入口（idp-login-flow.md 第 1 节）。 */
+/** 成功信号：漫游入口（idp-login-flow.md 里的第一条特征）。 */
 export const ROAMING_MARKER: string = 'j_spring_security_thauth_roaming_entry';
 
 /** 桥对象名（必须与注入脚本里的 BRIDGE 名一致）。 */
@@ -111,7 +111,7 @@ export struct EnrollmentWebView {
   onStatus: (text: string) => void = () => {
   };
 
-  /** 系统配色与语言版本：登记页也要跟随应用主题与语言（ticket 01/02 的全局约定）。 */
+  /** 系统配色与语言版本：登记页也要跟随应用主题与语言（全局约定）。 */
   @StorageProp(COLOR_MODE_KEY) colorMode: number = ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT;
   @StorageLink(LOCALE_VERSION_KEY) localeVersion: number = 0;
 
@@ -176,7 +176,7 @@ export struct EnrollmentWebView {
     if (method === 'values') {
       this.dom = mergeDomValues(this.dom, parseEnrollmentValues(first));
       logger.info('enrollment dom values: ' + describeEnrollmentDomValues(this.dom));
-      // 验收第 2 条的**三点等式**的前两点（第三点在 AuthStore 落盘读回后打）：
+      // **三点等式**的前两点（第三点在 AuthStore 落盘读回后打）：
       // 只打 SHA256 前 8 位，原值绝不进日志。
       logger.info('enrollment fingerprint digest: point=formFieldDom value=' + fingerprintDigest(this.dom.fingerPrint)
         + ' point=saveFingerXhr value=' + fingerprintDigest(this.dom.saveFingerFingerprint));

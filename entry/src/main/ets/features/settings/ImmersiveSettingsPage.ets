@@ -1,5 +1,5 @@
 /*
- * 沉浸式设置页（settings，ticket 17）—— 参考实现 `screens/ImmersiveSettings.tsx`（74 行）的移植。
+ * 沉浸式设置页（settings）—— 参考实现 `screens/ImmersiveSettings.tsx`（74 行）的移植。
  *
  * ## 逐项对齐
  *
@@ -18,14 +18,14 @@
  * `immersiveMode` 自己的行为不变：**即时生效**（切换后立刻调 `core/window/ImmersiveWindow`）
  * 且重启后保持。
  *
- * ## 与参考实现的一处**行为差异（工单要求）**
+ * ## 与参考实现的一处**行为差异（要求）**
  *
- * 参考实现的说明文字写着"需要重启应用"（`immersiveModeDescription` 的原文），而本 ticket 的验收
- * 第 3 条要求"**即时生效**，重启后保持"。本工程按验收做：切换后立刻调
+ * 参考实现的说明文字写着"需要重启应用"（`immersiveModeDescription` 的原文），而本工程
+ * 要求"**即时生效**，重启后保持"。本工程照做：切换后立刻调
  * `core/window/ImmersiveWindow.applyImmersiveMode`（隐藏 / 恢复状态栏与导航栏）并写 preferences。
  * **那句说明文字仍按参考实现原样显示**——它是**迁移键**（由 reference 的词典生成），
  * 改它会让 `check-generated-fresh` 失败，且会偏离参考实现的文案。这处"文案与行为不完全一致"
- * 已在 ticket 17 的交付节里如实登记。
+ * 已在交付说明里如实登记。
  */
 
 import { ConfigurationConstant, common } from '@kit.AbilityKit';
@@ -89,7 +89,7 @@ export struct ImmersiveSettingsPage {
     logger.info('immersive settings page appear: ' + this.message);
   }
 
-  /** 开关：持久化 + **立刻应用到窗口**（验收第 3 条的"即时生效"）。 */
+  /** 开关：持久化 + **立刻应用到窗口**（"即时生效"）。 */
   private async onImmersiveToggle(value: boolean): Promise<void> {
     const store: ImmersiveSettingsStore = immersiveSettingsStore();
     const persisted: boolean = await store.setImmersiveMode(value);

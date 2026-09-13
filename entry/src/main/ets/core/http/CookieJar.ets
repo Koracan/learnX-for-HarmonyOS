@@ -10,7 +10,7 @@
  *   - 这里的等价实现是 `reset()` + `resetIdDomainSession()`，由 LoginClient 在登录前调用。
  *
  * 安全：cookie 值是会话秘密，**日志只出现域名/名字/条数/总长度，不出现值**（见 `describe()`）。
- * 这些日志会被导出功能写进文件（ticket 17），所以脱敏是硬要求而不是风格偏好。
+ * 这些日志会被导出功能写进文件，所以脱敏是硬要求而不是风格偏好。
  */
 
 /** 一个 cookie。 */
@@ -252,7 +252,7 @@ export function parseSetCookie(one: string, requestUrl: string): JarCookie | und
 }
 
 /* ------------------------------------------------------------------ *
- * 平台 `response.cookies` 的**第二种形态**（ticket 08 实测）： 
+ * 平台 `response.cookies` 的**第二种形态**（实测）： 
  * Netscape cookie-file 行——**制表符分隔的 7 个字段**，不是 `name=value; attrs`。
  *
  * 为什么必须支持：`@ohos.net.http` 的 `HttpResponse.cookies` 文档只写
@@ -486,7 +486,7 @@ export class CookieJar {
   }
 
   /**
-   * 由**浏览器**给出的 `Cookie` 头形态字符串写入（ticket 07 的登记收割路径）。
+   * 由**浏览器**给出的 `Cookie` 头形态字符串写入（登记收割路径）。
    *
    * 为什么需要这条入口：设备登记的会话是在 ArkWeb 里建立的（用户在那里完成短信验证），
    * 拿到的就是 `WebCookieManager.fetchCookieSync(url)` 返回的 `a=1; b=2` 形态文本——
@@ -507,7 +507,7 @@ export class CookieJar {
   /**
    * 由一次响应的 Set-Cookie 串写入（可含多个 cookie）。
    *
-   * ticket 08：**逐行**判定形态——平台 `HttpResponse.cookies` 给的是 Netscape 制表符行，
+   * **逐行**判定形态——平台 `HttpResponse.cookies` 给的是 Netscape 制表符行，
    * 而 `response.header['set-cookie']` 给的是标准形态；两种都要能吸收。
    * 想连来源一起看时用 `setFromResponseDetailed`（调用方据此打自证日志）。
    */
@@ -580,7 +580,7 @@ export class CookieJar {
    * 本次**实际会发出**的 Cookie 头摘要（自证用）：条数 + 每条的 `名字(值长度)`。
    *
    * 为什么需要：'我们发出去的请求完不完整' 必须是可观察量——空 JSESSIONID 曾经静默地
-   * 发了半个月，日志里只留下一个 `valueChars=0`（见 ticket 08）。
+   * 发了半个月，日志里只留下一个 `valueChars=0`。
    * **绝不落值**：只有名字与长度。
    */
   cookieSummaryFor(url: string): string {

@@ -1,5 +1,5 @@
 /*
- * cookie jar 单测（ticket 06 验收第 4 条）。
+ * cookie jar 单测。
  *
  * 覆盖：Set-Cookie 拆多 cookie（含 Expires 里的逗号）、域/路径匹配、Cookie 头拼接、
  * 同名同域同路径覆盖、过期删除、id 域 JSESSIONID 重置、诊断串不泄漏值。
@@ -119,7 +119,7 @@ export default function cookieJarTest() {
 
 
     /* ------------------------------------------------------------------
-     * ticket 08：平台 `HttpResponse.cookies` 的 Netscape 制表符形态。
+     * 平台 `HttpResponse.cookies` 的 Netscape 制表符形态。
      * 夹具是设备上逐字观测到的那一行（见 AuthFixtures 与 experiment-w12/E5）。
      * ------------------------------------------------------------------ */
 

@@ -1,7 +1,7 @@
 /*
  * 打开外部链接（ui/components）：参考实现 `Linking.openURL` 的 ArkTS 对应物。
  *
- * **从 `ui/components/HtmlWebView.ets` 原样搬到这里**（ticket 17 需要同一能力：设置页的
+ * **从 `ui/components/HtmlWebView.ets` 原样搬到这里**（设置页需要同一能力：
  * "隐私政策"、帮助页的 GitHub / 邮件链接、关于页的备案号与若干仓库地址）。行为一字未改：
  * `ohos.want.action.viewData` + `entity.system.browsable` + uri，失败只落日志、不抛给调用方。
  *

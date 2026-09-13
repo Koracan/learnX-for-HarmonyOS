@@ -6,10 +6,10 @@
  * `dataSource.getCSRFToken()` 的值进模板。ArkTS 里没有这两个单例，
  * Web 层也不该反向依赖 data 层 —— 所以收敛成一个可注入端口：
  *
- *   - Mock 阶段（ticket 04）默认实现返回空串；
- *   - ticket 06/09 在会话建立后把**内存里的**值注入进来，调用点不动。
+ *   - Mock 阶段默认实现返回空串；
+ *   - 会话建立后把**内存里的**值注入进来，调用点不动。
  *
- * 硬约束（spec 第 4 节 / ADR-0004）：**会话 cookie 与 CSRF 只在内存，绝不落盘**。
+ * 硬约束（ADR-0004）：**会话 cookie 与 CSRF 只在内存，绝不落盘**。
  * 本文件因此只有取值端口，没有任何 preferences / 文件写入。
  */
 import { Logger } from '../log/Logger';
@@ -39,13 +39,13 @@ export class EmptySessionHeaderProvider implements SessionHeaderProvider {
 }
 
 /**
- * 内存会话（ticket 06 的注入点）。**只存内存**：进程结束即丢，符合 ADR-0004。
+ * 内存会话（会话建立时注入）。**只存内存**：进程结束即丢，符合 ADR-0004。
  */
 export class InMemorySessionHeaderProvider implements SessionHeaderProvider {
   private cookie: string = '';
   private token: string = '';
 
-  /** 由会话建立方（ticket 06/09）调用；参数为空即清空。 */
+  /** 由会话建立方调用；参数为空即清空。 */
   update(cookie: string, csrfToken: string): void {
     this.cookie = cookie;
     this.token = csrfToken;
@@ -61,9 +61,9 @@ export class InMemorySessionHeaderProvider implements SessionHeaderProvider {
 }
 
 /**
- * 当前生效的会话提供者（**进程内单例**）。ticket 07 起是内存实现：
+ * 当前生效的会话提供者（**进程内单例**）。一直是内存实现：
  * 登记成功后由 \`updateWebSessionHeader()\` 写入；未登录时两个值都是空串
- * （与参考实现未登录时一致）。ticket 04 预留的注入点就此接上。
+ * （与参考实现未登录时一致）。此前预留的注入点就此接上。
  */
 const webSessionProvider: InMemorySessionHeaderProvider = new InMemorySessionHeaderProvider();
 

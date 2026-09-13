@@ -1,11 +1,11 @@
 /*
- * 课程 tab 的导航路由名与参数（ticket 12）。
+ * 课程 tab 的导航路由名与参数。
  *
- * 沿用 ticket 03 的选型：**每个 tab 一个自己的 NavPathStack**（见 features/shell/ShellTabs.ets
+ * 沿用既有选型：**每个 tab 一个自己的 NavPathStack**（见 features/shell/ShellTabs.ets
  * 的文件头）。课程 tab 的栈根是课程列表，压在上面的依次是：
  *   - 课程详情（三个标签页：公告 / 作业 / 文件）；
  *   - 学期切换；
- *   - 作业详情（ticket 10 真身）/ 文件详情（ticket 11 真身）；
+ *   - 作业详情（真身）/ 文件详情（真身）；
  *     两者的占位页文件（`CourseDetailPlaceholder.ets`）已随真身落地删除。
  *
  * 参数类型用显式接口（ArkTS 无结构化类型，匿名对象字面量在 Navigation 参数上会编译失败）。
@@ -18,13 +18,13 @@ export const ROUTE_COURSE_DETAIL: string = 'CourseDetail';
 export const ROUTE_SEMESTER_SELECTION: string = 'SemesterSelection';
 
 /*
- * 作业详情的路由名**已移到 `features/assignments/AssignmentRoutes.ets`**（ticket 10）：
- * ticket 12 曾在这里定义 `ROUTE_ASSIGNMENT_DETAIL` 与一个扁平参数子集供占位页用，
+ * 作业详情的路由名**已移到 `features/assignments/AssignmentRoutes.ets`**：
+ * 这里曾定义 `ROUTE_ASSIGNMENT_DETAIL` 与一个扁平参数子集供占位页用，
  * 真身落地后路由名与参数（完整 `Assignment`）都收敛到作业那条线，课程详情页改从那里导入。
  * 这样"作业详情"只有一份路由常量与一个页面。
  */
 
-/** 文件详情路由名（ticket 12 只交付"路由 + 占位页"，真身在 ticket 11）。 */
+/** 文件详情路由名（曾只交付"路由 + 占位页"，真身是文件详情页）。 */
 export const ROUTE_COURSE_FILE_DETAIL: string = 'CourseFileDetail';
 
 /**

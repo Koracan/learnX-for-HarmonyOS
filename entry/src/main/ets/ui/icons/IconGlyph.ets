@@ -1,5 +1,5 @@
 /*
- * 图标组件（ticket 11.5）：全应用**唯一**的字形渲染入口。
+ * 图标组件：全应用**唯一**的字形渲染入口。
  *
  * 形状与来源：内嵌的 MaterialCommunityIcons / MaterialIcons（与参考实现同一份 TTF、同一批码位），
  * 颜色与尺寸仍由调用方用主题令牌给出（`colors.*` / `PLAIN_PALETTE.*` / `sizes.icon*`）。

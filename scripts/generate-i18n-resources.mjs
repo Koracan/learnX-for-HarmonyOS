@@ -55,8 +55,8 @@ function buildReferenceRows() {
 // Semester season words: the reference hard-coded them inside helpers/parse.ts,
 // so porting that function needs them as resources.
 //
-// ticket 08 追加三条：参考实现没有对应字符串（它的失败处理是静默的），但验收第 3 条要求
-// "显式回到登录页并说明需要重新验证"、验收第 2 条要求断网给出可理解的提示，所以必须新增文案。
+// 冷启动重建会话追加三条：参考实现没有对应字符串（它的失败处理是静默的），但验收要求
+// "显式回到登录页并说明需要重新验证"、断网要给出可理解的提示，所以必须新增文案。
 const LOCAL_ADDITIONS = [
   ['loh_fall', '秋季学期', 'Fall'],
   ['loh_spring', '春季学期', 'Spring'],
@@ -64,9 +64,9 @@ const LOCAL_ADDITIONS = [
   ['loh_session_expired', '登录状态已失效，需要重新验证。', 'Your session has expired. Please sign in again to verify.'],
   ['loh_network_unavailable', '网络不可用，请检查网络后重试。', 'Network unavailable. Check your connection and try again.'],
   ['loh_retry', '重试', 'Retry'],
-  // ticket 16 追加两条：文件详情页头那个「全屏 / 退出全屏」按钮的无障碍文案。
+  // 断点分栏追加两条：文件详情页头那个「全屏 / 退出全屏」按钮的无障碍文案。
   // 参考实现的 IconButton 只有图标、没有文字（screens/FileDetail.tsx:108-113），
-  // 本工程的矢量图标同样需要一条可读的无障碍文案（与 ticket 11.5 的图标口径一致）。
+  // 本工程的矢量图标同样需要一条可读的无障碍文案（与图标口径一致）。
   ['loh_fullscreen', '全屏', 'Full screen'],
   ['loh_exit_fullscreen', '退出全屏', 'Exit full screen']
 ];

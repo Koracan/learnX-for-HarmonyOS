@@ -1,5 +1,5 @@
 /*
- * 全局搜索的检索核心（ticket 15）—— **纯逻辑、零平台依赖**，与参考实现
+ * 全局搜索的检索核心 —— **纯逻辑、零平台依赖**，与参考实现
  * reference/learnOH-old/src/hooks/useSearch.ts 的三段结构逐段对齐。
  *
  * | 段 | 参考实现 | 这里 |
@@ -12,7 +12,7 @@
  *
  * fuse 的 Bitap 与 flexsearch 的 cjk charset 对中文都
  * **按码点逐字切分**，匹配不了拼音/同音字；这段 includes 手工层是 CJK 语料下的**必要补偿**
- * （源码注释原文：「由于未知原因，fuse.js 会漏掉一些明显匹配的结果」）。工单验收第 2 条也要求保留它。
+ * （源码注释原文：「由于未知原因，fuse.js 会漏掉一些明显匹配的结果」）。也要求保留它。
  *
  * ## 字段表（照抄 useSearch.ts:5-42）里有 5 个键**取不到值**
  *
@@ -21,7 +21,7 @@
  *   attachment，名字在 attachment.name），fuse 按路径取到 undefined ⇒ **恒不命中**。
  *   这里**有意不补**：补上就是「比参考实现多搜到一些东西」的行为增强，不是移植；要加需另立验收标准。
  * - category.title：参考实现**有**这个字段（File.category.title，thu-learn-lib 的 File），
- *   但本工程的 CourseFile 没有 category（ticket 11/12 的文件模型没取它）⇒ 这一格在本工程里
+ *   但本工程的 CourseFile 没有 category（文件模型没取它）⇒ 这一格在本工程里
  *   取不到值，因此**不在** FILE_SEARCH_FIELDS 里。这是数据模型缺口，不是有意的检索口径。
  *
  * ## 空查询的行为（**与参考实现一致，别「修」**）
@@ -34,11 +34,11 @@
  *
  * 参考实现的 ② 是 **fuse.js** 的 Bitap 模糊匹配。本工程按 .scratch/migration/search-package-eval.md
  * 的选型先跑了 `@ohos/flexsearch@2.0.1` 的冒烟，**编译期即以 00507015 失败**（该包 index.d.ts 的具名导出
- * 与真实入口的 `export default` 不一致），于是采用该文档第 4 条的**兜底方案：下面这套自写加权评分** ——
+ * 与真实入口的 `export default` 不一致），于是采用该文档的**兜底方案：下面这套自写加权评分** ——
  * **没有引入任何 ohpm 依赖**（编辑距离内核也是自写的）。**② 只影响「召回多少」，
- * 不影响 ①**：工单验收第 2 条要求的「标题或课程名的精确与前缀匹配必定命中」由 ① 独立保证。
+ * 不影响 ①**：要求的「标题或课程名的精确与前缀匹配必定命中」由 ① 独立保证。
  * 编辑距离只对 **ASCII 词**生效（词长 ≥3），CJK 的「模糊」仍然只有子串/前缀 —— 与评估文档
- * 第 3 条「CJK 只能到单字级」的事实一致。
+ * 「CJK 只能到单字级」的事实一致。
  */
 
 import { Assignment, CourseFile } from '../../domain/model/ContentItem';

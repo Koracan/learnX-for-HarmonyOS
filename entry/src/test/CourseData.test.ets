@@ -1,9 +1,9 @@
 /*
- * 课程数据链路的单测（ticket 12）：学期解析 / 课程列表逐字段解析 / 一次抓取聚合三域 /
+ * 课程数据链路的单测：学期解析 / 课程列表逐字段解析 / 一次抓取聚合三域 /
  * 学期覆盖与选择的优先级 / 0 门课的判读 / AuthedTaskRunner 的显式降级。
  *
  * 全部注入式，无平台依赖（端口是脚本化假实现，响应体是本文件内的夹具）。
- * 真实站点数据的对照在设备取证里（见 ticket Comments）。
+ * 真实站点数据的对照在设备取证里。
  */
 
 import { describe, it, expect } from '@ohos/hypium';
@@ -259,7 +259,7 @@ export default function courseDataTest() {
       if (names === undefined) {
         return;
       }
-      // ticket 09 的口径：name = kcm 原样（**不**解码、**不**取 zywkcm）。
+      // 既有口径：name = kcm 原样（**不**解码、**不**取 zywkcm）。
       expect(names['2026-2027-1152227978'].name).assertEqual('形式语言与自动机');
       expect(names['2026-2027-1152227978'].teacherName).assertEqual('赵乙宁');
     });

@@ -1,7 +1,7 @@
 /*
  * 秘密存储端口（core）：凭据落盘的**唯一**抽象，零平台依赖，可在 host 单测里注入假实现。
  *
- * 为什么是一个端口：spec 第 4 节要求凭据进 asset store（DEVICE_UNLOCKED，无额外开关），
+ * 为什么是一个端口：凭据要进 asset store（DEVICE_UNLOCKED，无额外开关），
  * 但"asset store 到底能不能用"要等设备才能验；把平台调用收敛在 core/asset/AssetSecretStore
  * （唯一 import @kit.AssetStoreKit 的文件）之后，凭据的编解码、完整性判定、降级策略
  * 都能在 host 上逐条测。

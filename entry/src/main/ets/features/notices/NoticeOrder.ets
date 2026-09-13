@@ -9,7 +9,7 @@
  *
  * 纯函数、无平台依赖，是单测的主战场（entry/src/test/Notices.test.ets）。
  *
- * 【ticket 09 迁移】时间解析（parseNoticeTime）已移到 data/notices/NoticeTime.ets
+ * 时间解析（parseNoticeTime）已移到 data/notices/NoticeTime.ets
  * （data 层也要用它把 publishTime 落进快照），本文件**再导出**它，调用点不变。
  * 排序/未读/空态三条规则留在 features，因为它们是"界面怎么呈现"的规则。
  */

@@ -1,18 +1,18 @@
 /*
- * 认证夹具（ticket 06）。成色逐条标注（与 fixtures/README.md 的约定一致）：
+ * 认证夹具。成色逐条标注（与 fixtures/README.md 的约定一致）：
  *
  *   [抓取]  开发机上从校园站点实际取回的字节（公开页，无需登录）
  *   [设备]  前期 SM2 验证在模拟器上产出的真实输出（.scratch/migration/sm2-verify/）
  *   [反推]  由参考实现的正则/字段映射反推构造，**非抓取**
  *
- * 夹具用常量而非资源文件（同 ticket 05 的理由：让用例自足）。
+ * 夹具用常量而非资源文件（理由同一：让用例自足）。
  */
 
 /**
- * [抓取] 真实 ID 登录页里 #sm2publicKey 的片段（来源见 ticket 06 Comments）。
+ * [抓取] 真实 ID 登录页里 #sm2publicKey 的片段（来源见抓取记录）。
  *
  * 关键事实：它是 **div 的文本**，不是 input 的 value；且公钥**带 04 前缀**（130 hex）。
- * 这一条此前在 ticket 06 的技术验证里只是**推断**，这里用真实页面落实。
+ * 这一条此前的技术验证里只是**推断**，这里用真实页面落实。
  */
 export const REAL_SM2_PUBLIC_KEY: string =
   '04d0c9e1ae89279fe05b435d63e3eba437bf510e09da5f71558974a19dc596724227f08dc2fc6e74bbb9d8b468d4dd5205e9b6793a3bbc48df3fdf219b3ea140e3';
@@ -96,7 +96,7 @@ export const SET_COOKIE_WITH_EXPIRES: string =
 export const SET_COOKIE_EMPTY_JSESSIONID: string = 'JSESSIONID=; Path=/; HttpOnly';
 
 /* ------------------------------------------------------------------
- * [设备] 平台 `HttpResponse.cookies` 的**实测形态**（ticket 08，模拟器 Pura 90 / 127.0.0.1:5555）：
+ * [设备] 平台 `HttpResponse.cookies` 的**实测形态**（模拟器 Pura 90 / 127.0.0.1:5555）：
  * 制表符分隔的 7 字段 Netscape cookie-file 行，不是 `name=value; attrs`。
  *
  * 逐字来源：`.scratch/enrollment/evidence/experiment-w12/E5-page-cookie-format.txt`

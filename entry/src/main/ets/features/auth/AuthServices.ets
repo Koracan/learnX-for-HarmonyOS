@@ -2,14 +2,14 @@
  * 认证的装配点（features/auth）：把"平台能力"与"领域规则"接到一起。
  *
  * 为什么放在 features 而不是 core：这里要同时 import core（asset / crypto / http / web）与
- * domain（指纹格式、凭据记录），只有 features 允许两个方向都依赖（spec 第 2 节的分层）。
+ * domain（指纹格式、凭据记录），只有 features 允许两个方向都依赖（分层约定）。
  * 也正因为如此，**它不会被任何单测 import**——单测只碰 domain 与 data 的注入式接缝。
  *
- * ticket 08 新增的装配（全部是把 06 的零件 + 07 的凭据库接到一起，没有新机制）：
+ * 冷启动重建会话新增的装配（全部是把登录零件 + 凭据库接到一起，没有新机制）：
  *   - `loginClient`：纯 HTTP 7 步登录，cookie jar 就用 `session` 的那一个；
  *   - `loginAction`：从凭据库读 → 登录 → **成功才 adopt 会话**（内存），并且是 re-auth 的唯一出口；
  *   - `restorer`：冷启动静默重登（单飞 + 整体超时 + 失败分类）；
- *   - `runner`：数据路径入口（先确保会话 → SessionGate 包任务），ticket 09 的三域仓储用它。
+ *   - `runner`：数据路径入口（先确保会话 → SessionGate 包任务），三域仓储用它。
  *
  * 会话 cookie 只在内存（ADR-0004）：本文件没有任何 preferences / 文件写入。
  */
@@ -59,7 +59,7 @@ export class AuthServices {
   readonly loginClient: LoginClient;
   /** 冷启动静默重登（单飞 + 超时 + 分类）。 */
   readonly restorer: SessionRestorer;
-  /** 数据路径入口（ticket 09 用）。 */
+  /** 数据路径入口。 */
   readonly runner: AuthedTaskRunner;
 
   constructor() {
@@ -89,7 +89,7 @@ export class AuthServices {
    *
    * 为什么放在这里而不是 data 层：读盘（asset）是平台能力，只有 features 能同时看到
    * 凭据库与登录客户端；data 层的 SessionRestorer 只接收"登录动作"这个函数。
-   * 失败时**不 adopt**：宁可不留会话，也不要让界面以为登上了（验收第 3 条）。
+   * 失败时**不 adopt**：宁可不留会话，也不要让界面以为登上了。
    */
   private async loginFromStoredCredentials(): Promise<LoginResult> {
     const record: CredentialRecord | undefined = await this.credentials.load();
@@ -100,7 +100,7 @@ export class AuthServices {
     const result: LoginResult = await this.loginClient.login(credentialsFor(record));
     if (result.ok && result.session !== undefined) {
       this.session.adopt(result.session);
-      // Web 容器与模板的会话注入点（ticket 04 预留、07 接上）：这里让它随重登一起轮换。
+      // Web 容器与模板的会话注入点（预留的注入点）：这里让它随重登一起轮换。
       updateWebSessionHeader(result.session.cookie, result.session.csrfToken);
       logger.info('re-auth session adopted: language=' + result.language
         + ' ' + this.session.getJar().describe());
@@ -110,7 +110,7 @@ export class AuthServices {
     return result;
   }
 
-  /** deviceName（spec 第 5 节）：仅登记时上报，HTTP 重登不带它。 */
+  /** deviceName：仅登记时上报，HTTP 重登不带它。 */
   deviceName(): string {
     const name: string = composeDeviceName(appVersionName(), deviceProductModel());
     logger.info('device name resolved: ' + name);
@@ -121,7 +121,7 @@ export class AuthServices {
    * 生成本机设备指纹：16 字节平台安全随机 → UUID v4 文本。
    *
    * 随机源用 cryptoFramework（参考实现是 react-native-securerandom，helpers/fingerprint.ts:9），
-   * 格式规则在 domain/auth/DeviceIdentity。**这个值只在日志里以脱敏形式出现**（验收第 5 条）。
+   * 格式规则在 domain/auth/DeviceIdentity。**这个值只在日志里以脱敏形式出现**。
    */
   newFingerprint(): string {
     try {

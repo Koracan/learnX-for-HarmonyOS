@@ -1,7 +1,7 @@
 /*
  * 图标目录（**闭集**）：本工程用到的全部矢量图标，一处声明。
  *
- * ## 为什么是这份字体（ticket 11.5 的核心决定）
+ * ## 为什么是这份字体（核心决定）
  *
  * 参考实现用 `react-native-vector-icons` 的 **MaterialCommunityIcons**（默认图标族，含 paper 的
  * `Icon`/`List.Icon`/`IconButton`）与 **MaterialIcons**（少量显式 import）两族字体图标。
@@ -135,9 +135,9 @@ export enum AppIcon {
   /**
    * MaterialIcons `description`：设置页「导出日志」那一行。
    *
-   * **这是本工程对参考实现的一处增补**（参考实现 Settings.tsx 没有这一项）：ticket 01 的
-   * `core/log/LogBuffer.ets` 明确把 `exportLogs()` 的调用方留给「settings 切片（ticket 17「导出日志」）」，
-   * 而本 ticket 的 What to build 也列了它。理由与替代验收标准见 ticket 17 交付节的「偏离与增补」。
+   * **这是本工程对参考实现的一处增补**（参考实现 Settings.tsx 没有这一项）：
+   * `core/log/LogBuffer.ets` 明确把 `exportLogs()` 的调用方留给「settings 切片的「导出日志」」，
+   * 而本工程也列了它。理由与替代验收标准见交付说明的「偏离与增补」。
    */
   DESCRIPTION = 'description',
   /* --- 文件详情顶栏与「详情 / 预览」切换用到的字形。
@@ -215,10 +215,10 @@ export function iconSpec(icon: AppIcon): IconSpec {
       // 码位 58833 (0xE5D1)，同上表的 fullscreen-exit。
       return { family: IconFamily.MATERIAL, code: 0xE5D1, fallback: '[fsx]' };
     case AppIcon.SEARCH:
-      // 码位 59574 (0xE8B6)，同表的 search（ticket 15 的页头搜索入口）。
+      // 码位 59574 (0xE8B6)，同表的 search（页头搜索入口）。
       return { family: IconFamily.MATERIAL, code: 0xE8B6, fallback: '[?]' };
     case AppIcon.CLOSE:
-      // 码位 58829 (0xE5CD)，同表的 close（ticket 15 搜索页的关闭按钮）。
+      // 码位 58829 (0xE5CD)，同表的 close（搜索页的关闭按钮）。
       return { family: IconFamily.MATERIAL, code: 0xE5CD, fallback: '[x]' };
     case AppIcon.PERSON_REMOVE:
       // 码位 61286 (0xEF66) 抄自 glyphmaps/MaterialIcons.json 的 person-remove（Settings.tsx:69）。

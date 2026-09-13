@@ -1,5 +1,5 @@
 /*
- * 登记落盘与会话收割单测（ticket 07，验收第 1/3/4 条的注入式部分）。
+ * 登记落盘与会话收割单测（1/3/4 三块的注入式部分）。
  *
  * 覆盖：
  *   - CredentialStore：写/读/清、**不完整记录拒绝落盘**、损坏与未知版本一律当作"没有凭据"；
@@ -56,7 +56,7 @@ export default function enrollmentFlowTest() {
     it('refusesToPersistIncompleteCredentials', 0, async () => {
       const secrets: FakeSecretStore = new FakeSecretStore();
       const store: CredentialStore = new CredentialStore(secrets);
-      // 验收第 4 条：不残留半登记状态 —— 半条凭据根本不写
+      // 不残留半登记状态 —— 半条凭据根本不写
       expect(await store.save(createCredentialRecord('u', 'p', '', '', ''))).assertFalse();
       expect(secrets.writes).assertEqual(0);
       expect(await store.load() === undefined).assertTrue();
@@ -114,7 +114,7 @@ export default function enrollmentFlowTest() {
       const result: EnrollmentSessionResult = await sessionFor(port, jar).adopt(HARVESTED_COOKIE_HEADER);
       expect(result.ok).assertTrue();
       expect(result.reason).assertEqual(FailReason.NONE);
-      // 贪婪正则取同一行的最后一个 &_csrf=（ticket 06 的逐字保真）
+      // 贪婪正则取同一行的最后一个 &_csrf=（逐字保真）
       expect(result.session?.csrfToken).assertEqual('SECOND_TOKEN');
       expect(result.language).assertEqual('zh');
       const session = result.session;
@@ -150,7 +150,7 @@ export default function enrollmentFlowTest() {
         await sessionFor(port, new CookieJar()).adopt(HARVESTED_COOKIE_HEADER);
       expect(result.ok).assertFalse();
       expect(result.reason).assertEqual(FailReason.UNEXPECTED_STATUS);
-      // spec 第 5 节：非预期响应一律降级，不做静默重试循环
+      // 非预期响应一律降级，不做静默重试循环
       expect(port.requests.length).assertEqual(1);
     });
 

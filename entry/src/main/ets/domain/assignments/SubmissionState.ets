@@ -1,7 +1,7 @@
 /*
  * 提交页的状态机 —— **纯函数，零平台依赖**（见 scripts/check-domain-purity.mjs）。
  *
- * 为什么单独一层：工单验收第 3 条要求「失败有明确提示且**不丢失已填内容**」，而参考实现的
+ * 为什么单独一层：失败要有明确提示且**不丢失已填内容**，而参考实现的
  * 这条语义藏在 React 组件的 `catch` 分支里（`AssignmentSubmission.tsx:233-237`：
  * 只 `setUploading(false)` / `setUploadError(true)` / `setProgress(0)`，**没有**动
  * `content` 与 `attachmentResult`）。把它落成纯状态函数之后，「失败不丢内容」这条
@@ -129,7 +129,7 @@ export function withUploadProgress(state: SubmissionState, sent: number, total: 
 
 /**
  * 提交失败（参考实现 :233-237）：`uploading=false`、`error=true`、进度清零，
- * **正文与已选附件一律保留**（这就是验收第 3 条的「不丢失已填内容」）。
+ * **正文与已选附件一律保留**（这就是「不丢失已填内容」）。
  */
 export function submitFailed(state: SubmissionState): SubmissionState {
   const next: SubmissionState = state.copy();
