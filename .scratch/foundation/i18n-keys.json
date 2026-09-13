@@ -1,8 +1,8 @@
 {
-  "total": 309,
+  "total": 313,
   "referenceCount": 178,
   "localCount": 8,
-  "uiCount": 123,
+  "uiCount": 127,
   "referenceKeys": [
     "back",
     "notices",
@@ -2402,6 +2402,60 @@
       "enValue": "Evidence override active",
       "zhPlaceholders": [],
       "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_semester_switching",
+      "name": "ui_semester_switching",
+      "zhValue": "正在切换学期…",
+      "enValue": "Switching semester…",
+      "zhPlaceholders": [],
+      "enPlaceholders": [],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_semester_switch_succeeded",
+      "name": "ui_semester_switch_succeeded",
+      "zhValue": "已切换到%1$s",
+      "enValue": "Switched to %1$s",
+      "zhPlaceholders": [
+        "{0}"
+      ],
+      "enPlaceholders": [
+        "{0}"
+      ],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_semester_switch_partial",
+      "name": "ui_semester_switch_partial",
+      "zhValue": "已切换到%1$s，但%2$s刷新失败：%3$s",
+      "enValue": "Switched to %1$s, but refreshing %2$s failed: %3$s",
+      "zhPlaceholders": [
+        "{0}",
+        "{1}",
+        "{2}"
+      ],
+      "enPlaceholders": [
+        "{0}",
+        "{1}",
+        "{2}"
+      ],
+      "origin": "ui"
+    },
+    {
+      "key": "__ui_semester_switch_failed",
+      "name": "ui_semester_switch_failed",
+      "zhValue": "切换到%1$s失败：%2$s",
+      "enValue": "Failed to switch to %1$s: %2$s",
+      "zhPlaceholders": [
+        "{0}",
+        "{1}"
+      ],
+      "enPlaceholders": [
+        "{0}",
+        "{1}"
+      ],
       "origin": "ui"
     },
     {

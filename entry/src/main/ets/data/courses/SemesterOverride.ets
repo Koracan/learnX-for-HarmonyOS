@@ -1,5 +1,5 @@
 /*
- * 当前学期的**脚本可驱动覆盖**（data/courses）。
+ * 生效学期的**唯一优先级实现**（data/courses）：脚本覆盖 / 界面选择 / 站点当前学期。
  *
  * ## 为什么需要它（不是可选的便利功能）
  *
@@ -14,7 +14,7 @@
  * | --- | --- | --- |
  * | 运行期 want 参数 | `hdc shell aa start -a EntryAbility -b com.koracan.learnOH --ps lohSemester 2025-2026-2` | 本进程 |
  * | 构建期常量 | 改 `SEMESTER_OVERRIDE_FOR_EVIDENCE` 后重建 | 该产物 |
- * | 界面选择 | 课程 tab 头部 → 学期切换 | 本进程（界面在 refresh 时把它作为选择传入） |
+ * | 界面选择 | 课程 tab 头部 → 学期切换 | 本进程（界面在 refresh 时写入本模块） |
  *
  * **覆盖优先于界面选择**：它只服务取证，被设置时就是权威值；界面仍显示"实际生效值"。
  *
@@ -27,10 +27,17 @@
  * 而 `aa start --ps <key> <value>` 实测可用（`start ability successfully.`），
  * 且是**一次命令、无需重建**——这才是能真正当"取证工具"的那条路。
  *
+ * ## 界面选择也是**进程级**状态
+ *
+ * 学期选择不是某个页面自己的字段：课程 / 作业 / 公告 / 文件四条取数路径都要读它。
+ * 它存在进程内存里（`selectedSemesterId`），由 CourseListStore 在选择发生时写入；
+ * 不落盘（会话与凭据都不落盘，学期选择属于同一次运行期的界面状态）。
+ *
  * ## 自证生效
  *
- * `describeSemesterOverride()` 会把**常量值 / 运行期值 / 实际生效值 / 来源**打成一行 hilog
- * （AGENTS.md：取证开关必须自证生效，不能"以为它生效了"）。每次课程刷新都会打这一行。
+ * `describeSemesterOverride()` 会把**常量值 / 运行期值 / 实际生效值 / 来源**打成一行 hilog；
+ * `resolveEffectiveSemester()` 的调用点各自再打一行带 semester 与 source 的日志
+ * （AGENTS.md：取证开关必须自证生效，不能"以为它生效了"）。
  *
  * ## 提交态的取值
  *
@@ -47,6 +54,9 @@ export const SEMESTER_OVERRIDE_FOR_EVIDENCE: string = '';
 
 /** 运行期覆盖（由 EntryAbility 从 want 参数写入；不改就一直是空）。 */
 let runtimeOverride: string = '';
+
+/** 界面选择的学期（进程级；由 CourseListStore 在选择发生时写入）。 */
+let selectedSemesterId: string = '';
 
 /** 只接受合法学期标识（形状不合法的值**不生效**，避免把打字错误当成"切过去了"）。 */
 export function normalizeSemesterOverride(raw: string): string {
@@ -102,4 +112,78 @@ export function describeSemesterOverride(): string {
     + '" runtime="' + runtimeOverride
     + '" effective="' + effectiveSemesterOverride()
     + '" source=' + semesterOverrideSource();
+}
+
+/* ------------------------------------------------------------------ *
+ * 界面选择（进程级）
+ * ------------------------------------------------------------------ */
+
+/** 记下界面选择（合法值才生效）；返回是否被接受。 */
+export function setSelectedSemesterId(raw: string): boolean {
+  const value: string = normalizeSemesterOverride(raw);
+  if (value.length === 0) {
+    return false;
+  }
+  selectedSemesterId = value;
+  return true;
+}
+
+/** 当前界面选择的学期；没有选择时是空串。 */
+export function selectedSemesterForFetch(): string {
+  return normalizeSemesterOverride(selectedSemesterId);
+}
+
+/** 清空界面选择（回到"跟随站点当前学期"）。 */
+export function clearSelectedSemesterId(): void {
+  selectedSemesterId = '';
+}
+
+/* ------------------------------------------------------------------ *
+ * 优先级：唯一实现
+ * ------------------------------------------------------------------ */
+
+/** 生效学期 + 来源。`semesterId` 为空串 = 三档都没给出可用值（调用方据此显式失败）。 */
+export class EffectiveSemester {
+  readonly semesterId: string;
+  /** `override` / `selection` / `site-current` / `none`。 */
+  readonly source: string;
+
+  constructor(semesterId: string, source: string) {
+    this.semesterId = semesterId;
+    this.source = source;
+  }
+}
+
+/** `resolveEffectiveSemester` 的可读输入（含测试用的显式参数）。 */
+export interface SemesterInputs {
+  /** 站点当前学期；解析失败时是空串。 */
+  siteCurrentSemesterId: string;
+  /** 界面显式传入的选择（旧调用点仍走这条）；空串 = 用进程级的界面选择。 */
+  explicitSelection: string;
+}
+
+/**
+ * 生效学期的**唯一**判定：脚本覆盖 > 界面选择 > 站点当前学期。
+ *
+ * 四条取数路径（课程 / 作业共用的课程快照、公告、文件）**都调用它**，
+ * 不再各自抄一遍 if 链（此前课程与文件各有一份、公告侧还有第三套口径）。
+ */
+export function resolveEffectiveSemester(inputs: SemesterInputs): EffectiveSemester {
+  const override: string = effectiveSemesterOverride();
+  if (override.length > 0) {
+    return new EffectiveSemester(override, 'override');
+  }
+  const explicit: string = normalizeSemesterOverride(inputs.explicitSelection);
+  if (explicit.length > 0) {
+    return new EffectiveSemester(explicit, 'selection');
+  }
+  const processSelection: string = selectedSemesterForFetch();
+  if (processSelection.length > 0) {
+    return new EffectiveSemester(processSelection, 'selection');
+  }
+  const siteCurrent: string = normalizeSemesterOverride(inputs.siteCurrentSemesterId);
+  if (siteCurrent.length > 0) {
+    return new EffectiveSemester(siteCurrent, 'site-current');
+  }
+  return new EffectiveSemester('', 'none');
 }

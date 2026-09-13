@@ -35,9 +35,35 @@ export const TOAST_SUCCESS_MILLIS: number = 3000;
  */
 export const TOAST_MILLIS_FOR_EVIDENCE: number = 0;
 
+/**
+ * 【取证开关】**只服务学期切换的结果提示**：> 0 时只把学期切换那条提示换成这个时长。
+ *
+ * 为什么单独一条而不是复用 TOAST_MILLIS_FOR_EVIDENCE：那条会把收藏 / 归档 / 屏蔽三处
+ * 的撤销窗口一起拉到取证时长，改动面比需要的宽。
+ * 提交态必须是 0（= 用参考实现的 3000ms）—— 单测
+ * evidenceSemesterToastDurationIsOffAtCommit 在守这一条。
+ *
+ * 实际生效值由 show() 打进 hilog（消费点自证）。
+ */
+export const SEMESTER_SWITCH_TOAST_MILLIS_FOR_EVIDENCE: number = 0;
+
 /** 实际生效的 Toast 时长（唯一读取点 = show()，日志与界面用的是同一个值）。 */
 export function effectiveToastMillis(): number {
   return TOAST_MILLIS_FOR_EVIDENCE > 0 ? TOAST_MILLIS_FOR_EVIDENCE : TOAST_SUCCESS_MILLIS;
+}
+
+/**
+ * 实际生效的时长：**显式时长优先，其次取证覆盖，最后参考实现的 3000ms**。
+ * 学期切换的结果提示用这条（提示文案要能在帧 / dump 里读到，3 秒必然抓不到）。
+ */
+export function resolveToastMillis(explicitMillis: number): number {
+  if (explicitMillis > 0) {
+    return explicitMillis;
+  }
+  if (SEMESTER_SWITCH_TOAST_MILLIS_FOR_EVIDENCE > 0) {
+    return SEMESTER_SWITCH_TOAST_MILLIS_FOR_EVIDENCE;
+  }
+  return effectiveToastMillis();
 }
 
 /** Toast 状态 + 定时器（视图只读它）。 */
@@ -55,11 +81,13 @@ export class ToastController {
    * 弹一条；`onAction` 为 null 时只显示文案（参考实现 `toast(t('undoArchive'))` 那一支：
    * 有文案、**没有**撤销按钮）。
    *
-   * 时长不走参数：四个调用点都是 success 档，时长只有一个来源 `effectiveToastMillis()` ——
+   * 时长默认不走参数：四个调用点都是 success 档，时长只有一个来源 `effectiveToastMillis()` ——
    * 这样"实际生效的时长"只有一个读取点，取证构建的覆盖值必然反映到界面上。
+   * `explicitMillis > 0` 时以它为准（学期切换的结果提示要能被帧 / dump 读到）。
    */
-  show(text: string, actionLabel: string, onAction: (() => void) | null): void {
-    const millis: number = effectiveToastMillis();
+  show(text: string, actionLabel: string, onAction: (() => void) | null,
+    explicitMillis: number = 0): void {
+    const millis: number = resolveToastMillis(explicitMillis);
     // 消费点自证（AGENTS.md）：**实际生效**的时长进 hilog，避免"以为开关生效了"。
     logger.info('toast shown: millis=' + millis.toString()
       + ' hasAction=' + (actionLabel.length > 0).toString() + ' text=' + text);

@@ -977,6 +977,22 @@
       "value": "Evidence override active"
     },
     {
+      "name": "ui_semester_switching",
+      "value": "Switching semester…"
+    },
+    {
+      "name": "ui_semester_switch_succeeded",
+      "value": "Switched to %1$s"
+    },
+    {
+      "name": "ui_semester_switch_partial",
+      "value": "Switched to %1$s, but refreshing %2$s failed: %3$s"
+    },
+    {
+      "name": "ui_semester_switch_failed",
+      "value": "Failed to switch to %1$s: %2$s"
+    },
+    {
       "name": "ui_assignments_empty",
       "value": "No assignments"
     },

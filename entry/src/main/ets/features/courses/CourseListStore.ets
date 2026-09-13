@@ -15,12 +15,17 @@
  *
  * **切换学期不阻塞点击**：selectSemester 同步记下选择（勾选标记与文案立刻可读），
  * 整轮取数在后台跑完再由 @Trace 推给所有读它的页面。
+ *
+ * **学期选择同时写进进程级状态**（data/courses/SemesterOverride 的 setSelectedSemesterId）：
+ * 公告与文件这两条取数路径不经过本 store，它们直接读那份进程级选择。
+ * 不写进去的话，"一处选择"只有课程 / 作业两条线知道。
  */
 
 import { Logger } from '../../core/log/Logger';
 import { Assignment, CourseFile } from '../../domain/model/ContentItem';
 import { NoticeRecord } from '../../data/notices/NoticeRepository';
 import { CourseRecord, CourseRepository, CourseSnapshot } from '../../data/courses/CourseRepository';
+import { setSelectedSemesterId } from '../../data/courses/SemesterOverride';
 
 const logger: Logger = new Logger('features.courses.store');
 
@@ -91,8 +96,14 @@ export class CourseListStore {
     await this.refresh();
   }
 
-  /** 下拉刷新；使用当前的选择。失败保留旧数据并置错误态。 */
-  async refresh(): Promise<void> {
+  /**
+   * 下拉刷新；使用当前的选择。失败保留旧数据并置错误态。
+   *
+   * **返回本轮是否成功**：学期切换的编排据此汇总「哪个域失败」。
+   * 编排不能去读 errorMessage —— 同一实例上并发的另一次取数（例如页面 mount 时的
+   * loadOnce）成功后会把它清空，读到的就可能是别人的结论。
+   */
+  async refresh(): Promise<boolean> {
     if (this.phase !== CourseLoadPhase.LOADING) {
       this.phase = CourseLoadPhase.REFRESHING;
     }
@@ -101,12 +112,14 @@ export class CourseListStore {
       this.apply(snapshot);
       this.phase = CourseLoadPhase.READY;
       this.errorMessage = '';
+      return true;
     } catch (error) {
       this.errorMessage = (error as Error).message;
       this.phase = CourseLoadPhase.ERROR;
       const rawStack: string | undefined = (error as Error).stack;
       const stack: string = rawStack === undefined ? 'n/a' : rawStack;
       logger.error('course refresh failed: ' + this.errorMessage + ' stack=' + stack);
+      return false;
     } finally {
       // 在途标记只在这**一轮取数**期间有效：成功则 semesterId 已换成新值，
       // 失败则保留旧值并由 errorMessage 显式降级——两种情况下都不能再算"在途"。
@@ -125,12 +138,27 @@ export class CourseListStore {
    * 返回重抓的完成，**供调用方按需等待**（界面点击点不该等）；失败时保留旧列表
    * （errorMessage 里带原因），不假装切换成功。
    */
-  selectSemester(semesterId: string): Promise<void> {
+  selectSemester(semesterId: string): Promise<boolean> {
     logger.info('semester selected: ' + semesterId);
     this.selectedSemesterId = semesterId;
     this.pendingSemesterId = semesterId;
-    logger.info('semester selection applied: ' + semesterId);
+    // 进程级选择：公告 / 文件两条路径读的就是它（它们不经过本 store）。
+    const accepted: boolean = setSelectedSemesterId(semesterId);
+    logger.info('semester selection applied: ' + semesterId
+      + ' processWide=' + accepted.toString());
     return this.refresh();
+  }
+
+  /**
+   * 只把"正在切换到哪一行"标出来（勾选标记立刻移动），**不发起取数**。
+   *
+   * 学期切换的编排（features/courses/SemesterSwitch）同步写入进程级选择之后调它，
+   * 让学期页在加载遮罩期间就显示新选中的那一行；真正的一轮取数由编排统一驱动
+   * （课程 / 公告 / 文件并发）。
+   */
+  markSwitchingTo(semesterId: string): void {
+    this.selectedSemesterId = semesterId;
+    this.pendingSemesterId = semesterId;
   }
 
   /** 该课程的公告（详情页第一个标签页）。 */

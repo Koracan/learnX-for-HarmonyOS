@@ -61,7 +61,9 @@ export class RealFileRepository implements FileRepository {
     this.fetchedSet = false;
     const run: AuthedRunResult = await this.executor.run(
       async (session: Session): Promise<TaskOutcome> => {
-        const result: FileFetchResult = await this.source.fetchWithSession(session);
+        // 学期由取数源按**唯一的优先级实现**决定（覆盖 > 界面选择 > 站点当前）：这里显式
+        // 传空串，让进程级的界面选择那条路径生效（此前这一行根本不带学期）。
+        const result: FileFetchResult = await this.source.fetchWithSession(session, '');
         this.fetched = result;
         this.fetchedSet = true;
         // 0 条 = 失败信号：交给 SessionGate 的 '[]' 判据（与 RealNoticeRepository 同一口径）。

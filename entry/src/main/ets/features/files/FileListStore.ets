@@ -66,8 +66,12 @@ export class FileListStore {
     await this.refresh();
   }
 
-  /** 下拉刷新；失败保留旧数据并置错误态。 */
-  async refresh(): Promise<void> {
+  /**
+   * 下拉刷新；失败保留旧数据并置错误态。
+   *
+   * **返回本轮是否成功**：学期切换的编排据此汇总「哪个域失败」，不去读 errorMessage。
+   */
+  async refresh(): Promise<boolean> {
     if (this.phase !== FileLoadPhase.LOADING) {
       this.phase = FileLoadPhase.REFRESHING;
     }
@@ -80,10 +84,12 @@ export class FileListStore {
       this.errorMessage = '';
       logger.info('file list applied: semester=' + snapshot.semesterId
         + ' items=' + snapshot.files.length.toString());
+      return true;
     } catch (error) {
       this.errorMessage = (error as Error).message;
       this.phase = FileLoadPhase.ERROR;
       logger.error('file refresh failed: ' + this.errorMessage);
+      return false;
     }
   }
 }

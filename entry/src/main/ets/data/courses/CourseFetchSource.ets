@@ -30,7 +30,7 @@ import { NoticeRecord } from '../notices/NoticeRepository';
 import { CourseEntry, CourseListResult, CourseListSource } from './CourseListFetcher';
 import { CourseRecord, CourseSnapshot } from './CourseRepository';
 import { SemesterResolution, SemesterSource } from './SemesterFetcher';
-import { describeSemesterOverride, effectiveSemesterOverride } from './SemesterOverride';
+import { EffectiveSemester, describeSemesterOverride, resolveEffectiveSemester } from './SemesterOverride';
 
 export const COURSE_SOURCE_LOG_DOMAIN: string = 'data.courses';
 
@@ -87,15 +87,17 @@ export class HttpCourseFetchSource implements CourseFetchSource {
   async fetchWithSession(session: Session, selectedSemesterId: string): Promise<CourseSnapshot> {
     // 开关自证：每次刷新都打一行"常量 / 运行期 / 实际生效 / 来源"。
     this.logger.info(COURSE_SOURCE_LOG_DOMAIN + ' ' + describeSemesterOverride());
-    const override: string = effectiveSemesterOverride();
-    const selected: string = selectedSemesterId.trim();
+    // 覆盖与界面选择都可能不依赖学期接口 ⇒ 接口失败时是否致命要先算出来。
+    const preResolved: EffectiveSemester = resolveEffectiveSemester({
+      siteCurrentSemesterId: '', explicitSelection: selectedSemesterId
+    });
 
     let resolution: SemesterResolution;
     try {
       resolution = await this.semesters.resolve(session);
     } catch (error) {
       const message: string = (error as Error).message;
-      if (override.length === 0 && selected.length === 0) {
+      if (preResolved.semesterId.length === 0) {
         // arkts-limited-throw：只能抛 Error 类型，所以这里重新包装而不是 `throw error`。
         throw new Error('semester resolution failed: ' + message);
       }
@@ -104,16 +106,13 @@ export class HttpCourseFetchSource implements CourseFetchSource {
       resolution = SemesterResolution.unavailable(message);
     }
 
-    let effective: string = resolution.currentSemesterId;
-    let source: string = 'site-current';
-    if (selected.length > 0) {
-      effective = selected;
-      source = 'selection';
-    }
-    if (override.length > 0) {
-      effective = override;
-      source = 'override';
-    }
+    // 生效学期只有一处判定：脚本覆盖 > 界面选择 > 站点当前学期（见 SemesterOverride）。
+    const resolved: EffectiveSemester = resolveEffectiveSemester({
+      siteCurrentSemesterId: resolution.currentSemesterId,
+      explicitSelection: selectedSemesterId
+    });
+    const effective: string = resolved.semesterId;
+    const source: string = resolved.source;
     if (effective.length === 0) {
       throw new Error('no effective semester: site current unknown and no override/selection');
     }

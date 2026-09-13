@@ -977,6 +977,22 @@
       "value": "取证覆盖生效"
     },
     {
+      "name": "ui_semester_switching",
+      "value": "正在切换学期…"
+    },
+    {
+      "name": "ui_semester_switch_succeeded",
+      "value": "已切换到%1$s"
+    },
+    {
+      "name": "ui_semester_switch_partial",
+      "value": "已切换到%1$s，但%2$s刷新失败：%3$s"
+    },
+    {
+      "name": "ui_semester_switch_failed",
+      "value": "切换到%1$s失败：%2$s"
+    },
+    {
       "name": "ui_assignments_empty",
       "value": "暂无作业"
     },

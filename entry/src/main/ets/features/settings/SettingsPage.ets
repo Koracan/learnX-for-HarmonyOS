@@ -90,6 +90,14 @@ export struct SettingsPage {
   private courseStore: CourseListStore | null = null;
   /** 最近一次**成功**导出的结果（含完整落盘路径）；空串 = 还没导出过。失败时不写它。 */
   @State exportedSummary: string = '';
+  /**
+   * 学期切换在途（由学期页回调设置）：在途时消费掉返回手势。
+   *
+   * 与课程入口（CoursesPage 的 ROUTE_SEMESTER_SELECTION）**行为一致**：切换要跑 5–9 s，
+   * 在途时若允许返回，页面会先 pop，编排仍在后台跑完，成功/失败提示落在已经销毁的页面上
+   * ——用户看不到结果。两个入口都是学期页的宿主，都得拦。
+   */
+  private semesterSwitchInFlight: boolean = false;
 
   aboutToAppear(): void {
     logger.info('settings page appear: ' + this.describeAccount());
@@ -491,9 +499,19 @@ export struct SettingsPage {
       .hideTitleBar(true)
     } else if (name === ROUTE_SEMESTER_SELECTION) {
       NavDestination() {
-        SemesterSelectionPage({ store: this.courseStore, stack: stack })
+        SemesterSelectionPage({
+          store: this.courseStore,
+          stack: stack,
+          onSwitchInFlight: (inFlight: boolean) => {
+            this.semesterSwitchInFlight = inFlight;
+          }
+        })
       }
       .hideTitleBar(true)
+      // 切换在途时**不允许返回**：返回 true = 本页消费了这次返回，系统不再弹栈。
+      // routeTo 被 masterDestination 与 detailDestination **共用**，所以单栏（主栈）与
+      // 分栏（右栏 detailStack）两条路径都拦得住。
+      .onBackPressed((): boolean => this.semesterSwitchInFlight)
     } else if (name === ROUTE_FILE_SETTINGS) {
       NavDestination() {
         FileSettingsPage({ params: param as FileSettingsRouteParams, stack: stack })

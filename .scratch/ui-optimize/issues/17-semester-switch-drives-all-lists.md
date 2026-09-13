@@ -209,3 +209,65 @@ C. 证据
 - 一处需统筹者知晓：`17-…md` 这个 ticket 文件只存在于主树（未跟踪），worktree 里没有它的副本；
   本 Comment 是直接追加到主树那份上的（除它之外主树未被我改动）。
 
+### wt/t17（实现 agent）— 2026-09-13 补充轮：设置入口的返回守卫 + 取证开关单测
+
+**统筹者独立验收打回一条，已修并重新取证。**
+
+#### 打回的那条
+
+返回守卫只做在课程入口：`grep -rn 'ROUTE_SEMESTER_SELECTION'` 的两个 push 点是
+`CoursesPage:270` 与 `SettingsPage:191`，而只有 `CoursesPage` 的 NavDestination 传了 `onSwitchInFlight`
+并挂了 `onBackPressed`。后果：从**设置**进学期页 → 点一行（切换 ~7 s）→ 期间按系统返回 ⇒ 页面先 pop、
+编排仍在后台跑完，成功/失败提示落在**已被销毁**的页面上，用户看不到 —— 正是这条判据要防的事。
+
+#### 修法
+
+`features/settings/SettingsPage.ets`：新增字段 `semesterSwitchInFlight`；`routeTo` 的
+`ROUTE_SEMESTER_SELECTION` 分支传 `onSwitchInFlight` 并挂
+`.onBackPressed((): boolean => this.semesterSwitchInFlight)`。
+**分栏态一并覆盖**：`routeTo` 被 `masterDestination` 与 `detailDestination` 共用，单栏（主栈）与
+分栏（右栏 `detailStack`）构造的是同一个带守卫的 `NavDestination`。
+（分栏那条路径**只有结构性论据、没有设备观察**：本 ticket 的设备是 phone，模拟器不能旋转/改视口 —— 如实登记。）
+
+#### A/B 设备证据（同一台 5555，同一序列：设置 → 学期子页 → 点一行 → 0.6 s 后发一次系统 Back）
+
+| 时点 | 构建 | Back 之后观察到什么 |
+| --- | --- | --- |
+| 修前 | 上一轮提交态产物（`99A18C53…`） | 学期页**被 pop**（dump 是设置页），hilog 仍打出 `toast shown: … 已切换到2025-2026 学年春季学期` —— 提示落在已销毁页面上（`logs/t17-19-…json`） |
+| 修后 | 取证构建（`F3B6D863…`，`SWITCH_DELAY_FOR_EVIDENCE=25000`） | 学期页**仍在** + 遮罩 `正在切换学期…` 在（`logs/t17-21-…json`）；切换结束后 `evidence/17-04-back-guard-toast-still-visible.png`：提示**可见**、`✔` 已移行，且底部高亮的是**设置** tab ⇒ 确实是设置入口 |
+
+时间线（设备时钟）：`18:36:07.664 switch started` + `delay override active: …25000 ms` →
+（Back 在 tap 后 0.56 s 发出，落在窗口内）→ `18:36:41.097 switch finished: result=success` +
+`toast shown: millis=60000 … 已切换到2025-2026 学年春季学期`。
+
+课程入口回归 + 顺带复原设备：`logs/t17-24-…json`（Back 后学期页仍在 + 遮罩在）、
+`logs/t17-25-…json` + `evidence/17-05-courses-back-restore.png`（提示 `已切换到2026-2027 学年秋季学期`、
+`✔` 回到秋季行、`domains=[courses=ok(2) notices=ok(2) files=ok(4)]`）⇒ **设备已复原到秋季**。
+
+#### 顺手补的取证开关单测
+
+`SWITCH_DELAY_FOR_EVIDENCE` 此前没有 OffAtCommit 断言。已在 `SemesterSwitch.test.ets` 补
+`evidenceSwitchDelayOverrideIsOffAtCommit`（与 `evidenceToastDurationOverrideIsOffAtCommit` /
+`evidenceUnreadOverrideIsOffAtCommit` 同一口径）。
+
+#### 本轮门禁（提交态，全在 `wt/t17`）
+
+- 单测 **`Tests run: 441, Failure: 0, Error: 0, Pass: 441, Ignore: 0`**（mtime `2026-09-13T18:41:02`，本轮；440 → 441 就是补的那条）。
+- 打包 `assembleHap --no-incremental`：`BUILD SUCCESSFUL in 9 s 750 ms`；搜 `ERROR|ErrorCode|COMPILE RESULT` **0 命中**。
+- 四脚本：purity PASS / import-graph PASS / i18n `RESULT: OK` / generated-fresh PASS。
+- 提交态 `ets/modules.abc` SHA256 `69E480AE85F5A90EFC805CDF7CD8707CE570DE9EB3C6907F8E4895169396D087`（1822596 B）；
+  取证构建 `F3B6D863F2F50A57506E160F6AE5878B2D94EE5795AAA08381B1AC6E9E898CA4`；
+  上一轮提交态 `99A18C53…`（即本轮的「修前」基线）。
+- 两个开关提交态复原（`git show HEAD` 可核）：`SWITCH_DELAY_FOR_EVIDENCE=0`、
+  `SEMESTER_SWITCH_TOAST_MILLIS_FOR_EVIDENCE=0`。
+
+#### 本轮没做到 / 存疑
+
+1. **分栏（右栏 detailStack）的守卫没有设备观察**（phone 设备 + 模拟器不能改视口），只有结构性论据。
+2. 修前对照是**同设备换装上一轮提交态产物**做的（不是同一次构建内翻开关），两次代码差异只有这一处守卫。
+
+#### 设备与工作区状态（窗口关闭）
+
+- 设备学期 = **2026-2027 学年秋季学期**（站点当前学期），运行期覆盖为空。
+- 已换回**提交态** HAP；`wt/t17` 工作区干净；文字证据入库，图片/dump/hilog 只在本地。
+- **窗口关闭**。

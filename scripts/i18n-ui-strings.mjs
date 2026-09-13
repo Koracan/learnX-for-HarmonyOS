@@ -93,6 +93,17 @@ export const UI_STRINGS = [
   ['ui_courses_load_failed', '课程加载失败：{0}', 'Failed to load courses: {0}'],
   // 学期覆盖（脚本入口）生效时的界面标记：让"确实切过去了"在截图上可见。
   ['ui_courses_override_badge', '取证覆盖生效', 'Evidence override active'],
+  // --- 学期切换编排（加载 / 结果提示 / 不自动返回）新增 ---
+  // 切换在途的加载遮罩文案（遮罩上另有一行目标学期，取 getSemesterTextFromId）。
+  ['ui_semester_switching', '正在切换学期…', 'Switching semester…'],
+  // 全部域成功。{0} = 目标学期的界面文案。
+  ['ui_semester_switch_succeeded', '已切换到{0}', 'Switched to {0}'],
+  // 部分失败：{0} = 目标学期，{1} = 失败的域（顿号分隔的界面名），{2} = 第一条原因要点。
+  ['ui_semester_switch_partial',
+    '已切换到{0}，但{1}刷新失败：{2}',
+    'Switched to {0}, but refreshing {1} failed: {2}'],
+  // 全部失败：{0} = 目标学期，{1} = 原因要点。
+  ['ui_semester_switch_failed', '切换到{0}失败：{1}', 'Failed to switch to {0}: {1}'],
   // --- 作业列表 + 详情新增 ---
   // 三种"空"必须给不同的话：没有作业（秋季真实状态）/ 没有未完成（春季 57 条全已交）/
   // 没有已完成。见 features/assignments/AssignmentText.emptyStateKey。
