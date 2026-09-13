@@ -25,10 +25,11 @@
  * ## 2. cookie / CSRF 端口
  *
  * 参考实现（:57-71,90-92）从 `CookieManager.get(Urls.learn)` 与 `dataSource.getCSRFToken()`
- * 取值，写进请求头与模板。本工程这两个全局单例都不存在，且 **cookie 只在内存、不落盘**
- * （spec 第 4 节 / ADR-0004），因此收敛成 `SessionHeaderProvider` 端口
- * （core/web/SessionHeaderProvider.ets）：Mock 阶段返回空串，ticket 06/09 注入真实值。
- * 打开容器时把**实际生效值**（cookie 条目数 / 令牌是否存在）打进 hilog。
+ * 取值，写进请求头与模板。本工程没有这两个全局单例，会话由 `SessionHeaderProvider`
+ * （core/web/SessionHeaderProvider.ets，**只在内存**）提供：CSRF 令牌进模板；cookie 则由本
+ * 组件逐条写进**容器的** cookie 存储（见 syncSessionCookies）——容器与应用 HTTP 栈是两套
+ * 互不相通的存储，正文里的子资源（图片）要带着同一个会话才会被站点鉴权。
+ * 打开容器时把**实际生效值**（写入条数、容器存储里读回的条数与名字、令牌是否存在）打进 hilog。
  *
  * ## 3. 链接（验收第 4 条：行为明确 = 外部打开）
  *
@@ -45,6 +46,8 @@ import { webview } from '@kit.ArkWeb';
 import { Logger } from '../../core/log/Logger';
 import { resolveTheme } from '../theme/Tokens';
 import { LEARN_URL, SessionHeaderProvider } from '../../core/web/SessionHeaderProvider';
+import { CookiePair, parseCookieHeaderPairs } from '../../core/http/CookieJar';
+import { buildWebCookieWrites, WebCookieWrite } from '../../core/web/WebSessionCookie';
 import {
   DARK_READER_FILE, KATEX_AUTO_RENDER_FILE, KATEX_SCRIPT_FILE, KATEX_STYLES_FILE, WEB_ASSET_DIR, readRawFileText
 } from '../../core/web/WebPageAssets';
@@ -272,6 +275,7 @@ export struct HtmlWebView {
   }
 
   private loadHtmlFromCache(): void {
+    this.syncSessionCookies();
     const html: string = this.buildHtml();
     const baseUrl: string = LEARN_URL + '/learnoh/notice-detail.html';
     // 归位：onLoadIntercept 用 `loaded` 区分"首次加载"与"用户点链接"，
@@ -286,6 +290,75 @@ export struct HtmlWebView {
     } catch (error) {
       logger.error('loadData failed: ' + (error as Error).message);
     }
+  }
+
+  /**
+   * 把应用内存会话写进**本容器的** cookie 存储。
+   *
+   * 为什么必须有这一步：容器里的 cookie 存储与应用 HTTP 栈互不相通。正文里的图片是 learn
+   * 源上的子资源，由 ArkWeb 自己发请求；不写会话时它带着空/过期会话发出，服务端 302 到
+   * 登录超时页，<img> 于是 naturalWidth=0（设备实测：complete=true、nat=0x0，同一 URL 的
+   * 页面内 XHR 落在 /f/login_timeout、返回 text/html）。
+   *
+   * 只写 learn 源（LEARN_URL）：外部 CDN 的 katex / darkreader 不受影响。写入用
+   * incognito=true + includeHttpOnly=true（见 core/web/WebSessionCookie.ets），会话只进内存态
+   * 存储，不落盘（ADR-0004）。
+   *
+   * 先清空内存态存储再写：会话变化（重登）时同名 cookie 被覆盖，旧会话里独有的名字也不会
+   * 残留；登出后 session 为空串 ⇒ 一条都不写，容器不再持有可用会话。
+   *
+   * 日志只打条数、名字与值长度 —— cookie 值是会话凭证，绝不进日志。
+   */
+  private syncSessionCookies(): void {
+    const url: string = LEARN_URL;
+    const header: string = this.session === null ? '' : this.session.cookieHeader();
+    const writes: WebCookieWrite[] = buildWebCookieWrites(header, url);
+    // 自证写入前的真实状态：新进程的第一次挂载即"重启后 ArkWeb 里没有残留会话"的判据。
+    logger.info('web cookie sync: incognitoBefore=' + this.describeCookieStore(url, true)
+      + ' persistentBefore=' + this.describeCookieStore(url, false)
+      + ' sessionEntries=' + writes.length.toString());
+    try {
+      webview.WebCookieManager.clearAllCookiesSync(true);
+    } catch (error) {
+      logger.warn('clearAllCookiesSync(incognito) failed: ' + (error as Error).message);
+    }
+    if (writes.length === 0) {
+      logger.info('web cookie sync: no session -> incognito store left empty');
+      return;
+    }
+    let failed: number = 0;
+    for (let i = 0; i < writes.length; i++) {
+      const write: WebCookieWrite = writes[i];
+      try {
+        webview.WebCookieManager.configCookieSync(write.url, write.value, write.incognito, write.includeHttpOnly);
+      } catch (error) {
+        // 不静默：写入失败必须能从日志里看出来（名字与长度，不含值）。
+        failed++;
+        logger.error('configCookieSync failed: name=' + write.name
+          + ' valueChars=' + write.valueChars.toString() + ' ' + (error as Error).message);
+      }
+    }
+    logger.info('web cookie sync done: ok=' + (writes.length - failed).toString()
+      + '/' + writes.length.toString() + ' incognitoAfter=' + this.describeCookieStore(url, true));
+  }
+
+  /** 读回 cookie 存储的实际内容，**只有条数与名字**（值不进日志）。无 cookie 时返回 none。 */
+  private describeCookieStore(url: string, incognito: boolean): string {
+    let header: string = '';
+    try {
+      header = webview.WebCookieManager.fetchCookieSync(url, incognito);
+    } catch (error) {
+      return 'none';
+    }
+    const pairs: CookiePair[] = parseCookieHeaderPairs(header);
+    if (pairs.length === 0) {
+      return 'none';
+    }
+    const names: string[] = [];
+    for (let i = 0; i < pairs.length; i++) {
+      names.push(pairs[i].name);
+    }
+    return 'entries=' + pairs.length.toString() + ' names=[' + names.join(',') + ']';
   }
 
   /** 高度：测到之前用 1（对齐参考实现的 `useState(1)`）。 */
@@ -371,7 +444,8 @@ export struct HtmlWebView {
 
   build() {
     Column() {
-      Web({ src: '', controller: this.controller })
+      // incognitoMode(true)：本容器的 cookie 只存在内存、不写持久化文件（见 syncSessionCookies）。
+      Web({ src: '', controller: this.controller, incognitoMode: true })
         .javaScriptOnDocumentStart(INJECTED_SCRIPTS)
         .onControllerAttached(() => {
           // 正文用 WebviewController.loadData 送入：WebAttribute.src 只接受
