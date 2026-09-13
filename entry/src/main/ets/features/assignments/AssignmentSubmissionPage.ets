@@ -55,7 +55,6 @@ import { AppIcon } from '../../ui/icons/IconCatalog';
 import { IconGlyph } from '../../ui/icons/IconGlyph';
 import { CourseListStore } from '../courses/CourseListStore';
 import { FileDetailRouteParams, ROUTE_FILE_DETAIL } from '../notices/NoticeRoutes';
-import { isPastDeadline } from './AssignmentFilter';
 import { submissionBlockedKey } from './AssignmentText';
 import { AttachmentPickers, PickOutcome } from './AttachmentPickers';
 import { createAssignmentSubmitter } from './repository/AssignmentSubmissionProvider';
@@ -238,18 +237,22 @@ export struct AssignmentSubmissionPage {
    *
    * 判定只有一份：`domain/assignments/SubmissionState.submitBlockReason`。按钮的外观、
    * 点击时说的话都读它，避免"灰按钮"与"提示"各判一套。
-   * 截止那一项用既有的 `isPastDeadline`（与列表/详情同一份边界），本页不重复算。
+   *
+   * **本页不把截止时间算进来**（第一项固定传 `false`）：逾期与否的最终裁判是站点
+   * （补交截止 `bjjzsj` 那一支也是站点说了算），本地在这里再发明一道闸，可能挡住一次
+   * 合法的补交；参考实现的提交按钮同样只读"在飞 / 有没有内容"，完全不读截止
+   * （AssignmentSubmission.tsx:274-276）。进本页的唯一入口在作业详情页，那里已经判过截止。
    */
   private blockReason(): SubmitBlockReason | undefined {
-    return submitBlockReason(isPastDeadline(this.assignment.deadline, Date.now()), this.state);
+    return submitBlockReason(false, this.state);
   }
 
   /**
    * 点「提交」：能走才进二次确认（与改动前同一条路径）；不能走就说**为什么**。
    *
    * 改动前这里是一个 `enabled(false)` 的灰按钮：点下去既没有请求、也没有任何说明
-   * （未选附件 / 正在提交中 / 已截止三种情形看起来一模一样）。拦截本身没变 ——
-   * 不能走的时候依然**不发任何请求**。
+   * （未选附件 / 正在提交中两种情形看起来一模一样）。拦截本身一字未改 ——
+   * 能否提交的判据仍是 `canSubmit` 那一套（本页不看截止），不能走时依然**不发任何请求**。
    */
   private handleSubmitPress(): void {
     const reason: SubmitBlockReason | undefined = this.blockReason();

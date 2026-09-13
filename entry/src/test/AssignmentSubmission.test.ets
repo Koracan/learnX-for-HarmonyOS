@@ -396,6 +396,23 @@ export default function assignmentSubmissionTest() {
       expect(submitBlockReason(true, undefined)).assertEqual('past_deadline');
     });
 
+    it('reportsPastDeadlineOnlyWhenTheCallerAsksForTheDeadlineCheck', 0, () => {
+      // 截止是**调用方喂进来的**，不是函数自己看的：提交页那一支固定传 false
+      // （逾期与补交由站点判，本地不在第二处再拦），只有作业详情页的入口传真实判定。
+      const states: SubmissionState[] = [
+        initialSubmissionState(''),
+        stateWithContentOnly(),
+        stateWithAttachment(),
+        submitStarted(stateWithAttachment())
+      ];
+      for (let i = 0; i < states.length; i++) {
+        expect(submitBlockReason(false, states[i]) === 'past_deadline').assertFalse();
+      }
+      // 同一批状态，只要调用方说"已截止"，结论立刻变成 past_deadline。
+      expect(submitBlockReason(true, states[0])).assertEqual('past_deadline');
+      expect(submitBlockReason(true, states[3])).assertEqual('past_deadline');
+    });
+
     it('keepsTheSameBlockingDecisionAsCanSubmitWhileTheDeadlineIsOpen', 0, () => {
       const states: SubmissionState[] = [
         initialSubmissionState(''),
