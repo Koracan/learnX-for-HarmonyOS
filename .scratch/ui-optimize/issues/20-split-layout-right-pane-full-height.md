@@ -13,7 +13,7 @@
 
 **Blocked by:** None（可立即开始）
 
-**Status:** open
+**Status:** verified
 
 **判据（每条都要 layout dump 的 px 或单测）**
 
@@ -121,3 +121,46 @@ D. 门禁与纪律
 
 **状态**：`5559`（tablet）与 `5555`（phone）都装着改后产物、已冷启停在公告 tab 单栏/分栏正确形态；**学期未改**（只打开过学期切换页）；
 未碰 `5557`；未 merge/rebase/push。副作用一条：验收全屏档时打开过一个 212MB ZIP 的文件详情，按既有行为自动下载进了应用内 cache。
+
+### 复核 Comment（统筹者，merge `8156708`）
+
+**结论：通过。** 关键判据由我自己重做：先在工树里重跑门禁，再在 **5559** 上做 before/after 两态 A/B
+（before = 合并前主树 19:11 的产物，after = 工树 19:33 的产物），**不采信实现者自报的数字**。
+
+**我自己的 A/B（5559 tablet，2880×1920px @2，barH=112px；全部 `devecocli ui layout --mode full` 的 px）**
+- 空详情态（重启后冷启停公告 tab）：右栏整条链 `Column / Navigation / NavBar / NavBarContent`
+  `[788,86,2880,1752] → [788,86,2880,1864]`（**+112 = barH**）；空态图标中心 y 875→931（+56，居中）。
+- 打开同一份公告（同一滚动位）：右栏 `Navigation / NavigationContent / NavDestination / NavDestinationContent / Column / Scroll / Web / rootWebArea / genericContainer`
+  全部 `1752 → 1864`；文档容器 `[820,362,2848,1752] → [820,362,2848,1864]`；
+  文档尾部那张图 `[820,1106,2460,1752] → [820,1106,2460,1864]` ⇒ **可见高 646 → 758（+112）**。
+- **A.3 主栏没被遮**（我最担心的一条）：主栏 `Navigation [0,86,786,1752]`、`Refresh [0,266,786,1752]`、
+  `List [0,266,786,1752]`、两个 `ListItem` 在两种状态下**逐值不变** ⇒ 列表底 1752 = 底栏上边界。
+- **A.2 底栏没被改回去**：`Row [0,1752,786,1864]` 与 5 个命中区 `x∈[0,157/157,314/…/629,786]`、`y∈[1754,1864]` 逐值不变。
+- 两次 dump 都是 109 个节点，差异**只落在高度链**上（没有节点位移或消失）。
+- **B.1 单栏逐字节**：5555（phone）改前/改后 dump **SHA256 相同**（`FA786D42…`，64501 B）⇒ 单栏 0 差异，我自己复现。
+- 合并后的主树产物也装到两台设备：空态 dump 与工树产物 dump **逐字节相同**（5559 `675388C6…`、5555 `FA786D42…`）；
+  5559 上打开公告的分栏帧**渲染出内容**，文档末行「群聊：形式语言与自动机 2026 秋」完整可见（改前那版这行在底边被切）；
+  hilog 消费点自证 `split height budget: appH=960 barH=56 barWidth=393 barVisible=true shellContentBottomInset=0 barMarginTop=-56 masterPaneBottomInset=56 masterContentH=904 detailContentH=960`。
+
+**门禁（我自己跑的）**
+- 工树 `wt/t20`：`Tests run: 443, Failure: 0, Error: 0, Pass: 443, Ignore: 0`（test_result.txt mtime 19:32:51）；
+  `assembleHap --no-incremental` BUILD SUCCESSFUL ×1、`ERROR / ErrorCode / COMPILE RESULT` = 0；四脚本 PASS / PASS / RESULT: OK / PASS；
+  解包 `ets/modules.abc` `F5A1B56E…`（1,826,096 B）—— 与实现者自报逐字一致。
+- 合并后主树 `8156708`：`Tests run: 454`（441 + 19 的 11 + 20 的 2，mtime 19:40:11）、assemble 0/0/0、四脚本全绿、`git status` 干净。
+- 合并过程：唯一冲突是本 ticket 文档（add/add）；`SettingsPage.ets` 自动合并成功，我逐行确认 **ticket 19 的导出改动**
+  （`LogExport` import / `exportInFlight` / `log export reported`）与**本 ticket 的预留**（`masterPaneReserve` / `padding({ bottom })`）都在。
+
+**对我自己判据的一处纠正**：我在 ticket A.1 里写的「右栏下边界 = 1920（屏底）」是**我写错了** ——
+这台平板的**应用渲染区**是 `y∈[86,1864]`（上 86px 状态栏、下 56px 手势区），底栏（ticket 04 已验收）下边界本来就是 1864；
+1920 只有扩安全区才够得到，而那样会同时把底栏推下去、违反 A.2。**能站住的判据是「+barH 且与底栏下边界相等」**，这条成立，
+实现者把它改成这个说法是对的。
+
+**我没能独立复现的（如实记）**
+1. **B.2 全屏档（分栏 + 主栏隐藏）**：要走到它得「文件 tab → 打开文件详情 → 点全屏按钮」，本轮我没有走完这条路，
+   只有实现者的帧 + 单测（`splitHeightBudget(true, true, …)` 的三档 invariant）。这是**回归护栏**，不是本 ticket 的要害。
+2. `Tabs/Swiper` 盒报 `[0,86,2880,1920]` 而 `TabContent [0,86,2880,1864]`：我的 dump **逐值复现**了这个溢出，
+   帧上看不出后果（多出的部分落在系统手势区）。实现者已记为未归因，我同意保留观察、不阻塞。
+3. 取证方法的一条环境事实：反复 `hdc install -r` 之后，**5559 的 Web 表面在截帧里是黑的**（before/after 两版一样黑），
+   而同一时刻 layout dump 的 Web 子树是完整的（有 paragraph / image 节点）⇒ 这是截帧与合成的环境问题，不是本次改动；
+   我 `reboot` 之后同一个产物就能渲染出内容（本 Comment 提到的那帧就是重启后拍的）。以后遇到「右栏一片黑」先重启设备再判断。
+4. 设备副作用（实现者已声明、我复核确认）：验收全屏档时打开过一个 212MB ZIP 的文件详情，按既有行为下载进了应用内 cache，未落用户目录。
