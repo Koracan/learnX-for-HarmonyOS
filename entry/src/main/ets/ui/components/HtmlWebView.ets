@@ -155,6 +155,12 @@ export struct HtmlWebView {
   // 现在两者都由 isDark 推导（见 surfaceColor()），不存在不一致的窗口。
   /** 会话注入端口（features 注入；Mock 阶段是空实现）。 */
   session: SessionHeaderProvider | null = null;
+  /**
+   * 正文所属页面的地址（**这次请求的响应地址**，公告详情就是带 query 的 `beforeViewXs`）。
+   * 正文里的相对链接 / 图片按它解析到站点地址；空串时回落到 learn 站点根——
+   * 相对地址总要有一个基准，没有基准就只能原样交给浏览器（多半解析不到站点上）。
+   */
+  @Prop baseUrl: string = '';
 
   /** 测到的内容高度（CSS px，当 vp 用；换算式见 ticket 04 Comments）。 */
   @State measuredHeight: number = 0;
@@ -209,11 +215,18 @@ export struct HtmlWebView {
     return resolveTheme(this.isDark).colors.surface;
   }
 
+  /** 生效的基础地址：`baseUrl` 空时回落站点根，`loadData` 与注入脚本**取同一个值**。 */
+  private effectiveBaseUrl(): string {
+    const trimmed: string = this.baseUrl.trim();
+    return trimmed.length > 0 ? trimmed : LEARN_URL + '/';
+  }
+
   private buildHtml(): string {
     this.loadAssetsOnce();
     const body: string = this.content.trim().length > 0 ? this.content : '<p>' + this.emptyText + '</p>';
     const token: string = this.session === null ? '' : this.session.csrfToken();
-    const html: string = getWebViewTemplate(body, this.isDark, this.surfaceColor(), token, LEARN_URL, this.assets);
+    const html: string = getWebViewTemplate(body, this.isDark, this.surfaceColor(), token, LEARN_URL,
+      this.effectiveBaseUrl(), this.assets);
     this.htmlChars = html.length;
     return html;
   }
@@ -247,7 +260,9 @@ export struct HtmlWebView {
    *   1. `loadData` 不带 baseUrl：桥**可用**，但文档是 opaque origin，`new URL()` 不可用；
    *   2. `loadUrl('file://…')` 写进 cacheDir：ArkWeb 直接 `ERR_ACCESS_DENIED`
    *      （应用沙箱文件路径默认不允许被 Web 加载），页面白屏；
-   *   3. `loadData` + baseUrl（本实现）：桥可用，且文档按 learn 站点解析相对链接。
+   *   3. `loadData` + baseUrl（本实现）：桥可用，且文档按该地址解析相对链接。
+   *      baseUrl 取**这次请求的响应地址**（公告记录里的 url）：相对地址落在站点上的
+   *      真实目录里，而不是某个合成路径下的目录。
    *
    * 注意 `javaScriptProxy` 与"文档开始注入脚本"是两件事：桥对象注入后，**必须**有
    * `javaScriptOnDocumentStart`（见 INJECTED_SCRIPTS）把测高脚本放进页面，
@@ -273,14 +288,15 @@ export struct HtmlWebView {
 
   private loadHtmlFromCache(): void {
     const html: string = this.buildHtml();
-    const baseUrl: string = LEARN_URL + '/learnoh/notice-detail.html';
+    const baseUrl: string = this.effectiveBaseUrl();
     // 归位：onLoadIntercept 用 `loaded` 区分"首次加载"与"用户点链接"，
     // 重送模板时主框架请求会被当成点击而被外部打开（实测风险），所以必须先置 false。
     this.loaded = false;
     try {
-      // baseUrl + historyUrl 都给：baseUrl 让文档有 learn 站点的网络来源
-      // （参考实现 AutoHeightWebView.tsx:87-89 的 `source.baseUrl = Urls.learn`），
-      // historyUrl 让 `new URL()` / 相对链接解析按 learn 站点来（对齐参考实现）。
+      // baseUrl + historyUrl 都给：baseUrl 让文档有站点来源，historyUrl 让相对链接解析
+      // 按**这次请求的响应地址**来（参考实现给的是站点根 `Urls.learn`，这里更精确：
+      // 公告正文的相对图片是相对它自己那一页的目录）。两者取同一个值，
+      // 与注入脚本里 `learnOhBase` 用的也是它——不让「文档基准」与「脚本基准」有机会不一致。
       this.controller.loadData(html, 'text/html', 'UTF-8', baseUrl, baseUrl);
       logger.info('loadData issued: htmlChars=' + html.length.toString() + ' baseUrl=' + baseUrl);
     } catch (error) {

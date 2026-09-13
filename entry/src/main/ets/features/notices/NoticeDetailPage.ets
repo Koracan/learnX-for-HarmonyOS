@@ -316,7 +316,9 @@ export struct NoticeDetailPage {
             // 唯一来源就是 isDark()（= 应用 colorMode）；取证控制条改的也是它，
             // 所以不存在"界面显示的标志"与"模板实际用的标志"不一致的余地。
             isDark: this.isDark(),
-            session: this.session
+            session: this.session,
+            // 基础地址 = 这条公告的响应地址（解析层从 courseId/ggid 推出的真实页面地址）。
+            baseUrl: this.notice.url
           })
         }
         .width('100%')
