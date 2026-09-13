@@ -4,7 +4,11 @@
 窗口 2880×1920 px，密度 2（1vp = 2px）。已安装包 `com.koracan.learnOH`。
 
 > 这台机是**真实登录会话**（han-wang23）。全程没有点「退出登录」、没有点任何提交入口、没有改设备级设置。
-> 点击过的按钮只有：底部 tab（文件 / 作业）、文件列表里的一个 ZIP、详情顶栏的「外跳」、以及系统对话框的「取消」。
+> 第一轮点击过的按钮只有：底部 tab（文件 / 作业）、文件列表里的一个 ZIP、详情顶栏的「外跳」、以及系统对话框的「取消」；
+> 补证轮另外点过：顶栏「刷新」、作业卡片与它的附件行（**没有**碰提交入口），详见文末「本轮收尾」。
+>
+> **本文含两轮**：第一轮（首次交付，第 1–8 节）与 **补证轮**（统筹复核通过并合并之后，见文末「补证轮」一节）——
+> 补的是「未落盘」那一支的设备帧、成功路径的证伪式搜索、以及 want type 匹配的决定性对照实验。
 
 ## 参考实现里这个动作到底是什么（**先读，别猜**）
 
@@ -92,11 +96,182 @@ Stack [2768,102,2848,182]    <- 外跳        （80×80）   <-- 本次新增
    **没有**断言"调用了哪个系统 API"。
 8. **证据：按钮出现 + 点击后的系统行为 + layout dump 的 bounds** —— 见上面三节。
 
-## 没抓到 / 存疑（如实写）
+## 未达成 / 风险（本轮补证后更新）
 
-- **成功路径（真的有应用接住）没有取证**：本机文件 tab 只有 4 个 ZIP，作业 tab 当前是空态（`暂无作业`），
-  公告列表也没有带附件的公告 ⇒ 设备上没有任何非 ZIP 的落盘文件可以试。系统直接回了 `16000019 No matching ability is found`。
-  ⇒ "want 能被某个真实应用接住"这一条**只有代码依据、没有设备证据**。
-- 传给系统的 `type` 用的是 `general.file`（与既有分享动作同一套三常量映射，见 `FileDetailPage.shareUtd`），
-  没有按扩展名细分（平台那个按扩展名取 UTD 的 API 在本工程实测会抛 401，见该方法的注释）。
-  若某个 ZIP 应用只声明更具体的类型，可能会匹配不上 —— 属于后续可改项，不在本 ticket 的验收内。
+1. **成功路径不存在（已搜索、不是没抓到）** —— 见下面「B. 成功路径的证伪式搜索」：6 个搜索面（2 个学期 × 文件 / 作业 / 公告），
+   找到并实测了一个非 ZIP（作业附件 `Homework12.pdf`），点外跳仍然是 `16000019 No matching ability is found`。
+2. **根因已定：阻塞项是 want 的 `type`** —— 见「B-2」的对照实验。本 ticket 现在的实际行为是：
+   **只要文件落盘了、点外跳，就必然落到失败文案**，因为 `shareUtd()` 对 ZIP 与 PDF 都返回 `general.file`，
+   而这一台上没有任何接收方声明 `general.file`。这与裁定 1 的前提（"粗粒度不算移植退化"）冲突，已提请重新拍板；
+   本轮按要求**没有改功能代码**。
+3. **一个未证的遗留**（若采纳"不带 type"的改法）：接收方能否真的**读**到应用沙箱里的那个文件，取决于
+   `FLAG_AUTH_READ_URI_PERMISSION` 的授权是否被系统兑现 —— 这一步 shell 侧无法复现，只能在真机上点一次才知道。
+4. `shareUtd()` 里"按扩展名取 UTD"的平台 API 在本工程实测会抛 401（见该方法注释），所以精确类型只能自建映射表，属新增面。
+
+## 补证轮（统筹复核通过并合并后，2026-09-13）
+
+### 统筹者的两条裁定（原文要点）
+
+1. **`general.file` 维持现状，不要改**：参考实现的"打开"动作根本不传类型（`FileViewer.open` 只吃路径，类型由库按扩展名推），
+   所以粗粒度不是移植退化；精确 UTD 那条路依赖在本工程实测会抛 401 的平台 API，要做就得自建"扩展名 → UTD"表，
+   属于新增面、无验收条款，还会连带改掉已验收的分享动作。**按技术债记在工单里，不放进本 ticket。**
+2. 不用为此单开降级或新 ticket；残留风险写进本文件的"未达成 / 风险"一节。
+
+> 本节 B-2 的实验给裁定 1 的**前提**提供了新证据（阻塞项不是粒度，而是"带任何 type 都不匹配"的这台设备事实）。
+> 裁定本身未被推翻（它主要是一条范围与风险取舍），但它的风险描述"粗粒度"需要按 B-2 更正。
+
+### A. 「未落盘」那一支的设备帧
+
+应用缓存里那两个 ZIP（166MB / 734MB）是先前取证下载的；本轮**不删文件**，改用顶栏「刷新」按钮
+（`startDownload(true)`，绕过"文件存在即缓存命中"的短路）重新制造 DOWNLOADING 窗口。
+
+**A-1 未落盘时按钮是次要色** —— `13-not-ready-while-downloading.png`（进度条读到 `281.77 MB / 700.48 MB` 的那一帧）。
+放大裁剪 `13-not-ready-button-outline-crop.png`（原图 x 2420–2880 / y 90–200，×3 最近邻）里逐个认字形：
+**「分享」仍是主色（紫），「外跳」是次要色（灰）**。这两枚按钮的判据**不同源**：分享只看 `localPath`，
+外跳看 `canOpenExternally(phase === READY, localPath)`；此刻刷新触发的重下正在进行、`localPath` 还留着上一轮的路径，
+所以分享亮、外跳灰。
+
+> **layout dump 本身没有颜色字段**（只有 `type` / `bounds` / `text` / `clickable`），所以"次要色 / outline 态"这条论断
+> 只能由**截图**承载，dump 承载不了 —— 这也是 A-1 用截图 + 裁剪而不是 dump 的原因。
+
+**A-2 点它给出可读文案** —— `13-not-ready-note-on-click.png` + `logs/13b-layout-02-not-ready.json`，同一帧里三件事同时可见：
+
+```
+Stack "" [2768,102,2848,182] CLICKABLE          <- 外跳按钮命中区：80×80 px = 40vp×40vp
+Text ""<U+E89E> [2784,118,2832,166]             <- AppIcon.OPEN_IN_NEW 的字形
+Text "文件尚未下载完成，暂时不能交给其他应用打开。" [820,222,2848,250]   <- 本次新增的文案键 ui_file_open_not_ready
+```
+
+同一帧里还有 `下载中 643.54 MB / 700.48 MB` 的进度条，而且**没有系统对话框节点**（dump 里不存在 `Dialog`）——
+说明这一次没有把任何东西交给系统。
+
+hilog 原话（`logs/13b-hilog-a2.txt`）：
+
+```
+09-13 13:33:27.018 I [features.files.detail] file detail external open skipped: no local copy yet, path="/data/storage/el2/base/haps/entry/cache/learnX-files/英语听说交流（A）/1991990059_KJ_1787977419601777807b2f6-57f4-474e-bd5a-90aeb75dad84/英语听说交流（A）-Listening 2 (Video).zip"
+09-13 13:33:43.229 I [features.files.detail] file detail ready: path=/data/storage/el2/base/haps/entry/cache/learnX-files/… bytes=734501365 fromCache=false
+```
+
+⇒ not-ready 那一支确实被走到；13:33:43 那次 ready 是同一轮刷新下载完成，与点击无关。
+
+### B. 成功路径的证伪式搜索
+
+**搜索面与结果**（都是 dump 原话，过程文件在 `logs/`）：
+
+| 搜索面 | 怎么扫 | 结果 |
+| --- | --- | --- |
+| 文件 tab，站点当前学期 `2026-2027-1` | 冷启动后进文件 tab，dump | `全部 4`：1 门课（英语听说交流（A））× 4 条，**全部 ZIP**（212.0M / 166.0M / 700.0M / 196.0M） |
+| 作业 tab，当前学期 | 进作业 tab，dump | `未完成 0 / 已完成 0 / 全部 0` + `暂无作业` —— 空态 |
+| 公告 tab，当前学期 | 冷启动落地页就是公告 tab，dump | `全部 2` 两条公告；卡片上的字形只有 `U+F023B`（FLAG = 重要），**没有 `U+F0066`（ATTACHMENT）** |
+| 文件 tab，`--ps lohSemester 2025-2026-2` | 学期覆盖冷启动后进文件 tab，dump | `全部 95`：**绝大多数是 PDF**（软件分析与验证：期末复习 / 16 abstractio and refinement / 样卷解析 / 期末考试样卷；偏微分方程：课件25/26/27；离散数学方法：总复习；算法分析与设计基础：第十四讲课件…） |
+| 作业 tab，`2025-2026-2` | 同上，进作业 tab，dump | `未完成 0 / 已完成 57 / 全部 57`；其中 **3 张卡片带 `U+F0066` 附件标记**（演绎验证编程作业 / 第十二次作业 / 第十四周作业） |
+| 公告 tab，`2025-2026-2` | 同上，dump | `全部 2`，仍只有 FLAG 标记，无附件 |
+
+学期覆盖自证（`logs/13b-hilog-b1.txt`）：
+
+```
+[entry.ability]       semester override: want parameter "lohSemester"="2025-2026-2" accepted=true; constant="" runtime="2025-2026-2" effective="2025-2026-2" source=runtime-want-param
+[data.courses.source] data.courses override active: siteCurrent=2026-2027-1 effective=2025-2026-2
+```
+
+**找到并实测的非 ZIP 文件**：`算法分析与设计基础 / 第十二次作业` 的作业附件 `Homework12.pdf`。
+作业详情页 dump 原话（`logs/13b-layout-11-assignment-detail.json`）：
+
+```
+Column "" [788,464,2880,578] CLICKABLE
+Text ""<U+F0066> [820,480,868,528]
+Text "Homework12.pdf" [892,485,2848,523]
+Text "作业附件" [820,536,909,562]
+```
+
+**只点了这一行**（center 1834,521），没有碰同页的「在线提交」入口，也没有碰右上角的上传按钮。
+结果：**同样失败**。落盘 21071 字节后点外跳（`logs/13b-hilog-b4.txt`）：
+
+```
+file detail external open uri: file://com.koracan.learnOH/data/storage/el2/base/haps/entry/cache/learnX-files/%E7%AE%97%E6%B3%95…%E5%9F%BA%E7%A1%80-Homework12.pdf
+file detail external open want: action=ohos.want.action.viewData type=general.file flags=1 entities=0
+file detail external open failed at step=startAbility: code=16000019 message=No matching ability is found.
+```
+
+截图 `logs/13b-13-pdf-after-open.png`：系统「暂无可用打开方式 / 暂无支持此类文件的应用」+ 页面 `文件打开失败。…`。
+
+**顺带记一条现场事实：外跳按钮的位置会随文件类型变化。** PDF 可预览，顶栏因此多一枚「详情 / 预览」按钮，
+这一帧外跳在 `Stack [2664,102,2744,182]`（center 2704,142），而不是 ZIP 那帧的 `[2768,102,2848,182]`。
+按码位逐个认过：`820 ARROW_BACK / 2352 FULLSCREEN / 2456 REFRESH / 2560 SHARE / 2664 OPEN_IN_NEW / 2768 INFO`。
+
+⇒ **成功路径的结论是"已搜索、确实不存在"**，不是"没抓到"。
+
+### B-2. 为什么匹配不到：`type` 是唯一阻塞项（决定性对照）
+
+失败信息只说"没有匹配的应用"。为了分清"这台设备真的没有接收方"与"我们发错了东西"，
+先看装了哪些应用（`bm dump -a`，**不是**没有接收方）：
+
+```
+com.huawei.hmos.filemanager   com.huawei.hmos.files     com.huawei.hmos.browser
+com.huawei.hmos.photos        com.huawei.hmos.hipreview com.ohos.UserFile.ExternalFileManager
+```
+
+再把 skills 摊开（`bm dump -n <bundle>` + 本地解析，原文在 `logs/13b-bm-*.json`）——
+**filemanager 明确声明了我们要的那条 action**：
+
+```
+[filemanager] actions=[ohos.want.action.viewData,ohos.want.action.sendData]  types=[]
+[filemanager] actions=[ohos.want.action.viewData]  types=[general.zip-archive | org.7-zip.7-zip-archive | com.rarlab.rar-archive | general.tar-archive | org.gnu.gnu-zip-archive]
+[hipreview]   actions=[ohos.want.action.viewData]  types=[text/plain | … | image/png | … | image/svg+xml]   （MIME 名，不是 general.*）
+[browser]     actions=[ohos.want.action.viewData,action.system.home]  types=[application/x-mimearchive | text/html | application/pdf]
+```
+
+然后用 `aa start -A <action> -t <type> -U <uri>` 把 `type` 当作**唯一变量**做对照
+（只启动应用，不改任何数据；`10103101` = `Failed to find a matching application for implicit launch.`）：
+
+| # | type | uri | 结果 |
+| --- | --- | --- | --- |
+| T3 | （无） | 无 | `start ability successfully.` |
+| T1 | `general.file` | 无 | `10103101` 失败 |
+| T2 | `general.zip-archive` | 无 | 失败 |
+| T4 | `general.pdf` | 无 | 失败 |
+| T5 | `com.adobe.pdf` | 无 | 失败 |
+| T6 / T16 | `general.image` | 无 | 失败（两次） |
+| T11 | `general.text` | 无 | 失败 |
+| T12 | `application/pdf` | 无 | 失败 |
+| T7 | （无） | `file://com.koracan.learnOH/data/…/b.pdf` | `start ability successfully.` |
+| T8 | （无） | `https://example.com/x` | `start ability successfully.` |
+| T9 | `general.file` | `file://com.koracan.learnOH/data/…/b.pdf` | 失败 |
+| T10 / T17 | `general.plain-text` | 无 | `start ability successfully.`（两次） |
+| T13 | `image/png` | 无 | `start ability successfully.` |
+| T14 | `text/plain` | 无 | `start ability successfully.` |
+| T15 | `general.png` | 无 | `start ability successfully.` |
+
+读法（T1 与 T10 各复现一次，结果稳定）：
+
+- **T7 vs T9**：同一个 uri，去掉 `type` 就能匹配、带上 `general.file` 就匹配不到 ⇒ **阻塞项是 `type`，不是 uri**。
+- 匹配是**按具体类型**做的：`general.file` / `general.image` 这类**父类型**在这一台上没有任何接收方声明；
+  而 `general.plain-text` / `general.png` / `image/png` / `text/plain` 有（hipreview 与 browser 声明的正是 MIME 名那一组）。
+- 于是本 ticket 现在的实际行为是：**只要文件落盘、点了外跳，就必然落到失败文案**（ZIP 与 PDF 都实测如此），
+  因为 `shareUtd()` 对 ZIP 与 PDF 都返回 `general.file`（只有图片 → `general.image`、txt → `general.plain-text` 两条分支）。
+
+一个与参考实现一致的最小候选改法（**本轮未实施**）：外跳动作**不带 `type`**——
+`externalOpenIntent` 已经支持空 type（注释里就写着"调用方不要把它放进 Want"），这样会落到 filemanager 那条
+无类型约束的 `viewData` skill（T7/T3 的路径）。
+
+### 本轮新增 / 引用的过程文件
+
+| 文件 | 用途（一条主论断） |
+| --- | --- |
+| `logs/13b-01-downloading-outline.png`、`logs/13b-03-not-ready-note.png` | A-1 / A-2 的原始帧（证据目录里的两份是它们的副本） |
+| `logs/13b-layout-02-not-ready.json` | A-2 的 bounds 原话（外跳 Stack / U+E89E / 文案 [820,222,2848,250]） |
+| `logs/13b-hilog-a2.txt` | `external open skipped: no local copy yet` 原话 |
+| `logs/13b-layout-10-assignments-spring.json`、`logs/13b-layout-20..22-*.json` | B 轮搜索面：春季 95 个文件 / 57 条作业（3 条带附件）/ 两个学期的公告 |
+| `logs/13b-layout-11-assignment-detail.json` | `Homework12.pdf` 附件行原话 |
+| `logs/13b-hilog-b4.txt`、`logs/13b-13-pdf-after-open.png` | 非 ZIP（PDF）点外跳同样 `16000019` |
+| `logs/13b-bm-filemanager.json`、`13b-bm-hipreview.json`、`13b-bm-browser.json` | 三个应用的 skills 原文（B-2 的唯一变量实验依据） |
+| `logs/13b-hilog-b1.txt` | 学期覆盖自证：`siteCurrent=2026-2027-1 effective=2025-2026-2` |
+| `logs/13b-hilog-cleanup.txt`、`logs/13b-layout-41-files-normal.json` | 收尾复原：`source=none`（覆盖是进程内的，不持久）+ 文件 tab 回到 `全部 4` |
+
+### 本轮收尾
+
+- 取证用的下载（`Listening 2 (Video)` 734501365 字节、`Homework12.pdf` 21071 字节）在截图后由 `aa force-stop` 结束，**没有让下载挂在后台**。
+  应用缓存目录里留下了这些落盘物（另有先前取证下载的 166MB ZIP）——**未清理**：清缓存会同时删掉其它 ticket 可能仍在引用的落盘物，
+  应用自己的「文件设置 → 清空文件缓存」是可用的清理入口。
+- 学期覆盖是**进程内**的：重启后立即复原（hilog `source=none`），文件 tab 回到当前学期的 `全部 4`。
+- 全程没有点「退出登录」、没有点任何提交入口、没有改设备级设置；只碰 `127.0.0.1:5559`。
