@@ -4,14 +4,14 @@
 
 **Blocked by:** None（可立即开始）
 
-**Status:** verified-partial（合并 `9b77857`：机制/单测/主树门禁达成；"重启后仍已读"那一帧非判别性，已退回补拍）
+**Status:** verified（机制 `9b77857` + 判别性冷启动帧 `4c18db3`；两条断言齐）
 
 - [x] 打开公告详情后返回列表，该条目的未读标记消失；未读数相应减少
 - [x] 已读集合随快照一起持久化；冷启动读回后与内容项合并
 - [x] 快照损坏或版本不符时，已读集合的读取不抛异常（沿用既有的「丢弃重建、不崩溃」约定）
 - [x] 单测：已读写入 → 持久化 → 读回合并（沿用既有公告仓库测试的写法）
-- [ ] 证据：设备上打开一条 → 返回列表截图（蓝点消失）→ 重启 → 再截图（仍消失）
-      （**未达成**：现有那帧是非判别性的，见下方 Comments；已退回补拍判别性帧）
+- [x] 证据：设备上打开一条 → 返回列表截图（蓝点消失）→ 重启 → 再截图（仍消失）
+      （补证轮已闭合：`t07-04` 是**判别性**帧，`t07-05` 明确标注非判别性，见下方补证轮复核）
 
 ## Comments
 
@@ -39,3 +39,16 @@
 **如实记录的其余两点**：
 - 设备上**取不到真实未读样本**（站点 `sfyd` 两条都是已读，设备只有 2 条公告），所以"打开前有蓝点"这个起点是用取证构建造的；尚未宣称站点数据存在未读。
 - 本 ticket 只覆盖**公告 tab** 的入口；从课程详情页进公告详情不写已读（不在本 ticket 范围内，作为已知差异记着）。
+
+### 2026-09-13 · 补证轮复核：partial → **verified**（合并 `4c18db3`）
+
+补证轮 commit `b53d27b`（2 文件 +79/−32）把上一节指出的问题按"判别性"重做了：
+- **覆盖挪到合并之前**：`refresh()` 里 `applyEvidenceUnreadOverride(this.mapFetched())` 现在作用在**抓取记录**上，之后才是 `mergeNoticeReadState(reportedUnread, this.readIds)`（`RealNoticeRepository.ets:245-250`）。语义变成"站点说这一条未读"，于是**本地集合成了唯一能把它判成已读的东西** —— 这正是上一轮缺的那一环。我读代码确认了顺序，注释也把"顺序反了会盖掉本地集合判定"写明。
+- **自证多了一条计数**：refresh 收尾日志里的 `localReadSetFlip=N`（被抓取侧报未读、最终被本地集合判成已读的条数）。冷启动那次 `reportedUnread=true` + `localReadSetFlip=1` + 界面 `未读 0` 三者同时成立 ⇒ 判别性成立。
+- **开关改名**：`FORCE_FIRST_NOTICE_UNREAD_FOR_EVIDENCE` → `FORCE_NOTICE_UNREAD_FOR_EVIDENCE`（目标由 `EVIDENCE_UNREAD_INDEX` 决定，"FIRST" 已不符实义）。我 grep 过旧名**零残留**。我要求的那条提交态断言已加在 `NoticeRepository.test.ets:309`（`evidenceUnreadOverrideIsOffAtCommit`，`expect(...).assertFalse()`）。
+- **写侧证据换成沙箱文件内容**：`preferences/learnoh_notice_snapshot` 里 `readNoticeIds` 两条 id、两条 item `hasRead=true`，且同一集合在**打开前 `readIds=1`、打开后 `readIds=2`**。他们如实说明"本轮抓不到 `notice marked read` 那行 hilog（工具只够到当前进程）" —— 用磁盘内容替代日志，这个替换比原方案更硬。
+- **对照帧自觉标注**：交付构建冷启动 `localReadSetFlip=0 / evidenceUnreadOverride=false`，文件名与 README 都写了"**非判别性**"（站点自己也说已读）。这条自觉标注正是上一轮缺的。
+- **我复核的**：`test_result.txt` 时间戳 `2026/9/13 13:48:52`、`Tests run: 400, Failure: 0, Error: 0`（399 + 新增断言）；合并后主树四门禁 PASS/OK；`t07-04` 那一帧我**亲眼看过**（未读 0、无蓝点）。
+
+**仍然存在的限制（不因此降级，但留在这里）**：`EVIDENCE_UNREAD_INDEX=1` 是**一次性**的 —— 本轮跑完两条 id 都进了本地集合，以后再要"打开前有蓝点"必须换下标或先清沙箱快照；判别性还依赖那一次刷新成功（本轮 `elapsedMs=336`）。两条都写进了证据 README。
+
