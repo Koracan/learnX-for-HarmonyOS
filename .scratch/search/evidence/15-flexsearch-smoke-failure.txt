@@ -1,8 +1,0 @@
-> hvigor [32mFinished :entry:default@PreBuild... after 22 ms [39m
-> hvigor [32mFinished :entry:default@CreateBuildProfile... after 5 ms [39m
-> hvigor [32mFinished :entry:default@BuildUnitTestHook... after 1 ms [39m
-> hvigor [32mFinished :entry:default@UnitTestArkTS... after 21 s 58 ms [39m
-> hvigor ERROR: 
-ErrorCode: 00507015
-Description: the requested module '&@ohos/flexsearch/src/flexsearch&2.0.1' does not provide an export name 'Document' which imported by '&entry/src/main/ets/features/search/FlexSearchProbe&'
-> hvigor [32mBUILD SUCCESSFUL in 25 s 262 ms [39m
