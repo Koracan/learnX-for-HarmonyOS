@@ -605,7 +605,8 @@ ticket 10 补做轮的 `G1/G1b/G5b/G8`（真实）、`H1/H3/H7`（夹具）、`G
   （与 Pura 90 一致，它本来就是 `16g`）；③ **删掉 `userdata.img.qcow2`**（不删就继续按旧的 6g 续用，
   `config.ini` 改了也没用）；④ 启动（会重建 userdata ⇒ **应用要重装、凭据要重来**）。
   判据：启动后 `hdc -t <serial> shell df /data` 应显示约 15G。`config.ini` 那一项顺手也改成 `16384` 以免被 DevEco 覆盖回去。
-- **真机复验（`AGENTS.md`：真机只做最终一次性复验，时点卡在 ticket 18）不受影响**，也别拿 foldable 的验收去替代它。
+- **真机复验已完成**（2026-09-13，ticket 18）：真机 MatePad Air / API 24 上跑过一次整体复验。
+  真机与模拟器（API 23）的证据**不能互相冒充**，每张图/每份日志按实标注设备；判据与设备清单见 `docs/agents/evidence.md` 与 `docs/agents/environment.md`。
 
 **取证**：`devecocli emulator list` / `device list` / `emulator image list [--all] [--device-type tablet]` 的原始输出；
 `...\Emulator\deployed\{Pura 90,Mate X7,MateBook Pro,MatePad Pro 13}\config.ini`；
