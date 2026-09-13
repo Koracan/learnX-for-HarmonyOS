@@ -8,6 +8,18 @@
  *
  * 读不到时返回 null（= "没有保存过"），由 `ImmersiveSettingsStore` 用参考实现的默认值兜底；
  * 任何平台失败都不抛到调用方以外。
+ *
+ * ## 旧沙箱里残留的 `immersiveAvoidFrontCamera`
+ *
+ * 这个键在移除"避让前置摄像头"开关之前会被写进同一个 preferences 文件。已经存过它的设备/沙箱
+ * 上，本文件**既不读它、也不删它**：
+ *
+ *   - 不读：读路径只看 `immersiveMode`，缺键时 `get` 返回默认值，不可能因此抛异常；
+ *   - 不删：删它要为一次纯粹的清理去写同一个 preferences 文件（`delete` + `flush`），
+ *     而 preferences 是按键存取，多出来的一个键**是惰性的**，不会影响任何取值。
+ *
+ * 于是"旧数据不许炸"的判据落在：老沙箱启动后 `load` 正常返回（hilog 有 `immersive settings load`
+ * 一行），`immersiveMode` 的旧值照旧生效。取证见交付节。
  */
 
 import { preferences } from '@kit.ArkData';
@@ -21,9 +33,8 @@ const logger: Logger = new Logger('data.settings.immersive');
 /** preferences 文件名（应用沙箱内）。 */
 export const IMMERSIVE_SETTINGS_STORE_NAME: string = 'learnoh_immersive_settings';
 
-/** 两个键（与参考实现的字段名同名）。 */
+/** 唯一的键（与参考实现的字段名同名）。 */
 export const IMMERSIVE_MODE_KEY: string = 'immersiveMode';
-export const AVOID_FRONT_CAMERA_KEY: string = 'immersiveAvoidFrontCamera';
 
 export class PreferencesImmersiveSettingsPort implements ImmersiveSettingsPort {
   private readonly context: common.Context;
@@ -40,17 +51,12 @@ export class PreferencesImmersiveSettingsPort implements ImmersiveSettingsPort {
     try {
       const store: preferences.Preferences = await this.open();
       const rawImmersiveMode: preferences.ValueType = await store.get(IMMERSIVE_MODE_KEY, '');
-      const rawAvoid: preferences.ValueType = await store.get(AVOID_FRONT_CAMERA_KEY, '');
-      if (typeof rawImmersiveMode !== 'boolean' && typeof rawAvoid !== 'boolean') {
+      if (typeof rawImmersiveMode !== 'boolean') {
         logger.info('immersive settings load: absent -> defaults');
         return null;
       }
-      const value: ImmersiveSettings = {
-        immersiveMode: typeof rawImmersiveMode === 'boolean' ? rawImmersiveMode : false,
-        immersiveAvoidFrontCamera: typeof rawAvoid === 'boolean' ? rawAvoid : false
-      };
-      logger.info('immersive settings load: immersiveMode=' + value.immersiveMode.toString()
-        + ' immersiveAvoidFrontCamera=' + value.immersiveAvoidFrontCamera.toString());
+      const value: ImmersiveSettings = { immersiveMode: rawImmersiveMode };
+      logger.info('immersive settings load: immersiveMode=' + value.immersiveMode.toString());
       return value;
     } catch (error) {
       const business: BusinessError = error as BusinessError;
@@ -65,10 +71,8 @@ export class PreferencesImmersiveSettingsPort implements ImmersiveSettingsPort {
     try {
       const store: preferences.Preferences = await this.open();
       await store.put(IMMERSIVE_MODE_KEY, value.immersiveMode);
-      await store.put(AVOID_FRONT_CAMERA_KEY, value.immersiveAvoidFrontCamera);
       await store.flush();
-      logger.info('immersive settings save ok: immersiveMode=' + value.immersiveMode.toString()
-        + ' immersiveAvoidFrontCamera=' + value.immersiveAvoidFrontCamera.toString());
+      logger.info('immersive settings save ok: immersiveMode=' + value.immersiveMode.toString());
       return true;
     } catch (error) {
       const business: BusinessError = error as BusinessError;

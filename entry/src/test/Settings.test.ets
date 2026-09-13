@@ -2,9 +2,10 @@
  * 设置与 Mock 模式的**纯逻辑**单测（ticket 17）。
  *
  * 覆盖四块（都是可以在 host 上离线断言的部分；界面组件与平台窗口调用不在单测里）：
- *   1. 沉浸式设置的值 / 语义：默认值、`immersiveMode && immersiveAvoidFrontCamera` 的显示值、
- *      开关 2 的禁用判据、**关掉开关 1 时联动把开关 2 置假**（参考实现 ImmersiveSettings.tsx:24-29）；
- *   2. 持久化：写进注入端口、换一个 store 实例读回来（"重启后保持"的**离线机制证据**）；
+ *   1. 沉浸式设置的值 / 语义：默认值、开关的写入口（参考实现 ImmersiveSettings.tsx 的
+ *      `setSetting('immersiveMode', v)`；第二行开关已移除，连带它的显示值与联动语义）；
+ *   2. 持久化：写进注入端口、换一个 store 实例读回来（"重启后保持"的**离线机制证据**），
+ *      并钉住落盘载荷里不再有被移除的那个字段；
  *   3. Mock 模式：guest/guest 的判据（逐字对齐 .env）、开关的默认值与进出；
  *   4. 样例数据：三个内容域 + 课程都非空、课程归属自洽、**样例仓储不产生任何网络请求**
  *      （`data/remote/NetworkAudit` 计数为 0 —— 验收第 5 条的离线那一半）。
@@ -15,9 +16,8 @@ import { Assignment, CourseFile } from '../main/ets/domain/model/ContentItem';
 import { NoticeRecord } from '../main/ets/data/notices/NoticeRepository';
 import { CourseRecord } from '../main/ets/data/courses/CourseRepository';
 import {
-  DEFAULT_IMMERSIVE_SETTINGS, ImmersiveSettings, ImmersiveSettingsKey, ImmersiveSettingsStore,
-  InMemoryImmersiveSettingsPort, applyImmersiveToggle, avoidFrontCameraEnabled,
-  describeImmersiveSettings, effectiveAvoidFrontCamera
+  DEFAULT_IMMERSIVE_SETTINGS, ImmersiveSettings, ImmersiveSettingsStore,
+  InMemoryImmersiveSettingsPort, describeImmersiveSettings
 } from '../main/ets/data/settings/ImmersiveSettings';
 import { MockCourseRepository } from '../main/ets/data/mock/MockCourseRepository';
 import { MockFileRepository } from '../main/ets/data/mock/MockFileRepository';
@@ -63,86 +63,61 @@ class FakeFileSystem implements FileRepository {
   }
 }
 
-function settings(immersive: boolean, avoid: boolean): ImmersiveSettings {
-  return { immersiveMode: immersive, immersiveAvoidFrontCamera: avoid };
+/** 只钉"值 → 值"的构造器（第二行开关移除后只剩一个字段）。 */
+function settings(immersive: boolean): ImmersiveSettings {
+  return { immersiveMode: immersive };
 }
 
 export default function settingsTest() {
   describe('data.settings.ImmersiveSettings', () => {
-    it('defaults to the reference reducer values', 0, () => {
-      // reference/learnOH-old/src/data/reducers/settings.ts:20-21 两个默认都是 false。
+    it('defaults to the reference reducer value', 0, () => {
+      // reference/learnOH-old/src/data/reducers/settings.ts:20 默认 false。
       expect(DEFAULT_IMMERSIVE_SETTINGS.immersiveMode).assertFalse();
-      expect(DEFAULT_IMMERSIVE_SETTINGS.immersiveAvoidFrontCamera).assertFalse();
       const store: ImmersiveSettingsStore = new ImmersiveSettingsStore(new InMemoryImmersiveSettingsPort());
       expect(store.current().immersiveMode).assertFalse();
-      expect(store.current().immersiveAvoidFrontCamera).assertFalse();
     });
 
-    it('shows the second switch as a logical AND and disables it without immersive mode', 0, () => {
-      // ImmersiveSettings.tsx:47-48：switchValue = immersiveMode && immersiveAvoidFrontCamera；
-      // switchDisabled = !immersiveMode。
-      expect(effectiveAvoidFrontCamera(settings(false, true))).assertFalse();
-      expect(effectiveAvoidFrontCamera(settings(true, false))).assertFalse();
-      expect(effectiveAvoidFrontCamera(settings(true, true))).assertTrue();
-      expect(avoidFrontCameraEnabled(settings(false, true))).assertFalse();
-      expect(avoidFrontCameraEnabled(settings(true, false))).assertTrue();
-    });
-
-    it('clears the avoid-front-camera flag when immersive mode is turned off', 0, () => {
-      // ImmersiveSettings.tsx:24-29 的四行：关掉 ① 时若 ② 为真则一并置假。
-      const turnedOff: ImmersiveSettings = applyImmersiveToggle(settings(true, true), false);
-      expect(turnedOff.immersiveMode).assertFalse();
-      expect(turnedOff.immersiveAvoidFrontCamera).assertFalse();
-      // 打开 ① 时**不动** ②（它此刻多半是假，但规则上不碰）。
-      const turnedOn: ImmersiveSettings = applyImmersiveToggle(settings(false, true), true);
-      expect(turnedOn.immersiveMode).assertTrue();
-      expect(turnedOn.immersiveAvoidFrontCamera).assertTrue();
-      // 关掉 ① 而 ② 本来就是假：不产生额外变化。
-      const alreadyOff: ImmersiveSettings = applyImmersiveToggle(settings(true, false), false);
-      expect(alreadyOff.immersiveAvoidFrontCamera).assertFalse();
-    });
-
-    it('persists both switches and survives a new store instance', 0, () => {
-      // "重启后保持"的离线机制证据：同一个端口被第二个 store 实例读回。
+    it('persists immersive mode without the removed avoid-front-camera field', 0, () => {
       const port: InMemoryImmersiveSettingsPort = new InMemoryImmersiveSettingsPort();
       const first: ImmersiveSettingsStore = new ImmersiveSettingsStore(port);
       return first.setImmersiveMode(true).then((persisted: boolean) => {
         expect(persisted).assertTrue();
-        return first.set(ImmersiveSettingsKey.AVOID_FRONT_CAMERA, true).then(() => {
+        // 写出去的载荷形状：只有 immersiveMode 一个字段（被移除的字段不再被读写）。
+        return port.load().then((written: ImmersiveSettings | null) => {
+          expect(written !== null).assertTrue();
+          const payload: string = JSON.stringify(written);
+          expect(payload.indexOf('immersiveMode') >= 0).assertTrue();
+          expect(payload.indexOf('immersiveAvoidFrontCamera') >= 0).assertFalse();
+          // "重启后保持"的离线机制证据：同一个端口被第二个 store 实例读回。
           const second: ImmersiveSettingsStore = new ImmersiveSettingsStore(port);
           return second.load().then(() => {
             expect(second.stored().immersiveMode).assertTrue();
-            expect(second.stored().immersiveAvoidFrontCamera).assertTrue();
-            expect(second.effectiveAvoidFrontCamera()).assertTrue();
+            expect(second.current().immersiveMode).assertTrue();
           });
         });
       });
     });
 
-    it('writes the whole cascade through the port when the first switch goes off', 0, () => {
+    it('writes the off value through the port too, and a reload keeps it', 0, () => {
       const port: InMemoryImmersiveSettingsPort = new InMemoryImmersiveSettingsPort();
       const store: ImmersiveSettingsStore = new ImmersiveSettingsStore(port);
-      return store.set(ImmersiveSettingsKey.AVOID_FRONT_CAMERA, true).then(() => {
-        return store.set(ImmersiveSettingsKey.IMMERSIVE_MODE, true).then(() => {
-          return store.setImmersiveMode(false).then(() => {
-            const reloaded: ImmersiveSettingsStore = new ImmersiveSettingsStore(port);
-            return reloaded.load().then(() => {
-              // 端口里落的是**联动之后**的值：两个都是 false。
-              expect(reloaded.stored().immersiveMode).assertFalse();
-              expect(reloaded.stored().immersiveAvoidFrontCamera).assertFalse();
-            });
+      return store.setImmersiveMode(true).then(() => {
+        return store.setImmersiveMode(false).then((persisted: boolean) => {
+          expect(persisted).assertTrue();
+          const reloaded: ImmersiveSettingsStore = new ImmersiveSettingsStore(port);
+          return reloaded.load().then(() => {
+            expect(reloaded.stored().immersiveMode).assertFalse();
+            expect(reloaded.current().immersiveMode).assertFalse();
           });
         });
       });
     });
 
-    it('describes the effective values in one line', 0, () => {
-      // 自证串必须同时含"持久化值"与"显示值"——取证时两者要能分开看。
-      const line: string = describeImmersiveSettings(settings(true, true));
+    it('describes the effective value in one line', 0, () => {
+      // 自证串必须含"持久化值"——取证时它是"开关真的到达了 store"的判据。
+      const line: string = describeImmersiveSettings(settings(true));
       expect(line.indexOf('immersiveMode=true') >= 0).assertTrue();
-      expect(line.indexOf('immersiveAvoidFrontCamera=true') >= 0).assertTrue();
-      expect(line.indexOf('effectiveAvoidFrontCamera=true') >= 0).assertTrue();
-      expect(line.indexOf('avoidSwitchEnabled=true') >= 0).assertTrue();
+      expect(line.indexOf('immersiveAvoidFrontCamera') >= 0).assertFalse();
     });
   });
 

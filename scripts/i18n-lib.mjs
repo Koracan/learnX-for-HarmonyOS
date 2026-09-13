@@ -119,7 +119,35 @@ export function toResourceValue(value, placeholders) {
   return out;
 }
 
+// Reference keys the native rewrite deliberately does NOT migrate.
+//
+// The reference dictionaries are read-only INPUT, so a key that has no consumer in
+// this app is retired here instead of inside reference/. Both the resource
+// generator and check-i18n-keys.mjs go through buildRows, so this list is the
+// single source of truth for "the reference dictionary as far as this project is
+// concerned" -- retire a key and the generated resources, the manifest and the
+// drift check all agree.
+//
+// 'avoidFrontCamera' / 'avoidFrontCameraDescription': the second switch on the
+// immersive settings page. Its only platform effect in the reference app is the RN
+// safe-area fallback (App.tsx:727, disableHeaderTopInsetFallback); this rewrite has
+// no such fallback, so the switch was persisted and displayed but changed no layout.
+// The switch is gone, and so are its copy keys.
+export const RETIRED_REFERENCE_KEYS = [
+  'avoidFrontCamera',
+  'avoidFrontCameraDescription'
+];
+
+const RETIRED_REFERENCE_KEY_SET = new Set(RETIRED_REFERENCE_KEYS);
+
+/** True when a reference key is deliberately not migrated. */
+export function isRetiredReferenceKey(key) {
+  return RETIRED_REFERENCE_KEY_SET.has(key);
+}
+
 // Cross-check the two reference dictionaries and build the row model.
+// Retired keys (see RETIRED_REFERENCE_KEYS) are dropped; zhCount/enCount stay the
+// raw dictionary sizes.
 export function buildRows(refDir) {
   const zh = readDict(nodePath.join(refDir, 'zh.ts'));
   const en = readDict(nodePath.join(refDir, 'en.ts'));
@@ -135,6 +163,7 @@ export function buildRows(refDir) {
   const rows = [];
   for (let k = 0; k < zh.length; k++) {
     const key = zh[k][0];
+    if (isRetiredReferenceKey(key)) continue;
     const name = toResourceName(key);
     if (seen.has(name)) throw new Error('resource name collision: ' + name);
     seen.set(name, key);
@@ -149,7 +178,7 @@ export function buildRows(refDir) {
       enPlaceholders: enPh.map((p) => p.token)
     });
   }
-  return { rows: rows, zhCount: zh.length, enCount: en.length };
+  return { rows: rows, zhCount: zh.length, enCount: en.length, retiredCount: RETIRED_REFERENCE_KEYS.length };
 }
 
 // Every reference dictionary value, keyed by its reference key.

@@ -1,85 +1,45 @@
 /*
- * 沉浸式设置（data/settings）—— 两个开关的值与语义：`immersiveMode` / `immersiveAvoidFrontCamera`。
+ * 沉浸式设置（data/settings）—— 开关 `immersiveMode` 的值与语义。
  * 纯逻辑，零平台依赖（持久化端口注入）。
  *
  * ## 参考实现出处
  *
- * 参考实现把这两个布尔放在 redux 的 `settings` 里（`data/reducers/settings.ts:20-21` 默认都是 false），
- * 由 `screens/ImmersiveSettings.tsx` 的 `setSetting('immersiveMode'|'immersiveAvoidFrontCamera', v)` 写，
- * 唯一的消费点是 `App.tsx:682-690` 的 `ImmersiveModeController`（`Immersive.setImmersive(immersiveMode)`）
- * 与 `App.tsx:727` 的 `disableHeaderTopInsetFallback = immersiveMode && !immersiveAvoidFrontCamera`。
+ * 参考实现把布尔放在 redux 的 `settings` 里（`data/reducers/settings.ts:20` 默认 false），
+ * 由 `screens/ImmersiveSettings.tsx` 的 `setSetting('immersiveMode', v)` 写，
+ * 唯一的消费点是 `App.tsx:682-690` 的 `ImmersiveModeController`（`Immersive.setImmersive(immersiveMode)`）。
  *
- * ## 两条**必须照抄**的语义（工单里点名"容易漏"的那条）
+ * ## 为什么只剩一个开关
  *
- * 1. 第二个开关的**显示值** = `immersiveMode && immersiveAvoidFrontCamera`，且 **`immersiveMode` 关着时它禁用**
- *    （`ImmersiveSettings.tsx:47-48`）；
- * 2. 关掉第一个开关时，若第二个为真，**联动把它置假**（`ImmersiveSettings.tsx:24-29`）。
+ * 参考实现的沉浸式子页还有第二个开关 `immersiveAvoidFrontCamera`：它唯一的用途是
+ * `App.tsx:727` 的 `disableHeaderTopInsetFallback = immersiveMode && !immersiveAvoidFrontCamera`
+ * （RN 的安全区回退）。本工程的自绘页头没有那套 inset 回退，移植时**没有把它的平台效果带过来**，
+ * 于是它在本工程里只被持久化与显示 —— 拨动它不改变任何布局，是"拨了没有任何效果"的开关。
+ * 处置：让这个开关**消失**（连同持久化字段与文案键），而不是就地补一套 inset 回退去兜住它。
  *
- * 注意第二条的**持久化形态**与显示形态不同：参考实现持久化的是 `immersiveAvoidFrontCamera` 的原值，
- * 界面显示的是它与 `immersiveMode` 的**与**。本文件把这两个量分开提供
- * （`stored()` = 持久化值，`effectiveAvoidFrontCamera()` = 显示值），避免下游把两者搞混。
+ * 随之删掉的还有两条**只为它存在**的语义（参考实现 `ImmersiveSettings.tsx:24-29,47-48`）：
+ * 显示值 = `immersiveMode && immersiveAvoidFrontCamera`、以及关掉开关 1 时把开关 2 置假的联动。
+ * `immersiveMode` 自己的行为一字未改：切换后写 preferences 并**立刻**应用到窗口
+ * （见 `features/settings/repository/ImmersiveSettingsProvider` 与 `core/window/ImmersiveWindow`）。
  *
  * ## 与 `data/settings/FileSettings` 的关系
  *
- * 同一套形状（键枚举 / 值接口 / 端口 / 内存实现 / store / 默认值），只是设置项不同；
- * 持久化实现见 `PreferencesImmersiveSettings.ets`，组装点在
- * `features/settings/repository/ImmersiveSettingsProvider.ets`。
+ * 同一套形状（值接口 / 端口 / 内存实现 / store / 默认值），只是设置项只剩一个；
+ * 持久化实现见 `PreferencesImmersiveSettings.ets`（旧沙箱里残留的第二个字段既不读也不删，见该文件头），
+ * 组装点在 `features/settings/repository/ImmersiveSettingsProvider.ets`。
  */
-
-/** 两个设置项的键（与参考实现的 `setSetting` 同名字段）。 */
-export enum ImmersiveSettingsKey {
-  IMMERSIVE_MODE = 'immersiveMode',
-  AVOID_FRONT_CAMERA = 'immersiveAvoidFrontCamera'
-}
 
 /** 沉浸式设置值。 */
 export interface ImmersiveSettings {
   /** true = 隐藏状态栏与导航栏（参考实现默认 false）。 */
   immersiveMode: boolean;
-  /** true = 避免遮挡前置摄像头（只在前一个为 true 时有意义；参考实现默认 false）。 */
-  immersiveAvoidFrontCamera: boolean;
 }
 
-/** 参考实现的默认值（`data/reducers/settings.ts:20-21`）。 */
-export const DEFAULT_IMMERSIVE_SETTINGS: ImmersiveSettings = {
-  immersiveMode: false,
-  immersiveAvoidFrontCamera: false
-};
+/** 参考实现的默认值（`data/reducers/settings.ts:20`）。 */
+export const DEFAULT_IMMERSIVE_SETTINGS: ImmersiveSettings = { immersiveMode: false };
 
 /** 取一份副本（避免调用方改到 store 内部状态）。 */
 export function copyImmersiveSettings(value: ImmersiveSettings): ImmersiveSettings {
-  return {
-    immersiveMode: value.immersiveMode,
-    immersiveAvoidFrontCamera: value.immersiveAvoidFrontCamera
-  };
-}
-
-/**
- * 第二个开关的**显示值**：`immersiveMode && immersiveAvoidFrontCamera`
- * （`ImmersiveSettings.tsx:47` 的 `switchValue`）。
- */
-export function effectiveAvoidFrontCamera(value: ImmersiveSettings): boolean {
-  return value.immersiveMode && value.immersiveAvoidFrontCamera;
-}
-
-/** 第二个开关是否**可用**：`immersiveMode` 关着时禁用（`ImmersiveSettings.tsx:48` 的 `switchDisabled`）。 */
-export function avoidFrontCameraEnabled(value: ImmersiveSettings): boolean {
-  return value.immersiveMode;
-}
-
-/**
- * 切换第一个开关的**联动规则**（`ImmersiveSettings.tsx:24-29` 的四行）：
- * 关掉沉浸式时，若"避免前置摄像头"为真则一并置假；打开时不动它。
- *
- * 这是**纯函数**，单测直接钉住；界面只负责把返回值写回 store。
- */
-export function applyImmersiveToggle(value: ImmersiveSettings, next: boolean): ImmersiveSettings {
-  const updated: ImmersiveSettings = copyImmersiveSettings(value);
-  updated.immersiveMode = next;
-  if (!next && updated.immersiveAvoidFrontCamera) {
-    updated.immersiveAvoidFrontCamera = false;
-  }
-  return updated;
+  return { immersiveMode: value.immersiveMode };
 }
 
 /** 持久化端口（设备侧是 preferences，测试里是内存替身）。 */
@@ -125,11 +85,6 @@ export class ImmersiveSettingsStore implements ImmersiveSettingsSource {
     return copyImmersiveSettings(this.value);
   }
 
-  /** 第二个开关的显示值（= `immersiveMode && immersiveAvoidFrontCamera`）。 */
-  effectiveAvoidFrontCamera(): boolean {
-    return effectiveAvoidFrontCamera(this.value);
-  }
-
   /** 内存里的持久化值（诊断与单测用）。 */
   stored(): ImmersiveSettings {
     return copyImmersiveSettings(this.value);
@@ -159,24 +114,14 @@ export class ImmersiveSettingsStore implements ImmersiveSettingsSource {
     }
   }
 
-  /** 改一项并写回；返回**持久化**是否成功（内存值一定已更新）。 */
-  async set(key: ImmersiveSettingsKey, value: boolean): Promise<boolean> {
-    const next: ImmersiveSettings = copyImmersiveSettings(this.value);
-    if (key === ImmersiveSettingsKey.IMMERSIVE_MODE) {
-      next.immersiveMode = value;
-    } else {
-      next.immersiveAvoidFrontCamera = value;
-    }
-    return await this.write(next);
-  }
-
   /**
-   * 第一个开关的**联动**切换（`ImmersiveSettings.tsx:24-29`）：关掉沉浸式时把
-   * "避免前置摄像头"一并置假。界面调这个而不是 `set(IMMERSIVE_MODE, …)`，
-   * 于是那条容易漏的规则只有一处实现。
+   * 切换沉浸式模式并写回；返回**持久化**是否成功（内存值一定已更新）。
+   *
+   * 界面唯一该调的写入口（启动恢复只读不写）。开关 2 移除后这里没有联动可做，
+   * 写出去的就是调用方给的那一个值。
    */
   async setImmersiveMode(next: boolean): Promise<boolean> {
-    return await this.write(applyImmersiveToggle(this.value, next));
+    return await this.write({ immersiveMode: next });
   }
 
   private async write(next: ImmersiveSettings): Promise<boolean> {
@@ -190,10 +135,7 @@ export class ImmersiveSettingsStore implements ImmersiveSettingsSource {
   }
 }
 
-/** 一行自证串：**实际生效值** + 显示值（必须被打进 hilog —— AGENTS.md 的开关自证口径）。 */
+/** 一行自证串：**实际生效值**（必须被打进 hilog —— AGENTS.md 的开关自证口径）。 */
 export function describeImmersiveSettings(settings: ImmersiveSettings): string {
-  return 'immersive settings: immersiveMode=' + settings.immersiveMode.toString()
-    + ' immersiveAvoidFrontCamera=' + settings.immersiveAvoidFrontCamera.toString()
-    + ' effectiveAvoidFrontCamera=' + effectiveAvoidFrontCamera(settings).toString()
-    + ' avoidSwitchEnabled=' + avoidFrontCameraEnabled(settings).toString();
+  return 'immersive settings: immersiveMode=' + settings.immersiveMode.toString();
 }

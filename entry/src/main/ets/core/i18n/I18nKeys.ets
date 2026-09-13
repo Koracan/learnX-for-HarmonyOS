@@ -20,7 +20,7 @@
  * Regenerate:  node scripts/generate-i18n-resources.mjs && node scripts/gen-i18n-keys.mjs
  * Verify:      node scripts/check-i18n-keys.mjs
  *
- * 311 keys; project-local additions: 8.
+ * 309 keys; project-local additions: 8.
  */
 export type I18nKey = 'loh_back'
   | 'loh_notices'
@@ -198,9 +198,7 @@ export type I18nKey = 'loh_back'
   | 'loh_course_event_omit_location'
   | 'loh_restart_required'
   | 'loh_immersive_mode'
-  | 'loh_avoid_front_camera'
   | 'loh_immersive_mode_description'
-  | 'loh_avoid_front_camera_description'
   | 'loh_please_restart_app_to_apply_immersive'
   | 'loh_fall'
   | 'loh_spring'
@@ -511,9 +509,7 @@ const ALL_KEYS: string[] = [
   'loh_course_event_omit_location',
   'loh_restart_required',
   'loh_immersive_mode',
-  'loh_avoid_front_camera',
   'loh_immersive_mode_description',
-  'loh_avoid_front_camera_description',
   'loh_please_restart_app_to_apply_immersive',
   'loh_fall',
   'loh_spring',
@@ -656,4 +652,4 @@ export function isI18nKey(value: string): boolean {
 }
 
 /** Total number of known keys; scripts/check-i18n-keys.mjs asserts this. */
-export const I18N_KEY_COUNT: number = 311;
+export const I18N_KEY_COUNT: number = 309;

@@ -709,6 +709,11 @@ previewUrl: attachmentResult.uri, size, type })` —— 即用**本地 URI**（`
    在这些浏览动作之后仍为 **0**（设置页那一行把它显示在屏幕上；另有一条**独立**证据证明这个计数器本身会涨 —— 真实账号下同一个计数器 > 0）；重启后回到登录页（mock 不持久化）；
 5. **沉浸式**：切换开关后**立刻**生效（状态栏 / 导航栏消失与恢复各一张截图）；重启后仍是上次的值
    （preferences `learnoh_immersive_settings`）；关掉开关 1 时开关 2 自动置假且持久化；
+   【2026-09-13 追加】本条末句"关掉开关 1 时开关 2 自动置假且持久化"**已不再适用**：开关 2
+   （`immersiveAvoidFrontCamera`）已从沉浸式设置页移除，连带它的持久化字段、两条只为它存在的语义
+   （显示值 = `immersiveMode && immersiveAvoidFrontCamera`、关掉开关 1 时的联动）与两条文案键
+   （`loh_avoid_front_camera` / `loh_avoid_front_camera_description`）。原文保留是因为它记录了当时真的验证过的东西；
+   本条其余部分（**立刻生效 / 重启保持**）仍然有效，且 `immersiveMode` 的行为未改。
 6. **A1/A2**：见上表"代价"一列；两处都**只在对应场景**出现。
 
 **未验证 / 边界**：
@@ -720,6 +725,12 @@ previewUrl: attachmentResult.uri, size, type })` —— 即用**本地 URI**（`
   （`App.tsx:727` 的 `disableHeaderTopInsetFallback`）；本工程的自绘页头没有那套 inset 回退，
   所以这个开关**只持久化与显示**（显示值 = `immersiveMode && immersiveAvoidFrontCamera`，联动与禁用照抄），
   **不声称**它改变了任何布局。
+  【2026-09-13 追加 · **处置已定**】上面这条"边界"就是它成为"拨了没有任何效果"的开关的原因；选择不是补一套
+  inset 回退去兜住它，而是**不提供**：开关 2 与持久化字段 `immersiveAvoidFrontCamera` 已移除，两条文案键
+  一并退役（退役清单的唯一出处是 `scripts/i18n-lib.mjs`，生成物由生成器重跑而来）。旧沙箱里残留的
+  `immersiveAvoidFrontCamera` 键**既不读也不删** —— 读路径只看 `immersiveMode`，缺键时 `get` 返回默认值，
+  不可能因此抛异常；preferences 按键存取，多出来的键是惰性的。
+  参考实现侧的出处仍是 `App.tsx:727` 与 `docs/rn-app-inventory.md:33`（后者描述的是 RN 应用本身，未改动）。
 - **学期选择子页的 store 是设置页自己的一份**：参考实现的学期是全局 redux state，从设置页切学期会**全局**生效；
   本工程的课程数据按 tab 各持一份 store（ticket 12/15 的既有结构），所以从**设置页**切学期只影响该子页自身，
   **课程 tab 不会跟着变**。这是本 ticket 的已知缺口（登记为未验证项）；要修需要把课程 store 收敛成进程内单例

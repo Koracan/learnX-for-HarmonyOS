@@ -29,3 +29,25 @@
 2. **连带逻辑**：`ImmersiveSettings.ets` 里"显示值 = `immersiveMode && immersiveAvoidFrontCamera`"与"开关 1 关掉时联动置假开关 2"**只为开关 2 存在**，一并处理（含单测），并保证 `immersiveMode` 自身行为一字未改（有单测钉住）。
 3. **旧数据不炸 + i18n 收干净**：存过该字段的沙箱读取不得抛异常（给出策略）；两个孤儿键 `loh_avoid_front_camera` / `loh_avoid_front_camera_description` 一并删（先确认无其他引用），走生成器重跑并同步 `I18n.test.ets` 键数常量。
 4. **设备帧拍对页面**：开关在**沉浸式子页**上，浅色/深色那一对要拍**该子页**的改动前后（开关消失、`immersiveMode` 仍在且可用），不是设置页首页；深色帧走 `FORCE_DARK_FOR_EVIDENCE`（提交态 `false`）并注明来源。
+
+### 2026-09-13 · 实现方交付（分支 `wt/t08`，基线 `94f39bd` → 已 merge main 至 `626be96`）
+
+**结论**：死开关（沉浸式子页第二个开关"避让前置摄像头"）已**消失**；字段 `immersiveAvoidFrontCamera`、两条只为它存在的语义
+（显示值 = `immersiveMode && …`、关掉开关 1 时联动置假）与两条文案键一并清理；`immersiveMode` 行为一字未改。
+
+| 项 | 结果 |
+| --- | --- |
+| 改动文件 | 14 个（3 个 main 源文件 / 2 个单测 / 2 个脚本 / 3+1+2 个生成物 / 1 个台账文档）—— 清单与理由见交付回报 |
+| 台账 | `docs/accepted-deviations.md` **两处就地追加带日期批注**（:687-693 验证条款第 5 条、:701-710 边界条目），**原句一字未删**；`docs/rn-app-inventory.md` 与 `.scratch/migration/**` 未动 |
+| i18n | 键数 **311 → 309**（参考迁入 180 → 178；local 8 与 ui 123 不变）；退役清单唯一出处 `scripts/i18n-lib.mjs` 的 `RETIRED_REFERENCE_KEYS`，6 个生成物由生成器重跑、与输入同一次提交 |
+| 单测 | `Tests run: 421, Failure: 0, Error: 0, Pass: 421, Ignore: 0`（`test_result.txt` 时间戳 `2026/09/13 14:02:05`，本轮）；基线 **423 由 diff 推得**（唯一改动的测试文件 `Settings.test.ets` 的 `it(` 12 → 10），未单独跑基线 |
+| 打包 | 提交态 `BUILD SUCCESSFUL`（26s659ms / hap @14:04:04）、深色取证态 `BUILD SUCCESSFUL`（6s528ms / @14:12:27）、复原后提交态 `BUILD SUCCESSFUL`（5s293ms / @14:15:06）；三次日志搜 `ERROR`/`ErrorCode`/`COMPILE RESULT` **零命中**；提交态 hap 解包后 `ets/modules.abc` 里 `voidFrontCamera` = 0 次、`setImmersiveMode` = 2 次（正向对照） |
+| 四个脚本 | `check-domain-purity` PASS、`check-import-graph` PASS、`check-i18n-keys` `RESULT: OK`、`check-generated-fresh` PASS |
+| 旧数据 | 设备上真造出 `prefs = {immersiveAvoidFrontCamera:true, immersiveMode:true}`，覆盖安装后 `load: immersiveMode=true` 正常、无 error；拨回 OFF 后陈旧键**仍在**（不读不删） |
+| 证据 | `.scratch/ui-optimize/evidence/t08/README.md`（逐文件论断表）+ 浅色/深色各一组沉浸式子页帧 + 改动前对照 + 4 份 px 清单；图片只留本地，文字证据已 `git add -f` |
+
+**未做到 / 存疑**：① 单测绝对基线 423 未实测（按"砍一次构建"的指令，只给了 delta 的实测 + 静态计数口径）；
+② `FORCE_DARK_FOR_EVIDENCE` 的"提交态复原"是**产物级 + 视觉级 + hilog** 三重自证（重刷产物 + 浅色帧 + `evidence switches: …=false`），不是重跑一次基线单测；
+③ `immersiveAvoidFrontCamera` 在参考实现里本来的平台效果（RN 安全区回退）**仍未移植** —— 本 ticket 只做"消失"，不做"补一套 inset 回退"。
+④ 改动前的那一帧来自**改动生效前已装在设备上的版本**（源码版本没有记录，只能确认它的沉浸式页是旧的两开关形态 + 旧自证串），
+不是本分支自己构建的基线产物；本 ticket 没有为它单独构建（按指令砍掉了那次构建）。

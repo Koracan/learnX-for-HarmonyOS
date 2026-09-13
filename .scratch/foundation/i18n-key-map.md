@@ -15,12 +15,12 @@
 
 | 类别 | 数量 | 命名空间 |
 | --- | --- | --- |
-| 参考实现迁入 | 180 | `loh_` |
+| 参考实现迁入 | 178 | `loh_` |
 | 本工程新增（学期季节词） | 8 | `loh_` |
 | 本工程新增（原生重写 UI 文案） | 123 | `ui_` |
-| 合计 | 311 | |
+| 合计 | 309 | |
 
-## 参考实现迁入键（180）
+## 参考实现迁入键（178）
 
 | # | 参考键 | 资源名 | 占位符 | 中文 | 英文 |
 | --- | --- | --- | --- | --- | --- |
@@ -200,10 +200,8 @@
 | 174 | `courseEventOmitLocation` | `loh_course_event_omit_location` | - | 不写入位置信息 | Omit Location |
 | 175 | `restartRequired` | `loh_restart_required` | - | 需要重启 | Restart Required |
 | 176 | `immersiveMode` | `loh_immersive_mode` | - | 沉浸式模式 | Immersive Mode |
-| 177 | `avoidFrontCamera` | `loh_avoid_front_camera` | - | 避让前置摄像头 | Avoid Front Camera |
-| 178 | `immersiveModeDescription` | `loh_immersive_mode_description` | - | 隐藏导航栏和状态栏，需要重启应用 | Hide the navigation bar and status bar. App restart required. |
-| 179 | `avoidFrontCameraDescription` | `loh_avoid_front_camera_description` | - | 在上部留出空间以避让挖孔区域，需要重启应用 | Leave top space to avoid the front camera cutout. App restart required. |
-| 180 | `pleaseRestartAppToApplyImmersive` | `loh_please_restart_app_to_apply_immersive` | - | 请重启应用以应用沉浸式模式设置。 | Please restart the app to apply immersive mode setting. |
+| 177 | `immersiveModeDescription` | `loh_immersive_mode_description` | - | 隐藏导航栏和状态栏，需要重启应用 | Hide the navigation bar and status bar. App restart required. |
+| 178 | `pleaseRestartAppToApplyImmersive` | `loh_please_restart_app_to_apply_immersive` | - | 请重启应用以应用沉浸式模式设置。 | Please restart the app to apply immersive mode setting. |
 
 ## 本工程新增键（131）
 

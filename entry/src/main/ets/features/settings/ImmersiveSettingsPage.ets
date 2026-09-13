@@ -7,10 +7,16 @@
  * | --- | --- | --- |
  * | 开关 1 | `fullscreen` 图标 + `immersiveMode`，值 = `immersiveMode` | 同（`AppIcon.FULLSCREEN`） |
  * | 开关 1 说明 | `immersiveModeDescription`，12px / opacity 0.6 | 同 |
- * | 开关 2 | `center-focus-strong` + `avoidFrontCamera`，值 = `immersiveMode && immersiveAvoidFrontCamera` | 同（`effectiveAvoidFrontCamera`） |
- * | 开关 2 禁用 | `switchDisabled={!immersiveMode}` | 同（`avoidFrontCameraEnabled`） |
- * | 开关 2 说明 | `avoidFrontCameraDescription`，12px / opacity 0.6，块间距 24 | 同 |
- * | 联动 | 关掉开关 1 时若开关 2 为真则置假（`:24-29`） | 同（`ImmersiveSettingsStore.setImmersiveMode`，纯函数 `applyImmersiveToggle`） |
+ *
+ * ## 参考实现的第二行**不再提供**
+ *
+ * 参考实现还有一个开关（`center-focus-strong` + `avoidFrontCamera`），它唯一的平台效果是
+ * RN 的安全区回退（`App.tsx:727` 的 `disableHeaderTopInsetFallback`），本工程没有那套回退 ——
+ * 移植后它只被持久化与显示，拨动它不改变任何布局。与其留一个"拨了没有任何效果"的开关，
+ * 不如不提供：该行、它的持久化字段与两条只为它存在的语义（显示值 = `immersiveMode && …`、
+ * 关掉开关 1 时把它置假的联动）一并从这里和 `data/settings/ImmersiveSettings` 删除。
+ * `immersiveMode` 自己的行为不变：**即时生效**（切换后立刻调 `core/window/ImmersiveWindow`）
+ * 且重启后保持。
  *
  * ## 与参考实现的一处**行为差异（工单要求）**
  *
@@ -30,7 +36,7 @@ import { Logger } from '../../core/log/Logger';
 import { TableCell, TableCellType } from '../../ui/components/TableCell';
 import { AppIcon } from '../../ui/icons/IconCatalog';
 import {
-  ImmersiveSettingsKey, ImmersiveSettingsStore, describeImmersiveSettings, effectiveAvoidFrontCamera
+  ImmersiveSettingsStore, describeImmersiveSettings
 } from '../../data/settings/ImmersiveSettings';
 import { applyImmersiveMode } from '../../core/window/ImmersiveWindow';
 import { immersiveSettingsStore } from './repository/ImmersiveSettingsProvider';
@@ -45,10 +51,8 @@ export struct ImmersiveSettingsPage {
   /** 返回按钮要弹的栈（由导航目标传入；null = 拿不到，按钮点了也不做事）。 */
   stack: NavPathStack | null = null;
 
-  /** 持久化值（开关 1 直接显示它）。 */
+  /** 持久化值（开关直接显示它）。 */
   @State immersiveMode: boolean = false;
-  /** 持久化值（开关 2 的**显示值**还要与开关 1 相与，见 effectiveAvoidFrontCamera）。 */
-  @State avoidFrontCamera: boolean = false;
   /** 最近一次操作的结果（自证行，截图可见）。 */
   @State message: string = '';
 
@@ -81,37 +85,24 @@ export struct ImmersiveSettingsPage {
     const store: ImmersiveSettingsStore = immersiveSettingsStore();
     await store.load();
     this.immersiveMode = store.stored().immersiveMode;
-    this.avoidFrontCamera = store.stored().immersiveAvoidFrontCamera;
     this.message = describeImmersiveSettings(store.current());
     logger.info('immersive settings page appear: ' + this.message);
   }
 
-  /** 开关 1：联动 + 持久化 + **立刻应用到窗口**（验收第 3 条的"即时生效"）。 */
+  /** 开关：持久化 + **立刻应用到窗口**（验收第 3 条的"即时生效"）。 */
   private async onImmersiveToggle(value: boolean): Promise<void> {
     const store: ImmersiveSettingsStore = immersiveSettingsStore();
     const persisted: boolean = await store.setImmersiveMode(value);
     this.immersiveMode = store.stored().immersiveMode;
-    this.avoidFrontCamera = store.stored().immersiveAvoidFrontCamera;
     const context: common.Context | null = this.hostContext();
     let applied: boolean = false;
     if (context !== null) {
       applied = await applyImmersiveMode(context, this.immersiveMode);
     }
-    // **消费点自证**：持久化结果 + 平台调用结果 + 实际生效值（含联动后的开关 2）。
+    // **消费点自证**：持久化结果 + 平台调用结果 + 实际生效值。
     logger.info('immersive toggled: requested=' + value.toString()
       + ' persisted=' + persisted.toString()
       + ' appliedToWindow=' + applied.toString()
-      + ' ' + describeImmersiveSettings(store.current()));
-    this.message = describeImmersiveSettings(store.current());
-  }
-
-  /** 开关 2：参考实现只写 state（它的消费点是 RN 的安全区回退），这里只持久化。 */
-  private async onAvoidFrontCameraToggle(value: boolean): Promise<void> {
-    const store: ImmersiveSettingsStore = immersiveSettingsStore();
-    const persisted: boolean = await store.set(ImmersiveSettingsKey.AVOID_FRONT_CAMERA, value);
-    this.avoidFrontCamera = store.stored().immersiveAvoidFrontCamera;
-    logger.info('immersive avoid-front-camera toggled: requested=' + value.toString()
-      + ' persisted=' + persisted.toString()
       + ' ' + describeImmersiveSettings(store.current()));
     this.message = describeImmersiveSettings(store.current());
   }
@@ -167,24 +158,6 @@ export struct ImmersiveSettingsPage {
             }
           })
           this.caption(this.s($r('app.string.loh_immersive_mode_description')))
-
-          TableCell({
-            icon: AppIcon.CENTER_FOCUS_STRONG,
-            primaryText: this.s($r('app.string.loh_avoid_front_camera')),
-            cellType: TableCellType.SWITCH,
-            switchValue: effectiveAvoidFrontCamera({
-              immersiveMode: this.immersiveMode,
-              immersiveAvoidFrontCamera: this.avoidFrontCamera
-            }),
-            switchDisabled: !this.immersiveMode,
-            switchLabel: this.s($r('app.string.loh_avoid_front_camera')),
-            isDark: this.isDark(),
-            marginTop: 24,
-            onSwitchChange: (value: boolean): void => {
-              this.onAvoidFrontCameraToggle(value);
-            }
-          })
-          this.caption(this.s($r('app.string.loh_avoid_front_camera_description')))
 
           if (this.message.length > 0) {
             Text(this.message)

@@ -24,8 +24,12 @@ import {
   relativeAmount, relativeTimeParts
 } from '../main/ets/core/i18n/DateTimeUtil';
 
-/** 参考实现的中英字典：180 个键（两本字典键集与顺序完全一致）。 */
-const REFERENCE_KEY_COUNT: number = 180;
+/**
+ * 参考实现的中英字典：180 个键（两本字典键集与顺序完全一致），其中 2 个
+ * （`avoidFrontCamera` / `avoidFrontCameraDescription`）随沉浸式设置页的第二行开关一并退役，
+ * 于是**迁入**的是 178 个 —— 退役清单的唯一出处是 `scripts/i18n-lib.mjs`。
+ */
+const REFERENCE_KEY_COUNT: number = 178;
 /**
  * 本工程新增：参考实现没有对应字符串的本地追加。
  * 学期季节词 3 个（ticket 01/02）+ 会话失效/网络不可用/重试 3 个（ticket 08）= 6；
@@ -48,8 +52,8 @@ const LOCAL_ADDITION_COUNT: number = 8;
  * 提交入口被拦下时那两句（正在提交中 / 没有可提交的内容）2 个 —— 已截止那句复用参考实现已有的键。
  */
 const UI_STRING_COUNT: number = 123;
-/** 迁移后的资源键总数（也是 I18N_KEY_COUNT 的期望值）。 */
-const TOTAL_KEY_COUNT: number = 311;
+/** 迁移后的资源键总数（也是 I18N_KEY_COUNT 的期望值）：178 + 8 + 123。 */
+const TOTAL_KEY_COUNT: number = 309;
 
 const REFERENCE_SAMPLE: string[] = ['loh_back', 'loh_notices', 'loh_assignments', 'loh_files', 'loh_courses'];
 const LOCAL_ADDITIONS: string[] = ['loh_fall', 'loh_spring', 'loh_summer'];
