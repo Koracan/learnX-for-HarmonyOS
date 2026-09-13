@@ -5,13 +5,13 @@
 
 **Blocked by:** None（可立即开始）
 
-**Status:** ready-for-agent
+**Status:** verified（合并 `b18cea0`：开关移除 + 旧数据不炸 + i18n 退役两条参考键 + 台账两处批注）
 
-- [ ] 设置页不再出现无效果的开关；其余设置项（文件的两个设置、沉浸式设置）仍然生效
-- [ ] 该开关的持久化字段与相关文案键一并清理；i18n 门禁仍然通过
-- [ ] 已保存过该字段的旧数据不会导致读取异常
-- [ ] 单测：设置持久化的读写不再包含该字段（沿用既有设置测试的写法）
-- [ ] 证据：设置页截图（一屏一对文件：浅色 / 深色）
+- [x] 设置页不再出现无效果的开关；其余设置项（文件的两个设置、沉浸式设置）仍然生效
+- [x] 该开关的持久化字段与相关文案键一并清理；i18n 门禁仍然通过
+- [x] 已保存过该字段的旧数据不会导致读取异常
+- [x] 单测：设置持久化的读写不再包含该字段（沿用既有设置测试的写法）
+- [x] 证据：设置页截图（一屏一对文件：浅色 / 深色）
 
 ## Comments
 
@@ -51,3 +51,25 @@
 ③ `immersiveAvoidFrontCamera` 在参考实现里本来的平台效果（RN 安全区回退）**仍未移植** —— 本 ticket 只做"消失"，不做"补一套 inset 回退"。
 ④ 改动前的那一帧来自**改动生效前已装在设备上的版本**（源码版本没有记录，只能确认它的沉浸式页是旧的两开关形态 + 旧自证串），
 不是本分支自己构建的基线产物；本 ticket 没有为它单独构建（按指令砍掉了那次构建）。
+
+### 2026-09-13 · 统筹者验收：**verified**（合并 `b18cea0`）
+
+**我独立复核过的东西**：
+- **"移除干净了"我自己查过**：`git grep` 剩下的 6 处引用里，4 处在**注释**里解释"参考实现有这个开关、我们为什么不提供它"，另 2 处是 `Settings.test.ets:90,120` 的**否定断言**（`expect(payload.indexOf(...) >= 0).assertFalse()` 这类）—— 正是我要的那种"钉住它不再出现在落盘载荷/自证行里"。代码里没有残留。
+- **两张关键帧我亲眼看了**：改动前那帧是**两个开关**（「沉浸式模式」+「避让前置摄像头」）加旧的四段式自证行（`immersiveMode=… immersiveAvoidFrontCamera=… effectiveAvoidFrontCamera=… avoidSwitchEnabled=…`）；改动后那帧**只剩一个开关**、说明文字也只剩一段、自证行变成 `immersive settings: immersiveMode=false`。工单要的"不再出现无效果的开关"成立。
+- **门禁**：`test_result.txt` 时间戳 `2026/9/13 14:02:05`、`Tests run: 421, Failure: 0, Error: 0`；**合并后主树**四门禁绿（i18n manifest **309**、reference **178**、三语 missing/empty/extra=0）；hap 解包后 `ets/modules.abc` 与 `resources.index` 的负对照（退役键命中 0）与正对照（`setImmersiveMode`、`loh_immersive_mode` 仍命中）都在。
+- **旧数据不炸有设备实证**：先在旧沙箱里真造出 `immersiveAvoidFrontCamera=true`，覆盖安装新产物后冷启动 `immersive settings load: immersiveMode=true` + `immersive restored on startup: persisted=true applied=true`、**无 error**；拨回 OFF 后重读 prefs 是 `immersiveMode=false` 且**陈旧键仍在**（不读不删）。策略与理由写进 `PreferencesImmersiveSettings.ets` 文件头。
+- **"其余设置项仍然生效"也钉了**：升级后冷启动 `immersiveMode=true` 照旧隐藏系统栏（截图）；文件那两个开关的消费点（`FileDownloader` → `FilePath`）零改动。
+
+**两处我认可的设计/纪律决定**：
+- **退役键清单放在 `scripts/i18n-lib.mjs` 的 `RETIRED_REFERENCE_KEYS`、由 `buildRows()` 过滤**：参考字典是只读输入，不能改；把"不迁移"做成**生成器与 checker 共用的单一来源**，比在 checker 里写例外强得多，也不会让退役悄悄变成"2 missing"（`report-i18n-counts.mjs` 单独报 retired）。
+- **台账两处就地追加带日期批注、原句一字未删**（`:687-693` 验证条款末句标注为**不再适用**；`:701-710` 边界条目标注为**处置已定**）。我核对过 diff 只有 `+` 行、没有删原句。`docs/rn-app-inventory.md` 与 `.scratch/migration/**` 未动。
+
+**如实记录的限制（不因此降级）**：
+1. **单测绝对基线（423）未实测**：上一轮我为省一次构建让它砍掉基线，所以只有 delta（-2，实测 421）与静态 `it(` 计数（12→10）两口径。这个绝对数会在**终验**（在最终 main 上跑一次全量单测）里被独立确认。
+2. **"提交态复原"是产物级 + 视觉级 + hilog 三重自证**，不是独立的一次端到端复跑；按 `gates.md` 陷阱 3 的判据（时间戳 + 内容级检索）够用。
+3. **改动前那一帧来自"装机时间早于本次改动"的旧版本**（源码版本无记录），它只能证明"当时沉浸式页是两开关形态"；实现方补了一条源码级依据（`94f39bd` 那个文件里确实有第二行 TableCell 与 `loh_avoid_front_camera`）。这是我砍掉基线构建的直接代价，记录在案。
+4. **参考实现里该开关的平台效果（RN 安全区回退）仍未移植** —— 但这条现在是**已定的处置**（不提供该开关），不再是缺口，台账里就是按"处置已定"记的。
+
+**范围读法（记下以免日后争议）**：spec 第 49 行"文件的两个设置、沉浸式设置"按"**留下的开关都真的生效**"读 ⇒ 沉浸式页留 `immersiveMode` 一个。全仓 4 个开关穷举后只有 `immersiveAvoidFrontCamera` 零消费点，其余三个都有 `entry/src/main` 里的真实消费点（证据：`evidence/t08/grep-consumers-before.txt`）。
+
