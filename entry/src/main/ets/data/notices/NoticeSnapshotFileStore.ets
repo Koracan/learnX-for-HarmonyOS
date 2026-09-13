@@ -29,7 +29,9 @@ export const NOTICE_SNAPSHOT_KEY: string = 'snapshot';
 
 /** 空解码结果（"磁盘上没有"）。 */
 function absent(): SnapshotDecodeResult {
-  return { items: [], fetchedAtMillis: 0, discardReason: 'absent', onDiskVersion: -1 };
+  return {
+    items: [], fetchedAtMillis: 0, readNoticeIds: [], discardReason: 'absent', onDiskVersion: -1
+  };
 }
 
 /** 基于 @ohos.data.preferences 的快照存储。 */

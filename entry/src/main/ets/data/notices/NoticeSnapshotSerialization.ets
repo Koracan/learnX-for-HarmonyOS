@@ -3,11 +3,15 @@
  *
  * 为什么单独成文件：快照要落盘（`NoticeSnapshotFileStore`），而"落盘的字节必须能安全地
  * 读回来"这件事**不该只靠设备取证来证明**。把它做成纯函数之后，版本不符、截断、字段缺失、
- * 类型不对这四类损坏都能用单测钉住（验收第 6 条：识别旧版本并丢弃重建，不崩溃）。
+ * 类型不对这四类损坏都能用单测钉住（旧版本要能被识别并丢弃重建，不崩溃）。
  *
  * 落盘信封（`PersistedNoticeSnapshot`）刻意是 NoticeSnapshot 的**子集**：
- *   - items / fetchedAtMillis / schemaVersion 落盘；
+ *   - items / fetchedAtMillis / schemaVersion / readNoticeIds 落盘；
  *   - `fromSnapshot` **不落盘**——它是"这一次读的是不是快照"的瞬时语义，由读取方置 true。
+ *
+ * `readNoticeIds` 是**本机已读集合**，与内容项同处一份记录，没有第二份存储。
+ * 它与每条记录自带的 `hasRead`（站点说的）不是一回事：读取方拿它去合并，
+ * 合并规则见 NoticeRepository.mergeNoticeReadState。
  */
 
 import { Attachment } from '../../domain/model/ContentItem';
@@ -20,21 +24,58 @@ interface PersistedNoticeSnapshot {
   schemaVersion: number;
   fetchedAtMillis: number;
   items: NoticeRecord[];
+  /** 本机已读集合（见文件头）。 */
+  readNoticeIds: string[];
 }
 
 /** 反序列化结果：要么拿到条目，要么明确说明为什么丢弃（供日志/取证）。 */
 export interface SnapshotDecodeResult {
   items: NoticeRecord[];
   fetchedAtMillis: number;
-  /** 丢弃原因；空串 = 成功。取值：empty / parse_failed / not_an_object / items_missing /
-   *  fetched_at_invalid / version_mismatch:<onDisk> / item_<i>_<field> / unsupported_attachment_<i> */
+  /** 磁盘上记着的本地已读集合（空数组 = 没有）。丢弃时一律为空。 */
+  readNoticeIds: string[];
+  /** 丢弃原因；空串 = 成功。取值：empty / parse_failed / not_an_object / version_missing /
+   *  version_mismatch:<onDisk> / fetched_at_invalid / items_missing /
+   *  item_<i>_<field> / unsupported_attachment_<i> / read_ids_invalid */
   discardReason: string;
   /** 磁盘上的结构版本（丢弃时用于对比；解析不出时为 -1）。 */
   onDiskVersion: number;
 }
 
 function fail(reason: string, onDiskVersion: number): SnapshotDecodeResult {
-  return { items: [], fetchedAtMillis: 0, discardReason: reason, onDiskVersion: onDiskVersion };
+  return {
+    items: [], fetchedAtMillis: 0, readNoticeIds: [], discardReason: reason, onDiskVersion: onDiskVersion
+  };
+}
+
+/**
+ * 读回已读集合：**非字符串成员静默丢掉**（不丢弃整条快照）。
+ *
+ * 为什么与 items 的严格程度不同：已读集合丢一项只表现为"那条又变成未读"，
+ * 下一次打开会重新记上；为它扔掉整份内容快照不划算。集合本身不是数组时返回 undefined，
+ * 由调用方决定（与 items 同级，缺字段算损坏）。
+ */
+function readReadNoticeIds(envelope: Record<string, Object>): string[] | undefined {
+  const raw: Object = envelope['readNoticeIds'];
+  if (raw === undefined || raw === null) {
+    return undefined;
+  }
+  if (!Array.isArray(raw)) {
+    return undefined;
+  }
+  const array: Object[] = raw as Object[];
+  const ids: string[] = [];
+  for (let i = 0; i < array.length; i++) {
+    const value: Object = array[i];
+    if (typeof value !== 'string') {
+      continue;
+    }
+    const text: string = value as string;
+    if (text.length > 0 && !ids.includes(text)) {
+      ids.push(text);
+    }
+  }
+  return ids;
 }
 
 /** 字符串字段：必须存在且是 string，否则给 field 名让调用方组成丢弃原因。 */
@@ -131,6 +172,10 @@ export function decodeNoticeSnapshot(payload: string): SnapshotDecodeResult {
   if (rawItems === undefined || rawItems === null || !Array.isArray(rawItems)) {
     return fail('items_missing', version);
   }
+  const readNoticeIds: string[] | undefined = readReadNoticeIds(envelope);
+  if (readNoticeIds === undefined) {
+    return fail('read_ids_invalid', version);
+  }
   const array: Object[] = rawItems as Object[];
   const items: NoticeRecord[] = [];
   for (let i = 0; i < array.length; i++) {
@@ -188,18 +233,32 @@ export function decodeNoticeSnapshot(payload: string): SnapshotDecodeResult {
     }
     items.push(record);
   }
-  return { items: items, fetchedAtMillis: fetchedAt, discardReason: '', onDiskVersion: version };
+  return {
+    items: items, fetchedAtMillis: fetchedAt, readNoticeIds: readNoticeIds,
+    discardReason: '', onDiskVersion: version
+  };
 }
 
 /**
  * 序列化快照。**必须能 round-trip**：单测断言 `decode(encode(s)) == s`
  * （附件可选字段的 undefined 不能在往返中变成 null）。
+ *
+ * 已读集合写盘前**去重、丢掉空串**：集合是"有哪些 id"，重复成员没有意义。
  */
-export function encodeNoticeSnapshot(items: NoticeRecord[], fetchedAtMillis: number): string {
+export function encodeNoticeSnapshot(items: NoticeRecord[], fetchedAtMillis: number,
+  readNoticeIds: string[] = []): string {
+  const ids: string[] = [];
+  for (let i = 0; i < readNoticeIds.length; i++) {
+    const id: string = readNoticeIds[i];
+    if (id.length > 0 && !ids.includes(id)) {
+      ids.push(id);
+    }
+  }
   const envelope: PersistedNoticeSnapshot = {
     schemaVersion: NOTICE_SNAPSHOT_SCHEMA_VERSION,
     fetchedAtMillis: fetchedAtMillis,
-    items: items
+    items: items,
+    readNoticeIds: ids
   };
   return JSON.stringify(envelope);
 }

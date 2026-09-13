@@ -123,4 +123,8 @@ class MissingContextNoticeRepository implements NoticeRepository {
   async refresh(): Promise<NoticeSnapshot> {
     throw new Error('notice repository unavailable: no host context for the snapshot store');
   }
+
+  /** 没有存储可写：吞掉即可（界面侧的已读刷新由 store 自己完成）。 */
+  async markRead(noticeId: string): Promise<void> {
+  }
 }

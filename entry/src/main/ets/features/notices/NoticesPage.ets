@@ -244,11 +244,18 @@ export struct NoticesPage {
     this.logApplied('refresh');
   }
 
-  /** 点一行 → 压进详情栈（单栏=主栈，双栏=右栏），对齐参考实现 NoticeDetail 的 push/navigate 两态。 */
+  /**
+   * 点一行 → 压进详情栈（单栏=主栈，双栏=右栏），对齐参考实现 NoticeDetail 的 push/navigate 两态。
+   *
+   * 同时把这一条记成已读：**打开详情这个动作本身就是"已读"的定义**，
+   * 所以标记发生在压栈这一处，而不是等详情页挂载后回调（分栏时它进的是右栏的栈）。
+   */
   private openDetail(notice: NoticeRecord): void {
     logger.info('notice tapped: id=' + notice.id + ' title=' + notice.title
+      + ' hasRead=' + notice.hasRead.toString()
       + ' split=' + this.splitActive.toString());
     this.selectedId = notice.id;
+    this.store.markRead(notice.id);
     pushDetailFromMaster(this.stack, this.detailStack, this.splitActive, ROUTE_NOTICE_DETAIL, notice);
   }
 

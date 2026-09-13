@@ -20,7 +20,7 @@ import { AuthedRunResult, SessionTask } from '../auth/SessionRestore';
 import { TaskOutcome } from '../auth/ReAuth';
 import { Session } from '../remote/Requests';
 import {
-  NOTICE_SNAPSHOT_SCHEMA_VERSION, NoticeRecord, NoticeRepository, NoticeSnapshot
+  NOTICE_SNAPSHOT_SCHEMA_VERSION, NoticeRecord, NoticeRepository, NoticeSnapshot, mergeNoticeReadState
 } from './NoticeRepository';
 import {
   SnapshotDecodeResult, encodeNoticeSnapshot, snapshotFromDecoded
@@ -61,6 +61,19 @@ export interface AuthedTaskExecutor {
  */
 export const NOTICES_REFRESH_FAILURE_FOR_EVIDENCE: boolean = false;
 
+/**
+ * 取证开关：把**列表里第一条公告**按"站点说它没读过"处理（提交态 false）。
+ *
+ * 为什么需要它：站点自己的 sfyd 可能已经是已读，那样"打开后蓝点消失"就没有可观察的起点
+ * —— 蓝点在打开之前就已经不在。本开关只覆盖**这一次刷新的那一份内存副本**，不改站点数据、
+ * 不动已读集合，于是设备上能拍齐"未读蓝点 → 点开 → 蓝点消失 → 重启后仍消失"四帧；
+ * 其中"重启后仍消失"只可能由**本地已读集合持久化**解释，因为开关在重启后的那次刷新里
+ * 又把同一条报成未读。
+ *
+ * 消费点自证：refresh() 把**实际生效值**与覆盖了哪一条打进 hilog（notices refresh done 那一行）。
+ */
+export const FORCE_FIRST_NOTICE_UNREAD_FOR_EVIDENCE: boolean = false;
+
 /** 公告抓取端口：设备侧是"课程列表 + NoticesFetcher"，测试里是替身。 */
 export interface NoticeFetchSource {
   /** 在给定会话里抓取全部公告；失败时抛出（消息进日志）。 */
@@ -97,6 +110,16 @@ export class RealNoticeRepository implements NoticeRepository {
   private readonly logger: Logger;
   /** 闭包带出来的抓取结果（每次 refresh 重新赋值；不放进 TaskOutcome 的字符串里）。 */
   private fetched: Notice[] = [];
+  /**
+   * 本机已读集合（打开过的公告 id）：进程内是权威副本，落盘与它同处一份快照记录。
+   * 只增不减——已读不因条目从站点列表里消失而失效；集合本身随快照一起被版本丢弃重建。
+   */
+  private readIds: string[] = [];
+  /** 最近一次拿到内容项（读快照或抓取都算），markRead 重写快照时用它。 */
+  private lastItems: NoticeRecord[] = [];
+  private lastFetchedAtMillis: number = 0;
+  /** 是否已经从磁盘读过一次已读集合（避免每次 refresh 都读盘）。 */
+  private readStateLoaded: boolean = false;
 
   constructor(executor: AuthedTaskExecutor, source: NoticeFetchSource, snapshots: NoticeSnapshotPort,
     logger: Logger) {
@@ -108,7 +131,9 @@ export class RealNoticeRepository implements NoticeRepository {
 
   /**
    * 读上次快照。首次运行 / 版本不符 / 内容损坏都返回 null，并落一行**带原因**的日志——
-   * "没有快照"与"有快照但被丢弃"必须能区分（验收第 6 条要求能识别旧版本并丢弃重建）。
+   * "没有快照"与"有快照但被丢弃"必须能区分（旧版本要能被识别并丢弃重建）。
+   *
+   * 读回时把盘上的已读集合与进程内的合并（并集）：任一侧记着的都算已读。
    */
   async loadSnapshot(): Promise<NoticeSnapshot | null> {
     const result: SnapshotLoadResult = await this.snapshots.load();
@@ -124,14 +149,56 @@ export class RealNoticeRepository implements NoticeRepository {
         + ' -> will rebuild from a fresh fetch');
       return null;
     }
+    this.readStateLoaded = true;
+    this.absorbReadIds(decoded.readNoticeIds);
+    const items: NoticeRecord[] = mergeNoticeReadState(decoded.items, this.readIds);
+    this.lastItems = items;
+    this.lastFetchedAtMillis = decoded.fetchedAtMillis;
     const snapshot: NoticeSnapshot = snapshotFromDecoded(decoded);
+    snapshot.items = items;
     this.logger.info('snapshot applied: items=' + snapshot.items.length.toString()
       + ' fetchedAt=' + snapshot.fetchedAtMillis.toString()
-      + ' schemaVersion=' + snapshot.schemaVersion.toString());
+      + ' schemaVersion=' + snapshot.schemaVersion.toString()
+      + ' readIds=' + this.readIds.length.toString());
     return snapshot;
   }
 
-  /** 抓取 → 映射 → 落快照。失败一律 reject（**不返回空列表**）。 */
+  /** 读回集合与进程内集合的并集（盘上的顺序在前，保持稳定）。 */
+  private absorbReadIds(onDisk: string[]): void {
+    for (let i = 0; i < onDisk.length; i++) {
+      const id: string = onDisk[i];
+      if (id.length > 0 && !this.readIds.includes(id)) {
+        this.readIds.push(id);
+      }
+    }
+  }
+
+  /**
+   * 确保已读集合已经与磁盘对齐一次。refresh() 会**覆盖**整份快照，
+   * 不先读回盘上的已读集合就会把上一次的已读状态抹掉。
+   *
+   * 只在**没有成功读到过磁盘**时才读：`loadSnapshot` 成功那一次已经把集合接进来了；
+   * 那里读到的快照如果是"没有"或"被丢弃"，这里仍要再读一次（写盘可能刚刚才发生）。
+   *
+   * 顺便把盘上的内容项与抓取时间也接过来：markRead 在没有新数据时也要能重写一份完整快照。
+   */
+  private async ensureReadStateLoaded(): Promise<void> {
+    if (this.readStateLoaded) {
+      return;
+    }
+    this.readStateLoaded = true;
+    const result: SnapshotLoadResult = await this.snapshots.load();
+    if (!result.present || result.decoded.discardReason.length > 0) {
+      return;
+    }
+    this.absorbReadIds(result.decoded.readNoticeIds);
+    if (this.lastItems.length === 0 && result.decoded.items.length > 0) {
+      this.lastItems = mergeNoticeReadState(result.decoded.items, this.readIds);
+      this.lastFetchedAtMillis = result.decoded.fetchedAtMillis;
+    }
+  }
+
+  /** 抓取 → 映射 → 合并已读 → 落快照。失败一律 reject（**不返回空列表**）。 */
   async refresh(): Promise<NoticeSnapshot> {
     // 消费点自证（AGENTS：开关必须把**实际生效值**打在谁读它的地方）：
     this.logger.info('notices refresh switch: NOTICES_REFRESH_FAILURE_FOR_EVIDENCE='
@@ -141,6 +208,8 @@ export class RealNoticeRepository implements NoticeRepository {
         + '（取证用：让注入的快照时间戳留在页头上）');
       throw new Error('notice refresh aborted by evidence switch');
     }
+    // 落盘会整份覆盖：先把盘上的已读集合读回来，否则这次刷新会把已读状态抹掉。
+    await this.ensureReadStateLoaded();
     const startedAt: number = Date.now();
     this.fetched = [];
     const run: AuthedRunResult = await this.executor.run(async (session: Session): Promise<TaskOutcome> => {
@@ -159,8 +228,11 @@ export class RealNoticeRepository implements NoticeRepository {
       throw new Error('notice refresh degraded: requiresEnrollment=true reason=' + run.reason
         + ' reAuth=' + run.reAuthAttempted.toString() + ' diag=' + run.diagnostic);
     }
-    const items: NoticeRecord[] = this.mapFetched();
+    const items: NoticeRecord[] = this.applyEvidenceUnreadOverride(
+      mergeNoticeReadState(this.mapFetched(), this.readIds));
     const fetchedAtMillis: number = Date.now();
+    this.lastItems = items;
+    this.lastFetchedAtMillis = fetchedAtMillis;
     const snapshot: NoticeSnapshot = {
       items: items,
       fetchedAtMillis: fetchedAtMillis,
@@ -170,8 +242,73 @@ export class RealNoticeRepository implements NoticeRepository {
     await this.persist(items, fetchedAtMillis);
     this.logger.info('notices refresh done: items=' + items.length.toString()
       + ' elapsedMs=' + (Date.now() - startedAt).toString()
-      + ' fetchedAt=' + fetchedAtMillis.toString());
+      + ' fetchedAt=' + fetchedAtMillis.toString()
+      + ' readIds=' + this.readIds.length.toString()
+      + ' evidenceUnreadOverride=' + FORCE_FIRST_NOTICE_UNREAD_FOR_EVIDENCE.toString());
     return snapshot;
+  }
+
+  /**
+   * 打开详情时调用：把 id 记进本地已读集合，并把集合随同当前内容项**重写一次快照**。
+   *
+   * 为什么立刻落盘而不是等下次刷新：用户可能看完就杀进程，等刷新就等于没记住。
+   * 抓取时间用**最近一次抓取的时间**、不改成"现在"——页头的"N 分钟前更新"说的是
+   * 站点数据的新鲜度，与本地读没读过无关。
+   */
+  async markRead(noticeId: string): Promise<void> {
+    if (noticeId.length === 0) {
+      return;
+    }
+    if (this.readIds.includes(noticeId)) {
+      // 已经记过：不必为同一个 id 反复重写磁盘。
+      return;
+    }
+    this.readIds.push(noticeId);
+    // 没有内容项可写时（首次刷新还没成功）只更新内存：下次刷新落盘时会带上。
+    if (this.lastItems.length === 0) {
+      this.logger.info('notice marked read (memory only): id=' + noticeId
+        + ' readIds=' + this.readIds.length.toString());
+      return;
+    }
+    const merged: NoticeRecord[] = mergeNoticeReadState(this.lastItems, this.readIds);
+    this.lastItems = merged;
+    await this.persist(merged, this.lastFetchedAtMillis);
+    this.logger.info('notice marked read: id=' + noticeId
+      + ' readIds=' + this.readIds.length.toString());
+  }
+
+  /**
+   * 取证开关的落点：只把**排序后第一条**报成未读，让"蓝点消失"有起点。
+   * 提交态（开关为 false）原样返回，不做任何加工。
+   */
+  private applyEvidenceUnreadOverride(items: NoticeRecord[]): NoticeRecord[] {
+    if (!FORCE_FIRST_NOTICE_UNREAD_FOR_EVIDENCE || items.length === 0) {
+      return items;
+    }
+    const first: NoticeRecord = items[0];
+    const unread: NoticeRecord = {
+      id: first.id,
+      title: first.title,
+      content: first.content,
+      publisher: first.publisher,
+      courseId: first.courseId,
+      courseName: first.courseName,
+      courseTeacherName: first.courseTeacherName,
+      publishTimeMillis: first.publishTimeMillis,
+      hasRead: false,
+      markedImportant: first.markedImportant,
+      url: first.url
+    };
+    if (first.attachment !== undefined) {
+      unread.attachment = first.attachment;
+    }
+    const out: NoticeRecord[] = [unread];
+    for (let i = 1; i < items.length; i++) {
+      out.push(items[i]);
+    }
+    this.logger.warn('evidence unread override: first=' + first.id
+      + ' hasReadBefore=' + first.hasRead.toString());
+    return out;
   }
 
   private mapFetched(): NoticeRecord[] {
@@ -183,9 +320,9 @@ export class RealNoticeRepository implements NoticeRepository {
     return records;
   }
 
-  /** 落盘快照；失败只记日志（下一次刷新还会重写）。 */
+  /** 落盘快照（含本地已读集合）；失败只记日志（下一次刷新还会重写）。 */
   private async persist(items: NoticeRecord[], fetchedAtMillis: number): Promise<void> {
-    const payload: string = encodeNoticeSnapshot(items, fetchedAtMillis);
+    const payload: string = encodeNoticeSnapshot(items, fetchedAtMillis, this.readIds);
     const result: SnapshotSaveResult = await this.snapshots.save(payload);
     if (!result.ok) {
       this.logger.warn('snapshot persist failed: ' + result.diagnostic);
