@@ -67,7 +67,7 @@ import {
 import { searchAssignments, searchFiles, searchNotices } from './SearchCore';
 import { closeSearch } from './SearchEntry';
 import { CourseListStore } from '../courses/CourseListStore';
-import { createCourseRepository } from '../courses/repository/CourseRepositoryProvider';
+import { courseListStore } from '../courses/CourseListStoreProvider';
 import { FileDetailPage } from '../files/FileDetailPage';
 import { AssignmentDetailPage } from '../assignments/AssignmentDetailPage';
 import { AssignmentSubmissionPage } from '../assignments/AssignmentSubmissionPage';
@@ -108,7 +108,8 @@ export struct SearchPage {
   @StorageProp(SPLIT_VIEW_MASTER_HIDDEN_KEY) masterHidden: boolean = false;
 
   /** 数据源：课程线同一次抓取（课程 + 三域内容 + 生效学期）。 */
-  private store: CourseListStore = new CourseListStore(createCourseRepository());
+  /** 进程内单例：与课程 tab 共用同一次抓取与同一个学期选择。 */
+  private store: CourseListStore = courseListStore();
   /** 屏蔽课程状态：与四个列表共用同一份进程内单例。 */
   private flags: CollectionFlagsStore = collectionFlagsStore();
   /** 单栏时详情压在这个栈上（= 左栏）；分栏时它只承载"结果列表"这一层。 */

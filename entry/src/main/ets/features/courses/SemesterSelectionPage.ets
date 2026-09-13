@@ -50,8 +50,17 @@ export struct SemesterSelectionPage {
     return this.store === null ? [] : this.store.semesters;
   }
 
+  /**
+   * 哪一行打勾：切换在途时以**正在应用的选择**为准，否则用快照里的实际生效值。
+   * 直接读两个 @Trace 字段（不绕包装函数），保证勾选标记随选择同步移动，
+   * 而不是等整轮取数跑完才动。
+   */
   private activeSemesterId(): string {
-    return this.store === null ? '' : this.store.semesterId;
+    const store: CourseListStore | null = this.store;
+    if (store === null) {
+      return '';
+    }
+    return store.pendingSemesterId.length > 0 ? store.pendingSemesterId : store.semesterId;
   }
 
   private listAvailable(): boolean {
@@ -62,14 +71,22 @@ export struct SemesterSelectionPage {
     return getSemesterTextFromId(semesterId, i18nService.locale(), i18nService);
   }
 
-  private async select(semesterId: string): Promise<void> {
+  /**
+   * 点一行 = 纯状态写入 + 立即返回。
+   *
+   * 这里**不 await 取数**：一轮 refresh 要串行取"学期集合 + 课程列表 + 三域内容"，
+   * 以秒计；等它跑完再更新勾选、再 pop，用户看到的就是"点一下卡住"。选择记下后
+   * 由共享 store 的 @Trace 推给所有读它的页面（课程 tab 的列表会在后台刷新时更新）。
+   */
+  private select(semesterId: string): void {
     const store: CourseListStore | null = this.store;
     logger.info('semester row tapped: ' + semesterId);
     if (store === null) {
       logger.error('semester row tapped but the store is missing');
       return;
     }
-    await store.selectSemester(semesterId);
+    store.selectSemester(semesterId);
+    logger.info('semester selection dismissed: ' + semesterId);
     if (this.stack !== null) {
       this.stack.pop();
     }

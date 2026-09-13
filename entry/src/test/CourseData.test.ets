@@ -20,13 +20,14 @@ import {
 import {
   HttpSemesterSource, SemesterResolution, extractSemesterId, parseSemesterList
 } from '../main/ets/data/courses/SemesterFetcher';
-import { CourseSnapshot } from '../main/ets/data/courses/CourseRepository';
+import { CourseRecord, CourseRepository, CourseSnapshot } from '../main/ets/data/courses/CourseRepository';
 import { CourseFetchSource, HttpCourseFetchSource, buildCourseRecords } from '../main/ets/data/courses/CourseFetchSource';
 import { RealCourseRepository } from '../main/ets/data/courses/RealCourseRepository';
 import {
   clearRuntimeSemesterOverride, effectiveSemesterOverride, normalizeSemesterOverride,
   semesterOverrideSource, setRuntimeSemesterOverride
 } from '../main/ets/data/courses/SemesterOverride';
+import { CourseListStore } from '../main/ets/features/courses/CourseListStore';
 import { strictPureBase64Decoder } from './TestHelpers';
 
 const SESSION: Session = { cookie: 'JSESSIONID=fixture', csrfToken: 'csrf-fixture' };
@@ -208,6 +209,62 @@ function emptySnapshot(): CourseSnapshot {
     semesterId: '2025-2026-2', siteCurrentSemesterId: '2026-2027-1', semesterSource: 'selection',
     semesters: ['2026-2027-1', '2025-2026-2'], semestersAvailable: true, fetchedAtMillis: 1
   };
+}
+
+/** 一门课的最小记录（本用例只关心 id / name）。 */
+function courseRecord(id: string, name: string): CourseRecord {
+  return {
+    id: id,
+    name: name,
+    chineseName: name,
+    englishName: '',
+    teacherName: '',
+    teacherNumber: '',
+    courseNumber: '',
+    courseIndex: 0,
+    unreadNoticeCount: 0,
+    unfinishedAssignmentCount: 0,
+    unreadFileCount: 0
+  };
+}
+
+/**
+ * 记录被请求的学期、并按学期给出**不同课程集合**的假仓储。
+ * "选择 → 生效"的判据必须能区分"换成了另一份数据"与"其实没换"，所以两个学期
+ * 给不同的课程；`requests` 用来判"选择是否真的被传到了取数"。
+ */
+class FakeCourseRepository implements CourseRepository {
+  readonly requests: string[] = [];
+  private readonly failing: boolean;
+
+  constructor(failing: boolean) {
+    this.failing = failing;
+  }
+
+  async refresh(semesterId?: string): Promise<CourseSnapshot> {
+    const asked: string = semesterId === undefined ? '' : semesterId;
+    this.requests.push(asked);
+    if (this.failing) {
+      throw new Error('offline');
+    }
+    const picked: boolean = asked.length > 0;
+    const courses: CourseRecord[] = asked === '2025-2026-2'
+      ? [courseRecord('2025-2026-2-44100563', '形式语言与自动机')]
+      : [courseRecord('2026-2027-1-14201092', '英语听说交流（A）'),
+        courseRecord('2026-2027-1-30240324', '微积分')];
+    return {
+      courses: courses,
+      notices: [],
+      assignments: [],
+      files: [],
+      semesterId: picked ? asked : '2026-2027-1',
+      siteCurrentSemesterId: '2026-2027-1',
+      semesterSource: picked ? 'selection' : 'site-current',
+      semesters: ['2026-2027-1', '2025-2026-2'],
+      semestersAvailable: true,
+      fetchedAtMillis: 123
+    };
+  }
 }
 
 export default function courseDataTest() {
@@ -458,6 +515,56 @@ export default function courseDataTest() {
         message = (error as Error).message;
       }
       expect(message.includes('requiresEnrollment=true')).assertTrue();
+    });
+  });
+
+  describe('data.courses.CourseListStore', () => {
+    it('records the pick synchronously and applies the picked semester and course set', 0, async () => {
+      const repository: FakeCourseRepository = new FakeCourseRepository(false);
+      const store: CourseListStore = new CourseListStore(repository);
+      // 点击那一刻选择就必须已经可读（勾选标记据此同步移动），而不是等取数回来才动。
+      const pending: Promise<void> = store.selectSemester('2025-2026-2');
+      expect(store.selectedSemesterId).assertEqual('2025-2026-2');
+      expect(store.pendingSemesterId).assertEqual('2025-2026-2');
+      await pending;
+      // 选择真的被传给了取数（否则"生效"可能只是巧合）。
+      expect(repository.requests.length).assertEqual(1);
+      expect(repository.requests[0]).assertEqual('2025-2026-2');
+      // 生效结果：生效学期 + 课程集合都来自被选的那个学期。
+      expect(store.semesterId).assertEqual('2025-2026-2');
+      expect(store.semesterSource).assertEqual('selection');
+      expect(store.courses.length).assertEqual(1);
+      expect(store.courses[0].name).assertEqual('形式语言与自动机');
+      // 站点当前学期没有被误当成选择。
+      expect(store.siteCurrentSemesterId).assertEqual('2026-2027-1');
+      // 取数结束后不再算"在途"。
+      expect(store.pendingSemesterId).assertEqual('');
+    });
+
+    it('keeps following the pick on later refreshes instead of the site current semester', 0, async () => {
+      const repository: FakeCourseRepository = new FakeCourseRepository(false);
+      const store: CourseListStore = new CourseListStore(repository);
+      await store.loadOnce();
+      expect(store.semesterSource).assertEqual('site-current');
+      expect(store.courses.length).assertEqual(2);
+      await store.selectSemester('2025-2026-2');
+      expect(store.courses.length).assertEqual(1);
+      expect(store.courses[0].id).assertEqual('2025-2026-2-44100563');
+      // 选择留在 store 上：下一次刷新（下拉 / 提交后重取）仍按它取数。
+      await store.refresh();
+      expect(store.semesterId).assertEqual('2025-2026-2');
+      expect(repository.requests.length).assertEqual(3);
+      expect(repository.requests[2]).assertEqual('2025-2026-2');
+    });
+
+    it('reports the failure and clears the in-flight pick when the picked semester fails', 0, async () => {
+      const store: CourseListStore = new CourseListStore(new FakeCourseRepository(true));
+      await store.selectSemester('2025-2026-2');
+      expect(store.hasError()).assertTrue();
+      expect(store.errorMessage).assertEqual('offline');
+      // 失败后不能留着"在途"标记，否则勾选标记会一直指向一个没有生效的学期。
+      expect(store.pendingSemesterId).assertEqual('');
+      expect(store.semesterId).assertEqual('');
     });
   });
 }
