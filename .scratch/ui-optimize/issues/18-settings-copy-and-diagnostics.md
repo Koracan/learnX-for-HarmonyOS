@@ -10,7 +10,7 @@
 
 **Blocked by:** None（可立即开始）
 
-**Status:** open
+**Status:** verified（统筹者独立复核：门禁 427 绿 + 产物指纹与实现方逐字一致 + 在**另一台设备**上自己验了三处界面；见文末 2026-09-13 统筹者验收）
 
 **判据**
 
@@ -144,4 +144,21 @@
 5. 第 2 条英文新值把 `. App restart required.` 半句连同句末句点一起去掉；ticket 只写了「去掉那半句」，标点取舍是我定的。
 
 **设备与工作区状态**：学期未动、未点「退出登录」、未改设备级永久设置；文件设置开关拨动过 ON → OFF 并已复原（hilog `file settings changed: … value=false …` + 界面 `当前保存位置：…/cache/learnX-files`）。工作区只剩本轮改动，无残留探针；帧 / dump / hilog / patch 全部只在本机（`.dsh/logs/`）。
+
+### 2026-09-13 · 统筹者验收：**verified**（我自己重跑门禁 + 在另一台设备上复核了三处）
+
+**A. 产物同一性**：我在 `wt/t18`（`c976b5a`）里自己跑 `assembleHap --no-incremental`，解包 `ets/modules.abc` = **1,793,988 B**、SHA256 **`3399555710A864D0BCF4226230640F1A701AC29DEFFDDBD8C1DFD057BAE51C52`** —— 与实现方报的**逐字符相同**。
+
+**B. 门禁（我在它的树里重跑）**：删 `entry/.test` + `test --no-incremental` ⇒ `Tests run: 427, Failure: 0, Error: 0, Pass: 427, Ignore: 0`（`test_result.txt` mtime **18:12:52**，我这一轮）；日志搜 `ERROR`/`ErrorCode`/`COMPILE RESULT` 各 **0**、`BUILD SUCCESSFUL` 1；`assembleHap --no-incremental` 同样 0/0/0；四脚本 PASS / PASS / `RESULT: OK` / PASS，且跑完生成器后 `git status` **为空** ⇒ 6 个生成物能由已提交的输入复现（这才是 fresh 的真判据）。
+
+**C. 我在设备 `127.0.0.1:5559`（tablet；我自己装的这份提交态产物，装机 `updateTime` ≈ 18:13:47）上复核三条**：
+1. **沉浸式页**：dump 右栏只有开关与 `隐藏导航栏和状态栏` —— `hasImmersiveDiag=false`、`hasRestartCopy=false`；同一次会话的 hilog 仍有 `immersive settings page appear: immersive settings: immersiveMode=false` ⇒ **界面没了、日志还在**（两个论断各有各的证据）。
+2. **文件设置页**：dump 里 **无** `file settings:`，`当前保存位置：/data/storage/el2/base/haps/entry/cache/learnX-files` **保留**；我自己拨了一次第一个开关 ON→OFF：caption 与「当前保存位置」**原地**跟着变（`…/files/learnX-files` → 拨回 `…/cache/learnX-files`），已复原 OFF。
+3. **导出日志**：我自己的 dump 里那一行是 `已导出 … / 保存位置：/data/storage/el2/base/haps/entry/files/logs/learnOH-1789294660719.log`，与同次 hilog 的 `logs exported: path=…` **逐字符相同**（我在程序里做的字符串相等判断 = true）。
+
+**D. 我认下的范围扩张**：实现方顺手修掉的「文件设置页开关行说明文字不随开关原地刷新」（`switchRow` 改为在 builder 体内按 key 现读状态）**接受为本 ticket 的一部分**：它正是第 1 条自身理由（「开关 + 说明已经表达了状态」）成立的前提，修后行为我在设备上复核过（C.2）。修前的陈旧只有它的 `AB-02` dump（未截图），我**没有**独立重做那半边的 A/B。
+
+**E. 我确认的缺口（与实现方一致，均不阻塞判据）**：① 导出文件是否真落盘**没有**独立核实（私有沙箱 shell 读不到；可核实的只是调用无异常 + 界面与日志路径一致）；② 英文界面未取帧（设备语言是硬禁止项），只有资源级证据；③ 427 基线引自前几轮，本轮没有增删 `it(`。
+
+**F. 合并**：`wt/t18` 已并入 main（`fa6cbb3`；唯一冲突是 ticket 文件本身 —— 主树那份是后提交的、分支那份带 Comment，取分支版收敛）。
 
