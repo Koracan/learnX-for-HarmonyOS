@@ -15,9 +15,9 @@
 
 每种设备可以启动一个实例，可用不同设备实现并行。**多设备时必须显式传设备**：`devecocli install/run/ui/log --device <SERIAL>`、`hdc -t <SERIAL> …`。
 
-### 放大 `MatePad Pro 13` 的数据分区（跑登录前）
+### 隐私模式误判
 
-默认 6 GiB 会踩中 ArkWeb 的隐私模式误判（配额 < 2×堆上限 ⇒ 判成隐私模式 ⇒ 二次验证页**不渲染**「信任该浏览器」）。**这里很容易改错**：
+模拟器默认 6 GiB 数据空间会踩中 ArkWeb 的隐私模式误判（配额 < 2×堆上限 ⇒ 判成隐私模式 ⇒ 二次验证页**不渲染**「信任该浏览器」）。如果发现这种情况，要用以下方法调大数据空间（以 MatePad Pro 13 为例）
 
 - 真正被 qemu 读的是 `…\Emulator\deployed\MatePad Pro 13\hardware-qemu.ini` 里的 `disk.dataPartition.size`（默认 `6g`）；
   **`config.ini` 里的 `hw.dataPartitionSize` 只是记录，改它不生效**。
