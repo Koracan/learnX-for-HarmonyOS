@@ -72,6 +72,7 @@ import {
   pushDetailFromMaster
 } from '../shell/SplitView';
 import { countPastDue, hasAnswer, hasExcellentHomework, isPastDeadline } from './AssignmentFilter';
+import { assignmentListRowKey } from './AssignmentRowKey';
 import { deadlineText, dueStatusText, emptyStateKey } from './AssignmentText';
 import { evidenceAssignmentsOr, logAssignmentEvidenceState } from './AssignmentEvidence';
 import { openSearch } from '../search/SearchEntry';
@@ -610,11 +611,13 @@ export struct AssignmentsPage {
           .bindContextMenu(this.rowMenu(item, this.flags.assignmentFavorites.includes(item.id),
             assignmentsContain(this.filtered().archived, item.id)), ResponseType.LongPress)
         }, (item: Assignment) =>
-          item.id
-          + '|' + (this.flags.assignmentFavorites.includes(item.id) ? 'fav' : 'nofav')
-          + '|' + (assignmentsContain(this.filtered().archived, item.id) ? 'arch' : 'noarch')
-          // 高亮态要进 key：否则 ForEach 认为这一项没变、不会重建行（选中态就不会跟着变）。
-          + '|' + (this.splitActive && this.selectedId === item.id ? 'sel' : 'nosel'))
+          // key 由 assignmentListRowKey 统一构造（纯函数，见 AssignmentRowKey.ets 的文件头）：
+          // 上一版漏了 **五枚状态标记（附件/已提交/已评分/有答案/优秀作业）与截止时间**：
+          // 提交一次作业后 submitted 从 false 变 true，id 不变 ⇒ 行不重建 ⇒ 卡片一直不显示对勾。
+          assignmentListRowKey(item,
+            this.flags.assignmentFavorites.includes(item.id),
+            assignmentsContain(this.filtered().archived, item.id),
+            this.splitActive && this.selectedId === item.id))
       }
       .width('100%')
       .height('100%')
