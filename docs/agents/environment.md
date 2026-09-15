@@ -10,9 +10,9 @@
 | `MatePad Pro 13` | tablet | **1440 × 960 vp** | 验分栏/大屏用它。**跑登录前必须先放大数据分区** |
 | `Mate X7` | foldable | 折叠 345.6 / 展开约 1008 vp | 复用 phone 镜像，实例已铺开；折叠态低于断点 ⇒ 单栏 |
 | `MateBook Pro` | 2in1 | — | **起不来**：缺 `pc_all_x86` 镜像 |
-| 真机 `3FYBB25407201890` | tablet | 1244 × 818 vp | HUAWEI MatePad Air，**API 24**，型号 `BKY-W20`。2026-09-13 已完成一次性复验（ticket 18） |
+| 真机 `3FYBB25407201890` | tablet | 1244 × 818 vp | HUAWEI MatePad Air，**API 24**，型号 `BKY-W20`。可能未连接 |
 
-**多设备时必须显式传设备**：`devecocli install/run/ui/log --device `SERIAL``、`hdc -t SERIAL …`。
+每种设备可以启动一个实例，可用不同设备实现并行。**多设备时必须显式传设备**：`devecocli install/run/ui/log --device `SERIAL``、`hdc -t SERIAL …`。
 
 ### 判设备身份以 `hdc` 实测为准
 
