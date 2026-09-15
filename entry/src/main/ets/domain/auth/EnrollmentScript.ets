@@ -81,6 +81,21 @@ export interface EnrollmentDomValues {
   pageDeviceName: string;
   /** saveFinger 的 XHR **实际发出**的 fingerprint 参数（用于"三点一致"的等式证据）。 */
   saveFingerFingerprint: string;
+  /**
+   * **站点自己签发**的设备指纹（finger3）——从站点自己的 localforage 读回来的那个值。
+   *
+   * 为什么必须单独带一条通道：服务端在 `POST /b/doubleAuth/personal/saveFinger` 的**响应体**
+   * （`object` 字段）里签发它，页面用 doubleAuth.bundle.js 的 `saveFinger3Local(t.object)` 存进
+   * localforage（键 `fingerKey`）。之后站点自己的登录页（`finger3.js` / `doLogin`）在**提交前**
+   * 把它填进 `#fingerGenPrint` / `#fingerGenPrint3` 两个隐藏域。
+   *
+   * 但签发那一刻页面停在 `/do/off/ui/auth/login/redirect2Jsp`（这两个隐藏域**不存在**），
+   * 所以只读 DOM 会把它丢掉。设备实测（真机 MatePad Air / API 24，2026-09-15）：
+   * 首登时 `finger3ValueChars=32` 而 `fingerGenPrintChars=0` ⇒ 落盘的两个字段为空 ⇒
+   * 之后每次冷启动的纯 HTTP 重登都被服务端判成"未受信任的浏览器"，回二次验证页，用户表现为
+   * **"登录后清理后台，重新进入发现登录失效"**。
+   */
+  finger3Collected: string;
   /** 提交前自检是否拦下过提交（远端拿到了值而 DOM 没接住）。取**末次观测**，不做粘性。 */
   gateBlocked: boolean;
   /** 生效指纹的来源：page（页面 fingerprintjs2 值，方案 A 的权威值）/ fallback（我们的 UUID）/ none。 */
@@ -97,6 +112,7 @@ export interface EnrollmentDomValues {
 export function emptyDomValues(): EnrollmentDomValues {
   return {
     fingerPrint: '', fingerGenPrint: '', fingerGenPrint3: '', pageDeviceName: '', saveFingerFingerprint: '',
+    finger3Collected: '',
     gateBlocked: false, fingerPrintSource: 'none', finger3RemoteOk: -1,
     singleLoginChecked: false, userPrefilled: false, passPrefilled: false, saveFingerPatched: false
   };
@@ -668,6 +684,9 @@ const SCRIPT_TEMPLATE: string = `(function () {
       + '&fingerGenPrint3=' + encodeURIComponent(fg3)
       + '&pageDeviceName=' + encodeURIComponent(dn)
       + '&saveFingerFingerprint=' + encodeURIComponent(saveFingerSent)
+      // 站点自己签发、并从它自己的 localforage 读回的 finger3：**独立通道**，不与 DOM 字段合并。
+      // 签发那一刻（redirect2Jsp）两个隐藏域不存在，只有这条通道能把它带出来。
+      + '&finger3Collected=' + encodeURIComponent(finger3Value)
       + '&gateBlocked=' + (gateBlocked ? '1' : '0')
       + '&fpSource=' + encodeURIComponent(fp.length === 0 ? 'none' : (fp === FP ? 'fallback' : 'page'))
       + '&f3Remote=' + String(finger3RemoteOk)
@@ -779,6 +798,8 @@ export function parseEnrollmentValues(payload: string): EnrollmentDomValues {
       values.pageDeviceName = value;
     } else if (key === 'saveFingerFingerprint') {
       values.saveFingerFingerprint = value;
+    } else if (key === 'finger3Collected') {
+      values.finger3Collected = value;
     } else if (key === 'gateBlocked') {
       values.gateBlocked = value === '1';
     } else if (key === 'fpSource') {
@@ -822,6 +843,9 @@ export function mergeDomValues(previous: EnrollmentDomValues, fresh: EnrollmentD
   merged.pageDeviceName = fresh.pageDeviceName.length > 0 ? fresh.pageDeviceName : previous.pageDeviceName;
   merged.saveFingerFingerprint = fresh.saveFingerFingerprint.length > 0
     ? fresh.saveFingerFingerprint : previous.saveFingerFingerprint;
+  // 站点签发的 finger3 同样是"出现过就不能被后一页的空值擦掉"（漫游到 learn 域后必然消失）。
+  merged.finger3Collected = fresh.finger3Collected.length > 0
+    ? fresh.finger3Collected : previous.finger3Collected;
   merged.singleLoginChecked = previous.singleLoginChecked || fresh.singleLoginChecked;
   merged.userPrefilled = previous.userPrefilled || fresh.userPrefilled;
   merged.passPrefilled = previous.passPrefilled || fresh.passPrefilled;
@@ -868,15 +892,36 @@ export function resolveEnrollmentFingerPrint(injectedFingerPrint: string,
 }
 
 /**
+ * 两个**站点侧**指纹字段的生效值：页面自己的隐藏域优先，取不到时回落到我们从站点 localforage
+ * 读回的 finger3。
+ *
+ * 为什么需要回落（真机 MatePad Air / API 24，2026-09-15 实测）：`fingerGenPrint` 由站点的
+ * `doLogin()` 在提交前用 localforage 里的 finger3 填；`fingerGenPrint3` 由 `finger3.js` 在页面
+ * 加载时填。而**服务端是在 `saveFinger` 的响应里才签发 finger3 的**，那一刻页面停在
+ * `/do/off/ui/auth/login/redirect2Jsp`——两个隐藏域都不存在。于是首登只读 DOM 必然拿到空串，
+ * 落盘的两个字段也就是空串；之后每次冷启动的纯 HTTP 重登都缺这两个字段，被服务端判成
+ * "未受信任的浏览器"，回二次验证页 ⇒ 用户看到的是"登录失效"。
+ *
+ * 权威顺序与 `resolveEnrollmentFingerPrint` 同构：**页面给的值优先**（它就是浏览器会提交的值），
+ * 页面没给才用我们抓到的那个。两者在正常情况下是同一个值。
+ */
+export function resolveFingerGenPrint(domFieldValue: string, collectedFinger3: string): string {
+  return domFieldValue.length > 0 ? domFieldValue : collectedFinger3;
+}
+
+/**
  * 登记成功时该保存的凭据：fingerPrint 取**生效值**（见 resolveEnrollmentFingerPrint；
- * 应用侧指纹的落点），另外两个站点指纹取页面 DOM 里的实际值（可能是空串，参考实现的默认值也是空串）。
+ * 应用侧指纹的落点），两个站点指纹取**生效值**（见 resolveFingerGenPrint——页面值优先，
+ * 回落到站点签发的 finger3；都取不到时才为空串，参考实现的默认值也是空串）。
  */
 export function credentialRecordFor(username: string, password: string, injectedFingerPrint: string,
   dom: EnrollmentDomValues): CredentialRecord {
   // 权威判定放在这里（而不是调用点）是有意的：调用方可能来自不同 ticket 的编排代码，
   // 让"哪个值权威"只有一处定义，重登（ticket 08）读到的就是同一个生效值。
   const effective: string = resolveEnrollmentFingerPrint(injectedFingerPrint, dom).value;
-  return createCredentialRecord(username, password, effective, dom.fingerGenPrint, dom.fingerGenPrint3);
+  const effectiveFinger3: string = resolveFingerGenPrint(dom.fingerGenPrint, dom.finger3Collected);
+  const effectiveFinger3b: string = resolveFingerGenPrint(dom.fingerGenPrint3, dom.finger3Collected);
+  return createCredentialRecord(username, password, effective, effectiveFinger3, effectiveFinger3b);
 }
 
 /**
@@ -891,6 +936,7 @@ export function describeEnrollmentDomValues(dom: EnrollmentDomValues): string {
     + ' fingerGenPrint3Chars=' + dom.fingerGenPrint3.length.toString()
     + ' pageDeviceName=' + (dom.pageDeviceName.length > 0 ? dom.pageDeviceName : 'empty')
     + ' saveFingerFingerprintChars=' + dom.saveFingerFingerprint.length.toString()
+    + ' finger3CollectedChars=' + dom.finger3Collected.length.toString()
     + ' singleLogin=' + dom.singleLoginChecked.toString()
     + ' prefill=(' + dom.userPrefilled.toString() + ',' + dom.passPrefilled.toString() + ')'
     + ' saveFingerPatched=' + dom.saveFingerPatched.toString()

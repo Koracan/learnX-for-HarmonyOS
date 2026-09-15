@@ -15,7 +15,7 @@ import { describe, it, expect } from '@ohos/hypium';
 import {
   ENROLLMENT_DIAGNOSTICS_FOR_EVIDENCE, EnrollmentDomValues, SAVE_FINGER_PATH, buildEnrollmentScript,
   credentialRecordFor, describeEnrollmentDomValues, emptyDomValues, jsStringLiteral, mergeDomValues,
-  parseEnrollmentValues, resolveEnrollmentFingerPrint
+  parseEnrollmentValues, resolveEnrollmentFingerPrint, resolveFingerGenPrint
 } from '../main/ets/domain/auth/EnrollmentScript';
 import {
   SYNTHETIC_FINGERPRINT, SYNTHETIC_PASSWORD, SYNTHETIC_USERNAME
@@ -353,6 +353,58 @@ export default function enrollmentScriptTest() {
       expect(text.indexOf('fingerPrintChars=36') >= 0).assertTrue();
       expect(text.indexOf('pageDeviceName=windows,Chrome/120') >= 0).assertTrue();
       expect(text.indexOf('saveFingerPatched=false') >= 0).assertTrue();
+    });
+
+    /*
+     * 回归（真机 MatePad Air / API 24，2026-09-15）：站点在 saveFinger 的**响应**里才签发
+     * finger3，而那一刻的页面（/do/off/ui/auth/login/redirect2Jsp）**没有** #fingerGenPrint /
+     * #fingerGenPrint3 两个隐藏域。只读 DOM ⇒ 落盘两个字段为空 ⇒ 之后每次冷启动的纯 HTTP 重登
+     * 都被服务端判成未受信任的浏览器、回二次验证页。用户看到的就是
+     * "登录后清理后台，重新进入发现登录失效"。
+     *
+     * 现场日志（首登）：finger3ValueChars=32 而 fingerGenPrintChars=0。
+     */
+    it('persistsTheSiteIssuedFinger3EvenWhenTheDomFieldsAreAlreadyGone', 0, () => {
+      // 登录页：站点自己还没签发 finger3（未受信任的会话上 getFinger3 恒为 result=error），
+      // 所以两个隐藏域在提交时确实是空的。
+      let dom: EnrollmentDomValues = parseEnrollmentValues(
+        'fingerPrint=' + encodeURIComponent(SYNTHETIC_FINGERPRINT)
+          + '&fingerGenPrint=&fingerGenPrint3=');
+      expect(dom.fingerGenPrint).assertEqual('');
+      expect(dom.fingerGenPrint3).assertEqual('');
+      // saveFinger 之后落到 redirect2Jsp：隐藏域不存在，只有我们从站点 localforage 读回的值。
+      dom = mergeDomValues(dom, parseEnrollmentValues(
+        'fingerPrint=&fingerGenPrint=&fingerGenPrint3=&finger3Collected=' + encodeURIComponent('8bf5'.repeat(8))));
+      expect(dom.finger3Collected).assertEqual('8bf5'.repeat(8));
+
+      const record = credentialRecordFor(SYNTHETIC_USERNAME, SYNTHETIC_PASSWORD, SYNTHETIC_FINGERPRINT, dom);
+      // 这两行就是修复本身：落盘值必须非空，否则重登缺字段、信任命中不了。
+      expect(record.fingerGenPrint).assertEqual('8bf5'.repeat(8));
+      expect(record.fingerGenPrint3).assertEqual('8bf5'.repeat(8));
+    });
+
+    it('publishesTheCollectedFinger3OnItsOwnBridgeChannel', 0, () => {
+      const script: string = build();
+      // 独立通道：签发那一刻 DOM 里没有这两个字段，合并复用 DOM 值会把值丢掉。
+      expect(script.indexOf("+ '&finger3Collected=' + encodeURIComponent(finger3Value)") >= 0)
+        .assertTrue();
+      const parsed: EnrollmentDomValues = parseEnrollmentValues(
+        'finger3Collected=' + encodeURIComponent('issued-value'));
+      expect(parsed.finger3Collected).assertEqual('issued-value');
+      // 粘性：漫游到 learn 域后页面没有它，回传为空，不能把已签发的事实擦掉
+      const merged: EnrollmentDomValues =
+        mergeDomValues(parsed, parseEnrollmentValues('finger3Collected='));
+      expect(merged.finger3Collected).assertEqual('issued-value');
+    });
+
+    it('prefersThePageFieldOverTheCollectedFinger3WhenBothExist', 0, () => {
+      // 权威顺序与 resolveEnrollmentFingerPrint 同构：页面自己的字段就是浏览器会提交的值，
+      // 优先用它；页面没给才回落到我们抓到的那个。
+      expect(resolveFingerGenPrint('from-dom', 'collected')).assertEqual('from-dom');
+      expect(resolveFingerGenPrint('', 'collected')).assertEqual('collected');
+      expect(resolveFingerGenPrint('', '')).assertEqual('');
+      // 两者正常情况下是同一个值（finger3.js 与 doLogin 都取站点 localforage 的同一份）
+      expect(resolveFingerGenPrint('same', 'same')).assertEqual('same');
     });
   });
 }
