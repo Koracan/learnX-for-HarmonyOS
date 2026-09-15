@@ -1,6 +1,6 @@
 # i18n 生成物由 scripts/generate-i18n-resources.mjs 按 LF 写出。
 # 本机 core.autocrlf=true（仓库无 .gitattributes）会把 checkout 落成 CRLF，
-# 于是 scripts/check-generated-fresh.mjs 的「跑前 / 跑后哈希」必然不等 ——
+# 于是「生成器跑前 / 跑后哈希」必然不等 ——
 # 实测：**在全新 worktree / 全新 checkout 里第一次跑必假红**，重跑一次才 PASS。
 # 把这 6 个路径固定成 LF，让工作区与生成器输出一致（本机实测：加之前首次必红，加之后稳定绿）。
 entry/src/main/resources/base/element/string.json text eol=lf
@@ -9,3 +9,11 @@ entry/src/main/resources/en_US/element/string.json text eol=lf
 entry/src/main/ets/core/i18n/I18nKeys.ets text eol=lf
 .scratch/foundation/i18n-keys.json text eol=lf
 .scratch/foundation/i18n-key-map.md text eol=lf
+
+# 字典正本（scripts/i18n-reference/*.ts）是生成器的**输入**，也必须钉成 LF：
+# 字典里有跨行模板字符串，CRLF 会被逐字读进取值。实测（2026-09-15）：把这两份文件
+# CRLF 化后生成器仍然成功，但三个 string.json 的 SHA256 全变
+# （base 9776D7DD…→BDBBAE1F…、zh_CN 790C2DA9…→DC2D54B8…、en_US 13A726B7…→A7F82DD6…）——
+# 即 core.autocrlf=true 的机器克隆后生成物会与版本库不一致。钉 LF 后 checkout 落回 LF。
+scripts/i18n-reference/zh.ts text eol=lf
+scripts/i18n-reference/en.ts text eol=lf
