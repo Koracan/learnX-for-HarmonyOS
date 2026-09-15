@@ -43,6 +43,7 @@ import searchTest from './Search.test';
 import settingsTest from './Settings.test';
 import webSessionCookieTest from './WebSessionCookie.test';
 import semesterSwitchTest from './SemesterSwitch.test';
+import mockSubmissionTest from './MockSubmission.test';
 
 export default function testsuite() {
   semesterTest();
@@ -86,4 +87,5 @@ export default function testsuite() {
   settingsTest();
   webSessionCookieTest();
   semesterSwitchTest();
+  mockSubmissionTest();
 }

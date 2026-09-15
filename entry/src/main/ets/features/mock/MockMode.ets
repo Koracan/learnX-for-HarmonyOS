@@ -15,8 +15,10 @@
  * ## 本工程的对应物
  *
  * 没有 redux，也没有"整棵 state"可以替换：开关在这里（进程内一个布尔），
- * **消费点是四个仓储 provider**（notice / course / file / 提交）——它们据此返回
- * `data/mock/Mock*Repository`。开关与"当前登录的是不是 mock 用户"是同一件事的两种读法，
+ * **消费点是四个仓储 provider**（notice / course / file / 提交）：前三个据此返回
+ * `data/mock/Mock*Repository`，提交那条返回 `data/mock/MockAssignmentSubmitter`
+ * （本地样例提交出口，零网络，提交后回列表/详情能看到这条作业真的变成已提交）。
+ * 开关与"当前登录的是不是 mock 用户"是同一件事的两种读法，
  * 但**只有这一个来源**，避免出现"AuthStore 说是 mock、provider 却不知道"。
  *
  * ## 为什么不做成持久化的

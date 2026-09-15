@@ -24,11 +24,21 @@
  * 作业的截止时间与公告的发布时间都按**当前时间**算出来（`Date.now()` 偏移），
  * 这样"未到期 / 已截止"两种状态在任何时候看都成立，不会随着时间推移退化成
  * "全部已截止"（参考实现的固定时间戳就没有这个性质）。
+ *
+ * ## 作业上的「提交台账」覆盖层
+ *
+ * `mockAssignments()` 返回的**不是**一份纯静态样例：每次调用都会套用
+ * `data/mock/MockSubmissionJournal` 里记着的提交（键是 `studentHomeworkId`），
+ * 把被提交过的作业翻成 `submitted: true` + `submitTime` + `submittedContent`
+ * （有附件时还有 `submittedAttachment`）。**样例数据本身一字未改**，覆盖层只在有提交记录时生效。
+ * 台账是内存态（进程重启即清空），所以重启后作业回到下面的初始态；
+ * 为什么要有它、为什么是内存态：见 `MockSubmissionJournal.ets` 的文件头。
  */
 
-import { Assignment, CourseFile } from '../../domain/model/ContentItem';
+import { Assignment, Attachment, CourseFile } from '../../domain/model/ContentItem';
 import { NoticeRecord } from '../notices/NoticeRepository';
 import { CourseRecord } from '../courses/CourseRepository';
+import { MockSubmissionEntry, submissionFor } from './MockSubmissionJournal';
 
 /** Mock 用户的显示名 / 院系（参考实现 `mock.ts:21-24` 的 `user` 段：测试学生 / 电子系）。 */
 export const MOCK_USER_NAME: string = '测试学生';
@@ -170,7 +180,7 @@ export function mockNotices(): NoticeRecord[] {
  */
 export function mockAssignments(): Assignment[] {
   const now: number = Date.now();
-  return [
+  const items: Assignment[] = [
     {
       id: 'mock-assignment-1',
       studentHomeworkId: 'mock-xszy-1',
@@ -262,6 +272,64 @@ export function mockAssignments(): Assignment[] {
       courseTeacherName: '赵磊'
     }
   ];
+  return applyMockSubmissionJournal(items);
+}
+
+/** 样例提交附件的下载地址前缀（与其它样例地址同一形状：真实域名 + `mock=`，不指向任何真实文件）。 */
+const MOCK_SUBMITTED_ATTACHMENT_URL: string =
+  'https://learn.tsinghua.edu.cn/b/wlxt/kc/wj_download?mock=submitted-';
+
+/** 字节数 → 站点形状的体积文本（`139.54KB` / `1.20MB`；小于 1KB 用字节）。 */
+function formatAttachmentSize(bytes: number): string {
+  if (bytes >= 1024 * 1024) {
+    return (bytes / (1024 * 1024)).toFixed(2) + 'MB';
+  }
+  if (bytes >= 1024) {
+    return (bytes / 1024).toFixed(2) + 'KB';
+  }
+  return bytes.toString() + 'B';
+}
+
+/**
+ * 把提交台账套到样例作业上（**覆盖层**）。
+ *
+ * 为什么钉在样例出口而不是仓储里：本函数是样例作业的唯一出口
+ * （`MockCourseRepository.refresh()` 取作业列表、作业详情页也经由同一份快照），
+ * 覆盖层放在这里，所有读样例的地方都会看到同一份"已提交"状态，不需要各自记得套一遍。
+ *
+ * 只改**被提交过**的那几条（台账里没有的条目原样返回），所以"两条未提交 + 两条已提交"
+ * 的样例性质还在，日期也仍然按当前时间算。
+ */
+function applyMockSubmissionJournal(items: Assignment[]): Assignment[] {
+  for (let i = 0; i < items.length; i++) {
+    const item: Assignment = items[i];
+    const xszyid: string | undefined = item.studentHomeworkId;
+    if (xszyid === undefined) {
+      continue;
+    }
+    const entry: MockSubmissionEntry | undefined = submissionFor(xszyid);
+    if (entry === undefined) {
+      continue;
+    }
+    item.submitted = true;
+    item.submitTime = formatDateTime(entry.submittedAtMillis);
+    // 正文形状与样例里其它已提交条目一致（`<p>…</p>`，站点给的就是 HTML）。
+    // 「移除附件」那一支正文是空串：这时**不给**一个空的 `<p></p>`——
+    // 那观感像"提交了一段空正文"，而实际上这一次只是把附件删了。
+    item.submittedContent = entry.content.length > 0 ? '<p>' + entry.content + '</p>' : '';
+    if (entry.removeAttachment) {
+      // 移除附件：清掉"已提交附件"。ArkTS 侧不用 `delete`，统一赋值 undefined。
+      item.submittedAttachment = undefined;
+    } else if (entry.attachment !== undefined) {
+      const attachment: Attachment = {
+        downloadUrl: MOCK_SUBMITTED_ATTACHMENT_URL + xszyid,
+        name: entry.attachment.name,
+        size: formatAttachmentSize(entry.attachment.size)
+      };
+      item.submittedAttachment = attachment;
+    }
+  }
+  return items;
 }
 
 /** 四条样例文件（一条"新"）。 */
