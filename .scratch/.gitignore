@@ -20,3 +20,6 @@ defect
 owner-findings
 migration/sm2-verify
 auth/tools/credentials.local.txt
+
+# 已完成的 issue
+.closed

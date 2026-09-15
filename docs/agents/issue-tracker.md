@@ -9,6 +9,7 @@
 - 实现类 issue 一个 ticket 一个文件，位于 `.scratch/<feature-slug>/issues/<NN>-<slug>.md`，从 `01` 开始编号，绝不写成单个合并的 tickets 文件
 - 每个 issue 文件顶部附近用一行 `Status:` 记录分诊状态
 - 评论与讨论历史追加到文件末尾的 `## Comments` 标题之下
+- 当相关问题完成时，把文档和证据移动到 `.scratch/.closed/` 下，以免过时文档污染。
 
 ## 当某个 skill 说"发布到 issue tracker"
 
