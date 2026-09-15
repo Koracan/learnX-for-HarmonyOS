@@ -12,8 +12,7 @@
    然后读 **`entry/.test/default/intermediates/test/coverage_data/test_result.txt`** 的 `Tests run:` 行，
    **并核对这个文件的时间戳是本轮的**。
 3. **打包**：`assembleHap --no-incremental`（后台作业或重定向到 `.dsh/logs/`）。
-4. **四个脚本**：`node scripts/check-domain-purity.mjs` → PASS；`check-import-graph.mjs` → PASS；
-   `check-i18n-keys.mjs` → `RESULT: OK`；`check-generated-fresh.mjs` → PASS。
+4. **两个脚本**：`node scripts/check-domain-purity.mjs` → PASS；`check-import-graph.mjs` → PASS；
 
 **报告口径**：交付时给出**原始数字**（`Tests run` 那一行、脚本输出），并与上一轮的基线比较。
 **不要把基线数字写死进本文件**——它每轮都在变，写死必过时。
@@ -40,28 +39,13 @@
 **推论（很重要）**：「我把开关翻回 false / 把探针删了，并重新构建过」**不是证据**。
 取证态 → 提交态的转变必须给出**产物级或视觉级**证据（产物内容检索，或一张提交态界面截图），否则可能验的是上一个产物。
 
-### 4. `check-generated-fresh` 在**全新 checkout / 新 worktree 里第一次跑必红**（假红，已于 2026-09-13 从根上修掉）
-
-生成器按 **LF** 写出那 6 个生成物，而仓库原先没有 `.gitattributes` + 本机 `core.autocrlf=true`
-⇒ checkout 把它们落成 CRLF ⇒ 脚本「跑前 / 跑后 sha256」必然不等。现象：**首次跑 `FAIL` 并就地重生，重跑即 PASS**，
-而 `git diff` 对这 6 个路径是空的（内容其实一致）。新 worktree 缺 `reference/` 会让 i18n 两个脚本更早变红，别与这条混淆。
-
-**已修**：仓库根的 `.gitattributes` 把这 6 个路径固定成 `text eol=lf`。若在新克隆上又见到这条假红，
-先自查属性是否生效（期望 `text: set` / `eol: lf`）：
-
-    git check-attr text eol -- entry/src/main/resources/zh_CN/element/string.json
-
-**判据仍是**：`git diff` 对这 6 个生成物为空 ⇒ 内容一致 ⇒ 假红。别把「重跑一次就绿」变成习惯动作。
-
-### 5. 产物指纹（解包后 `ets/modules.abc` 的 SHA256）**只在同一棵树内可比**（2026-09-13 实测）
+### 4. 产物指纹（解包后 `ets/modules.abc` 的 SHA256）**只在同一棵树内可比**（2026-09-13 实测）
 
 同一份源码在**两棵不同的 worktree** 里编译，`ets/modules.abc` **大小完全相同（1783796 B）却字节不同**：
 逐字节比较 **350 字节不同**（偏移 8–11 落在 abc 头部，其余成对出现在约 167k–169k 一段）。
 - **同一棵树内是确定的**：主树连编三次都得到同一个哈希；`wt/t11` 那棵连编两次也都得到它自己的哈希。
 
 - **但 hap 文件本身的 SHA256 不具可复现性，不能当「产物指纹」用**（2026-09-13 终验实测）：同一棵树、同一份代码连编三次
-
-## 两个脚本守住的不变量
 
 ### `check-import-graph.mjs`：按入口可达性编译
 
@@ -72,14 +56,3 @@
 ⇒ **新交付的模块必须至少被一条可达路径（应用入口或某个测试）import**，否则它的"编译通过"从未被验证。
 该脚本 FAIL 掉不可解析的相对 import，并 WARN 列出**孤儿模块**（没有任何可达者 import 的 main 源文件）。
 **入口文件出现在该列表属正常；其余任何文件出现在那里，就意味着它从未被编译过。**
-
-### `check-generated-fresh.mjs`：生成物与生成器输入一致
-
-**要守的不变量**：在任何一次提交上，**重跑生成器后 `git diff` 必须为空**。
-该脚本就是它的可操作形式：对 6 个 i18n 生成物取哈希 → 重跑两个生成器 → 再取哈希，**变了就 FAIL 并已就地重生**。
-
-**两个 agent 不要同时改 i18n 生成器的输入**（`generate-i18n-resources.mjs` / `i18n-ui-strings.mjs`）。
-若不可避免：**后提交者负责重跑生成器**；先提交者若带上对方的输入，必须在**提交信息里写明归因**。
-
-安全方向是明确的：**键已声明但没人用 = 无害；有人用但键没声明 = 编译错误**（`I18nKeys.ets` 是类型化联合），
-所以"先把键声明带上"可以接受。

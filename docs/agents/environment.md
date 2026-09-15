@@ -28,7 +28,7 @@
 
 `devecocli emulator` 的 rotate / fold / power / volume / battery / sensor / geolocation / shake
 一律返回 `Emulator scene control commands require Emulator 7.0 or later. Current Emulator version is 6.1.1.300.`
-⇒ **模拟器上无法旋转、折叠、缩放窗口、灭亮屏**（`docs/reference-quirks.md` 第 31 条）。
+⇒ **模拟器上无法旋转、折叠、缩放窗口、灭亮屏**。
 真机也没有 `wm`、WMS 只有只读 dump ⇒ **真机旋转只能靠人物理转**。
 想改视口只有三条路：换机型（tablet 1440vp）、升 Emulator 到 ≥7.0、或用 DevEco 模拟器窗口上的旋转按钮（GUI，CLI 碰不到）。
 
@@ -57,10 +57,7 @@ hvigor 入口：``C:/Program Files/Huawei/DevEco Studio/tools/hvigor/bin/hvigorw
 `git worktree add` 出来的树**不是**开箱可构建的，两样都要补，否则会得到看起来很吓人的"红"，但那不是代码问题：
 
 1. **必须 `ohpm install`**（在树根跑）：否则 `test` **真的**失败（`Failed to resolve OhmUrl @ohos/hypium`）—— 这是真红，不是假红。
-2. **必须有 `reference/`**：主树里它是 junction 且被 git 忽略，`worktree add` 不会带过来；缺了会让 `check-i18n-keys` 与 `check-generated-fresh` 变红/退出 2。
-   接法（不改变 git 状态）：
-   `New-Item -ItemType Junction -Path '<tree>\reference' -Target 'D:\Koracan\source\harmony\learnOH\reference'`
-3. 每棵树有自己的 `entry/build` 与 hvigor 守护进程（并行构建互不覆盖）；删树前先按 `concurrency.md` 停掉该树的守护进程。
+2. 每棵树有自己的 `entry/build` 与 hvigor 守护进程（并行构建互不覆盖）；删树前先按 `concurrency.md` 停掉该树的守护进程。
 
 ## `devecocli run` 的三条坑
 

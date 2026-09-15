@@ -73,16 +73,6 @@ const LOCAL_ADDITIONS = [
 
 // Reference-key VALUE overrides.
 //
-// Same table shape as LOCAL_ADDITIONS above, but the opposite meaning: the key is
-// still a reference key (its `loh_` resource name and its migration lineage are
-// unchanged) and only its copy is replaced here. The reason this exists at all is
-// that the reference dictionary is read-only INPUT: editing the generated
-// `string.json` by hand would make `check-generated-fresh` fail, because the
-// generator would immediately write the reference value back.
-//
-// immersiveModeDescription: the reference text promises "app restart required",
-// while this rewrite applies the change immediately (no restart). The UI must not
-// tell the user to do something the app does not need.
 const REFERENCE_VALUE_OVERRIDES = new Map([
   ['immersiveModeDescription', {
     zh: '隐藏导航栏和状态栏',
