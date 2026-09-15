@@ -56,8 +56,8 @@ export const UI_STRINGS = [
   // --- 公告详情（HTML 渲染）新增 ---
   // 详情页的绝对时间由 domain/render/NoticeDateText 按下面的模式渲染；dayjs 的记号
   // （YYYY/M/D/H/m）与 ICU 的针名不同，故模式作为资源进 i18n，而不是写死在渲染代码里。
-  // 中文模式含 dddd（星期）；英文模式是 MMM D, YYYY HH:mm。两者逐字取自
-  // reference/learnOH-old/src/screens/NoticeDetail.tsx:86-90。
+  // 中文模式含 dddd（星期）；英文模式是 MMM D, YYYY HH:mm。两者逐字取自参考实现的
+  // src/screens/NoticeDetail.tsx:86-90（该工程不属于本仓库，见 CONTEXT.md 的「参考实现」）。
   ['ui_notice_publish_time', 'YYYY 年 M 月 D 日 dddd HH:mm', 'MMM D, YYYY HH:mm'],
   ['ui_weekday_sunday', '星期日', 'Sun'],
   ['ui_weekday_monday', '星期一', 'Mon'],

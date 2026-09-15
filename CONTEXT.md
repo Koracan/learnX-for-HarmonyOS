@@ -7,7 +7,13 @@ HarmonyOS 原生重写版 learnOH：清华大学学生的学习辅助客户端�
 ### 移植
 
 **参考实现**:
-`reference/learnOH-old/` 下的 React Native for OpenHarmony 应用。本工程的功能范围与行为契约以它为准。
+原始 React Native for OpenHarmony 版 learnOH 应用。本工程的功能范围与行为契约以它为准。
+它**不属于本仓库**，也不随依赖分发：工作树里不再需要它，构建链也不再读它
+（i18n 生成器的输入正本已上收为 `scripts/i18n-reference/`，见该目录的 README.md）。
+**可核对的快照**有两类：① 迁进版本库的输入正本 `scripts/i18n-reference/{zh,en}.ts`
+（逐字节复制，附上游路径与 SHA256）；② `entry/src/main/ets/**` 各文件头部的
+「参考实现 xxx.ts:N」溯源注释 —— 它们记录的是**当时的**上游行号，是历史依据，
+不是可再取用的位置。
 _Avoid_: 旧工程、老代码、RN 版
 
 **宿主外壳**:

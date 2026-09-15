@@ -1,14 +1,20 @@
 #!/usr/bin/env node
 // generate-i18n-resources.mjs
 //
-// Repeatable generator. Inputs:  reference/learnOH-old/src/assets/translations/{zh,en}.ts (read-only)
+// Repeatable generator. Inputs:  scripts/i18n-reference/{zh,en}.ts (in-repo, read-only)
 //                               scripts/i18n-ui-strings.mjs (native-rewrite UI copy)
 // Outputs:
 //   entry/src/main/resources/base/element/string.json    (Chinese = default fallback)
 //   entry/src/main/resources/zh_CN/element/string.json
 //   entry/src/main/resources/en_US/element/string.json
 //   .scratch/foundation/i18n-key-map.md   key-name mapping table
-//   .scratch/foundation/i18n-keys.json    machine-readable manifest for the checker
+//   .scratch/foundation/i18n-keys.json    machine-readable manifest (input to scripts/gen-i18n-keys.mjs)
+//
+// 为什么输入在版本库里：这两份字典原来只存在于另一个**不属于本仓库**的 RN 工程里，
+// 本仓库的 .gitignore 把 /reference/ 整目录忽略（见 CONTEXT.md 的「参考实现」）⇒ 别人
+// 克隆本仓库后本脚本读不到输入、生成链跑不起来。字典内容本来就逐字进了上面三个
+// string.json，所以收进 scripts/i18n-reference/ 不新增任何对外暴露面，只是把构建输入
+// 从「别人的工作区」挪进版本库。来源、上游许可与逐字节指纹见 scripts/i18n-reference/README.md。
 import fs from 'node:fs';
 import path from 'node:path';
 import url from 'node:url';
@@ -19,7 +25,7 @@ const BT = String.fromCharCode(96);
 
 const here = path.dirname(url.fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
-const REF = path.join(root, 'reference', 'learnOH-old', 'src', 'assets', 'translations');
+const REF = path.join(root, 'scripts', 'i18n-reference');
 const RES = path.join(root, 'entry', 'src', 'main', 'resources');
 const MAP_OUT = path.join(root, '.scratch', 'foundation', 'i18n-key-map.md');
 const MANIFEST_OUT = path.join(root, '.scratch', 'foundation', 'i18n-keys.json');
@@ -126,7 +132,7 @@ function writeKeyMap(referenceRows, localRows, uiRows) {
   L.push('');
   L.push('**由 ' + BT + 'scripts/generate-i18n-resources.mjs' + BT + ' 自动生成，不要手工编辑。**');
   L.push('');
-  L.push('来源（只读）：' + BT + 'reference/learnOH-old/src/assets/translations/{zh,en}.ts' + BT + '。');
+  L.push('来源（只读）：' + BT + 'scripts/i18n-reference/{zh,en}.ts' + BT + '（字典正本在版本库内，上游出处见该目录 README.md）。');
   L.push('');
   L.push('## 规则');
   L.push('');

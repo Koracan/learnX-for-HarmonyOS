@@ -1,5 +1,5 @@
 // i18n-lib.mjs -- shared parser/naming helpers for the learnOH i18n tooling.
-// The reference dictionaries are INPUT ONLY; nothing here writes to reference/.
+// The reference dictionaries (scripts/i18n-reference/) are INPUT ONLY; nothing writes to them.
 import fs from 'node:fs';
 import nodePath from 'node:path';
 
@@ -121,12 +121,12 @@ export function toResourceValue(value, placeholders) {
 
 // Reference keys the native rewrite deliberately does NOT migrate.
 //
-// The reference dictionaries are read-only INPUT, so a key that has no consumer in
-// this app is retired here instead of inside reference/. Both the resource
-// generator and check-i18n-keys.mjs go through buildRows, so this list is the
-// single source of truth for "the reference dictionary as far as this project is
-// concerned" -- retire a key and the generated resources, the manifest and the
-// drift check all agree.
+// The dictionaries in scripts/i18n-reference/ are read-only INPUT, so a key that has no
+// consumer in this app is retired here instead of inside the dictionary. The resource
+// generator goes through buildRows and the manifest it writes carries both `keys` and
+// `referenceKeys`, so this list is the single source of truth for "the reference
+// dictionary as far as this project is concerned" -- retire a key and the generated
+// resources and the manifest agree.
 //
 // 'avoidFrontCamera' / 'avoidFrontCameraDescription': the second switch on the
 // immersive settings page. Its only platform effect in the reference app is the RN

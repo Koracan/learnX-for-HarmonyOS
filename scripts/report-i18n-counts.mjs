@@ -8,7 +8,7 @@ import { RETIRED_REFERENCE_KEYS, isRetiredReferenceKey, readDict } from './i18n-
 
 const here = path.dirname(url.fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
-const REF = path.join(root, 'reference', 'learnOH-old', 'src', 'assets', 'translations');
+const REF = path.join(root, 'scripts', 'i18n-reference');
 const RES = path.join(root, 'entry', 'src', 'main', 'resources');
 
 const zh = readDict(path.join(REF, 'zh.ts'));
@@ -35,7 +35,7 @@ const keys = manifest.keys;
 const lines = [];
 lines.push('i18n key counts (measured from the files, not estimated)');
 lines.push('');
-lines.push('reference dictionaries (reference/learnOH-old/src/assets/translations, read-only):');
+lines.push('reference dictionaries (scripts/i18n-reference, in-repo read-only input):');
 lines.push('  zh.ts keys : ' + zhKeys.length);
 lines.push('  en.ts keys : ' + enKeys.length);
 lines.push('  key sets identical: ' + String(JSON.stringify(zhKeys) === JSON.stringify(enKeys)));
