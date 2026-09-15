@@ -47,6 +47,7 @@ import { NoticeRecord } from '../../data/notices/NoticeRepository';
 import { NoticeDetailPage } from '../notices/NoticeDetailPage';
 import { ROUTE_NOTICE_DETAIL } from '../notices/NoticeRoutes';
 import { CourseListStore } from './CourseListStore';
+import { courseRowKey } from './CourseRowKey';
 import { courseListStore } from './CourseListStoreProvider';
 import { openSearch } from '../search/SearchEntry';
 import {
@@ -515,11 +516,13 @@ export struct CoursesPage {
           .swipeAction({ end: this.swipeEnd(item) })
           .bindContextMenu(this.rowMenu(item), ResponseType.LongPress)
         }, (item: CourseRecord) =>
-          // 生效学期进 key：切换学期后即便课程 id 恰好相同，行也必须重建（换的是另一份数据）。
-          this.store.semesterId + '|' + item.id
-          + '|' + (isHiddenCourse(this.flags.hiddenCourseIds, item.id) ? 'hidden' : 'shown')
-          // 高亮态要进 key：否则 ForEach 认为这一项没变、不会重建行（选中态就不会跟着变）。
-          + '|' + (this.splitActive && this.selectedId === item.id ? 'sel' : 'nosel'))
+          // key 由 courseRowKey 统一构造（纯函数，见 CourseRowKey.ets 的文件头）：
+          // 生效学期 + 课程身份 + **三个推导计数** + 屏蔽态 + 高亮态。
+          // 上一版漏了三个计数 ⇒ mock 提交作业后"作业列表说已提交、课程卡片仍写 1 未完成"
+          // （设备实测的 t24 缺陷）；三个计数是刷新就会变的派生值，必须进 key。
+          courseRowKey(this.store.semesterId, item,
+            isHiddenCourse(this.flags.hiddenCourseIds, item.id),
+            this.splitActive && this.selectedId === item.id))
       }
       .width('100%')
       .height('100%')

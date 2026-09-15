@@ -44,6 +44,7 @@ import { SessionHeaderProvider, createSessionHeaderProvider, logSessionHeaderSta
 import { ContentFilter } from '../../domain/marks/ContentFilter';
 import { MarksDomain, MarksTab } from '../../domain/marks/CollectionFlags';
 import { isUnread } from './NoticeOrder';
+import { noticeListRowKey } from './NoticeRowKey';
 import { removeTags } from '../../domain/render/WebViewTemplate';
 import { NoticeListStore } from './NoticeListStore';
 import { noticeListStore } from './NoticeListStoreProvider';
@@ -594,11 +595,12 @@ export struct NoticesPage {
           .bindContextMenu(this.rowMenu(item, this.flags.noticeFavorites.includes(item.id),
             noticesContain(this.filtered().archived, item.id)), ResponseType.LongPress)
         }, (item: NoticeRecord) =>
-          item.id + '|' + (item.hasRead ? 'read' : 'unread')
-          + '|' + (this.flags.noticeFavorites.includes(item.id) ? 'fav' : 'nofav')
-          + '|' + (noticesContain(this.filtered().archived, item.id) ? 'arch' : 'noarch')
-          // 高亮态要进 key：否则 ForEach 认为这一项没变、不会重建行（选中态就不会跟着变）。
-          + '|' + (this.splitActive && this.selectedId === item.id ? 'sel' : 'nosel'))
+          // key 由 noticeListRowKey 统一构造（纯函数，见 NoticeRowKey.ets 的文件头）：
+          // 上一版漏了**重要**与**附件**两个状态标记（行上渲染、刷新会变）⇒ 补齐。
+          noticeListRowKey(item,
+            this.flags.noticeFavorites.includes(item.id),
+            noticesContain(this.filtered().archived, item.id),
+            this.splitActive && this.selectedId === item.id))
       }
       .width('100%')
       .height('100%')

@@ -42,6 +42,7 @@ import {
 } from '../marks/FilteredContent';
 import { collectionFlagsStore } from '../marks/CollectionFlagsProvider';
 import { FileListStore } from './FileListStore';
+import { fileListRowKey } from './FileRowKey';
 import { fileListStore } from './FileListStoreProvider';
 import { fileRepository } from './repository/FileRepositoryProvider';
 import { FileDetailPage } from './FileDetailPage';
@@ -527,11 +528,13 @@ export struct FilesPage {
             this.openFile(item);
           })
         }, (item: CourseFile) =>
-          'file|' + item.courseId + '|' + item.id
-          + '|' + (this.flags.fileFavorites.includes(item.id) ? 'fav' : 'nofav')
-          + '|' + (filesContain(this.filtered().archived, item.id) ? 'arch' : 'noarch')
-          // 高亮态要进 key：否则 ForEach 认为这一项没变、不会重建行（选中态就不会跟着变）。
-          + '|' + (this.splitActive && this.selectedId === item.id ? 'sel' : 'nosel'))
+          // key 由 fileListRowKey 统一构造（纯函数，见 FileRowKey.ets 的文件头）：
+          // 上一版漏了 **isNew（"新文件"蓝点）与 size（体积文本）**：两者都在行上渲染、
+          // 刷新就会变（mock 快照会把站点文本换成包内真实字节数）⇒ 补齐。
+          fileListRowKey(item,
+            this.flags.fileFavorites.includes(item.id),
+            filesContain(this.filtered().archived, item.id),
+            this.splitActive && this.selectedId === item.id))
       }
       .width('100%')
       .height('100%')

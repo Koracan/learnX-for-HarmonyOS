@@ -36,6 +36,9 @@ import { AppIcon } from '../../ui/icons/IconCatalog';
 import { IconGlyph } from '../../ui/icons/IconGlyph';
 import { CourseListStore } from './CourseListStore';
 import {
+  courseAssignmentRowKey, courseFileRowKey, courseNoticeRowKey
+} from './CourseRowKey';
+import {
   CourseDetailRouteParams, CourseFileDetailRouteParams, ROUTE_COURSE_FILE_DETAIL
 } from './CourseRoutes';
 // 作业详情的路由与页面收敛在作业那条线（本页只推同一个路由）。
@@ -342,7 +345,10 @@ export struct CourseDetailPage {
               timeText: this.timeTextOf(item)
             })
           }
-        }, (item: NoticeRecord) => 'notice|' + item.id)
+        }, (item: NoticeRecord) =>
+          // key 由 courseNoticeRowKey 统一构造（纯函数，见 CourseRowKey.ets 的文件头）：
+          // 上一版只有 'notice|id'，未读圆点/重要标记/附件标记/标题一个都没进 key。
+          courseNoticeRowKey(item))
       }
       .width('100%')
       .height('100%')
@@ -370,7 +376,10 @@ export struct CourseDetailPage {
           ListItem() {
             this.assignmentRow({ theme: this.theme(), assignment: item })
           }
-        }, (item: Assignment) => 'assignment|' + item.id)
+        }, (item: Assignment) =>
+          // key 由 courseAssignmentRowKey 统一构造（上一版只有 'assignment|id'，
+          // 提交后 submitted 变了行却不重建 ⇒ 卡片一直不显示"已提交"对勾）。
+          courseAssignmentRowKey(item))
       }
       .width('100%')
       .height('100%')
@@ -398,7 +407,10 @@ export struct CourseDetailPage {
           ListItem() {
             this.fileRow({ theme: this.theme(), file: item })
           }
-        }, (item: CourseFile) => 'file|' + item.id)
+        }, (item: CourseFile) =>
+          // key 由 courseFileRowKey 统一构造（上一版只有 'file|id'，
+          // 体积与"新文件"蓝点都不在 key 里 ⇒ 刷新后行停在旧值上）。
+          courseFileRowKey(item))
       }
       .width('100%')
       .height('100%')
