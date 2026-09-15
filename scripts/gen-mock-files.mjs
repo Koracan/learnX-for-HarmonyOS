@@ -5,7 +5,7 @@
  * ## 为什么需要它
  *
  * mock 模式下点开「文件」要**真的落盘出真文件**（预览 / 交给系统打开 / 分享 / 缓存命中
- * 全都要走通），而 mock 分支一行网络请求都不发。于是这 4 个样例文件必须**打进包里**：
+ * 全都要走通），而 mock 分支一行网络请求都不发。于是这 6 个样例文件必须**打进包里**：
  *   entry/src/main/resources/rawfile/mock-files/
  * 并且内容要**真能打开**：PDF 必须是 PDFKit 能 loadDocument 出 PARSE_SUCCESS 的合法 PDF，
  * PPTX 必须是结构完整的 OOXML 包。手写二进制不可维护 ⇒ 生成器 + 校验器成对提交
@@ -17,9 +17,15 @@
  *   mock=102  mock-homework-1-answers.pdf   数据结构 / 第一次作业参考答案
  *   mock=103  mock-physics-lab-manual.pdf   大学物理（1） / 实验指导书
  *   mock=104  mock-lecture-notes-3.pptx     马克思主义基本原理 / 课堂讲义（第三讲）
+ *   mock=105  mock-notice-attachment.pdf    公告附件（实验课调整通知的指导书）
+ *   mock=106  mock-lab-schedule.png          数据结构 / 实验课安排（截图；图片预览走系统 API，
+ *                                           在没有 HMS 的设备上也能可视化"真的渲染出来了"）
  *
  * id 与 rawfile 路径的对应写在 entry/src/main/ets/data/mock/MockFileBlobs.ets；
- * 而 mock=NNN 这个 id 来自 data/mock/MockData.ets 的 mockFiles().downloadUrl。
+ * 而 mock=NNN 这个 id 来自 data/mock/MockData.ets：101..104 与 106 来自
+ * mockFiles().downloadUrl，105 来自 mockNotices() 里那条附件的 downloadUrl
+ * （公告附件此前写的是 `?mock=1`，MockFileBlobs 不认识 `1` ⇒ 点公告附件必失败；
+ * 现在指向 105）。
  * 本文件是 Node 脚本，**不 import ArkTS**，所以改这里必须同时改 MockFileBlobs.ets。
  *
  * ## 输出的确定性（幂等）
@@ -46,6 +52,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { deflateSync } from 'node:zlib';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT_DIR = join(REPO_ROOT, 'entry', 'src', 'main', 'resources', 'rawfile', 'mock-files');
@@ -54,6 +61,7 @@ const OUT_DIR = join(REPO_ROOT, 'entry', 'src', 'main', 'resources', 'rawfile', 
 const PDF_CONTENT_TYPE = 'application/pdf';
 const PPTX_CONTENT_TYPE =
   'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+const PNG_CONTENT_TYPE = 'image/png';
 
 /* ------------------------------------------------------------------ *
  * 一、PDF（未压缩内容流，xref 偏移逐字节精确）
@@ -262,7 +270,249 @@ function buildZip(entries) {
 }
 
 /* ------------------------------------------------------------------ *
- * 三、PPTX（OOXML 最小但完整的一套部件）
+ * 三、PNG（手写编码：签名 + IHDR + IDAT(zlib deflate) + IEND）
+ *
+ * 为什么要有图片样例：设备实测（模拟器无 HMS）里 PDF 应用内预览不可用
+ * （@hms:officeservice.pdfservice 缺失，属平台能力问题），而图片预览走的是系统
+ * image.createImageSource ⇒ 一份 PNG 才能把"mock 文件真的能加载并渲染"变成可视证据。
+ *
+ * 为什么手写编码而不是内嵌 base64：① 生成器必须零第三方依赖；② 内嵌几百 KB 的
+ * 常量既不可读也不可复现。这里是 **RGB / 8bit / 非隔行** 的最小真彩 PNG：
+ * 每行一个 filter 字节（0 = None）+ width*3 字节像素，IDAT 用 zlib deflate。
+ *
+ * ## 与 ZIP 那条"逐字节可复现"的差别（诚实边界）
+ *
+ * ZIP 用 STORE（不压缩）⇒ 与 zlib 版本无关。PNG 的 IDAT 必须 deflate，所以
+ * **同一台机器、同一个 Node 上重跑是逐字节相同的**（幂等验收就靠这条）；
+ * 换 zlib 版本理论上可能得到不同的压缩字节，因此 check-mock-files.mjs 校验的是
+ * **结构**（签名 / IHDR / CRC / IDAT 能解压 / IEND），不是"与重新生成的结果逐字节相同"。
+ * ------------------------------------------------------------------ */
+
+const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+
+/** 一个 PNG chunk：长度(BE) + 类型 + 数据 + CRC32(**类型+数据**)。 */
+function pngChunk(type, data) {
+  const typeBuffer = Buffer.from(type, 'latin1');
+  const length = Buffer.alloc(4);
+  length.writeUInt32BE(data.length, 0);
+  const crc = Buffer.alloc(4);
+  crc.writeUInt32BE(crc32(Buffer.concat([typeBuffer, data])), 0);
+  return Buffer.concat([length, typeBuffer, data, crc]);
+}
+
+/**
+ * 5x7 点阵字模（**只收本图用到的 22 个字符**：大写字母 + 数字 + 空格与等号）。
+ *
+ * '#' = 前景，'.' = 背景。手写而不是引字体文件：生成器零依赖、字模本身可读可改。
+ * 5 宽 7 高是经典终端字模尺寸，放大 2-4 倍后仍然清晰。
+ */
+const GLYPHS = {
+  ' ': ['.....', '.....', '.....', '.....', '.....', '.....', '.....'],
+  'A': ['.###.', '#...#', '#...#', '#####', '#...#', '#...#', '#...#'],
+  'C': ['.###.', '#...#', '#....', '#....', '#....', '#...#', '.###.'],
+  'E': ['#####', '#....', '#....', '####.', '#....', '#....', '#####'],
+  'F': ['#####', '#....', '#....', '####.', '#....', '#....', '#....'],
+  'G': ['.###.', '#...#', '#....', '#.###', '#...#', '#...#', '.###.'],
+  'H': ['#...#', '#...#', '#...#', '#####', '#...#', '#...#', '#...#'],
+  'I': ['.###.', '..#..', '..#..', '..#..', '..#..', '..#..', '.###.'],
+  'K': ['#...#', '#..#.', '#.#..', '##...', '#.#..', '#..#.', '#...#'],
+  'L': ['#....', '#....', '#....', '#....', '#....', '#....', '#####'],
+  'M': ['#...#', '##.##', '#.#.#', '#...#', '#...#', '#...#', '#...#'],
+  'N': ['#...#', '##..#', '#.#.#', '#..##', '#...#', '#...#', '#...#'],
+  'O': ['.###.', '#...#', '#...#', '#...#', '#...#', '#...#', '.###.'],
+  'P': ['####.', '#...#', '#...#', '####.', '#....', '#....', '#....'],
+  'R': ['####.', '#...#', '#...#', '####.', '#.#..', '#..#.', '#...#'],
+  'S': ['.####', '#....', '#....', '.###.', '....#', '....#', '####.'],
+  'X': ['#...#', '#...#', '.#.#.', '..#..', '.#.#.', '#...#', '#...#'],
+  '0': ['.###.', '#...#', '#..##', '#.#.#', '##..#', '#...#', '.###.'],
+  '1': ['..#..', '.##..', '..#..', '..#..', '..#..', '..#..', '.###.'],
+  '6': ['..##.', '.#...', '#....', '####.', '#...#', '#...#', '.###.'],
+  '8': ['.###.', '#...#', '#...#', '.###.', '#...#', '#...#', '.###.'],
+  '=': ['.....', '.....', '#####', '.....', '#####', '.....', '.....']
+};
+
+const GLYPH_WIDTH = 5;
+const GLYPH_HEIGHT = 7;
+/** 字距（点阵单位；与字形宽度一起放大）。 */
+const GLYPH_GAP = 1;
+
+/** 一张 RGB 画布（白底）。坐标越界一律丢弃（画图代码不必到处判边界）。 */
+class Canvas {
+  constructor(width, height) {
+    this.width = width;
+    this.height = height;
+    this.pixels = Buffer.alloc(width * height * 3, 0xff);
+  }
+
+  setPixel(x, y, r, g, b) {
+    if (x < 0 || y < 0 || x >= this.width || y >= this.height) {
+      return;
+    }
+    const index = (y * this.width + x) * 3;
+    this.pixels[index] = r;
+    this.pixels[index + 1] = g;
+    this.pixels[index + 2] = b;
+  }
+
+  fillRect(x, y, w, h, r, g, b) {
+    for (let yy = y; yy < y + h; yy++) {
+      for (let xx = x; xx < x + w; xx++) {
+        this.setPixel(xx, yy, r, g, b);
+      }
+    }
+  }
+
+  /** 空心矩形（线宽 thickness，向内画）。 */
+  strokeRect(x, y, w, h, thickness, r, g, b) {
+    this.fillRect(x, y, w, thickness, r, g, b);
+    this.fillRect(x, y + h - thickness, w, thickness, r, g, b);
+    this.fillRect(x, y, thickness, h, r, g, b);
+    this.fillRect(x + w - thickness, y, thickness, h, r, g, b);
+  }
+
+  /** Bresenham 直线（画坐标轴线与折线用）。 */
+  drawLine(x0, y0, x1, y1, thickness, r, g, b) {
+    let x = x0;
+    let y = y0;
+    const dx = Math.abs(x1 - x0);
+    const dy = -Math.abs(y1 - y0);
+    const stepX = x0 < x1 ? 1 : -1;
+    const stepY = y0 < y1 ? 1 : -1;
+    let error = dx + dy;
+    for (;;) {
+      this.fillRect(x, y, thickness, thickness, r, g, b);
+      if (x === x1 && y === y1) {
+        break;
+      }
+      const doubled = 2 * error;
+      if (doubled >= dy) {
+        error += dy;
+        x += stepX;
+      }
+      if (doubled <= dx) {
+        error += dx;
+        y += stepY;
+      }
+    }
+  }
+
+  /** 点阵文字（scale = 每个字形像素放大成 scale×scale 方块）。 */
+  drawText(text, x, y, scale, r, g, b) {
+    let cursor = x;
+    for (let i = 0; i < text.length; i++) {
+      const glyph = GLYPHS[text.charAt(i)];
+      if (glyph === undefined) {
+        cursor += (GLYPH_WIDTH + GLYPH_GAP) * scale;
+        continue;
+      }
+      for (let row = 0; row < GLYPH_HEIGHT; row++) {
+        for (let col = 0; col < GLYPH_WIDTH; col++) {
+          if (glyph[row].charAt(col) === '#') {
+            this.fillRect(cursor + col * scale, y + row * scale, scale, scale, r, g, b);
+          }
+        }
+      }
+      cursor += (GLYPH_WIDTH + GLYPH_GAP) * scale;
+    }
+  }
+}
+
+/** 画布 → PNG 字节（RGB / 8bit / 非隔行；每行 filter=0）。 */
+function encodePng(canvas) {
+  const stride = 1 + canvas.width * 3;
+  const raw = Buffer.alloc(canvas.height * stride);
+  for (let y = 0; y < canvas.height; y++) {
+    const rowStart = y * stride;
+    raw[rowStart] = 0;
+    canvas.pixels.copy(raw, rowStart + 1, y * canvas.width * 3, (y + 1) * canvas.width * 3);
+  }
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(canvas.width, 0);
+  ihdr.writeUInt32BE(canvas.height, 4);
+  ihdr[8] = 8;  // bit depth
+  ihdr[9] = 2;  // color type: truecolor (RGB)
+  ihdr[10] = 0; // compression method: deflate
+  ihdr[11] = 0; // filter method: adaptive
+  ihdr[12] = 0; // interlace: none
+  return Buffer.concat([
+    PNG_SIGNATURE,
+    pngChunk('IHDR', ihdr),
+    pngChunk('IDAT', deflateSync(raw, { level: 9 })),
+    pngChunk('IEND', Buffer.alloc(0))
+  ]);
+}
+
+/**
+ * 第 6 份样例：800×600 的「实验课安排（截图）」。
+ *
+ * 内容刻意做成**可辨识**的：顶栏标题、三色块、一张 4×5 表格、底部折线与页脚文字。
+ * 纯色块在设备上只能证明"解码成功"，证明不了"渲染对了"——看得出结构才算可视证据。
+ */
+function buildLabSchedulePng() {
+  const canvas = new Canvas(800, 600);
+  const navy = [21, 71, 133];
+  const lightNavy = [214, 228, 247];
+  const gray = [112, 122, 134];
+  const lightGray = [243, 244, 246];
+
+  // 顶栏 + 标题
+  canvas.fillRect(0, 0, 800, 104, navy[0], navy[1], navy[2]);
+  canvas.drawText('MOCK PNG', 32, 22, 4, 255, 255, 255);
+  canvas.drawText('MOCK=106', 32, 64, 2, lightNavy[0], lightNavy[1], lightNavy[2]);
+
+  // 标题行
+  canvas.drawText('LEARNOH MOCK FILES', 32, 128, 3, navy[0], navy[1], navy[2]);
+  canvas.drawText('800X600', 612, 128, 3, gray[0], gray[1], gray[2]);
+
+  // 三色块（红 / 绿 / 蓝）
+  canvas.fillRect(32, 190, 200, 44, 198, 40, 40);
+  canvas.fillRect(248, 190, 200, 44, 35, 140, 60);
+  canvas.fillRect(464, 190, 200, 44, 30, 90, 200);
+  canvas.strokeRect(32, 190, 632, 44, 2, 60, 60, 60);
+
+  // 4 列 × 5 行表格（表头浅蓝、正文交替浅灰，格子里画灰条模拟文字）
+  const tableX = 32;
+  const tableY = 262;
+  const tableW = 736;
+  const tableH = 250;
+  const columns = 4;
+  const rows = 5;
+  const cellW = Math.floor(tableW / columns);
+  const cellH = Math.floor(tableH / rows);
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < columns; col++) {
+      const x = tableX + col * cellW;
+      const y = tableY + row * cellH;
+      if (row === 0) {
+        canvas.fillRect(x, y, cellW, cellH, lightNavy[0], lightNavy[1], lightNavy[2]);
+      } else if (row % 2 === 0) {
+        canvas.fillRect(x, y, cellW, cellH, lightGray[0], lightGray[1], lightGray[2]);
+      }
+      // 格子里的"文字"：两条灰条（宽度错开，看起来像不同长度的内容）。
+      const barWidth = Math.floor(cellW * (col === 0 ? 0.55 : 0.35 + ((row + col) % 3) * 0.15));
+      canvas.fillRect(x + 12, y + 20, barWidth, 8, gray[0], gray[1], gray[2]);
+      canvas.fillRect(x + 12, y + 38, Math.floor(barWidth * 0.6), 6, gray[0], gray[1], gray[2]);
+    }
+  }
+  for (let col = 0; col <= columns; col++) {
+    canvas.fillRect(tableX + col * cellW - 1, tableY, 2, tableH, gray[0], gray[1], gray[2]);
+  }
+  for (let row = 0; row <= rows; row++) {
+    canvas.fillRect(tableX, tableY + row * cellH - 1, tableW, 2, gray[0], gray[1], gray[2]);
+  }
+
+  // 底部：一条折线 + 页脚
+  canvas.drawLine(40, 570, 200, 540, 3, 198, 40, 40);
+  canvas.drawLine(200, 540, 360, 556, 3, 35, 140, 60);
+  canvas.drawLine(360, 556, 520, 534, 3, 30, 90, 200);
+  canvas.drawLine(520, 534, 760, 550, 3, navy[0], navy[1], navy[2]);
+  canvas.drawText('SAMPLE 106', 32, 520, 2, gray[0], gray[1], gray[2]);
+
+  return encodePng(canvas);
+}
+
+/* ------------------------------------------------------------------ *
+ * 四、PPTX（OOXML 最小但完整的一套部件）
  * ------------------------------------------------------------------ */
 
 const NS_A = 'http://schemas.openxmlformats.org/drawingml/2006/main';
@@ -492,7 +742,7 @@ function pptxParts() {
 }
 
 /* ------------------------------------------------------------------ *
- * 四、四个样例文件（mock=101..104，与 MockData.mockFiles() 一一对应）
+ * 五、六个样例文件（mock=101..106，与 MockData 的地址一一对应）
  * ------------------------------------------------------------------ */
 
 const SYLLABUS = samplePdfPages({
@@ -595,11 +845,45 @@ const LAB_MANUAL = samplePdfPages({
   ]
 });
 
+/**
+ * 第 5 份：**公告附件**（mock=105）。
+ *
+ * 正文自己说清它是公告附件 —— 校验器只能证明"结构是合法 PDF"，
+ * "这份 PDF 属于哪条公告"只能由页面上的文字负责说清。
+ */
+const NOTICE_ATTACHMENT = samplePdfPages({
+  mockId: '105',
+  fileId: 'mock-wjid-105',
+  title: 'Notice Attachment: Lab Session Change',
+  course: 'University Physics (1)',
+  teacher: 'Wang Min',
+  pageCount: 2,
+  sections: [
+    [
+      'This PDF is the attachment of a mock notice (mock=105).',
+      'Notice: the lab session of this week moves from Friday to Saturday 9:00,',
+      'same laboratory, and the experiment itself is unchanged.',
+      'Read sections 1 and 2 of this guide before the session.'
+    ],
+    [
+      'Lab preparation checklist',
+      '   1. Print the data tables on the last page.',
+      '   2. Bring a calculator and a ruler.',
+      '   3. Report the uncertainty of every directly measured quantity.'
+    ]
+  ]
+});
+
 const FILES = [
   { fileName: 'mock-course-syllabus.pdf', data: buildPdf(SYLLABUS), contentType: PDF_CONTENT_TYPE },
   { fileName: 'mock-homework-1-answers.pdf', data: buildPdf(HOMEWORK), contentType: PDF_CONTENT_TYPE },
   { fileName: 'mock-physics-lab-manual.pdf', data: buildPdf(LAB_MANUAL), contentType: PDF_CONTENT_TYPE },
-  { fileName: 'mock-lecture-notes-3.pptx', data: buildZip(pptxParts()), contentType: PPTX_CONTENT_TYPE }
+  { fileName: 'mock-lecture-notes-3.pptx', data: buildZip(pptxParts()), contentType: PPTX_CONTENT_TYPE },
+  {
+    fileName: 'mock-notice-attachment.pdf', data: buildPdf(NOTICE_ATTACHMENT),
+    contentType: PDF_CONTENT_TYPE
+  },
+  { fileName: 'mock-lab-schedule.png', data: buildLabSchedulePng(), contentType: PNG_CONTENT_TYPE }
 ];
 
 mkdirSync(OUT_DIR, { recursive: true });

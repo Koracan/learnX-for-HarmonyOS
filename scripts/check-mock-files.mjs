@@ -24,6 +24,18 @@
  *   5. 每个 .rels 的每个内部 Target 都能解析到**存在的部件**（关系不断链）；
  *   6. 中央目录 + EOCD 的成员数与本地头一致。
  *
+ * ## PNG 校验什么
+ *
+ *   1. 8 字节签名；
+ *   2. 逐个 chunk 的长度/边界**自洽**，且每个 chunk 的 CRC32（类型+数据）与存储值一致；
+ *   3. IHDR 是第一个 chunk、长度 13、宽高非零、8bit 真彩（colorType 2）、无隔行；
+ *   4. IDAT 拼起来能被 zlib 解压，解压后的长度恰好 = height × (1 + width×3)，
+ *      且每行的 filter 字节是 0..4（越界 = 结构坏了）；
+ *   5. IEND 存在。
+ * **负向可验**：改一个字节（哪怕只改像素）⇒ 那个 chunk 的 CRC 对不上 ⇒ FAIL。
+ * 图片预览在设备上走系统 image.createImageSource，所以这份样例是**没有 HMS 的设备上**
+ * 唯一能演示"应用内真的渲染出来了"的那一份（PDF 预览依赖 HMS 的 pdfservice）。
+ *
  * **诚实边界**：这些校验**不能**证明"PowerPoint/WPS 一定能打开"或"PDFKit 一定
  * PARSE_SUCCESS"——那需要真机/真应用。真机预览由统筹者验收；本脚本拦的是结构错误。
  *
@@ -36,6 +48,7 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, posix, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { inflateSync } from 'node:zlib';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const FILE_DIR = join(REPO_ROOT, 'entry', 'src', 'main', 'resources', 'rawfile', 'mock-files');
@@ -45,13 +58,21 @@ const BLOBS_SOURCE = join(REPO_ROOT, 'entry', 'src', 'main', 'ets', 'data', 'moc
 const PDF_CONTENT_TYPE = 'application/pdf';
 const PPTX_CONTENT_TYPE =
   'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+const PNG_CONTENT_TYPE = 'image/png';
 
-/** 必须存在的四个产物（与 MockData.mockFiles() 的 mock=101..104 一一对应）。 */
+/**
+ * 必须存在的六个产物。
+ *
+ * 101..104 与 106 是 MockData.mockFiles() 的五条样例（106 是那张 PNG）；
+ * 105 是 mockNotices() 那条附件的样例。
+ */
 const EXPECTED = [
   { fileName: 'mock-course-syllabus.pdf', kind: 'pdf', contentType: PDF_CONTENT_TYPE },
   { fileName: 'mock-homework-1-answers.pdf', kind: 'pdf', contentType: PDF_CONTENT_TYPE },
   { fileName: 'mock-physics-lab-manual.pdf', kind: 'pdf', contentType: PDF_CONTENT_TYPE },
-  { fileName: 'mock-lecture-notes-3.pptx', kind: 'pptx', contentType: PPTX_CONTENT_TYPE }
+  { fileName: 'mock-lecture-notes-3.pptx', kind: 'pptx', contentType: PPTX_CONTENT_TYPE },
+  { fileName: 'mock-notice-attachment.pdf', kind: 'pdf', contentType: PDF_CONTENT_TYPE },
+  { fileName: 'mock-lab-schedule.png', kind: 'png', contentType: PNG_CONTENT_TYPE }
 ];
 
 const REQUIRED_PPTX_PARTS = [
@@ -441,6 +462,145 @@ function checkPptx(fileName, buf) {
 }
 
 /* ------------------------------------------------------------------ *
+ * PNG
+ * ------------------------------------------------------------------ */
+
+/** PNG 的 8 字节签名（与生成器逐字一致）。 */
+const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+
+/**
+ * 逐 chunk 校验：签名 / 边界 / CRC / IHDR 自洽 / IDAT 可解压 / IEND 存在。
+ *
+ * 为什么连 CRC 都要重算：CRC 是"这份字节与它自称的内容一致"的唯一证据；
+ * 只检查签名与 IHDR，改坏一个像素也发现不了（负向可验就靠 CRC）。
+ */
+function checkPng(fileName, buf) {
+  const problems = [];
+  if (buf.length < PNG_SIGNATURE.length) {
+    fail(fileName, 'file is shorter than the PNG signature');
+    return null;
+  }
+  for (let i = 0; i < PNG_SIGNATURE.length; i++) {
+    if (buf[i] !== PNG_SIGNATURE[i]) {
+      problems.push('signature byte ' + i + ' is ' + buf[i] + ', expected ' + PNG_SIGNATURE[i]);
+    }
+  }
+
+  let offset = PNG_SIGNATURE.length;
+  let ihdr = null;
+  let sawIhdr = false;
+  let sawIend = false;
+  let chunks = 0;
+  const idatParts = [];
+  while (offset + 12 <= buf.length) {
+    const length = buf.readUInt32BE(offset);
+    const type = buf.toString('latin1', offset + 4, offset + 8);
+    const dataStart = offset + 8;
+    const dataEnd = dataStart + length;
+    if (dataEnd + 4 > buf.length) {
+      problems.push(type + ': chunk length ' + length + ' runs past the end of the file');
+      break;
+    }
+    const storedCrc = buf.readUInt32BE(dataEnd);
+    const computedCrc = crc32(buf.subarray(offset + 4, dataEnd));
+    if (storedCrc !== computedCrc) {
+      problems.push(type + ': CRC mismatch (stored=' + storedCrc
+        + ', computed=' + computedCrc + ')');
+    }
+    if (type === 'IHDR') {
+      if (sawIhdr) {
+        problems.push('duplicate IHDR');
+      }
+      sawIhdr = true;
+      if (length !== 13) {
+        problems.push('IHDR length is ' + length + ', expected 13');
+      } else {
+        ihdr = {
+          width: buf.readUInt32BE(dataStart),
+          height: buf.readUInt32BE(dataStart + 4),
+          bitDepth: buf[dataStart + 8],
+          colorType: buf[dataStart + 9],
+          compression: buf[dataStart + 10],
+          filter: buf[dataStart + 11],
+          interlace: buf[dataStart + 12]
+        };
+      }
+    } else if (!sawIhdr) {
+      problems.push('first chunk is ' + type + ', expected IHDR');
+    }
+    if (type === 'IDAT') {
+      idatParts.push(buf.subarray(dataStart, dataEnd));
+    }
+    chunks++;
+    offset = dataEnd + 4;
+    if (type === 'IEND') {
+      sawIend = true;
+      break;
+    }
+  }
+  if (!sawIhdr) {
+    problems.push('missing IHDR');
+  }
+  if (idatParts.length === 0) {
+    problems.push('missing IDAT');
+  }
+  if (!sawIend) {
+    problems.push('missing IEND');
+  }
+  if (offset !== buf.length && sawIend) {
+    problems.push('trailing bytes after IEND: ' + (buf.length - offset));
+  }
+
+  if (ihdr !== null) {
+    if (ihdr.width <= 0 || ihdr.height <= 0) {
+      problems.push('IHDR has a zero dimension: ' + ihdr.width + 'x' + ihdr.height);
+    }
+    if (ihdr.bitDepth !== 8) {
+      problems.push('bit depth is ' + ihdr.bitDepth + ', expected 8');
+    }
+    if (ihdr.colorType !== 2) {
+      problems.push('color type is ' + ihdr.colorType + ', expected 2 (truecolor RGB)');
+    }
+    if (ihdr.compression !== 0 || ihdr.filter !== 0 || ihdr.interlace !== 0) {
+      problems.push('unsupported compression/filter/interlace method');
+    }
+    if (idatParts.length > 0 && ihdr.width > 0 && ihdr.height > 0) {
+      let raw = null;
+      try {
+        raw = inflateSync(Buffer.concat(idatParts));
+      } catch (error) {
+        problems.push('IDAT cannot be inflated: ' + error.message);
+      }
+      if (raw !== null) {
+        const stride = 1 + ihdr.width * 3;
+        const expected = stride * ihdr.height;
+        if (raw.length !== expected) {
+          problems.push('decompressed size is ' + raw.length + ', expected ' + expected);
+        } else {
+          for (let y = 0; y < ihdr.height; y++) {
+            const filter = raw[y * stride];
+            if (filter > 4) {
+              problems.push('row ' + y + ' uses unknown filter ' + filter);
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (problems.length > 0) {
+    for (const problem of problems) {
+      fail(fileName, problem);
+    }
+    return null;
+  }
+  return 'signature ok, IHDR ' + ihdr.width + 'x' + ihdr.height
+    + ' (RGB/8bit, non-interlaced), chunks=' + chunks + ', CRC ok, IDAT inflates to '
+    + (ihdr.height * (1 + ihdr.width * 3)) + ' B, IEND present';
+}
+
+/* ------------------------------------------------------------------ *
  * 主流程
  * ------------------------------------------------------------------ */
 
@@ -469,8 +629,14 @@ for (const entry of EXPECTED) {
     fail(entry.fileName, 'file is empty');
     continue;
   }
-  const detail = entry.kind === 'pdf' ? checkPdf(entry.fileName, buf)
-    : checkPptx(entry.fileName, buf);
+  let detail = null;
+  if (entry.kind === 'pdf') {
+    detail = checkPdf(entry.fileName, buf);
+  } else if (entry.kind === 'png') {
+    detail = checkPng(entry.fileName, buf);
+  } else {
+    detail = checkPptx(entry.fileName, buf);
+  }
   if (detail !== null) {
     pass(entry.fileName + ' (' + entry.contentType + ', ' + buf.length + ' B)', detail);
   }

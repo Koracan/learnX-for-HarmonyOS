@@ -3,10 +3,11 @@
  *
  * ## 取数走样例；文件系统与**下载编排**都走真实实现
  *
- *   - refresh()：返回 mockFiles()，但把每条 size 换成**包内那份样例的真实字节数**
- *     （用 domain/files/FilePath.formatSize 格式化，与站点口径一致）。于是
- *     「列表上显示的大小 / 下载进度总量 / 落盘后的大小」三者一致，不会出现
- *     "写着 268.31KB、下载下来 3.71KB"这种自相矛盾。
+ *   - refresh()：返回 mockFiles()，但把每条 size 换成**包内那份样例的真实字节数**。
+ *     这一步与课程详情页「文件」标签页调的是**同一个函数**
+ *     （`MockFileBlobs.applyBundledSizes`，含 domain/files/FilePath.formatSize 格式化），
+ *     于是「列表上显示的大小 / 课程详情页显示的大小 / 下载进度总量 / 落盘后的大小」四者一致，
+ *     不会出现"写着 268.31KB、下载下来 3.71KB"这种自相矛盾。
  *   - download()：委托给一个**真实的 FileDownloader**（data/files），只是它的 DownloadPort
  *     是 RawfileDownloadPort（从包内资产喂字节）。于是缓存命中、落盘路径规则、设置
  *     （文档目录 / 省略课程名）、fileSize 收尾校验全部照旧复用 —— mock 里**没有**第二套
@@ -37,7 +38,6 @@
  */
 
 import { Logger } from '../../core/log/Logger';
-import { formatSize } from '../../domain/files/FilePath';
 import { CourseFile } from '../../domain/model/ContentItem';
 import { networkAttemptCount } from '../remote/NetworkAudit';
 import { Session } from '../remote/Requests';
@@ -46,7 +46,7 @@ import {
 } from '../files/FileDownloader';
 import { FileDownloadReport, FileRepository, FileSnapshot } from '../files/FileRepository';
 import { mockFiles } from './MockData';
-import { MockBlobSource, MockFileBlob, mockBlobForUrl } from './MockFileBlobs';
+import { BundledSizeResult, MockBlobSource, applyBundledSizes } from './MockFileBlobs';
 
 const logger: Logger = new Logger('data.mock.files');
 
@@ -70,45 +70,19 @@ export class MockFileRepository implements FileRepository {
 
   async refresh(): Promise<FileSnapshot> {
     const declared: CourseFile[] = mockFiles();
-    const files: CourseFile[] = [];
-    let sized: number = 0;
-    for (let i = 0; i < declared.length; i++) {
-      const file: CourseFile = declared[i];
-      const bytes: number = this.blobLength(file.downloadUrl);
-      if (bytes >= 0) {
-        sized++;
-      }
-      files.push(copyWithSize(file, bytes >= 0 ? formatSize(bytes) : file.size));
-    }
+    // 体积重算是 MockFileBlobs 里的**共用函数**（课程详情页「文件」标签页调同一个）：
+    // 算不出来的那条保留站点给的 size 文本（applyBundledSizes 内部处理，不在这里兜底）。
+    const sized: BundledSizeResult = applyBundledSizes(declared, this.blobs);
     const snapshot: FileSnapshot = {
-      files: files,
+      files: sized.files,
       semesterId: 'mock',
       fetchedAtMillis: Date.now()
     };
-    logger.info('mock file snapshot served: files=' + files.length.toString()
-      + ' sizesFromBundledAssets=' + sized.toString()
-      + ' unresolvedSizes=' + (files.length - sized).toString()
+    logger.info('mock file snapshot served: files=' + sized.files.length.toString()
+      + ' sizesFromBundledAssets=' + sized.resolvedCount.toString()
+      + ' unresolvedSizes=' + (sized.files.length - sized.resolvedCount).toString()
       + ' networkAttempts=' + networkAttemptCount().toString());
     return snapshot;
-  }
-
-  /** 包内样例的字节数；取不到（没有端口 / 没有该 id / 读失败）返回 -1 = 保留站点给的 size。 */
-  private blobLength(url: string): number {
-    const source: MockBlobSource | null = this.blobs;
-    if (source === null) {
-      return -1;
-    }
-    const blob: MockFileBlob | null = mockBlobForUrl(url);
-    if (blob === null) {
-      return -1;
-    }
-    try {
-      return source.read(blob.rawfilePath).length;
-    } catch (error) {
-      logger.warn('mock file size unresolved: asset=' + blob.rawfilePath
-        + ' reason=' + (error as Error).message);
-      return -1;
-    }
   }
 
   async download(request: FileDownloadRequest,
@@ -152,28 +126,4 @@ export class MockFileRepository implements FileRepository {
   clearCache(): ClearCacheResult {
     return this.fileSystem.clearCache();
   }
-}
-
-/**
- * 只换 size 的副本。
- *
- * 为什么不用对象展开（...file）：ArkTS 对 interface 的展开支持不保证，而且
- * **这里是三处口径（MockData 的字段名 / 域类型 / 本文件）之间唯一的接缝**——
- * 显式列出每个字段，将来域类型加字段时会在这里编译失败，而不是静默丢字段。
- */
-function copyWithSize(file: CourseFile, size: string): CourseFile {
-  return {
-    id: file.id,
-    fileId: file.fileId,
-    title: file.title,
-    description: file.description,
-    size: size,
-    uploadTime: file.uploadTime,
-    fileType: file.fileType,
-    isNew: file.isNew,
-    downloadUrl: file.downloadUrl,
-    courseId: file.courseId,
-    courseName: file.courseName,
-    courseTeacherName: file.courseTeacherName
-  };
 }

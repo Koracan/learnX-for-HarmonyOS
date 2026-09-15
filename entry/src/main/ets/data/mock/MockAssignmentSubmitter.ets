@@ -15,7 +15,16 @@
  * | --- | --- | --- |
  * | `plan === undefined` | 一行日志、**不发请求**、`noop` | 一行日志、**不写台账**、`noop` |
  * | 正常提交 | multipart POST，回 `success(status)` | 发几次进度、写台账、`success(200)` |
+ * | 带附件提交 | `SubmitAssignment.send` 先 `AttachmentBytesSource.read(uri)`，再把字节放进 multipart | **同一个端口类型**、同一个读法：把字节连同提交一起写进台账 |
+ * | 附件读失败 | 整次提交失败（读不到就发不出去） | 照常记下这次提交（正文/时间），**不写附件**并 warn |
  * | 结果类型 | `SubmitOutcome` 的静态工厂 | **同一套** `SubmitOutcome`（不新造并行结果类型） |
+ *
+ * ## 附件为什么"读不到就不写"（而不是写一条占位）
+ *
+ * mock 模式下附件的可观察后果是"点开自己刚提交的附件能打开"：下载链路只会照着地址要字节。
+ * 如果读字节失败还硬写一条附件，那条作业就会带一条**谁也打不开的死链**——这正是本轮
+ * 收口的缺陷形态之一。所以：要么是用户真的选中的字节，要么明确没有附件（并说明原因）。
+ * 0 字节同理（空资产会被下载端口显式拒绝）。
  *
  * **零网络**：本文件不 import 任何 http 端口（`HttpFetchPort` / `HttpDownloadPort` 都不在），
  * 一个字节都不发；每次提交把 `networkAttemptCount()` 打进日志与 diagnostic，
@@ -80,12 +89,48 @@ function progressTotal(plan: SubmissionPlan): number {
 
 export class MockAssignmentSubmitter extends AssignmentSubmitter {
   private readonly mockLogger: Logger;
+  /** 与真实 `SubmitAssignment` **同一个端口类型**：picker 给的 URI → 字节。 */
+  private readonly attachmentReader: AttachmentBytesSource;
 
-  constructor(logger: Logger) {
-    // 基类的三个零件在这里是"占位"：本类覆写 submit，它们不会被走到（见文件头）。
+  constructor(logger: Logger, attachmentReader: AttachmentBytesSource) {
+    // 基类的执行器与请求端口在这里是"占位"：本类覆写 submit，它们不会被走到（见文件头）。
+    // 附件读取器**不是**占位：它就是要用的那个端口，直接传给基类那套死代码，不另造替身
+    // （设备侧传的是真实的 DeviceAttachmentReader，见 AssignmentSubmissionProvider）。
     super(new NeverUsedTaskExecutor(),
-      new SubmitAssignment(new NeverUsedFetchPort(), new NeverUsedAttachmentBytes(), logger), logger);
+      new SubmitAssignment(new NeverUsedFetchPort(), attachmentReader, logger), logger);
     this.mockLogger = logger;
+    this.attachmentReader = attachmentReader;
+  }
+
+  /**
+   * 读这一次提交附件的**真实字节**；没有附件 / 读失败 / 读到 0 字节时返回 undefined（并 warn）。
+   *
+   * 返回值直接喂给 `recordSubmission`：undefined = 这一次**没有附件**（不是"附件是空的"）。
+   */
+  private async readAttachment(plan: SubmissionPlan): Promise<Uint8Array | undefined> {
+    const picked = plan.attachment;
+    if (picked === undefined) {
+      return undefined;
+    }
+    let bytes: Uint8Array;
+    try {
+      bytes = await this.attachmentReader.read(picked.uri);
+    } catch (error) {
+      this.mockLogger.warn(LOG_DOMAIN
+        + ' attachment read failed, recording the submission without an attachment:'
+        + ' file=' + picked.name + ' uri=' + picked.uri
+        + ' reason=' + (error as Error).message);
+      return undefined;
+    }
+    if (bytes.length === 0) {
+      this.mockLogger.warn(LOG_DOMAIN
+        + ' attachment is empty, recording the submission without an attachment:'
+        + ' file=' + picked.name + ' uri=' + picked.uri);
+      return undefined;
+    }
+    this.mockLogger.info(LOG_DOMAIN + ' attachment bytes read for the local journal:'
+      + ' file=' + picked.name + ' bytes=' + bytes.length.toString());
+    return bytes;
   }
 
   /**
@@ -101,6 +146,8 @@ export class MockAssignmentSubmitter extends AssignmentSubmitter {
         + ' networkAttempts=' + networkAttemptCount().toString());
       return SubmitOutcome.noop('empty submission');
     }
+    // 先读附件字节：读不到就"没有附件"，但这一次提交照样记下来（正文/时间）。
+    const attachmentBytes: Uint8Array | undefined = await this.readAttachment(plan);
     const total: number = progressTotal(plan);
     const steps: number[] = [0, Math.round(total / 2), total];
     for (let i = 0; i < steps.length; i++) {
@@ -112,12 +159,13 @@ export class MockAssignmentSubmitter extends AssignmentSubmitter {
         await delayMillis(PROGRESS_STEP_MILLIS);
       }
     }
-    recordSubmission(plan, Date.now());
+    recordSubmission(plan, Date.now(), attachmentBytes);
     const attachmentName: string = plan.attachment === undefined ? '(none)' : plan.attachment.name;
     const diagnostic: string = 'local sample service (mock mode): xszyid=' + plan.studentHomeworkId
       + ' contentChars=' + plan.content.length.toString()
       + ' removeAttachment=' + plan.removeAttachment.toString()
       + ' file=' + attachmentName
+      + ' attachmentBytes=' + (attachmentBytes === undefined ? '0' : attachmentBytes.length.toString())
       + ' networkAttempts=' + networkAttemptCount().toString();
     this.mockLogger.info(LOG_DOMAIN + ' local sample submission accepted (zero network): ' + diagnostic);
     return SubmitOutcome.success(200, diagnostic);
@@ -151,11 +199,5 @@ class NeverUsedFetchPort implements FetchPort {
   async upload(session: Session, spec: UploadSpec,
     onProgress?: UploadProgressSink): Promise<HttpOutcome> {
     return { ok: false, status: 0, body: '', error: 'mock submitter: no network port' };
-  }
-}
-
-class NeverUsedAttachmentBytes implements AttachmentBytesSource {
-  async read(uri: string): Promise<Uint8Array> {
-    throw new Error('mock submitter: attachment bytes are never read');
   }
 }
