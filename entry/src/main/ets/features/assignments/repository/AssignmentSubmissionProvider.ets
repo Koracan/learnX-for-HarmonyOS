@@ -8,6 +8,16 @@
  *   - `HttpFetchPort`：真正发 multipart；
  *   - `DeviceAttachmentReader`：把 picker 给的 URI 读成字节；
  *   - `AssignmentSubmitter`：早退分支 + 把一次提交包成会话任务。
+ *
+ * ## 两条出口（Mock 模式）
+ *
+ * `createAssignmentSubmitter()` 按 `isMockMode()` 分支：mock 模式返回
+ * `data/mock/MockAssignmentSubmitter`（本地样例提交，**零网络**），否则走上面的真实装配。
+ * 这是 Mock 开关的第四个消费点（notice / course / file 三条线在各自的 provider 里已有同形分支）；
+ * 在它存在之前，mock 账号没有会话，提交必然降级成"需要重新验证"，界面一律弹「提交失败」。
+ *
+ * 判据只有 `features/mock/MockMode` 一处，界面（`AssignmentSubmissionPage`）不知道 mock 的存在。
+ * 装配点每次打一行日志说清选了哪条，并带上 `describeMockMode()` 与网络请求数（消费点自证）。
  */
 import { Logger } from '../../../core/log/Logger';
 import { authServices } from '../../auth/AuthServices';
@@ -17,15 +27,32 @@ import {
   AssignmentSubmitter, AttachmentBytesSource, AuthedTaskExecutor, SubmitAssignment
 } from '../../../data/assignments/SubmitAssignment';
 import { DeviceAttachmentReader } from '../../../data/assignments/DeviceAttachmentReader';
+import { MockAssignmentSubmitter } from '../../../data/mock/MockAssignmentSubmitter';
+import { networkAttemptCount } from '../../../data/remote/NetworkAudit';
+import { describeMockMode, isMockMode } from '../../mock/MockMode';
 
 const LOG_DOMAIN: string = 'data.assignments.submit';
 
-/** 当前生效的提交出口。 */
+/**
+ * 当前生效的提交出口。
+ *
+ * `logger` 只用于**装配点自证**（说清选了哪条）；下面真实那条装配的三个零件仍各自带
+ * 自己的 `Logger` —— 既有装配行保持原样，不因为加了一行日志而改动它们。
+ */
 export function createAssignmentSubmitter(): AssignmentSubmitter {
+  const logger: Logger = new Logger(LOG_DOMAIN);
+  // Mock 模式：本地样例提交出口，**一个字节都不发**。判据只有 features/mock/MockMode 一处。
+  if (isMockMode()) {
+    logger.info('assignment submitter wired: source=mock (guest mode, zero network) '
+      + describeMockMode() + ' networkAttempts=' + networkAttemptCount().toString());
+    return new MockAssignmentSubmitter(logger);
+  }
   const port: HttpFetchPort = new HttpFetchPort();
   const reader: AttachmentBytesSource = new DeviceAttachmentReader(new Logger(LOG_DOMAIN));
   const useCase: SubmitAssignment = new SubmitAssignment(port, reader, new Logger(LOG_DOMAIN));
   const executor: AuthedTaskExecutor = new RunnerTaskExecutor(authServices.runner);
+  logger.info('assignment submitter wired: source=real (http multipart via AuthedTaskRunner) '
+    + describeMockMode() + ' networkAttempts=' + networkAttemptCount().toString());
   return new AssignmentSubmitter(executor, useCase, new Logger(LOG_DOMAIN));
 }
 
