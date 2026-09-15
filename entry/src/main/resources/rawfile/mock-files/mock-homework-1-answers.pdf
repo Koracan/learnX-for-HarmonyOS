@@ -1,0 +1,119 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [5 0 R 7 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 6 0 R >>
+endobj
+6 0 obj
+<< /Length 892 >>
+stream
+BT
+/F1 10 Tf
+1 0 0 1 72 780 Tm
+(learnOH mock sample file) Tj
+/F2 20 Tf
+1 0 0 1 72 744 Tm
+(Homework 1 Reference Answers) Tj
+/F1 12 Tf
+1 0 0 1 72 722 Tm
+(Course: Data Structures) Tj
+/F1 12 Tf
+1 0 0 1 72 700 Tm
+(Teacher: Li Qiang) Tj
+/F1 10 Tf
+1 0 0 1 72 682 Tm
+(File id: mock-wjid-102   \(mock=102\)) Tj
+/F1 10 Tf
+1 0 0 1 72 664 Tm
+(Sample index: page 1 of 2) Tj
+/F1 11 Tf
+1 0 0 1 72 644 Tm
+(Exercise 1 \(linear list\)) Tj
+/F1 11 Tf
+1 0 0 1 72 624 Tm
+(   A singly linked list with a head node supports insertion at the front) Tj
+/F1 11 Tf
+1 0 0 1 72 604 Tm
+(   in O\(1\) and deletion by value in O\(n\). The reference answer keeps a) Tj
+/F1 11 Tf
+1 0 0 1 72 584 Tm
+(   tail pointer so that appending is also O\(1\).) Tj
+/F1 11 Tf
+1 0 0 1 72 564 Tm
+(Exercise 3 \(complexity\)) Tj
+/F1 11 Tf
+1 0 0 1 72 544 Tm
+(   The loop executes n + \(n-1\) + ... + 1 times, therefore T\(n\) = O\(n^2\).) Tj
+ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 8 0 R >>
+endobj
+8 0 obj
+<< /Length 786 >>
+stream
+BT
+/F1 10 Tf
+1 0 0 1 72 780 Tm
+(learnOH mock sample file) Tj
+/F2 20 Tf
+1 0 0 1 72 744 Tm
+(Homework 1 Reference Answers) Tj
+/F1 12 Tf
+1 0 0 1 72 722 Tm
+(Course: Data Structures) Tj
+/F1 12 Tf
+1 0 0 1 72 700 Tm
+(Teacher: Li Qiang) Tj
+/F1 10 Tf
+1 0 0 1 72 682 Tm
+(File id: mock-wjid-102   \(mock=102\)) Tj
+/F1 10 Tf
+1 0 0 1 72 664 Tm
+(Sample index: page 2 of 2) Tj
+/F1 11 Tf
+1 0 0 1 72 644 Tm
+(Exercise 5 \(implementation notes\)) Tj
+/F1 11 Tf
+1 0 0 1 72 624 Tm
+(   Remember to release every node that is unlinked; the reference) Tj
+/F1 11 Tf
+1 0 0 1 72 604 Tm
+(   implementation returns the removed element and leaves the list valid.) Tj
+/F1 11 Tf
+1 0 0 1 72 584 Tm
+(Grading notes) Tj
+/F1 11 Tf
+1 0 0 1 72 564 Tm
+(   Full credit requires the complexity argument, not only the code.) Tj
+ET
+endstream
+endobj
+xref
+0 9
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000127 00000 n 
+0000000224 00000 n 
+0000000326 00000 n 
+0000000462 00000 n 
+0000001404 00000 n 
+0000001540 00000 n 
+trailer
+<< /Size 9 /Root 1 0 R >>
+startxref
+2376
+%%EOF

@@ -11,6 +11,10 @@
  *   3. `FileSettingsStore`（值/语义在 `data/settings/FileSettings`，**持久化入口只此一处**；
  *      界面入口归全局设置）。
  *
+ * Mock 模式（guest/guest）多接一个东西：**同一个** DeviceFileStore 与 fileSettingsStore()
+ * 之上的 `FileDownloader`，端口换成读包内样例的 `RawfileDownloadPort`。于是 mock 的落盘路径
+ * 与真实下载逐字相同，而一个请求都不发（见 `fileRepository()`）。
+ *
  * Context 拿不到时**不回落成"能下载"**：返回一个"永远失败"的仓储，界面走错误态。
  */
 
@@ -34,6 +38,10 @@ import {
 } from '../../../data/settings/FileSettings';
 import { PreferencesFileSettingsPort } from '../../../data/settings/PreferencesFileSettings';
 import { MockFileRepository } from '../../../data/mock/MockFileRepository';
+import { MockBlobSource } from '../../../data/mock/MockFileBlobs';
+import {
+  RawfileDownloadPort, RawfileMockBlobSource
+} from '../../../data/mock/RawfileDownloadPort';
 import { isMockMode } from '../../mock/MockMode';
 import { authServices } from '../../auth/AuthServices';
 
@@ -106,16 +114,34 @@ function realFileRepository(): FileRepository {
 /**
  * 当前生效的文件数据源。
  *
- * Mock 模式返回一个**每次新建**的薄包装：取数走样例、下载直接短路，
- * 文件系统三件事委托给真实实现。为什么每次都新建而不是缓存：真实实现是单例，
- * 而 mock 开关可能在同一进程里被登出/再登录改掉（guest → 真实账号），
- * 缓存住 mock 包装会让第二次登录继续看样例数据。
+ * Mock 模式返回一个**每次新建**的薄包装：取数走样例、下载走**同一套真实编排**
+ * （FileDownloader），只是把端口换成包内资产（RawfileDownloadPort）；文件系统三件事
+ * 继续委托给真实实现。为什么每次都新建而不是缓存：真实实现是单例，而 mock 开关可能在
+ * 同一进程里被登出/再登录改掉（guest → 真实账号），缓存住 mock 包装会让第二次登录
+ * 继续看样例数据。
+ *
+ * 为什么下载用**同一个** DeviceFileStore 与 fileSettingsStore()：落盘根目录、文件名形状
+ * （文档目录 / 省略课程名）必须与真实下载逐字相同 —— 否则"mock 下能预览、真实账号下
+ * 路径不一样"会变成两条必须分别验证的路径。缓存命中与 clearCache 也随之自动一致。
  */
 export function fileRepository(): FileRepository {
   const real: FileRepository = realFileRepository();
   if (isMockMode()) {
-    logger.info('file repository wired: source=mock (sample data + short-circuited download, zero network)');
-    return new MockFileRepository(real);
+    const context: common.Context | null = hostContext();
+    let blobs: MockBlobSource | null = null;
+    let downloader: FileDownloader | null = null;
+    if (context === null) {
+      // 没有 Context 就没有 rawfile 也没有落盘根目录：不回落成"能下载"，走显式失败。
+      logger.error('mock file repository: no host context, bundled assets and downloads unavailable');
+    } else {
+      const source: RawfileMockBlobSource = new RawfileMockBlobSource(context.resourceManager);
+      blobs = source;
+      downloader = new FileDownloader(
+        new RawfileDownloadPort(source, new Logger('data.mock.rawfile')),
+        new DeviceFileStore(context), fileSettingsStore(), new Logger('data.mock.downloader'));
+    }
+    logger.info('file repository wired: source=mock (sample data + bundled rawfile download, zero network)');
+    return new MockFileRepository(real, downloader, blobs);
   }
   return real;
 }
