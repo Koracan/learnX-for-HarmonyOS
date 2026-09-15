@@ -24,16 +24,31 @@
  * ## 失败形态（显式，不静默）
  *
  *   - 地址里没有已知的 mock id：**不发 onHeaders、不写一个字节**，返回 ok=false + 明确 error；
- *   - rawfile 读失败 / 读到 0 字节：同样显式失败（error 里带资产路径）。
+ *   - rawfile 读失败 / 读到 0 字节：同样显式失败（error 里带资产路径）；
+ *   - 提交附件的合成 id 在台账里没有对应字节：同样显式失败（组合 source 抛，这里翻成 error）。
  * 绝不"成功返回 0 字节" —— 那会让详情页拿一个空文件去预览。
+ *
+ * ## 组合 source：包内资产 + 提交台账
+ *
+ * mock 模式有两套 mock id（见 MockFileBlobs 的文件头）：包内样例与"用户这次提交的附件"。
+ * 后者的字节不在包里，而在 `MockSubmissionJournal` 的进程内台账里。`CompositeMockBlobSource`
+ * 按 `rawfilePath` 的**合成前缀**分流：合成前缀 → 台账字节（读不到就抛，让上面的分支
+ * 走它既有的显式失败）；其余 → 委托 RawfileMockBlobSource。
+ *
+ * 于是端口与 MockFileRepository 都只认 `MockBlobSource`，**不需要知道字节从哪来**；
+ * 组合这件事只有一个地方做（FileRepositoryProvider 的 mock 装配）。
  */
 
+import { common } from '@kit.AbilityKit';
 import { resourceManager } from '@kit.LocalizationKit';
 import { Logger } from '../../core/log/Logger';
 import { networkAttemptCount } from '../remote/NetworkAudit';
 import { DownloadHeaders, DownloadPort, DownloadSink, DownloadStreamResult } from '../remote/DownloadPort';
 import { Session } from '../remote/Requests';
-import { MockBlobSource, MockFileBlob, mockBlobForUrl } from './MockFileBlobs';
+import { submittedAttachmentBytes } from './MockSubmissionJournal';
+import {
+  MockBlobSource, MockFileBlob, MockSubmittedBlobKey, mockBlobForUrl, parseSubmittedRawfilePath
+} from './MockFileBlobs';
 
 /**
  * 每块的目标字节数上限（32 KB）。
@@ -79,6 +94,63 @@ export class RawfileMockBlobSource implements MockBlobSource {
 
   read(rawfilePath: string): Uint8Array {
     return this.manager.getRawFileContentSync(rawfilePath);
+  }
+}
+
+/**
+ * 组合 source：合成前缀（提交附件）走台账，其余走包内资产。
+ *
+ * 为什么在这里（而不是 MockFileBlobs 里）：MockFileBlobs 是"纯描述 + 纯解析"，
+ * **不碰台账、也不碰平台**；本文件才是"字节从哪来"的那一层。
+ *
+ * 台账里没有对应字节时**抛**（不返回空数组、不返回 null）：调用方
+ * （RawfileDownloadPort.download）会把它翻成一次显式失败，与"地址里没有已知 mock id"
+ * 同一形态。合成 id 是可枚举的（`submitted-<xszyid>.<ext>`），伪造一条空附件等于
+ * 让详情页拿一个 0 字节文件去预览 —— 那正是本轮要收掉的死链。
+ */
+export class CompositeMockBlobSource implements MockBlobSource {
+  /** 非合成 rawfilePath 一律委托给它（设备侧 = RawfileMockBlobSource）。 */
+  private readonly bundled: MockBlobSource;
+  private readonly logger: Logger;
+
+  constructor(bundled: MockBlobSource, logger: Logger) {
+    this.bundled = bundled;
+    this.logger = logger;
+  }
+
+  read(rawfilePath: string): Uint8Array {
+    const key: MockSubmittedBlobKey | null = parseSubmittedRawfilePath(rawfilePath);
+    if (key === null) {
+      return this.bundled.read(rawfilePath);
+    }
+    const bytes: Uint8Array | undefined = submittedAttachmentBytes(key.studentHomeworkId);
+    if (bytes === undefined || bytes.length === 0) {
+      this.logger.warn('mock submitted attachment unavailable: xszyid=' + key.studentHomeworkId
+        + ' path=' + rawfilePath);
+      throw new Error('mock mode: no journalled attachment bytes for xszyid='
+        + key.studentHomeworkId);
+    }
+    this.logger.info('mock submitted attachment served from the journal: xszyid='
+      + key.studentHomeworkId + ' bytes=' + bytes.length.toString());
+    return bytes;
+  }
+}
+
+/**
+ * 设备侧的包内资产 source；没有宿主 Context 时返回 null。
+ *
+ * 为什么需要它：**课程**这条线也要算包内样例的真实体积
+ * （MockCourseRepository 的尺寸重算），而课程仓储的组装点
+ * （features/courses/repository/CourseRepositoryProvider）不在本 ticket 的改动范围内。
+ * 于是 mock 课程源自己在这里取一次设备 source；拿不到（host 单测、极端失败态）就返回
+ * null，体积重算退化为"保留站点给的文本"，**不假装算得出来**。
+ */
+export function hostRawfileBlobSource(): MockBlobSource | null {
+  try {
+    const context: common.Context = getContext() as common.Context;
+    return new RawfileMockBlobSource(context.resourceManager);
+  } catch (error) {
+    return null;
   }
 }
 

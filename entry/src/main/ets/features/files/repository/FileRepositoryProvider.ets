@@ -15,6 +15,10 @@
  * 之上的 `FileDownloader`，端口换成读包内样例的 `RawfileDownloadPort`。于是 mock 的落盘路径
  * 与真实下载逐字相同，而一个请求都不发（见 `fileRepository()`）。
  *
+ * mock 的端口吃一个**组合** `MockBlobSource`：包内样例（mock=101..106）走 rawfile，
+ * 而"用户这次提交的附件"（`submitted-<xszyid>.<ext>`）走 `MockSubmissionJournal` 的台账字节
+ * —— 两者在同一个端口后面，下载编排不需要知道字节从哪来。
+ *
  * Context 拿不到时**不回落成"能下载"**：返回一个"永远失败"的仓储，界面走错误态。
  */
 
@@ -40,7 +44,7 @@ import { PreferencesFileSettingsPort } from '../../../data/settings/PreferencesF
 import { MockFileRepository } from '../../../data/mock/MockFileRepository';
 import { MockBlobSource } from '../../../data/mock/MockFileBlobs';
 import {
-  RawfileDownloadPort, RawfileMockBlobSource
+  CompositeMockBlobSource, RawfileDownloadPort, RawfileMockBlobSource
 } from '../../../data/mock/RawfileDownloadPort';
 import { isMockMode } from '../../mock/MockMode';
 import { authServices } from '../../auth/AuthServices';
@@ -134,10 +138,14 @@ export function fileRepository(): FileRepository {
       // 没有 Context 就没有 rawfile 也没有落盘根目录：不回落成"能下载"，走显式失败。
       logger.error('mock file repository: no host context, bundled assets and downloads unavailable');
     } else {
-      const source: RawfileMockBlobSource = new RawfileMockBlobSource(context.resourceManager);
-      blobs = source;
+      // 组合 source：rawfile 里没有"用户刚提交的那份文件"，它的字节在提交台账里；
+      // 按 rawfilePath 的合成前缀分流（合成前缀 → 台账，其余 → rawfile）。
+      const bundled: RawfileMockBlobSource = new RawfileMockBlobSource(context.resourceManager);
+      const composite: CompositeMockBlobSource =
+        new CompositeMockBlobSource(bundled, new Logger('data.mock.rawfile'));
+      blobs = composite;
       downloader = new FileDownloader(
-        new RawfileDownloadPort(source, new Logger('data.mock.rawfile')),
+        new RawfileDownloadPort(composite, new Logger('data.mock.rawfile')),
         new DeviceFileStore(context), fileSettingsStore(), new Logger('data.mock.downloader'));
     }
     logger.info('file repository wired: source=mock (sample data + bundled rawfile download, zero network)');

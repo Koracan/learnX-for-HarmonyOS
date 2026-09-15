@@ -33,12 +33,31 @@
  * （有附件时还有 `submittedAttachment`）。**样例数据本身一字未改**，覆盖层只在有提交记录时生效。
  * 台账是内存态（进程重启即清空），所以重启后作业回到下面的初始态；
  * 为什么要有它、为什么是内存态：见 `MockSubmissionJournal.ets` 的文件头。
+ *
+ * 提交附件的地址必须由 `MockFileBlobs.buildMockSubmittedAttachmentUrl` 构造
+ * （别在这里自己拼串）：本文件是地址的**消费方**，`MockFileBlobs` 是地址形状的**唯一**所有者。
+ *
+ * ## 课程计数：样例里的字段**不再被消费**
+ *
+ * `mockCourses()` 上的 `unreadNoticeCount / unfinishedAssignmentCount / unreadFileCount`
+ * 只是样例文本：mock 快照的这三个数由 `MockCourseRepository.refresh()` 用
+ * `domain/courses/CourseCounts.countsForCourse` **算出来**（与真实路径 CourseFetchSource
+ * 同一份实现）。所以这里刻意保留了一份"看起来对、其实不参与计算"的样例值：
+ * 大学物理写的是 2，而样例里只有 1 条未提交作业 —— 这个 off-by-one 是**样例文本的历史遗留**，
+ * 修掉的正是"不要再信这三个字段"。要改样例计数，改的是作业/公告/文件本身。
+ *
+ * 同理，公告附件的 `size` 文本与文件列表的 `size` 文本一样都只是站点口径的样例串；
+ * 文件列表那五条会在 mock 快照组装时被**包内字节的真实体积**覆盖
+ * （`MockFileBlobs.applyBundledSizes`），公告附件这条目前只用于展示。
  */
 
 import { Assignment, Attachment, CourseFile } from '../../domain/model/ContentItem';
 import { NoticeRecord } from '../notices/NoticeRepository';
 import { CourseRecord } from '../courses/CourseRepository';
 import { MockSubmissionEntry, submissionFor } from './MockSubmissionJournal';
+import {
+  MOCK_NOTICE_ATTACHMENT_MOCK_ID, buildMockSubmittedAttachmentUrl, mockBlobUrl
+} from './MockFileBlobs';
 
 /** Mock 用户的显示名 / 院系（参考实现 `mock.ts:21-24` 的 `user` 段：测试学生 / 电子系）。 */
 export const MOCK_USER_NAME: string = '测试学生';
@@ -53,15 +72,26 @@ export const MOCK_CURRENT_SEMESTER: string = '2026-2027-1';
 const HOUR_MS: number = 3600 * 1000;
 const DAY_MS: number = 24 * HOUR_MS;
 
-/** `YYYY-MM-DD HH:mm`（站点与 `domain/parse/Text.parseTimestamp` 认的形状）。 */
-function formatDateTime(millis: number): string {
+/**
+ * `YYYY-MM-DD HH:mm`（站点与 `domain/parse/Text.parseTimestamp` 认的形状）。
+ *
+ * 导出是给 `MockCourseRepository` 的计数适配器用的：NoticeRecord 存的是毫秒时间戳，
+ * 而 `countsForCourse` 吃 domain 的 `Notice.publishTime` 文本，两侧必须是同一个时刻。
+ */
+export function formatDateTime(millis: number): string {
   const d: Date = new Date(millis);
   const pad = (value: number): string => value < 10 ? '0' + value.toString() : value.toString();
   return d.getFullYear().toString() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate())
     + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
 }
 
-/** 三门样例课程（计数与下面的三个域一一对得上）。 */
+/**
+ * 三门样例课程。
+ *
+ * **三个计数字段只是样例文本、不再被消费**（见文件头）：mock 快照里的计数由
+ * `MockCourseRepository.refresh()` 用 `countsForCourse` 从下面三个域算出来。
+ * 保留它们是为了让样例"长成一张完整的课程卡片"，而不是因为它们是权威值。
+ */
 export function mockCourses(): CourseRecord[] {
   return [
     {
@@ -106,7 +136,13 @@ export function mockCourses(): CourseRecord[] {
   ];
 }
 
-/** 四条样例公告（一条重要 / 一条未读 / 一条带附件 / 一条已读）。 */
+/**
+ * 四条样例公告（一条重要 / 一条未读 / 一条带附件 / 一条已读）。
+ *
+ * 第 2 条（`mock-notice-2`）带附件：它的下载地址指向**第 5 份包内样例**
+ * （mock=105，MOCK_NOTICE_ATTACHMENT_FILE_NAME）。此前这里写的是 `?mock=1` ——
+ * `MockFileBlobs` 不认识 `1`（1 是公告详情页地址自己的参数），于是点公告附件必失败。
+ */
 export function mockNotices(): NoticeRecord[] {
   const now: number = Date.now();
   return [
@@ -129,9 +165,9 @@ export function mockNotices(): NoticeRecord[] {
       title: '实验课调整通知（附实验指导书）',
       content: '<p>本周五的实验课调整到周六上午 9:00，实验室不变。</p>',
       attachment: {
-        downloadUrl: 'https://learn.tsinghua.edu.cn/b/wlxt/kc/wj_download?mock=1',
+        downloadUrl: mockBlobUrl(MOCK_NOTICE_ATTACHMENT_MOCK_ID),
         name: '实验指导书.pdf',
-        id: 'mock-wjid-1',
+        id: 'mock-wjid-105',
         size: '1.2MB'
       },
       publisher: '王敏',
@@ -275,10 +311,6 @@ export function mockAssignments(): Assignment[] {
   return applyMockSubmissionJournal(items);
 }
 
-/** 样例提交附件的下载地址前缀（与其它样例地址同一形状：真实域名 + `mock=`，不指向任何真实文件）。 */
-const MOCK_SUBMITTED_ATTACHMENT_URL: string =
-  'https://learn.tsinghua.edu.cn/b/wlxt/kc/wj_download?mock=submitted-';
-
 /** 字节数 → 站点形状的体积文本（`139.54KB` / `1.20MB`；小于 1KB 用字节）。 */
 function formatAttachmentSize(bytes: number): string {
   if (bytes >= 1024 * 1024) {
@@ -321,8 +353,10 @@ function applyMockSubmissionJournal(items: Assignment[]): Assignment[] {
       // 移除附件：清掉"已提交附件"。ArkTS 侧不用 `delete`，统一赋值 undefined。
       item.submittedAttachment = undefined;
     } else if (entry.attachment !== undefined) {
+      // 地址由 MockFileBlobs 的**共用构造函数**拼（扩展名取自台账条目）：
+      // 上一版在这里自己拼 `?mock=submitted-<xszyid>`，MockFileBlobs 不认识它 ⇒ 死链。
       const attachment: Attachment = {
-        downloadUrl: MOCK_SUBMITTED_ATTACHMENT_URL + xszyid,
+        downloadUrl: buildMockSubmittedAttachmentUrl(xszyid, entry.attachment.extension),
         name: entry.attachment.name,
         size: formatAttachmentSize(entry.attachment.size)
       };
@@ -332,7 +366,18 @@ function applyMockSubmissionJournal(items: Assignment[]): Assignment[] {
   return items;
 }
 
-/** 四条样例文件（一条"新"）。 */
+/**
+ * 五条样例文件（两条"新"）：四份文档 + **一张 PNG**。
+ *
+ * 为什么加那张 PNG：设备实测（模拟器无 HMS）里 PDF 应用内预览不可用
+ * （@hms:officeservice.pdfservice 缺失，平台能力问题），而图片预览走系统
+ * image.createImageSource ⇒ 图片样例是那台设备上唯一能演示"应用内真的渲染出来了"的一份。
+ *
+ * 地址一律由 `MockFileBlobs.mockBlobUrl` 拼（文件名的映射在 MockFileBlobs 的清单里）：
+ * 本文件只负责"哪条样例长什么样"，不负责地址形状。
+ * `size` 是**站点口径的样例文本**：mock 快照组装时会被包内字节的真实体积覆盖
+ * （`MockFileBlobs.applyBundledSizes`）。
+ */
 export function mockFiles(): CourseFile[] {
   const now: number = Date.now();
   return [
@@ -345,7 +390,7 @@ export function mockFiles(): CourseFile[] {
       uploadTime: formatDateTime(now - 4 * HOUR_MS),
       fileType: 'pdf',
       isNew: true,
-      downloadUrl: 'https://learn.tsinghua.edu.cn/b/wlxt/kc/wj_download?mock=101',
+      downloadUrl: mockBlobUrl('101'),
       courseId: '2026-2027-1-100001',
       courseName: '数据结构',
       courseTeacherName: '李强'
@@ -359,7 +404,7 @@ export function mockFiles(): CourseFile[] {
       uploadTime: formatDateTime(now - 2 * DAY_MS),
       fileType: 'pdf',
       isNew: false,
-      downloadUrl: 'https://learn.tsinghua.edu.cn/b/wlxt/kc/wj_download?mock=102',
+      downloadUrl: mockBlobUrl('102'),
       courseId: '2026-2027-1-100001',
       courseName: '数据结构',
       courseTeacherName: '李强'
@@ -373,7 +418,7 @@ export function mockFiles(): CourseFile[] {
       uploadTime: formatDateTime(now - 26 * HOUR_MS),
       fileType: 'pdf',
       isNew: true,
-      downloadUrl: 'https://learn.tsinghua.edu.cn/b/wlxt/kc/wj_download?mock=103',
+      downloadUrl: mockBlobUrl('103'),
       courseId: '2026-2027-1-100002',
       courseName: '大学物理（1）',
       courseTeacherName: '王敏'
@@ -387,10 +432,25 @@ export function mockFiles(): CourseFile[] {
       uploadTime: formatDateTime(now - 6 * DAY_MS),
       fileType: 'pptx',
       isNew: false,
-      downloadUrl: 'https://learn.tsinghua.edu.cn/b/wlxt/kc/wj_download?mock=104',
+      downloadUrl: mockBlobUrl('104'),
       courseId: '2026-2027-1-100003',
       courseName: '马克思主义基本原理',
       courseTeacherName: '赵磊'
+    },
+    {
+      // 第 5 条：图片样例（mock=106）。fileType 用 png ⇒ 详情页走系统图片预览。
+      id: 'mock-file-5',
+      fileId: 'mock-wjid-106',
+      title: '实验课安排（截图）',
+      description: '本学期实验课安排表（截图，用于验证应用内图片预览）',
+      size: '96.00KB',
+      uploadTime: formatDateTime(now - 9 * HOUR_MS),
+      fileType: 'png',
+      isNew: true,
+      downloadUrl: mockBlobUrl('106'),
+      courseId: '2026-2027-1-100001',
+      courseName: '数据结构',
+      courseTeacherName: '李强'
     }
   ];
 }
