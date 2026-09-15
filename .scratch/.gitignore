@@ -21,5 +21,11 @@ owner-findings
 migration/sm2-verify
 auth/tools/credentials.local.txt
 
+# i18n 生成器的本地中间产物（.scratch/foundation/i18n-keys.json / i18n-key-map.md）。
+# 它们是 scripts/generate-i18n-resources.mjs 的输出、scripts/gen-i18n-keys.mjs 的输入，
+# 每跑一次生成链就会重新出现。**必须忽略**：否则每个 agent 的 git status 都会常年带一条
+# ?? .scratch/foundation/，而"主树 status 必须为空"正是我们用来发现串树的判据。
+foundation/
+
 # 已完成的 issue
 .closed
