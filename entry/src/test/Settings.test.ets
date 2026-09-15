@@ -205,7 +205,8 @@ export default function settingsTest() {
       resetNetworkAudit();
       const notices: MockNoticeRepository = new MockNoticeRepository();
       const courses: MockCourseRepository = new MockCourseRepository();
-      const files: MockFileRepository = new MockFileRepository(new FakeFileSystem());
+      // 后两个参数为 null = "没有宿主 Context"的形态：没有 rawfile，也没有落盘根目录。
+      const files: MockFileRepository = new MockFileRepository(new FakeFileSystem(), null, null);
       return notices.loadSnapshot().then((snapshot) => {
         expect(snapshot).assertNull();
         return notices.refresh().then((fresh) => {
@@ -214,7 +215,8 @@ export default function settingsTest() {
             expect(courseSnapshot.courses.length > 0).assertTrue();
             return files.refresh().then((fileSnapshot) => {
               expect(fileSnapshot.files.length > 0).assertTrue();
-              // 下载在 mock 模式下**直接短路**（返回显式失败），同样不发请求。
+              // 这个替身没接下载器（= 没有宿主 Context 的形态）⇒ download 显式失败，同样不发请求。
+              // 接了包内样例（RawfileDownloadPort）之后，mock=101 会真的落盘 —— 见 MockFiles.test.ets。
               const request: FileDownloadRequest = {
                 downloadUrl: 'https://learn.tsinghua.edu.cn/b/wlxt/kc/wj_download?mock=1',
                 cacheKey: 'mock-wjid-101', courseName: '数据结构', title: '课程大纲',

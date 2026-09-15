@@ -9,3 +9,13 @@ entry/src/main/resources/en_US/element/string.json text eol=lf
 entry/src/main/ets/core/i18n/I18nKeys.ets text eol=lf
 .scratch/foundation/i18n-keys.json text eol=lf
 .scratch/foundation/i18n-key-map.md text eol=lf
+
+# Mock 样例文件是**二进制**，而且这一点是硬要求（不是洁癖）：
+#   - PDF 的 xref 偏移与内容流的 /Length 都按**字节**算，checkout 落成 CRLF 会让
+#     PDFKit / 任何阅读器再也打不开（PDF 里没有 NUL 字节，git 会把它当文本！）；
+#   - ZIP 的本地头与 CRC 更经不起整体改写。
+# 本机 core.autocrlf=true，实测（git checkout-index）：不加这一条时三份 PDF 在
+# 全新 checkout 里分别变成 3977 / 2739 / 4610 字节（= 每个 LF 多一个 CR），
+# scripts/check-mock-files.mjs 会 FAIL。pptx 恰好被判成二进制而幸免，不能靠运气。
+# 用 binary（= -text -diff -merge -partial）而不是 text eol=lf：这些是二进制资产。
+entry/src/main/resources/rawfile/mock-files/** binary

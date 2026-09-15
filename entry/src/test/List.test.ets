@@ -33,6 +33,7 @@ import assignmentListTest from './AssignmentList.test';
 import excellentHomeworkTest from './ExcellentHomework.test';
 import assignmentSubmissionTest from './AssignmentSubmission.test';
 import fileDownloadTest from './FileDownload.test';
+import mockFilesTest from './MockFiles.test';
 import externalOpenTest from './ExternalOpen.test';
 import updatedTimeTest from './UpdatedTime.test';
 import pageShownTest from './PageShown.test';
@@ -76,6 +77,7 @@ export default function testsuite() {
   excellentHomeworkTest();
   assignmentSubmissionTest();
   fileDownloadTest();
+  mockFilesTest();
   externalOpenTest();
   updatedTimeTest();
   pageShownTest();

@@ -1,0 +1,179 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [5 0 R 7 0 R 9 0 R] /Count 3 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 6 0 R >>
+endobj
+6 0 obj
+<< /Length 859 >>
+stream
+BT
+/F1 10 Tf
+1 0 0 1 72 780 Tm
+(learnOH mock sample file) Tj
+/F2 20 Tf
+1 0 0 1 72 744 Tm
+(Course Syllabus) Tj
+/F1 12 Tf
+1 0 0 1 72 722 Tm
+(Course: Data Structures) Tj
+/F1 12 Tf
+1 0 0 1 72 700 Tm
+(Teacher: Li Qiang) Tj
+/F1 10 Tf
+1 0 0 1 72 682 Tm
+(File id: mock-wjid-101   \(mock=101\)) Tj
+/F1 10 Tf
+1 0 0 1 72 664 Tm
+(Sample index: page 1 of 3) Tj
+/F1 11 Tf
+1 0 0 1 72 644 Tm
+(1. Course overview) Tj
+/F1 11 Tf
+1 0 0 1 72 624 Tm
+(   This sample PDF is produced by scripts/gen-mock-files.mjs and bundled) Tj
+/F1 11 Tf
+1 0 0 1 72 604 Tm
+(   into the app as entry/src/main/resources/rawfile/mock-files/.) Tj
+/F1 11 Tf
+1 0 0 1 72 584 Tm
+(   It exists so that a mock-mode download writes a real, openable file.) Tj
+/F1 11 Tf
+1 0 0 1 72 564 Tm
+(2. Prerequisites) Tj
+/F1 11 Tf
+1 0 0 1 72 544 Tm
+(   Programming fundamentals. No prior C experience is required.) Tj
+ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 8 0 R >>
+endobj
+8 0 obj
+<< /Length 893 >>
+stream
+BT
+/F1 10 Tf
+1 0 0 1 72 780 Tm
+(learnOH mock sample file) Tj
+/F2 20 Tf
+1 0 0 1 72 744 Tm
+(Course Syllabus) Tj
+/F1 12 Tf
+1 0 0 1 72 722 Tm
+(Course: Data Structures) Tj
+/F1 12 Tf
+1 0 0 1 72 700 Tm
+(Teacher: Li Qiang) Tj
+/F1 10 Tf
+1 0 0 1 72 682 Tm
+(File id: mock-wjid-101   \(mock=101\)) Tj
+/F1 10 Tf
+1 0 0 1 72 664 Tm
+(Sample index: page 2 of 3) Tj
+/F1 11 Tf
+1 0 0 1 72 644 Tm
+(3. Schedule \(16 weeks\)) Tj
+/F1 11 Tf
+1 0 0 1 72 624 Tm
+(   Weeks 1-4   Lists, stacks and queues) Tj
+/F1 11 Tf
+1 0 0 1 72 604 Tm
+(   Weeks 5-8   Trees, heaps and balanced search trees) Tj
+/F1 11 Tf
+1 0 0 1 72 584 Tm
+(   Weeks 9-12  Graphs, shortest paths and spanning trees) Tj
+/F1 11 Tf
+1 0 0 1 72 564 Tm
+(   Weeks 13-16 Sorting, hashing and an introduction to complexity) Tj
+/F1 11 Tf
+1 0 0 1 72 544 Tm
+(4. Midterm) Tj
+/F1 11 Tf
+1 0 0 1 72 524 Tm
+(   Week 9, Wednesday 19:00 - 21:00. Room to be announced.) Tj
+ET
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 10 0 R >>
+endobj
+10 0 obj
+<< /Length 868 >>
+stream
+BT
+/F1 10 Tf
+1 0 0 1 72 780 Tm
+(learnOH mock sample file) Tj
+/F2 20 Tf
+1 0 0 1 72 744 Tm
+(Course Syllabus) Tj
+/F1 12 Tf
+1 0 0 1 72 722 Tm
+(Course: Data Structures) Tj
+/F1 12 Tf
+1 0 0 1 72 700 Tm
+(Teacher: Li Qiang) Tj
+/F1 10 Tf
+1 0 0 1 72 682 Tm
+(File id: mock-wjid-101   \(mock=101\)) Tj
+/F1 10 Tf
+1 0 0 1 72 664 Tm
+(Sample index: page 3 of 3) Tj
+/F1 11 Tf
+1 0 0 1 72 644 Tm
+(5. Assessment) Tj
+/F1 11 Tf
+1 0 0 1 72 624 Tm
+(   Homework            40%) Tj
+/F1 11 Tf
+1 0 0 1 72 604 Tm
+(   Midterm             25%) Tj
+/F1 11 Tf
+1 0 0 1 72 584 Tm
+(   Final examination   35%) Tj
+/F1 11 Tf
+1 0 0 1 72 564 Tm
+(6. Textbook) Tj
+/F1 11 Tf
+1 0 0 1 72 544 Tm
+(   Mark Allen Weiss, Data Structures and Algorithm Analysis.) Tj
+/F1 11 Tf
+1 0 0 1 72 524 Tm
+(7. Contact) Tj
+/F1 11 Tf
+1 0 0 1 72 504 Tm
+(   Li Qiang, Department of Computer Science. Office hours by appointment.) Tj
+ET
+endstream
+endobj
+xref
+0 11
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000133 00000 n 
+0000000230 00000 n 
+0000000332 00000 n 
+0000000468 00000 n 
+0000001377 00000 n 
+0000001513 00000 n 
+0000002456 00000 n 
+0000002593 00000 n 
+trailer
+<< /Size 11 /Root 1 0 R >>
+startxref
+3512
+%%EOF
