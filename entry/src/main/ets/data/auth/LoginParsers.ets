@@ -10,6 +10,9 @@
  *      且必须有 '&' 前缀（:171-179）。语言正则要求整串标签精确匹配，含前导斜杠（:180-182）。
  *
  * **不解码 HTML 实体**（照参考实现）。
+ *
+ * 文件末尾的 `isNoLoginResponse` 与 `isSessionLostErrorMessage` 不是"登录页解析"，而是同一件事的
+ * **判据侧**：什么算"会话没了"只在这一个文件里定义（结果层 / 异常层两条，见各自的说明）。
  */
 
 /** 抽取 #sm2publicKey 的文本（真实页面是 div 的文本；兼容 input 的 value 形态）。 */
@@ -135,6 +138,35 @@ export function isNoLoginResponse(status: number, responseUrl: string, body: str
  */
 export function isEmptyListResult(body: string): boolean {
   return body === '[]';
+}
+
+/**
+ * 「当前学期响应不可用」的稳定标记（**异常层**的会话失效判据）。
+ *
+ * 站点在会话失效时用 **HTTP 200 + 一个不含 `xnxq` 的 JSON 错误信封**回答
+ * `getCurrentAndNextSemester`（设备实测正文 69 字符）——它既不是 `'[]'`、也不含
+ * `login_timeout`，所以结果层那两条既有判据都看不见它。抛出这条消息的唯一实现在
+ * `data/courses/SemesterFetcher.currentSemesterId`；三域取数源（courses / notices / files）
+ * 会把它包成 `semester resolution failed: …` 再抛出。
+ *
+ * 为什么标记放在 auth 层：它是**会话失效判据**的一部分（与 isNoLoginResponse / isEmptyListResult
+ * 同源），不是某一域的解析细节。产生方 import 它，不各写一遍字面量。
+ */
+export const UNUSABLE_SEMESTER_RESPONSE_MARKER: string = 'no xnxq in current semester response';
+
+/**
+ * 取数任务**抛出**的错误是否表示会话失效。
+ *
+ * 为什么需要它：学期是取数的前置条件，拿不到就没有可返回的结果 —— 三域取数源在"学期解析"
+ * 这一步失败时是**抛错**而不是返回 TaskOutcome，而 SessionGate 只分类**返回**的结果。于是
+ * "会话过期 → 自动重登 + 只重试一次"这条既有链路会被整条绕过。设备现象（2026-09，驻留后台后
+ * 回到前台刷新作业）：直接显示 `semester resolution failed: no xnxq in current semester response: bytes=69`。
+ *
+ * 判据刻意**收窄到这一条**：网络层失败（status=0）与 403 由 `AuthedTaskRunner` 的既有映射负责；
+ * 其它抛错（课程列表形状不符等）保持原样上报，不在这里被吞成"会话失效"。
+ */
+export function isSessionLostErrorMessage(message: string): boolean {
+  return message.length > 0 && message.includes(UNUSABLE_SEMESTER_RESPONSE_MARKER);
 }
 
 /** 响应体是否像 ID 登录页（诊断「服务端要求浏览器」这条降级路径）。 */

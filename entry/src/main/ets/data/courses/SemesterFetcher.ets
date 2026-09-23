@@ -18,6 +18,7 @@
 
 import { Logger } from '../../core/log/Logger';
 import { sortSemesterIds } from '../../domain/model/Semester';
+import { UNUSABLE_SEMESTER_RESPONSE_MARKER } from '../auth/LoginParsers';
 import { LEARN_ORIGIN, Session } from '../remote/Requests';
 import { authedGet } from '../remote/AuthedRequest';
 import { FetchOutcome, FetchPort } from '../remote/Port';
@@ -135,7 +136,10 @@ export class HttpSemesterSource implements SemesterSource {
     }
     const id: string = extractSemesterId(outcome.body);
     if (id.length === 0) {
-      throw new Error('no xnxq in current semester response: bytes=' + outcome.body.length.toString());
+      // 标记本身定义在 auth 层：它是**会话失效判据**之一（见 LoginParsers 的说明）——
+      // 会话失效时站点用 200 + 不含 xnxq 的错误信封回答这里，而 SessionGate 靠这个标记
+      // 把"抛出来的会话失效"折进它既有的"重登 + 只重试一次"。消息逐字未变。
+      throw new Error(UNUSABLE_SEMESTER_RESPONSE_MARKER + ': bytes=' + outcome.body.length.toString());
     }
     return id;
   }

@@ -58,6 +58,42 @@ class CountingLogin {
   };
 }
 
+/** 会话失效的学期错误：三域取数源在"学期解析"失败时抛出的那条（设备实测 bytes=69）。 */
+const STALE_SESSION_SEMESTER_ERROR: string =
+  'semester resolution failed: no xnxq in current semester response: bytes=69';
+
+/**
+ * 会**抛错**的脚本化任务：`script[i] === ''` 表示第 i 次调用抛会话失效错，否则返回 200 + 该体。
+ * 对应真实形态：学期是取数的前置条件，取数源在这一步失败时**抛错**而不是返回 TaskOutcome。
+ */
+class ThrowingTask {
+  readonly runs: number[] = [];
+  private script: string[];
+  private cursor: number = 0;
+
+  constructor(script: string[]) {
+    this.script = script;
+  }
+
+  run = async (): Promise<TaskOutcome> => {
+    const index: number = this.cursor < this.script.length ? this.cursor : this.script.length - 1;
+    this.cursor++;
+    this.runs.push(index + 1);
+    const body: string = this.script[index];
+    if (body.length === 0) {
+      throw new Error(STALE_SESSION_SEMESTER_ERROR);
+    }
+    return outcome(200, body);
+  };
+}
+
+/** 抛一个**非**会话原因的错（站点改版 / 账号事实这类信号）。 */
+class OtherThrowingTask {
+  run = async (): Promise<TaskOutcome> => {
+    throw new Error('course list is EMPTY for the site current semester 2026-2027-1');
+  };
+}
+
 function okLogin(): LoginResult {
   return LoginResult.success({ cookie: 'JSESSIONID=x', csrfToken: 'TOKEN' }, 'zh');
 }
@@ -175,6 +211,44 @@ export default function reAuthTest() {
       expect(result.ok).assertFalse();
       expect(result.reason).assertEqual(FailReason.UNEXPECTED_STATUS);
       expect(result.requiresEnrollment()).assertTrue();
+    });
+
+    it('recoversWhenTheTaskThrowsTheStaleSessionSemesterError', 0, async () => {
+      // 设备现象：驻留后台后刷新，学期接口回 200 但不含 xnxq ⇒ 取数源**抛错**。
+      // 抛错必须与"返回 '[]' / noLogin"一样触发重登 + 只重试一次（否则界面只看到原始错误串）。
+      const login: CountingLogin = new CountingLogin(okLogin(), 0);
+      const task: ThrowingTask = new ThrowingTask(['', OK_BODY]);
+      const result: ReAuthRunResult = await gateFor(login).run(task.run);
+      expect(result.ok).assertTrue();
+      expect(result.value).assertEqual(OK_BODY);
+      expect(result.reAuthAttempted).assertTrue();
+      expect(login.calls).assertEqual(1);
+      expect(task.runs.length).assertEqual(2);
+    });
+
+    it('degradesWhenTheSemesterErrorPersistsAfterReAuth', 0, async () => {
+      const login: CountingLogin = new CountingLogin(okLogin(), 0);
+      const task: ThrowingTask = new ThrowingTask(['', '']);
+      const result: ReAuthRunResult = await gateFor(login).run(task.run);
+      expect(result.ok).assertFalse();
+      expect(result.reason).assertEqual(FailReason.NOT_LOGGED_IN);
+      expect(result.requiresEnrollment()).assertTrue();
+      // 登录本身成功、任务仍抛同样的错 ⇒ 恰好两次尝试，不循环
+      expect(login.calls).assertEqual(1);
+      expect(task.runs.length).assertEqual(2);
+    });
+
+    it('doesNotTreatOtherThrowsAsSessionLoss', 0, async () => {
+      const login: CountingLogin = new CountingLogin(okLogin(), 0);
+      let message: string = '';
+      try {
+        await gateFor(login).run(new OtherThrowingTask().run);
+      } catch (error) {
+        message = (error as Error).message;
+      }
+      expect(message.includes('course list is EMPTY')).assertTrue();
+      // 不是会话原因的抛错不许触发登录（否则每次站点改版都会白跑一次登录）
+      expect(login.calls).assertEqual(0);
     });
   });
 }

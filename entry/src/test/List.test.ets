@@ -37,6 +37,7 @@ import mockFilesTest from './MockFiles.test';
 import externalOpenTest from './ExternalOpen.test';
 import updatedTimeTest from './UpdatedTime.test';
 import pageShownTest from './PageShown.test';
+import foregroundReAuthTest from './ForegroundReAuth.test';
 import iconCatalogTest from './IconCatalog.test';
 import favoritesTest from './Favorites.test';
 import splitViewTest from './SplitView.test';
@@ -83,6 +84,7 @@ export default function testsuite() {
   externalOpenTest();
   updatedTimeTest();
   pageShownTest();
+  foregroundReAuthTest();
   iconCatalogTest();
   favoritesTest();
   splitViewTest();

@@ -7,7 +7,8 @@
 import { describe, it, expect } from '@ohos/hypium';
 import {
   extractSm2PublicKey, extractTicket, extractCsrfToken, extractLanguage,
-  isNoLoginResponse, isEmptyListResult, looksLikeIdLoginPage, countOccurrences, CSRF_PATTERN, LANGUAGE_PATTERN
+  isNoLoginResponse, isEmptyListResult, isSessionLostErrorMessage, UNUSABLE_SEMESTER_RESPONSE_MARKER,
+  looksLikeIdLoginPage, countOccurrences, CSRF_PATTERN, LANGUAGE_PATTERN
 } from '../main/ets/data/auth/LoginParsers';
 import {
   REAL_ID_LOGIN_FORM_SNIPPET, REAL_SM2_PUBLIC_KEY, INPUT_STYLE_SM2_PUBLIC_KEY_HTML,
@@ -70,6 +71,21 @@ export default function loginParsersTest() {
       expect(isEmptyListResult('[] ')).assertFalse();
       expect(isEmptyListResult(' [ ]')).assertFalse();
       expect(isEmptyListResult('{"a":1}')).assertFalse();
+    });
+
+    it('recognizesTheThrownStaleSessionSemesterError', 0, () => {
+      // 异常层的判据：会话失效时站点用 200 + 不含 xnxq 的错误信封回答学期接口，
+      // 三域取数源把它包成 `semester resolution failed: …` 抛出（设备实测 bytes=69）。
+      expect(isSessionLostErrorMessage(
+        'semester resolution failed: no xnxq in current semester response: bytes=69')).assertTrue();
+      expect(isSessionLostErrorMessage('no xnxq in current semester response: bytes=69')).assertTrue();
+      // 负对照：其它抛错不许被吞成"会话失效"（否则站点改版会被误报成掉线）
+      expect(isSessionLostErrorMessage(
+        'course list is EMPTY for the site current semester 2026-2027-1')).assertFalse();
+      expect(isSessionLostErrorMessage('current semester request failed: status=500')).assertFalse();
+      expect(isSessionLostErrorMessage('')).assertFalse();
+      // 标记是**产生方与判据方共用**的那一个（改字面量必须同时改两边）
+      expect(UNUSABLE_SEMESTER_RESPONSE_MARKER).assertEqual('no xnxq in current semester response');
     });
 
     it('countsDoubleAuthMentionsForSecondFactorDiagnostics', 0, () => {

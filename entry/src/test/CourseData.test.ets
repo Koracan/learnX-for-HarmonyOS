@@ -9,8 +9,9 @@
 import { describe, it, expect } from '@ohos/hypium';
 import { Logger } from '../main/ets/core/log/Logger';
 import { logBuffer } from '../main/ets/core/log/LogBuffer';
-import { AuthedRunResult, SessionTask } from '../main/ets/data/auth/SessionRestore';
-import { FailReason } from '../main/ets/data/auth/AuthTypes';
+import { AuthedRunResult, AuthedTaskRunner, SessionRestorer, SessionTask } from '../main/ets/data/auth/SessionRestore';
+import { ReAuthCoordinator, SessionGate } from '../main/ets/data/auth/ReAuth';
+import { FailReason, LoginResult } from '../main/ets/data/auth/AuthTypes';
 import { FetchOutcome, FetchPort, GetSpec, PostFormSpec, UploadSpec } from '../main/ets/data/remote/Port';
 import { Session } from '../main/ets/data/remote/Requests';
 import { AuthedTaskExecutor } from '../main/ets/data/notices/RealNoticeRepository';
@@ -35,6 +36,14 @@ const logger: Logger = new Logger('data.courses');
 
 const CURRENT_SEMESTER_JSON: string =
   '{"result":{"xnxq":"2026-2027-1","xnxqmc":"2026-2027秋季学期"},"message":"success","resultList":[]}';
+
+/**
+ * [反推] 会话失效时站点对 `getCurrentAndNextSemester` 的回答形状：**HTTP 200 + 一个不含 `xnxq`
+ * 的 JSON 错误信封**（设备实测正文 69 字符 —— `bytes=` 落的是 JS 字符串长度，不是 UTF-8 字节数）。
+ * 具体文案未知，这里只钉**形状**：它既不是 '[]'，也不含 login_timeout。
+ */
+const STALE_SESSION_ENVELOPE_JSON: string =
+  '{"result":null,"message":"未登录或会话已过期","resultList":[]}';
 
 /** 学期集合：含 null（照参考实现的 filter(s => s != null)）且**非顺序**排列。 */
 const SEMESTER_LIST_JSON: string =
@@ -209,6 +218,51 @@ function emptySnapshot(): CourseSnapshot {
     semesterId: '2025-2026-2', siteCurrentSemesterId: '2026-2027-1', semesterSource: 'selection',
     semesters: ['2026-2027-1', '2025-2026-2'], semestersAvailable: true, fetchedAtMillis: 1
   };
+}
+
+/** 内存会话持有者（对应设备侧 AuthSession.current）。 */
+class SessionSink {
+  session: Session | null = null;
+
+  current = (): Session | null => this.session;
+}
+
+/** 脚本化登录：按序返回预置结果，成功时把会话交给 sink（对应 AuthServices 的 login action）。 */
+class ScriptedLogin {
+  readonly sink: SessionSink = new SessionSink();
+  calls: number = 0;
+  private script: LoginResult[];
+
+  constructor(script: LoginResult[]) {
+    this.script = script;
+  }
+
+  login = async (): Promise<LoginResult> => {
+    const index: number = this.calls < this.script.length ? this.calls : this.script.length - 1;
+    this.calls++;
+    const result: LoginResult = this.script[index];
+    if (result.ok && result.session !== undefined) {
+      this.sink.session = result.session;
+    }
+    return result;
+  };
+}
+
+function okSession(cookie: string): LoginResult {
+  return LoginResult.success({ cookie: 'JSESSIONID=' + cookie, csrfToken: 'csrf-' + cookie }, 'zh');
+}
+
+/** 把真实 runner 接到 RealCourseRepository 上（设备侧同构的适配器，见 CourseRepositoryProvider）。 */
+class RunnerExecutor implements AuthedTaskExecutor {
+  private readonly runner: AuthedTaskRunner;
+
+  constructor(runner: AuthedTaskRunner) {
+    this.runner = runner;
+  }
+
+  run(task: SessionTask): Promise<AuthedRunResult> {
+    return this.runner.run(task);
+  }
 }
 
 /** 一门课的最小记录（本用例只关心 id / name）。 */
@@ -515,6 +569,71 @@ export default function courseDataTest() {
         message = (error as Error).message;
       }
       expect(message.includes('requiresEnrollment=true')).assertTrue();
+    });
+
+    it('recovers the refresh when the stale session answers without a semester', 0, async () => {
+      // 设备现象（2026-09）：驻留后台后回到前台刷新 —— 内存里那份会话服务端已经不认，
+      // 学期接口回 200 但不含 xnxq，取数源**抛错**。修复前这个抛错绕过 SessionGate，
+      // 界面直接显示 `semester resolution failed: no xnxq in current semester response: bytes=69`。
+      // 这里断言整条链路（RealCourseRepository → AuthedTaskRunner → SessionGate → 三域取数源）
+      // 能自动重登并重试成功；第一次 attempt 走的是那个 200 + 错误信封。
+      const port: ScriptedFetchPort = new ScriptedFetchPort()
+        .routeSeq('getCurrentAndNextSemester', [STALE_SESSION_ENVELOPE_JSON, CURRENT_SEMESTER_JSON])
+        .route('queryxnxq', SEMESTER_LIST_JSON)
+        .route('loadCourseBySemesterId', COURSE_LIST_JSON)
+        .route('pageListXsbyWgq', NOTICE_LIST_JSON)
+        .route('pageListXsbyYgq', EMPTY_NOTICE_LIST_JSON)
+        .routeSeq('zyListWj', [assignmentBody('xs-c1'), assignmentBody('xs-c2')])
+        .route('zyListYjwg', EMPTY_ASSIGNMENT_LIST_JSON)
+        .route('zyListYpg', EMPTY_ASSIGNMENT_LIST_JSON)
+        .route('kjxxbByWlkcidAndSizeForStudent', FILE_LIST_JSON);
+      const login: ScriptedLogin = new ScriptedLogin([okSession('FRESH')]);
+      // 内存里先放一份"看着有、服务端已不认"的会话：restore() 会短路它 —— 这正是缺陷的入口。
+      login.sink.session = { cookie: 'JSESSIONID=STALE', csrfToken: 'csrf-stale' };
+      const coordinator: ReAuthCoordinator = new ReAuthCoordinator(login.login, logger);
+      const restorer: SessionRestorer = new SessionRestorer({
+        coordinator: coordinator, currentSession: login.sink.current, logger: logger
+      });
+      const runner: AuthedTaskRunner = new AuthedTaskRunner(restorer,
+        new SessionGate(coordinator, logger), login.sink.current, logger);
+      const repository: RealCourseRepository = new RealCourseRepository(
+        new RunnerExecutor(runner), fetchSource(port), logger);
+
+      const snapshot: CourseSnapshot = await repository.refresh();
+      expect(snapshot.courses.length).assertEqual(2);
+      expect(snapshot.semesterId).assertEqual('2026-2027-1');
+      // 恰好重登一次（单飞），且重试用的是**刷新后**的会话
+      expect(login.calls).assertEqual(1);
+      expect(login.sink.session?.cookie).assertEqual('JSESSIONID=FRESH');
+    });
+
+    it('degrades to enrollment when the stale session keeps answering without a semester', 0, async () => {
+      // 重登后学期接口仍回 200 + 错误信封 ⇒ 走既有的 NOT_LOGGED_IN 降级：仓储抛带
+      // requiresEnrollment=true 的错，界面据此显示 loh_session_expired（而不是原始错误串）。
+      const port: ScriptedFetchPort = new ScriptedFetchPort()
+        .routeSeq('getCurrentAndNextSemester', [STALE_SESSION_ENVELOPE_JSON, STALE_SESSION_ENVELOPE_JSON]);
+      const login: ScriptedLogin = new ScriptedLogin([okSession('FRESH')]);
+      login.sink.session = { cookie: 'JSESSIONID=STALE', csrfToken: 'csrf-stale' };
+      const coordinator: ReAuthCoordinator = new ReAuthCoordinator(login.login, logger);
+      const restorer: SessionRestorer = new SessionRestorer({
+        coordinator: coordinator, currentSession: login.sink.current, logger: logger
+      });
+      const runner: AuthedTaskRunner = new AuthedTaskRunner(restorer,
+        new SessionGate(coordinator, logger), login.sink.current, logger);
+      const repository: RealCourseRepository = new RealCourseRepository(
+        new RunnerExecutor(runner), fetchSource(port), logger);
+
+      let message: string = '';
+      try {
+        await repository.refresh();
+      } catch (error) {
+        message = (error as Error).message;
+      }
+      expect(message.includes('requiresEnrollment=true')).assertTrue();
+      // FailReason.NOT_LOGGED_IN 的字符串值照搬参考实现（AuthTypes）
+      expect(message.includes('not logged in or login timeout')).assertTrue();
+      // 只重登一次、只重试一次：没有静默重试循环
+      expect(login.calls).assertEqual(1);
     });
   });
 

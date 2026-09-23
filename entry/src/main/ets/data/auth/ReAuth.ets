@@ -16,6 +16,12 @@
  * | noLogin(403/login_timeout) | 触发（单飞） | 仍 noLogin | 失败 NOT_LOGGED_IN |
  * | noLogin | 触发（单飞） | 状态码非 200 | 失败 UNEXPECTED_STATUS |
  * | 任意 | 登录本身失败 | —— | 失败（透传登录原因，requiresEnrollment=true） |
+ * | 任务**抛出**"当前学期响应不可用" | 触发（单飞） | 仍抛同样的错 | 失败 NOT_LOGGED_IN |
+ *
+ * 最后一行是**异常层**的会话失效：三域取数源在"学期解析"这一步失败时是抛错而不是返回结果
+ * （学期是前置条件，拿不到就没有可返回的东西），而本类只分类**返回**的 TaskOutcome ⇒ 抛错会
+ * 整条绕过"重登 + 只重试一次"。`runTask` 把这种抛错折成 noLogin（借既有判据，不新增分类），
+ * 于是既有的重登、只重试一次与降级语义原样生效。
  *
  * 单飞照搬 source.ts:111-121 的 reAuthPromise：并发 N 个请求只触发一次登录。
  * 任何失败都 requiresEnrollment=true —— 「任何非预期响应一律降级 Enrollment」，
@@ -24,7 +30,7 @@
 
 import { Logger } from '../../core/log/Logger';
 import { FailReason, LoginResult } from './AuthTypes';
-import { isNoLoginResponse, isEmptyListResult } from './LoginParsers';
+import { isNoLoginResponse, isEmptyListResult, isSessionLostErrorMessage } from './LoginParsers';
 
 /** 被包装任务的返回：状态 + 响应体 + 响应 URL（三域抓取里 value 就是 JSON 字符串）。 */
 export interface TaskOutcome {
@@ -146,7 +152,7 @@ export class SessionGate {
 
   /** 跑一次任务；会话失效则（单飞）重登并**只重试一次**。 */
   async run(task: () => Promise<TaskOutcome>): Promise<ReAuthRunResult> {
-    const first: TaskOutcome = await task();
+    const first: TaskOutcome = await this.runTask(task);
     const kind: SessionLostKind = sessionLostKind(first);
     if (kind === SessionLostKind.NONE) {
       return ReAuthRunResult.success(first.body, false, false,
@@ -161,7 +167,7 @@ export class SessionGate {
         'reAuth login failed: ' + loginResult.diagnostic);
     }
 
-    const retry: TaskOutcome = await task();
+    const retry: TaskOutcome = await this.runTask(task);
     const retryKind: SessionLostKind = sessionLostKind(retry);
     if (kind === SessionLostKind.NO_LOGIN) {
       if (retryKind === SessionLostKind.NO_LOGIN) {
@@ -181,5 +187,29 @@ export class SessionGate {
     }
     return ReAuthRunResult.success(retry.body, true, stillLost,
       'status=' + retry.status.toString() + ' stillLost=' + stillLost.toString());
+  }
+
+  /**
+   * 跑一次任务，并把**抛出来的**会话失效折成 noLogin 结果（`status=403`）。
+   *
+   * 为什么必须有这一条：见文件头的异常层说明。折成 403 是**借既有判据**
+   * （`isNoLoginResponse` 的两条之一），不新增分类 —— 于是"重登后仍抛同样的错"自然落进
+   * 既有的 NOT_LOGGED_IN 降级分支，界面显示 `loh_session_expired` 而不是原始错误串。
+   *
+   * 不是会话原因的抛错**照原样抛出**：由仓储 / 界面显式失败，不在这里被吞成"会话失效"
+   * （例如"课程列表形状不符"这类站点改版信号）。
+   */
+  private async runTask(task: () => Promise<TaskOutcome>): Promise<TaskOutcome> {
+    try {
+      return await task();
+    } catch (error) {
+      const message: string = (error as Error).message;
+      if (isSessionLostErrorMessage(message)) {
+        this.logger.warn('session lost by thrown error (treated as noLogin): ' + message);
+        return { status: 403, body: '', responseUrl: '' };
+      }
+      // arkts-limited-throw：只能抛 Error 类型，所以重新包装（消息逐字保留）。
+      throw new Error(message);
+    }
   }
 }

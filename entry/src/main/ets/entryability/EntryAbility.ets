@@ -34,6 +34,9 @@ import {
   describeFileSettingsOverride, setRuntimeFileSettingsOverride
 } from '../data/settings/FileSettings';
 import { markPageShown } from '../features/shell/PageShown';
+import { authServices } from '../features/auth/AuthServices';
+import { reAuthAfterIdle } from '../features/auth/ForegroundReAuth';
+import { SessionRestoreResult } from '../data/auth/SessionRestore';
 
 const logger: Logger = new Logger('entry.ability');
 
@@ -67,6 +70,12 @@ export default class EntryAbility extends UIAbility {
    * 不给 windowStage，所以窗口得先存下来。
    */
   private mainWindow: window.Window | null = null;
+
+  /**
+   * 最近一次进后台的时刻（毫秒；0 = 从没进过后台）。回到前台时用它算闲置时长 ——
+   * 判据与阈值在 features/auth/ForegroundReAuth（照参考实现 App.tsx:796 的 10 分钟）。
+   */
+  private backgroundedAtMillis: number = 0;
 
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     try {
@@ -240,10 +249,19 @@ export default class EntryAbility extends UIAbility {
     // 触发源之二：从后台回到前台。四个列表页据此重算页头那一行相对时间；
     // 动作的唯一实现（也是唯一写那个 AppStorage 键的地方）在 features/shell/PageShown.ets。
     markPageShown('ability-foreground');
+    // 驻留后台过久 ⇒ 内存里那份会话很可能已被服务端判失效（cookie 只在内存，ADR-0004）。
+    // 先换一份新的（照参考实现 App.tsx:774-818 的 handleReLogin）；**不等待**、失败不打扰界面：
+    // 下一次真实请求仍会走 SessionGate 的"重登 + 只重试一次"，由那里决定是否降级。
+    const nowMillis: number = Date.now();
+    reAuthAfterIdle(this.backgroundedAtMillis, nowMillis,
+      (): Promise<SessionRestoreResult> => authServices.refreshSession());
+    this.backgroundedAtMillis = 0;
     logger.info('Ability onForeground');
   }
 
   onBackground(): void {
-    logger.info('Ability onBackground');
+    // 记下进后台的时刻：回到前台时算闲置时长（唯一消费点见 onForeground）。
+    this.backgroundedAtMillis = Date.now();
+    logger.info('Ability onBackground at=' + this.backgroundedAtMillis.toString());
   }
 }

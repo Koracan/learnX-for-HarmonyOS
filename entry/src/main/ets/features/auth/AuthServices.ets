@@ -9,7 +9,9 @@
  *   - `loginClient`：纯 HTTP 7 步登录，cookie jar 就用 `session` 的那一个；
  *   - `loginAction`：从凭据库读 → 登录 → **成功才 adopt 会话**（内存），并且是 re-auth 的唯一出口；
  *   - `restorer`：冷启动静默重登（单飞 + 整体超时 + 失败分类）；
- *   - `runner`：数据路径入口（先确保会话 → SessionGate 包任务），三域仓储用它。
+ *   - `runner`：数据路径入口（先确保会话 → SessionGate 包任务），三域仓储用它；
+ *   - `refreshSession()`：**强制**换一份会话（不短路内存里那份），回到前台且闲置过久时用
+ *     （触发判据在 features/auth/ForegroundReAuth）。
  *
  * 会话 cookie 只在内存（ADR-0004）：本文件没有任何 preferences / 文件写入。
  */
@@ -26,7 +28,7 @@ import { LoginClient } from '../../data/auth/LoginClient';
 import { ReAuthCoordinator, SessionGate } from '../../data/auth/ReAuth';
 import { LoginResult, FailReason, CredentialEncryptor, EncryptorResult } from '../../data/auth/AuthTypes';
 import {
-  AuthedTaskRunner, SessionRestorer, credentialsFor
+  AuthedTaskRunner, SessionRestoreResult, SessionRestorer, credentialsFor
 } from '../../data/auth/SessionRestore';
 import { HttpFetchPort } from '../../data/remote/HttpFetchPort';
 import { Session } from '../../data/remote/Requests';
@@ -107,6 +109,21 @@ export class AuthServices {
     } else {
       logger.warn('re-auth session NOT adopted: reason=' + result.reason + ' diag=' + result.diagnostic);
     }
+    return result;
+  }
+
+  /**
+   * **强制**换一份会话（无视内存里已有的那份）：回到前台且闲置过久时用
+   * （触发判据在 features/auth/ForegroundReAuth，对应参考实现 App.tsx:774-818）。
+   *
+   * 与数据路径的 `restore()` 共用同一个单飞协调器 —— 此刻若正好有一次登录在途，这里会
+   * **加入**它，不会并发发起第二次登录。失败只记日志、不抛：这是一次提前量，真正的降级
+   * 由下一次请求的 SessionGate 决定。
+   */
+  async refreshSession(): Promise<SessionRestoreResult> {
+    const result: SessionRestoreResult = await this.restorer.refreshSession();
+    logger.info('forced session refresh: ok=' + result.ok().toString()
+      + ' kind=' + result.kind + ' ' + result.diagnostic);
     return result;
   }
 

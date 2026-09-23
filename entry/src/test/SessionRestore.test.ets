@@ -169,6 +169,39 @@ export default function sessionRestoreTest() {
       expect(restorer.attemptCount()).assertEqual(1);
     });
 
+    it('forcesANewLoginWhenTheInMemorySessionIsStale', 0, async () => {
+      // 回到前台且闲置过久：内存里有会话**不等于**服务端还认它 ⇒ 必须换一份
+      // （restore() 的短路是数据路径要的；这条路径要的正是绕过它）。
+      const auth: ScriptedAuth = new ScriptedAuth([okLoginWith('COLD'), okLoginWith('FRESH')], 0);
+      const restorer: SessionRestorer = restorerFor(auth);
+      const cold: SessionRestoreResult = await restorer.restore();
+      expect(cold.session?.cookie).assertEqual('COLD');
+      const refreshed: SessionRestoreResult = await restorer.refreshSession();
+      expect(refreshed.ok()).assertTrue();
+      expect(refreshed.session?.cookie).assertEqual('FRESH');
+      expect(auth.calls).assertEqual(2);
+      expect(restorer.attemptCount()).assertEqual(2);
+      // 换完之后数据路径拿到的就是新会话（restore() 短路的已是 adopt 之后那一份）
+      const after: SessionRestoreResult = await restorer.restore();
+      expect(after.session?.cookie).assertEqual('FRESH');
+      expect(auth.calls).assertEqual(2);
+    });
+
+    it('joinsAnInFlightForcedRefreshInsteadOfReturningTheStaleSession', 0, async () => {
+      // 前台换会话与用户此刻触发的数据请求可能并发：两边必须共享同一次登录，
+      // 且并发的那次 restore() 不能把**旧**会话交出去（否则那一轮请求注定白跑）。
+      const auth: ScriptedAuth = new ScriptedAuth([okLoginWith('COLD'), okLoginWith('FRESH')], 30);
+      const restorer: SessionRestorer = restorerFor(auth);
+      await restorer.restore();
+      const forced: Promise<SessionRestoreResult> = restorer.refreshSession();
+      const joined: SessionRestoreResult = await restorer.restore();
+      const refreshed: SessionRestoreResult = await forced;
+      expect(joined.session?.cookie).assertEqual('FRESH');
+      expect(refreshed.session?.cookie).assertEqual('FRESH');
+      expect(auth.calls).assertEqual(2);
+      expect(restorer.attemptCount()).assertEqual(2);
+    });
+
     it('classifiesMissingCredentialsAsNeedsEnrollment', 0, async () => {
       const auth: ScriptedAuth = new ScriptedAuth([failureLogin(FailReason.NO_CREDENTIAL)], 0);
       const result: SessionRestoreResult = await restorerFor(auth).restore();

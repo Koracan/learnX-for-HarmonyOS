@@ -189,29 +189,55 @@ export class SessionRestorer {
 
   /**
    * 恢复会话。并发调用共享同一次登录（单飞）；失败不抛异常。
+   *
+   * 内存里已有会话时**短路**（否则数据路径每个请求都会重登一次）。注意这也意味着
+   * "服务端已经不认、内存里那份还在"这种状态**不会**在这里被换掉 —— 换它的是
+   * `refreshSession()`（回到前台且闲置过久时触发，见 features/auth/ForegroundReAuth）。
    */
   async restore(): Promise<SessionRestoreResult> {
+    if (this.inFlight !== undefined) {
+      this.logger.info('restore: joining in-flight re-auth');
+      return this.inFlight;
+    }
     const existing: Session | null = this.currentSession();
     if (existing !== null) {
       this.logger.info('restore: session already in memory; no login needed');
       return SessionRestoreResult.restored(existing, this.lastLanguage, 'session already established');
     }
-    if (this.inFlight === undefined) {
-      this.attempts++;
-      this.logger.info('restore: silent re-auth #' + this.attempts.toString()
-        + ' starting (pure HTTP, no webview)');
-      const pending: Promise<SessionRestoreResult> = this.attempt();
-      this.inFlight = pending;
-      pending.then((settled: SessionRestoreResult): void => {
-        this.inFlight = undefined;
-      }).catch((error: Error): void => {
-        this.inFlight = undefined;
-        this.logger.error('restore: unexpected throw: ' + error.message);
-      });
-    } else {
-      this.logger.info('restore: joining in-flight re-auth');
+    return this.startAttempt('cold-start');
+  }
+
+  /**
+   * **无视内存里的会话**，强制重登一次（回到前台且闲置过久时用）。
+   *
+   * 与 `restore()` 共用同一套"单飞 + 整体超时 + 失败分类"，差别只有一条：不短路已有会话 ——
+   * 那正是这条路径存在的理由（内存里有会话 ≠ 服务端还认它）。失败不抛异常。
+   */
+  refreshSession(): Promise<SessionRestoreResult> {
+    if (this.inFlight !== undefined) {
+      this.logger.info('restore: joining in-flight re-auth (forced refresh)');
+      return this.inFlight;
     }
-    return this.inFlight;
+    return this.startAttempt('forced');
+  }
+
+  /**
+   * 发起一次登录尝试。**单飞登记的落点只有这里**（`inFlight` 的赋值只此一处）：
+   * 冷启动恢复与前台强制换会话共用它，于是两条路径天然不会并发发起两次登录。
+   */
+  private startAttempt(trigger: string): Promise<SessionRestoreResult> {
+    this.attempts++;
+    this.logger.info('restore: silent re-auth #' + this.attempts.toString()
+      + ' starting trigger=' + trigger + ' (pure HTTP, no webview)');
+    const pending: Promise<SessionRestoreResult> = this.attempt();
+    this.inFlight = pending;
+    pending.then((settled: SessionRestoreResult): void => {
+      this.inFlight = undefined;
+    }).catch((error: Error): void => {
+      this.inFlight = undefined;
+      this.logger.error('restore: unexpected throw: ' + error.message);
+    });
+    return pending;
   }
 
   private async attempt(): Promise<SessionRestoreResult> {
