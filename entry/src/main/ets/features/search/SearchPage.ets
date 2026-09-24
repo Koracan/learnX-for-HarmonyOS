@@ -68,6 +68,7 @@ import { searchAssignments, searchFiles, searchNotices } from './SearchCore';
 import { closeSearch } from './SearchEntry';
 import { CourseListStore } from '../courses/CourseListStore';
 import { courseListStore } from '../courses/CourseListStoreProvider';
+import { loadFailureText } from '../shell/LoadFailureText';
 import { FileDetailPage } from '../files/FileDetailPage';
 import { AssignmentDetailPage } from '../assignments/AssignmentDetailPage';
 import { AssignmentSubmissionPage } from '../assignments/AssignmentSubmissionPage';
@@ -297,12 +298,9 @@ export struct SearchPage {
   }
 
   private errorText(): string {
-    const message: string = this.store.errorMessage;
-    if (message.includes('requiresEnrollment=true')) {
-      return i18nService.t('loh_session_expired');
-    }
-    // 搜索页的数据来自**课程线的同一次抓取**（CourseListStore），所以失败文案用课程那条键。
-    return i18nService.t('ui_courses_load_failed', message);
+    // 搜索页的数据来自**课程线的同一次抓取**（CourseListStore），所以失败文案用课程那条键；
+    // 原因分类（断网 / 会话失效 / 其它）只有一处：features/shell/LoadFailureText。
+    return loadFailureText(this.store.errorMessage, 'ui_courses_load_failed');
   }
 
   /* ------------------------------------------------------------------ *

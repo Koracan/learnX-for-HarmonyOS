@@ -12,7 +12,11 @@ import { logBuffer } from '../main/ets/core/log/LogBuffer';
 import { AuthedRunResult, AuthedTaskRunner, SessionRestorer, SessionTask } from '../main/ets/data/auth/SessionRestore';
 import { ReAuthCoordinator, SessionGate } from '../main/ets/data/auth/ReAuth';
 import { FailReason, LoginResult } from '../main/ets/data/auth/AuthTypes';
-import { FetchOutcome, FetchPort, GetSpec, PostFormSpec, UploadSpec } from '../main/ets/data/remote/Port';
+import { isSessionLostErrorMessage } from '../main/ets/data/auth/LoginParsers';
+import {
+  FetchOutcome, FetchPort, GetSpec, NO_RESPONSE_MARKER, PostFormSpec, UploadSpec
+} from '../main/ets/data/remote/Port';
+import { LoadFailureKind, classifyLoadFailure } from '../main/ets/features/shell/LoadFailureText';
 import { Session } from '../main/ets/data/remote/Requests';
 import { AuthedTaskExecutor } from '../main/ets/data/notices/RealNoticeRepository';
 import {
@@ -161,6 +165,24 @@ class ScriptedFetchPort implements FetchPort {
 
   async upload(session: Session, spec: UploadSpec): Promise<FetchOutcome> {
     return { ok: true, status: 200, body: '{"result":"success"}' };
+  }
+}
+
+/**
+ * 断网替身：平台**没拿到任何响应**（status=0，口径见 data/auth/AuthTypes.isNetworkFailure）。
+ * 设备实测的那一次（2026-09-24 01:30）就是它：手机驻留后台 3 小时后回到前台、DNS 还没就绪。
+ */
+class NoResponseFetchPort implements FetchPort {
+  async get(session: Session, spec: GetSpec): Promise<FetchOutcome> {
+    return { ok: false, status: 0, body: '', error: 'Failed to resolve the host name' };
+  }
+
+  async postForm(session: Session, spec: PostFormSpec): Promise<FetchOutcome> {
+    return { ok: false, status: 0, body: '', error: 'Failed to resolve the host name' };
+  }
+
+  async upload(session: Session, spec: UploadSpec): Promise<FetchOutcome> {
+    return { ok: false, status: 0, body: '', error: 'Failed to resolve the host name' };
   }
 }
 
@@ -428,6 +450,27 @@ export default function courseDataTest() {
         message = (error as Error).message;
       }
       expect(message.includes('current semester request failed')).assertTrue();
+    });
+
+    it('separatesADeadNetworkFromAServerStatusAndFromSessionLoss', 0, async () => {
+      const port: NoResponseFetchPort = new NoResponseFetchPort();
+      const source: HttpSemesterSource = new HttpSemesterSource(logger, port);
+      let message: string = '';
+      try {
+        await source.resolve(SESSION);
+      } catch (error) {
+        message = (error as Error).message;
+      }
+      // 断网（status=0）必须与"站点给了状态码"分开：前者带 NO_RESPONSE_MARKER（界面据此提示检查网络），
+      // 后者保持既有文案（上一个用例钉的就是它）。设备实测的那次是前者 ——
+      // 旧文案 `current semester request failed: status=0` 被界面原样显示，被读成"登录又过期了"。
+      expect(message.includes(NO_RESPONSE_MARKER)).assertTrue();
+      expect(message.includes('current semester request failed')).assertFalse();
+      // 断网**不是**会话失效：不许触发"重登 + 重试"（重登自己也要网络）。
+      expect(isSessionLostErrorMessage(message)).assertFalse();
+      // 取数源会把它包成 `semester resolution failed: …` 再抛；界面文案判据读到的必须是"断网"。
+      const wrapped: string = 'semester resolution failed: ' + message;
+      expect(classifyLoadFailure(wrapped)).assertEqual(LoadFailureKind.OFFLINE);
     });
   });
 

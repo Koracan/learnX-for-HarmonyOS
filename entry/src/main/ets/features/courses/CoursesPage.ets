@@ -35,6 +35,7 @@ import { FilterChip } from '../../ui/components/FilterChip';
 import { ToastController, ToastOverlay } from '../../ui/components/Toast';
 import { CourseHideAction } from '../../ui/components/SwipeActions';
 import { PAGE_SHOWN_AT_KEY, pageHeaderUpdatedText } from '../shell/PageShown';
+import { loadFailureText } from '../shell/LoadFailureText';
 import { AppIcon } from '../../ui/icons/IconCatalog';
 import { IconGlyph } from '../../ui/icons/IconGlyph';
 import { SessionHeaderProvider, createSessionHeaderProvider } from '../../core/web/SessionHeaderProvider';
@@ -238,11 +239,8 @@ export struct CoursesPage {
   }
 
   private errorText(): string {
-    const message: string = this.store.errorMessage;
-    if (message.includes('requiresEnrollment=true')) {
-      return i18nService.t('loh_session_expired');
-    }
-    return i18nService.t('ui_courses_load_failed', message);
+    // 断网 / 会话失效 / 其它三类与对应文案只有一处：features/shell/LoadFailureText。
+    return loadFailureText(this.store.errorMessage, 'ui_courses_load_failed');
   }
 
   private async handlePullRefresh(): Promise<void> {

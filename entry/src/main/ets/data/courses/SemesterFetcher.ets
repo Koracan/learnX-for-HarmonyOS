@@ -21,7 +21,7 @@ import { sortSemesterIds } from '../../domain/model/Semester';
 import { UNUSABLE_SEMESTER_RESPONSE_MARKER } from '../auth/LoginParsers';
 import { LEARN_ORIGIN, Session } from '../remote/Requests';
 import { authedGet } from '../remote/AuthedRequest';
-import { FetchOutcome, FetchPort } from '../remote/Port';
+import { FetchOutcome, FetchPort, NO_RESPONSE_MARKER, NO_RESPONSE_STATUS } from '../remote/Port';
 
 export const SEMESTER_LOG_DOMAIN: string = 'data.courses';
 
@@ -132,6 +132,11 @@ export class HttpSemesterSource implements SemesterSource {
     const outcome: FetchOutcome = await authedGet(this.port, session, this.logger,
       SEMESTER_LOG_DOMAIN, url);
     if (!outcome.ok) {
+      if (outcome.status === NO_RESPONSE_STATUS) {
+        // 网络层没拿到响应：**不是**会话失效，也不是站点改版。带稳定标记抛出，界面据此
+        // 提示"检查网络"而不是把内部诊断原样显示（判据见 data/remote/Port）。
+        throw new Error(NO_RESPONSE_MARKER + ': status=' + outcome.status.toString());
+      }
       throw new Error('current semester request failed: status=' + outcome.status.toString());
     }
     const id: string = extractSemesterId(outcome.body);

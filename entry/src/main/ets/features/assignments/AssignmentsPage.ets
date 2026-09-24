@@ -39,6 +39,7 @@ import { ConfigurationConstant } from '@kit.AbilityKit';
 import { PLAIN_PALETTE, ThemeTokens, resolveTheme } from '../../ui/theme/Tokens';
 import { i18nService } from '../../core/i18n/I18n';
 import { PAGE_SHOWN_AT_KEY, pageHeaderUpdatedText } from '../shell/PageShown';
+import { loadFailureText } from '../shell/LoadFailureText';
 import { COLOR_MODE_KEY, LOCALE_VERSION_KEY } from '../../entryability/EntryAbility';
 import { Logger } from '../../core/log/Logger';
 import { Assignment } from '../../domain/model/ContentItem';
@@ -249,11 +250,8 @@ export struct AssignmentsPage {
   }
 
   private errorText(): string {
-    const message: string = this.store.errorMessage;
-    if (message.includes('requiresEnrollment=true')) {
-      return i18nService.t('loh_session_expired');
-    }
-    return i18nService.t('ui_assignments_load_failed', message);
+    // 断网 / 会话失效 / 其它三类与对应文案只有一处：features/shell/LoadFailureText。
+    return loadFailureText(this.store.errorMessage, 'ui_assignments_load_failed');
   }
 
   private async handlePullRefresh(): Promise<void> {

@@ -31,6 +31,7 @@ import { FilterChip } from '../../ui/components/FilterChip';
 import { ToastController, ToastOverlay } from '../../ui/components/Toast';
 import { ContentSwipeActions } from '../../ui/components/SwipeActions';
 import { PAGE_SHOWN_AT_KEY, pageHeaderUpdatedText } from '../shell/PageShown';
+import { loadFailureText } from '../shell/LoadFailureText';
 import { AppIcon } from '../../ui/icons/IconCatalog';
 import { IconGlyph } from '../../ui/icons/IconGlyph';
 import { ContentFilter } from '../../domain/marks/ContentFilter';
@@ -217,11 +218,8 @@ export struct FilesPage {
 
   private errorText(): string {
     const store: FileListStore | null = this.store;
-    const message: string = store === null ? '' : store.errorMessage;
-    if (message.includes('requiresEnrollment=true')) {
-      return i18nService.t('loh_session_expired');
-    }
-    return i18nService.t('ui_files_load_failed', message);
+    // 断网 / 会话失效 / 其它三类与对应文案只有一处：features/shell/LoadFailureText。
+    return loadFailureText(store === null ? '' : store.errorMessage, 'ui_files_load_failed');
   }
 
   private timeTextOf(file: CourseFile): string {

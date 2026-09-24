@@ -23,6 +23,32 @@ export interface FetchOutcome {
 }
 
 /**
+ * 平台**没拿到任何响应**时的状态码（`HttpFetchPort` 透传 `HttpResponse.statusCode`，
+ * 失败时平台给 0）。判据与 `data/auth/AuthTypes.isNetworkFailure` 同一口径：
+ * 服务端给了 4xx/5xx 时 status > 0，那不算网络失败。
+ */
+export const NO_RESPONSE_STATUS: number = 0;
+
+/**
+ * 「没收到响应」的稳定标记（**网络层**失败：既不是会话失效，也不是站点改版）。
+ *
+ * 为什么需要一条标记：三域取数源在"学期解析"这一步是**抛错**而不是返回 `TaskOutcome`，
+ * 而 `SessionGate` 只分类返回的结果 ⇒ 抛出来的失败没有结构化原因可用，界面只能拿到一个字符串。
+ * 断网时 `getCurrentAndNextSemester` 的 outcome 就是 `status=0`，旧文案把它写成
+ * `current semester request failed: status=0` —— 设备实测（2026-09-24 01:30 真机日志：
+ * 手机长时间驻留后台刚回到前台、DNS 还没就绪）横幅直接显示这句内部诊断，被读成"登录又过期了"。
+ *
+ * 标记落在端口层：它是**取数失败的原因分类**，与具体域无关；消费点在
+ * `features/shell/LoadFailureText`（界面文案的唯一出口）。
+ */
+export const NO_RESPONSE_MARKER: string = 'no response from the site (network unreachable)';
+
+/** 取数失败消息是否是"没收到响应"（网络层失败）。 */
+export function isNoResponseErrorMessage(message: string): boolean {
+  return message.length > 0 && message.includes(NO_RESPONSE_MARKER);
+}
+
+/**
  * 一次 POST `urlencoded` 请求。
  *
  * 表单体只有两种形态（照参考实现的两个 POST 接口），因此用两个可选字段表达，
