@@ -13,6 +13,7 @@
 /.appanalyzer
 /.preview
 oh-package-lock.json5
+**/__pycache__
 
 # ---- Signing materials and local machine state ----
 /keys/
